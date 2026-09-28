@@ -69,8 +69,8 @@ def load_config(path: str) -> dict[str, Any]:
         return json.loads(text)
     try:
         import tomllib
-    except ImportError:  # pragma: no cover - Python 3.10
-        raise SystemExit("TOML needs Python 3.11 or newer; write the configuration as .json instead")
+    except ImportError:  # pragma: no cover - Python 3.10, where the same parser is the tomli package
+        import tomli as tomllib
     return tomllib.loads(text.decode())
 
 

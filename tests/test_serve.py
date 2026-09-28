@@ -1,7 +1,10 @@
 """`synpath serve` and the `synpath` command: the whole self-hosted stack in one process."""
 from __future__ import annotations
 
-import tomllib
+try:
+    import tomllib
+except ImportError:  # Python 3.10
+    import tomli as tomllib
 from decimal import Decimal as D
 from pathlib import Path
 
