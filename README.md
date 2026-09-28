@@ -167,7 +167,7 @@ secret.
 
 ## Prior Art
 
-[ccxt](https://github.com/ccxt/ccxt) set the conventions this library follows. [pmxt](https://github.com/pmxt-dev/pmxt) got to prediction markets first.
+[ccxt](https://github.com/ccxt/ccxt) set the conventions this library follows.
 
 ## License
 
