@@ -11,6 +11,10 @@ One open-source API across Kalshi, Polymarket and Polymarket US: market data, or
 
 </div>
 
+> [!TIP]
+> **🆕 New: Every Kalshi order book, every tick.**<br/>
+> Full-depth books and trades for every past Kalshi trade. Query any moment in under a minute. **[Get the data →](https://synpath.dev/tick-data)**
+
 ---
 
 ## Supported Exchanges
