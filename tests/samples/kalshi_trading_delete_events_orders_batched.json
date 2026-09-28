@@ -1,0 +1,14 @@
+{
+  "orders": [
+    {
+      "order_id": "01a0afc0-4eb8-7bda-8572-a31aa5cee4c9",
+      "reduced_by": "1.00",
+      "ts_ms": 1789655014075
+    },
+    {
+      "order_id": "01a0afc0-4eb8-7304-bf2b-7ce445444752",
+      "reduced_by": "1.00",
+      "ts_ms": 1789655014076
+    }
+  ]
+}

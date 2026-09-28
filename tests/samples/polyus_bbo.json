@@ -1,0 +1,51 @@
+{
+ "marketData": {
+  "marketSlug": "tec-mlb-nlchamp-2026-09-27-atl",
+  "currentPx": {
+   "value": "0.1060",
+   "currency": "USD"
+  },
+  "lastTradePx": {
+   "value": "0.1060",
+   "currency": "USD"
+  },
+  "settlementPx": {
+   "value": "0.1090",
+   "currency": "USD"
+  },
+  "sharesTraded": "5343.0000",
+  "openInterest": "138740.0000",
+  "bestAsk": {
+   "value": "0.1070",
+   "currency": "USD"
+  },
+  "bestBid": {
+   "value": "0.1060",
+   "currency": "USD"
+  },
+  "askDepth": 14,
+  "bidDepth": 12,
+  "lastPriceSample": {
+   "longPx": {
+    "value": "0.1060",
+    "currency": "USD"
+   },
+   "shortPx": {
+    "value": "0.894",
+    "currency": "USD"
+   },
+   "ts": "2026-09-17T12:37:57.586746678Z"
+  },
+  "longQuote": {
+   "value": "0.1070",
+   "currency": "USD"
+  },
+  "shortQuote": {
+   "value": "0.894",
+   "currency": "USD"
+  },
+  "state": "MARKET_STATE_OPEN",
+  "bidShares": "420000",
+  "askShares": "250000"
+ }
+}

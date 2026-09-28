@@ -1,0 +1,133 @@
+{
+ "market": {
+  "id": "1",
+  "question": "Los Angeles vs. Tennessee",
+  "slug": "aec-nfl-lac-ten-2025-11-02",
+  "endDate": "2025-11-03T13:00:00Z",
+  "category": "sports",
+  "startDate": "2025-10-29T22:00:01Z",
+  "description": "In the upcoming american football game, scheduled for November 2 at 1:00PM ET:\nIf Los Angeles wins, the market will resolve to “Los Angeles”.\nIf Tennessee wins, the market will resolve to “Tennessee”.\nIf the game is postponed, this market will remain open until the game has been completed.\nIf the game is canceled entirely, with no make-up game, this market will resolve 50-50.",
+  "active": true,
+  "marketType": "moneyline",
+  "closed": true,
+  "createdAt": "2026-03-07T02:30:00Z",
+  "updatedAt": "2026-09-11T07:43:00Z",
+  "archived": false,
+  "orderPriceMinTickSize": 0.001,
+  "gameStartTime": "2025-11-02T18:00:00Z",
+  "manualActivation": false,
+  "sportsMarketType": "moneyline",
+  "marketSides": [
+   {
+    "id": "1",
+    "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+    "identifier": "aec-nfl-lac-ten-2025-11-02",
+    "createdAt": "2025-10-30T00:23:45Z",
+    "updatedAt": "2025-10-30T00:23:45Z",
+    "description": "Chargers",
+    "price": "1",
+    "marketId": 1,
+    "long": true,
+    "teamId": 65,
+    "team": {
+     "id": 65,
+     "name": "Los Angeles Chargers",
+     "abbreviation": "lac",
+     "league": "nfl",
+     "record": "0-1",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/NFL+Team+Logos/LAC.png",
+     "alias": "Chargers",
+     "safeName": "LA Chargers",
+     "homeIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/Polymarket_LosAngelesChargers_FacingRight_Icon%40160x160.png",
+     "awayIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/Polymarket_LosAngelesChargers_FacingLeft_Icon%40160x160.png",
+     "colorPrimary": "#0080C6",
+     "providerId": 29,
+     "ordering": "away",
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/NFL/Polymarket_NFL_LosAngelesChargers_L@320x320.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/NFL/Polymarket_NFL_LosAngelesChargers_R@320x320.png",
+     "displayAbbreviation": "LAC",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "29"
+      },
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "1f6dcffb-9823-43cd-9ff4-e7a8466749b5"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/NFL/Polymarket_NFL_LosAngelesChargers_L@320x320.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/NFL/Polymarket_NFL_LosAngelesChargers_R@320x320.png",
+     "color": {
+      "light": "#0080C6",
+      "dark": "#0080C6"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    "tradable": true
+   },
+   {
+    "id": "2",
+    "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+    "identifier": "aec-nfl-lac-ten-2025-11-02",
+    "createdAt": "2025-10-30T00:23:45Z",
+    "updatedAt": "2025-10-30T00:23:45Z",
+    "description": "Titans",
+    "price": "0",
+    "marketId": 1,
+    "long": false,
+    "teamId": 78,
+    "team": {
+     "id": 78,
+     "name": "Tennessee Titans",
+     "abbreviation": "ten",
+     "league": "nfl",
+     "record": "0-1",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/NFL+Team+Logos/TEN.png",
+     "alias": "Titans",
+     "safeName": "TEN Titans",
+     "homeIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/Polymarket_TennesseeTitans_FacingRight_Icon%40160x160.png",
+     "awayIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/Polymarket_TennesseeTitans_FacingLeft_Icon%40160x160.png",
+     "colorPrimary": "#4B92DB",
+     "providerId": 34,
+     "ordering": "home",
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/NFL/Polymarket_NFL_TennesseeTitans_L@320x320.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/NFL/Polymarket_NFL_TennesseeTitans_R@320x320.png",
+     "displayAbbreviation": "TEN",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "34"
+      },
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "d26a1ca5-722d-4274-8f97-c92e49c96315"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/NFL/Polymarket_NFL_TennesseeTitans_L@320x320.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/NFL/Polymarket_NFL_TennesseeTitans_R@320x320.png",
+     "color": {
+      "light": "#4B92DB",
+      "dark": "#4B92DB"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    "tradable": true
+   }
+  ],
+  "outcomes": "[\"Chargers\",\"Titans\"]",
+  "outcomePrices": "[\"1\",\"0\"]",
+  "ep3Status": "EXPIRED",
+  "status": "MARKET_STATUS_RESOLVED",
+  "assetPriceTerms": null,
+  "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_MONEYLINE",
+  "hidden": false,
+  "tags": [],
+  "feeCoefficient": 0.0695,
+  "ep3SyncedAt": "2026-09-11T07:43:00Z",
+  "minimumTradeQty": 1,
+  "comboEnabled": true
+ }
+}

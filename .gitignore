@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+dist/
+
+# secrets: venue credentials live in the environment or a local .env, never in git
+.env
+.env.*
+!.env.example
+*.pem
+*.key

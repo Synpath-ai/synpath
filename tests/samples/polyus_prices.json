@@ -1,0 +1,29 @@
+{
+ "history": [
+  {
+   "timestamp": 1789131600,
+   "longPrice": 0.115,
+   "shortPrice": 0.889
+  },
+  {
+   "timestamp": 1789279200,
+   "longPrice": 0.145,
+   "shortPrice": 0.868
+  },
+  {
+   "timestamp": 1789282800,
+   "longPrice": 0.145,
+   "shortPrice": 0.868
+  },
+  {
+   "timestamp": 1789390800,
+   "longPrice": 0.156,
+   "shortPrice": 0.869
+  },
+  {
+   "timestamp": 1789416000,
+   "longPrice": 0.165,
+   "shortPrice": 0.85
+  }
+ ]
+}

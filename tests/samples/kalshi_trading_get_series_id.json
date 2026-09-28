@@ -1,0 +1,39 @@
+{
+  "series": {
+    "additional_prohibitions": [
+      "Persons who are employed by any of the Source Agencies are not permitted to trade on the Contract.",
+      "Persons who hold any material, non-public information on the Underlying are not permitted to trade on the Contract."
+    ],
+    "categories": [
+      "Commodities"
+    ],
+    "category": "Commodities",
+    "contract_terms_url": "https://assets.kalshi.com/contract_terms/COMMODITIES.pdf",
+    "contract_url": "https://assets.kalshi.com/regulatory/product-certifications/COMMODITIES.pdf",
+    "exchange_index": 0,
+    "fee_multiplier": 1,
+    "fee_type": "quadratic",
+    "frequency": "hourly",
+    "last_updated_ts": "2026-09-17T08:03:13.734301Z",
+    "product_metadata": {
+      "important_info": {
+        "id": "KXGOLDH-2026-07-27",
+        "markdown": "**Settlement source update:** Following exchange maintenance, this series will transition to Metal.Index.1OZGOLD/USD(feed id 3712) for settlement, beginning with the market settling on Thursday, September 17, 2026 at 6:00 AM ET.",
+        "message": "",
+        "title": ""
+      },
+      "scope": "Gold"
+    },
+    "settlement_sources": [
+      {
+        "name": "Pyth - Gold",
+        "url": "https://app.pyth.com/explore/Metal.Index.1OZGOLD%2FUSD?returnUrl=%2Fexplore%2Fall%3Fsearch%3D3712%26state%3Dstable"
+      }
+    ],
+    "tags": [
+      "Metals"
+    ],
+    "ticker": "KXGOLDH",
+    "title": "Gold Hourly"
+  }
+}

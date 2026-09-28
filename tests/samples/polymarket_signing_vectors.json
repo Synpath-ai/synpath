@@ -1,0 +1,9430 @@
+{
+ "private_key": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+ "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+ "orders": [
+  {
+   "signature_type": 0,
+   "neg_risk": false,
+   "side": "BUY",
+   "maker": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "0",
+   "signature": "0xa23b385f9826de5777e672b463178742bd2e4d50d757d5ac87ddcf817abcafdc03904d6f1db29f4182b68476e12c1c9e5c23a76fa408f87f56eed2aa682955591b",
+   "hash": "0xdf1c6bd25b4bf910c2e1eae6a99805743ab542a7503ce1ebc79ac6e468b8f22e"
+  },
+  {
+   "signature_type": 0,
+   "neg_risk": false,
+   "side": "SELL",
+   "maker": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "0",
+   "signature": "0x615f77857cc449ed981e8dfa0a8f50f5e6a11d739d41f8f37c3497955bfdc7916779af47417f4e014dfd62554f2e68ea23295e6c0d47b986dc10870cc9934a981b",
+   "hash": "0x00b04a87de777a34d4f32cfcf70f6fb1d79f45fdb77c28187cde72774d160233"
+  },
+  {
+   "signature_type": 0,
+   "neg_risk": true,
+   "side": "BUY",
+   "maker": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "0",
+   "signature": "0xc5d00f80fd8b18618d20cb5b23ca7102ffd88a1b2daedaa2db1dac9e99affbf377f2fc700db93890d6a4b4dff79f8044cea755951717768ae2527eebe047eb771c",
+   "hash": "0x2bdb5a50e4c727a09bfb766b1173d02c96235aa4ea2fa1f983c9be2f7d4161d0"
+  },
+  {
+   "signature_type": 0,
+   "neg_risk": true,
+   "side": "SELL",
+   "maker": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "0",
+   "signature": "0x7a03b25f7b0ae4dac0267fec75ba10aefe651debdbb51cd220868a16ba2f77d6447ff77940d82cec06770387071631ac59b63220f9364d4cb1b08e2976b668c71c",
+   "hash": "0x2ccafdb59ef10402d3123e2f974ab7d4ac88afca424112eae5f0c97f7160cc41"
+  },
+  {
+   "signature_type": 1,
+   "neg_risk": false,
+   "side": "BUY",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0xabababababababababababababababababababababababababababababababab",
+   "expiration": "0",
+   "signature": "0x90046f11d21d3821d1c5a89fdc4be52759f5ccc52e23bdb22da5637035a299917dccdb9abefc552d2009c2726cc24115c9fddd8ac8c734e7a77816c4f352365f1b",
+   "hash": "0x0cafc4910e4a1505cd70db8f966c4c2095e797a4c3f7eacb4482d7f46e2fe154"
+  },
+  {
+   "signature_type": 1,
+   "neg_risk": false,
+   "side": "SELL",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0xabababababababababababababababababababababababababababababababab",
+   "expiration": "0",
+   "signature": "0xf5f38c0836390d80d1b9859d9f1d5b6ff6ef5266c96e96c168fe0cf5e7fcbcbd41e1ea5402fc5a210b3c41abb31a3a73d338c6706168b00065720bdf8b1600801c",
+   "hash": "0x717ed21800925691a636bd315e8b0c6eb50869980d013670c2553062ce110565"
+  },
+  {
+   "signature_type": 1,
+   "neg_risk": true,
+   "side": "BUY",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0xabababababababababababababababababababababababababababababababab",
+   "expiration": "0",
+   "signature": "0xc5fbb04afe4e966bae98df0ed6cbe67f64a2fe07e6eaf180225eaaba56d6e7f057d96a8e2aa031007ac15afcbb3bc1791fe58bb4bcc1c364ef42a17634f77ac51c",
+   "hash": "0xa278672ebfe4270d8b449a08be6316c978dc7bb918adb198c81f5cdcae204c5f"
+  },
+  {
+   "signature_type": 1,
+   "neg_risk": true,
+   "side": "SELL",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0xabababababababababababababababababababababababababababababababab",
+   "expiration": "0",
+   "signature": "0x8911520222b485e7b51b41457aa5461c172ce75d541827dbf6f834d437c590f95a25c2c86e8a433240d6b096826322937ebc0547cfbaca146ead47782d2e1c461b",
+   "hash": "0xb507916f2b26e36eca68c124182c9afb017494187d308f43846eb297ee535e00"
+  },
+  {
+   "signature_type": 2,
+   "neg_risk": false,
+   "side": "BUY",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "1713402000",
+   "signature": "0x362185b67d716328e1674e87840e739cebdf73ea733d943fe14c43ec3823ae515003674dcd01fcac21bf8e3e80341b925505c876928c32fbf58846c06ccbf32b1b",
+   "hash": "0xaf3b67094353458ad7d5a3c8448f95305b8eac91b7acec0e2769a96081cc21a7"
+  },
+  {
+   "signature_type": 2,
+   "neg_risk": false,
+   "side": "SELL",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "1713402000",
+   "signature": "0xa4d77177c452c5d37cfacbe32c3b209c5a204e92a1086a289f33d0809efe3c91681feac4d7d1ee3faee653ffa31022df241f22b4a4092b57f416b34417ed4abb1c",
+   "hash": "0x2bc397fc10c7aef963a32d4ec012ffa288e9fb0b0268f81a9ac8ad68833ab61b"
+  },
+  {
+   "signature_type": 2,
+   "neg_risk": true,
+   "side": "BUY",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "1713402000",
+   "signature": "0x7a6bdea776ecf8777ef74f81ec7a7d69883aa0efe7f82016fccaa868fd846e7b53c3e2ea08bd0572551b9fbf782bf01a0bf0309957a76288c2356942522c120f1c",
+   "hash": "0x1371c90f470cc466e02fe7cd7ffe81376e0083de92693049de57053f45730fa1"
+  },
+  {
+   "signature_type": 2,
+   "neg_risk": true,
+   "side": "SELL",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "1713402000",
+   "signature": "0x8bc49508b4b0c7671759090ed52d7041d3e8c0b5c86583df3c7d8f080cd6257a1f5c023c4c6d4e99281d88753ba2f48640f038ed4e428f77b326ad53f07ee4ae1c",
+   "hash": "0x75368e8cad3e77aea25278d82c9aa810d8b6ce85d8f53387610c0cff09ea528c"
+  },
+  {
+   "signature_type": 3,
+   "neg_risk": false,
+   "side": "BUY",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0x1111111111111111111111111111111111111111",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "0",
+   "signature": "0xe3ecabc040fcaebf776cf8d97cd438e5418b42ee0ec633b629603e2d4f6835ad5dadab671b891d44f6f1cf11b9a6d2da5ce0a53a140b6e9461a55d019668a5c91b3264e159346253e26a64e00b69032db0e7d32f94628de3e6eecb50304d7af3d2488236941f93152b3c9efdc9cc621f0f4ffad1d5cc715b93dffe41bd0e65dc8a4f726465722875696e743235362073616c742c61646472657373206d616b65722c61646472657373207369676e65722c75696e7432353620746f6b656e49642c75696e74323536206d616b6572416d6f756e742c75696e743235362074616b6572416d6f756e742c75696e743820736964652c75696e7438207369676e6174757265547970652c75696e743235362074696d657374616d702c62797465733332206d657461646174612c62797465733332206275696c6465722900ba",
+   "hash": "0xc5bc62b6017a63c9dab12fbee9a9b61f34d909d1a53c0325332e71f18a082b55"
+  },
+  {
+   "signature_type": 3,
+   "neg_risk": false,
+   "side": "SELL",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0x1111111111111111111111111111111111111111",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "0",
+   "signature": "0xcdde2119f62e21576806a2d3f7dc84e2bc030083a987731552ebb3714fd8972c2f3d37c9af3fbe4f69a52591d4f2f6b4ad0e4b1df716216b6315c8fd8f548adf1c3264e159346253e26a64e00b69032db0e7d32f94628de3e6eecb50304d7af3d22478864a7658e7f33c83948ac9f8be632110f767d1899116b060aacd9cac445e4f726465722875696e743235362073616c742c61646472657373206d616b65722c61646472657373207369676e65722c75696e7432353620746f6b656e49642c75696e74323536206d616b6572416d6f756e742c75696e743235362074616b6572416d6f756e742c75696e743820736964652c75696e7438207369676e6174757265547970652c75696e743235362074696d657374616d702c62797465733332206d657461646174612c62797465733332206275696c6465722900ba",
+   "hash": "0x9220e1a6431b96d6d19ed4ef6aeb2b025df8253f377efa2664753bb9599b295d"
+  },
+  {
+   "signature_type": 3,
+   "neg_risk": true,
+   "side": "BUY",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0x1111111111111111111111111111111111111111",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "0",
+   "signature": "0x787ad6b76751a55ae9c377b6f21d395a1dc85f4fa8f519c2b2910c54ccd7ffd71036cd7033247e1c85e254479bc6afdbc48c86c3e4f3a5b553e48a73e1343ba11b9b858f53327b0bd13af8ec14cfb35234fb9eb7b0504d1a4e61f433840d30e81a488236941f93152b3c9efdc9cc621f0f4ffad1d5cc715b93dffe41bd0e65dc8a4f726465722875696e743235362073616c742c61646472657373206d616b65722c61646472657373207369676e65722c75696e7432353620746f6b656e49642c75696e74323536206d616b6572416d6f756e742c75696e743235362074616b6572416d6f756e742c75696e743820736964652c75696e7438207369676e6174757265547970652c75696e743235362074696d657374616d702c62797465733332206d657461646174612c62797465733332206275696c6465722900ba",
+   "hash": "0x8789ac6773c050944751ae49825ec220fba4000561f2095a0bf1d781bc46c19b"
+  },
+  {
+   "signature_type": 3,
+   "neg_risk": true,
+   "side": "SELL",
+   "maker": "0x1111111111111111111111111111111111111111",
+   "signer": "0x1111111111111111111111111111111111111111",
+   "token_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+   "maker_amount": 5200000,
+   "taker_amount": 10000000,
+   "salt": 479249096354,
+   "timestamp": 1713398400000,
+   "builder": "0x0000000000000000000000000000000000000000000000000000000000000000",
+   "expiration": "0",
+   "signature": "0x2cc8baa80576dcd80ad616550501196282e61c6a5965d8fb9e3c8079d01ba4a2183e75b711fdfdcdeebcd21d2981783e61360505f9f1f052c4063bdb7ed505c91c9b858f53327b0bd13af8ec14cfb35234fb9eb7b0504d1a4e61f433840d30e81a2478864a7658e7f33c83948ac9f8be632110f767d1899116b060aacd9cac445e4f726465722875696e743235362073616c742c61646472657373206d616b65722c61646472657373207369676e65722c75696e7432353620746f6b656e49642c75696e74323536206d616b6572416d6f756e742c75696e743235362074616b6572416d6f756e742c75696e743820736964652c75696e7438207369676e6174757265547970652c75696e743235362074696d657374616d702c62797465733332206d657461646174612c62797465733332206275696c6465722900ba",
+   "hash": "0x2ff8325c3fcf2a3dff7ec3bfc7110b8d3425c79347fd21e0249c350b4657cd79"
+  }
+ ],
+ "amounts": [
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "5",
+   "side": "BUY",
+   "maker": 500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 500000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1923000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1923000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 10050000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 10050000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1234000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1234000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 3333000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 3333000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 100000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 100000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 777000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 777000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 314000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 314000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2500000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9615000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9615000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 50250000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 50250000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6170000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6170000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 16665000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 16665000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 500000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 500000000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 3885000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 3885000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1570000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.1",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1570000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "5",
+   "side": "BUY",
+   "maker": 500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1923000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1923000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 10050000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 10050000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1234000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1234000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 3333000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 3333000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 100000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 100000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 777000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 777000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 314000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 314000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9615000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9615000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 50250000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 50250000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6170000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6170000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 16665000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 16665000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 500000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 500000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 3885000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 3885000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1570000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1570000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2600000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2600000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5200000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5200000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9999600,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9999600
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 52260000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 52260000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5200,
+   "taker": 10000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5200
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6416800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6416800
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17331600,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17331600
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 520000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 520000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4040400,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4040400
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1632800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1632800
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2850000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2850000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5700000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 10961100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 10961100
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 57285000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 57285000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5700
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 7033800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 7033800
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 18998100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 18998100
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 570000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 570000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4428900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4428900
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1789800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1789800
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1450000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1450000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "10",
+   "side": "BUY",
+   "maker": 2900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 2900000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 5576700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 5576700
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 29145000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 29145000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 2900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 2900
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 3578600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 3578600
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 9665700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 9665700
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 290000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 290000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2253300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2253300
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 910600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 910600
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "5",
+   "side": "BUY",
+   "maker": 4950000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 4950000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "10",
+   "side": "BUY",
+   "maker": 9900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 9900000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 19037700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 19037700
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 99495000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 99495000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 9900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 9900
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 12216600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 12216600
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 32996700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 32996700
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 990000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 990000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 7692300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 7692300
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 3108600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 3108600
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1650000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1650000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "10",
+   "side": "BUY",
+   "maker": 3300000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 3300000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 6345900,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 6345900
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 33165000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 33165000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 3300,
+   "taker": 10000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 3300
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 4072200,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 4072200
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 10998900,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 10998900
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 330000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 330000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2564100,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2564100
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1036200,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1036200
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "5",
+   "side": "BUY",
+   "maker": 350000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 350000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "10",
+   "side": "BUY",
+   "maker": 700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 700000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1346100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1346100
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 7035000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 7035000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 700
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 863800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 863800
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 2333100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 2333100
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 70000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 70000000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 543900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 543900
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 219800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.01",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 219800
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "5",
+   "side": "BUY",
+   "maker": 500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1923000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1923000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 10050000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 10050000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1234000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1234000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 3333000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 3333000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 100000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 100000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 777000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 777000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 314000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 314000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9615000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9615000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 50250000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 50250000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6170000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6170000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 16665000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 16665000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 500000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 500000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 3885000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 3885000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1570000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1570000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2600000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2600000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5200000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5200000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9999600,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9999600
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 52260000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 52260000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5200,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5200
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6416800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6416800
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17331600,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17331600
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 520000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 520000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4040400,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4040400
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1632800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1632800
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2850000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2850000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5700000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 10961100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 10961100
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 57285000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 57285000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5700
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 7033800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 7033800
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 18998100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 18998100
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 570000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 570000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4428900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4428900
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1789800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1789800
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1450000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1450000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "10",
+   "side": "BUY",
+   "maker": 2900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 2900000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 5576700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 5576700
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 29145000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 29145000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 2900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 2900
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 3578600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 3578600
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 9665700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 9665700
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 290000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 290000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2253300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2253300
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 910600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 910600
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "5",
+   "side": "BUY",
+   "maker": 4950000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 4950000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "10",
+   "side": "BUY",
+   "maker": 9900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 9900000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 19037700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 19037700
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 99495000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 99495000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 9900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 9900
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 12216600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 12216600
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 32996700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 32996700
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 990000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 990000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 7692300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 7692300
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 3108600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 3108600
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2575000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2575000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5150000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5150000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9903450,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9903450
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 51757500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 51757500
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5150,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5150
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6355100,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6355100
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17164950,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17164950
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 515000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 515000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4001550,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4001550
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1617100,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.515",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1617100
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "5",
+   "side": "BUY",
+   "maker": 25000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 25000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "10",
+   "side": "BUY",
+   "maker": 50000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 50000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 96150,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 96150
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 502500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 502500
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 50,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 50
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 61700,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 61700
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 166650,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 166650
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 38850,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 38850
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 15700,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.005",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 15700
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1650000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1650000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "10",
+   "side": "BUY",
+   "maker": 3300000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 3300000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 6345900,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 6345900
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 33165000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 33165000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 3300,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 3300
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 4072200,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 4072200
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 10998900,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 10998900
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 330000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 330000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2564100,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2564100
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1036200,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1036200
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "5",
+   "side": "BUY",
+   "maker": 350000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 350000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "10",
+   "side": "BUY",
+   "maker": 700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 700000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1346100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1346100
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 7035000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 7035000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 700
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 863800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 863800
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 2333100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 2333100
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 70000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 70000000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 543900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 543900
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 219800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.005",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 219800
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "5",
+   "side": "BUY",
+   "maker": 500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1923000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1923000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 10050000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 10050000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1234000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1234000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 3333000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 3333000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 100000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 100000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 777000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 777000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 314000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 314000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9615000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9615000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 50250000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 50250000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6170000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6170000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 16665000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 16665000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 500000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 500000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 3885000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 3885000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1570000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1570000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2600000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2600000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5200000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5200000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9999600,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9999600
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 52260000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 52260000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5200,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5200
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6416800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6416800
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17331600,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17331600
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 520000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 520000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4040400,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4040400
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1632800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1632800
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2850000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2850000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5700000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 10961100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 10961100
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 57285000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 57285000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5700
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 7033800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 7033800
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 18998100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 18998100
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 570000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 570000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4428900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4428900
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1789800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1789800
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1450000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1450000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "10",
+   "side": "BUY",
+   "maker": 2900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 2900000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 5576700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 5576700
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 29145000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 29145000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 2900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 2900
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 3578600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 3578600
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 9665700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 9665700
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 290000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 290000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2253300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2253300
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 910600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 910600
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "5",
+   "side": "BUY",
+   "maker": 4950000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 4950000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "10",
+   "side": "BUY",
+   "maker": 9900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 9900000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 19037700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 19037700
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 99495000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 99495000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 9900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 9900
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 12216600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 12216600
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 32996700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 32996700
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 990000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 990000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 7692300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 7692300
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 3108600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 3108600
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2575000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2575000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5150000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5150000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9903450,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9903450
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 51757500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 51757500
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5150,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5150
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6355100,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6355100
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17164950,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17164950
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 515000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 515000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4001550,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4001550
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1617100,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.515",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1617100
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "5",
+   "side": "BUY",
+   "maker": 12500,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 12500
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "10",
+   "side": "BUY",
+   "maker": 25000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 25000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 48075,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 48075
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 251250,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 251250
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 25,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 25
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 30850,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 30850
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 83325,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 83325
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 2500000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 2500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 19425,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 19425
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 7850,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.0025",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 7850
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "5",
+   "side": "BUY",
+   "maker": 4987500,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 4987500
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "10",
+   "side": "BUY",
+   "maker": 9975000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 9975000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 19181925,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 19181925
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 100248750,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 100248750
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 9975,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 9975
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 12309150,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 12309150
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 33246675,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 33246675
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 997500000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 997500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 7750575,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 7750575
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 3132150,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.9975",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 3132150
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "5",
+   "side": "BUY",
+   "maker": 25000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 25000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "10",
+   "side": "BUY",
+   "maker": 50000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 50000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 96150,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 96150
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 502500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 502500
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 50,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 50
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 61700,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 61700
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 166650,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 166650
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 38850,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 38850
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 15700,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.005",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 15700
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1650000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1650000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "10",
+   "side": "BUY",
+   "maker": 3300000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 3300000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 6345900,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 6345900
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 33165000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 33165000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 3300,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 3300
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 4072200,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 4072200
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 10998900,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 10998900
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 330000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 330000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2564100,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2564100
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1036200,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1036200
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "5",
+   "side": "BUY",
+   "maker": 350000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 350000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "10",
+   "side": "BUY",
+   "maker": 700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 700000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1346100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1346100
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 7035000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 7035000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 700
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 863800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 863800
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 2333100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 2333100
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 70000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 70000000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 543900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 543900
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 219800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0025",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 219800
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "5",
+   "side": "BUY",
+   "maker": 500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1923000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1923000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 10050000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 10050000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1234000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1234000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 3333000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 3333000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 100000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 100000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 777000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 777000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 314000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 314000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9615000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9615000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 50250000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 50250000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6170000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6170000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 16665000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 16665000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 500000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 500000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 3885000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 3885000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1570000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1570000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2600000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2600000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5200000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5200000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9999600,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9999600
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 52260000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 52260000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5200,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5200
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6416800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6416800
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17331600,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17331600
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 520000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 520000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4040400,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4040400
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1632800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1632800
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2850000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2850000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5700000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 10961100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 10961100
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 57285000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 57285000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5700
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 7033800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 7033800
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 18998100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 18998100
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 570000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 570000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4428900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4428900
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1789800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1789800
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1450000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1450000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "10",
+   "side": "BUY",
+   "maker": 2900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 2900000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 5576700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 5576700
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 29145000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 29145000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 2900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 2900
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 3578600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 3578600
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 9665700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 9665700
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 290000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 290000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2253300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2253300
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 910600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 910600
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "5",
+   "side": "BUY",
+   "maker": 4950000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 4950000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "10",
+   "side": "BUY",
+   "maker": 9900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 9900000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 19037700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 19037700
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 99495000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 99495000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 9900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 9900
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 12216600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 12216600
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 32996700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 32996700
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 990000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 990000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 7692300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 7692300
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 3108600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 3108600
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2575000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2575000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5150000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5150000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9903450,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9903450
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 51757500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 51757500
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5150,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5150
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6355100,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6355100
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17164950,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17164950
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 515000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 515000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4001550,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4001550
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1617100,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.515",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1617100
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "5",
+   "side": "BUY",
+   "maker": 615000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 615000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1230000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 2365290,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 2365290
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 12361500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 12361500
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1230,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1230
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1517820,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1517820
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 4099590,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 4099590
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 123000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 123000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 955710,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 955710
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 386220,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.123",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 386220
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "5",
+   "side": "BUY",
+   "maker": 25000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 25000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "10",
+   "side": "BUY",
+   "maker": 50000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 50000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 96150,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 96150
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 502500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 502500
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 50,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 50
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 61700,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 61700
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 166650,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 166650
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 38850,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 38850
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 15700,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.005",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 15700
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1650000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1650000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "10",
+   "side": "BUY",
+   "maker": 3300000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 3300000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 6345900,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 6345900
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 33165000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 33165000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 3300,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 3300
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 4072200,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 4072200
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 10998900,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 10998900
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 330000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 330000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2564100,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2564100
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1036200,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1036200
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "5",
+   "side": "BUY",
+   "maker": 350000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 350000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "10",
+   "side": "BUY",
+   "maker": 700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 700000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1346100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1346100
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 7035000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 7035000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 700
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 863800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 863800
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 2333100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 2333100
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 70000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 70000000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 543900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 543900
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 219800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.001",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 219800
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "5",
+   "side": "BUY",
+   "maker": 500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1923000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1923000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 10050000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 10050000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1234000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1234000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 3333000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 3333000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 100000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 100000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 777000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 777000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 314000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 314000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2500000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9615000,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9615000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 50250000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 50250000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5000,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6170000,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6170000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 16665000,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 16665000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 500000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 500000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 3885000,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 3885000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1570000,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.5",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1570000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2600000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2600000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5200000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5200000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9999600,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9999600
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 52260000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 52260000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5200,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5200
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6416800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6416800
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17331600,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17331600
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 520000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 520000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4040400,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4040400
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1632800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.52",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1632800
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2850000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2850000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5700000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 10961100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 10961100
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 57285000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 57285000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 7033800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 7033800
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 18998100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 18998100
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 570000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 570000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4428900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4428900
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1789800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.57",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1789800
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1450000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1450000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "10",
+   "side": "BUY",
+   "maker": 2900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 2900000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 5576700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 5576700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 29145000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 29145000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 2900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 2900
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 3578600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 3578600
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 9665700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 9665700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 290000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 290000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2253300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2253300
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 910600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.29",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 910600
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "5",
+   "side": "BUY",
+   "maker": 4950000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 4950000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "10",
+   "side": "BUY",
+   "maker": 9900000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 9900000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 19037700,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 19037700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 99495000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 99495000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 9900,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 9900
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 12216600,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 12216600
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 32996700,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 32996700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 990000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 990000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 7692300,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 7692300
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 3108600,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.99",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 3108600
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "5",
+   "side": "BUY",
+   "maker": 2575000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 2575000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "10",
+   "side": "BUY",
+   "maker": 5150000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 5150000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 9903450,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 9903450
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 51757500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 51757500
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 5150,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 5150
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 6355100,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 6355100
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 17164950,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 17164950
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 515000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 515000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 4001550,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 4001550
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1617100,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.515",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1617100
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "5",
+   "side": "BUY",
+   "maker": 12500,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 12500
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "10",
+   "side": "BUY",
+   "maker": 25000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 25000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 48075,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 48075
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 251250,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 251250
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 25,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 25
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 30850,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 30850
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 83325,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 83325
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 2500000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 2500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 19425,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 19425
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 7850,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.0025",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 7850
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "5",
+   "side": "BUY",
+   "maker": 4987500,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 4987500
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "10",
+   "side": "BUY",
+   "maker": 9975000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 9975000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 19181925,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 19181925
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 100248750,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 100248750
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 9975,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 9975
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 12309150,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 12309150
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 33246675,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 33246675
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 997500000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 997500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 7750575,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 7750575
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 3132150,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.9975",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 3132150
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "5",
+   "side": "BUY",
+   "maker": 615000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 615000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1230000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 2365290,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 2365290
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 12361500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 12361500
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1230,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1230
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1517820,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1517820
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 4099590,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 4099590
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 123000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 123000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 955710,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 955710
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 386220,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.123",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 386220
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "5",
+   "side": "BUY",
+   "maker": 617000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 617000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "10",
+   "side": "BUY",
+   "maker": 1234000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 1234000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 2372982,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 2372982
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 12401700,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 12401700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 1234,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 1234
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 1522756,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 1522756
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 4112922,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 4112922
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 123400000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 123400000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 958818,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 958818
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 387476,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.1234",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 387476
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "5",
+   "side": "BUY",
+   "maker": 25000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 25000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "10",
+   "side": "BUY",
+   "maker": 50000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 50000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 96150,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 96150
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 502500,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 502500
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 50,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 50
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 61700,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 61700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 166650,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 166650
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 5000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 38850,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 38850
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 15700,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.005",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 15700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "5",
+   "side": "BUY",
+   "maker": 1650000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 1650000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "10",
+   "side": "BUY",
+   "maker": 3300000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 3300000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 6345900,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 6345900
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 33165000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 33165000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 3300,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 3300
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 4072200,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 4072200
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 10998900,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 10998900
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 330000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 330000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 2564100,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 2564100
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 1036200,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.33",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 1036200
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "5",
+   "side": "BUY",
+   "maker": 350000,
+   "taker": 5000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "5",
+   "side": "SELL",
+   "maker": 5000000,
+   "taker": 350000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "10",
+   "side": "BUY",
+   "maker": 700000,
+   "taker": 10000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "10",
+   "side": "SELL",
+   "maker": 10000000,
+   "taker": 700000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "BUY",
+   "maker": 1346100,
+   "taker": 19230000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "19.23",
+   "side": "SELL",
+   "maker": 19230000,
+   "taker": 1346100
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "BUY",
+   "maker": 7035000,
+   "taker": 100500000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "100.5",
+   "side": "SELL",
+   "maker": 100500000,
+   "taker": 7035000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "BUY",
+   "maker": 700,
+   "taker": 10000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "0.01",
+   "side": "SELL",
+   "maker": 10000,
+   "taker": 700
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "BUY",
+   "maker": 863800,
+   "taker": 12340000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "12.34",
+   "side": "SELL",
+   "maker": 12340000,
+   "taker": 863800
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "BUY",
+   "maker": 2333100,
+   "taker": 33330000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "33.33",
+   "side": "SELL",
+   "maker": 33330000,
+   "taker": 2333100
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "1000",
+   "side": "BUY",
+   "maker": 70000000,
+   "taker": 1000000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "1000",
+   "side": "SELL",
+   "maker": 1000000000,
+   "taker": 70000000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "BUY",
+   "maker": 543900,
+   "taker": 7770000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "7.77",
+   "side": "SELL",
+   "maker": 7770000,
+   "taker": 543900
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "BUY",
+   "maker": 219800,
+   "taker": 3140000
+  },
+  {
+   "tick": "0.0001",
+   "price": "0.07",
+   "size": "3.14",
+   "side": "SELL",
+   "maker": 3140000,
+   "taker": 219800
+  }
+ ],
+ "l1": [
+  {
+   "timestamp": 1713398400,
+   "nonce": 0,
+   "signature": "0xb83e6407df605cacd39032130987f4fb6e6a7187056cd88c8051c92f43ed50ae27174838d08318611d76cbf80110a9b39868b1e02c515268ab3e31073c4512fa1b"
+  },
+  {
+   "timestamp": 1789650000,
+   "nonce": 7,
+   "signature": "0x8019d76fb4941af527f427df479ee5c459288388e679777544b8fb8e140ec852780869a77c828c991b473f8f197d846466b3ee563fc96a359ba5347477377cda1c"
+  }
+ ],
+ "hmac": [
+  {
+   "secret": "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGtleSBub3QgcmVhbA==",
+   "timestamp": 1713398400,
+   "method": "GET",
+   "path": "/data/orders",
+   "body": null,
+   "signature": "8RpYH_GPGJyUjtELAZD50AQd90pF1utN41hsoVO_rBg="
+  },
+  {
+   "secret": "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGtleSBub3QgcmVhbA==",
+   "timestamp": 1713398400,
+   "method": "POST",
+   "path": "/order",
+   "body": "{\"order\":{\"salt\":1},\"owner\":\"k\",\"orderType\":\"GTC\"}",
+   "signature": "v5kzpiMualA5nFMVQYIM4U-UCtwF6fgYK15RI9FN8Og="
+  },
+  {
+   "secret": "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGtleSBub3QgcmVhbA==",
+   "timestamp": 1713398400,
+   "method": "DELETE",
+   "path": "/cancel-all",
+   "body": null,
+   "signature": "UdU9QcM7Bv_HE6xqvXfSA470pon9hTpe669oKoR-vIU="
+  },
+  {
+   "secret": "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGtleSBub3QgcmVhbA==",
+   "timestamp": 1713398400,
+   "method": "DELETE",
+   "path": "/orders",
+   "body": "[\"0xabc\",\"0xdef\"]",
+   "signature": "xvWsy06PpuRI7GdZYGiwlzTl_O0yB4MFmcRDoUVqHuY="
+  }
+ ]
+}

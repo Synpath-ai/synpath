@@ -1,0 +1,25 @@
+{
+  "cursor": "",
+  "event_positions": [
+    {
+      "event_exposure_dollars": "0.980000",
+      "event_ticker": "KXGOLDH-26SEP1712",
+      "fees_paid_dollars": "0.001400",
+      "realized_pnl_dollars": "0.000000",
+      "total_cost_dollars": "0.980000",
+      "total_cost_shares_fp": "1.00"
+    }
+  ],
+  "market_positions": [
+    {
+      "exchange_index": 0,
+      "fees_paid_dollars": "0.001400",
+      "last_updated_ts": "2026-09-17T14:23:31.496235Z",
+      "market_exposure_dollars": "0.980000",
+      "position_fp": "1.00",
+      "realized_pnl_dollars": "0.000000",
+      "ticker": "KXGOLDH-26SEP1712-T4407.99",
+      "total_traded_dollars": "0.980000"
+    }
+  ]
+}

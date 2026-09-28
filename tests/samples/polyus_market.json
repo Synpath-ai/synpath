@@ -1,0 +1,154 @@
+{
+ "market": {
+  "id": "7900",
+  "question": "National League Champion",
+  "slug": "tec-mlb-nlchamp-2026-09-27-atl",
+  "endDate": "2026-11-06T16:20:09Z",
+  "category": "sports",
+  "startDate": "2026-03-19T14:32:23Z",
+  "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/mlb/Polymarket_ATL.png",
+  "description": "Will Atlanta Braves win the 2026 National League pennant, scheduled for October 23, 2026? If the event is postponed, delayed, or rescheduled, the expiration date will be amended to align with the new event date. If the event is not rescheduled within two weeks of the originally scheduled date, the instrument may settle at last fair market prices. If the event is canceled, the instrument may settle at last fair market prices. If the team is eliminated from contention, the instrument will settle to $0.00.",
+  "active": true,
+  "marketType": "futures",
+  "closed": false,
+  "createdAt": "2026-03-19T14:41:53Z",
+  "updatedAt": "2026-09-17T12:22:36Z",
+  "archived": false,
+  "orderPriceMinTickSize": 0.001,
+  "gameStartTime": "2026-09-07T00:00:00Z",
+  "manualActivation": false,
+  "sportsMarketType": "futures",
+  "marketSides": [
+   {
+    "id": "15799",
+    "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+    "identifier": "tec-mlb-nlchamp-2026-09-27-atl",
+    "createdAt": "2026-03-19T14:41:53Z",
+    "updatedAt": "2026-03-19T14:41:53Z",
+    "description": "Yes",
+    "price": "0.1070",
+    "marketId": 7900,
+    "long": true,
+    "teamId": 3001,
+    "team": {
+     "id": 3001,
+     "name": "Atlanta Braves",
+     "abbreviation": "atl",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "alias": "Atlanta Braves",
+     "safeName": "Braves",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#CE1241",
+     "providerId": 26,
+     "ordering": "away",
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "displayAbbreviation": "ATL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "12079497-e414-450a-8bf2-29f91de646bf"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "26"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-dark-b861796ada.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-dark-b861796ada.png",
+     "color": {
+      "light": "#CE1241",
+      "dark": "#CE1241"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    "quote": {
+     "value": "0.1070",
+     "currency": "USD"
+    },
+    "tradable": true
+   },
+   {
+    "id": "15800",
+    "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+    "identifier": "tec-mlb-nlchamp-2026-09-27-atl",
+    "createdAt": "2026-03-19T14:41:53Z",
+    "updatedAt": "2026-03-19T14:41:53Z",
+    "description": "No",
+    "price": "0.894",
+    "marketId": 7900,
+    "long": false,
+    "teamId": 3001,
+    "team": {
+     "id": 3001,
+     "name": "Atlanta Braves",
+     "abbreviation": "atl",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "alias": "Atlanta Braves",
+     "safeName": "Braves",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#CE1241",
+     "providerId": 26,
+     "ordering": "home",
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "displayAbbreviation": "ATL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "12079497-e414-450a-8bf2-29f91de646bf"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "26"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-dark-b861796ada.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-dark-b861796ada.png",
+     "color": {
+      "light": "#CE1241",
+      "dark": "#CE1241"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    "quote": {
+     "value": "0.894",
+     "currency": "USD"
+    },
+    "tradable": true
+   }
+  ],
+  "outcomes": "[\"Yes\",\"No\"]",
+  "outcomePrices": "[\"0.1070\",\"0.894\"]",
+  "ep3Status": "OPEN",
+  "status": "MARKET_STATUS_OPEN",
+  "assetPriceTerms": null,
+  "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+  "hidden": false,
+  "tags": [],
+  "title": "Atlanta Braves",
+  "subtitle": "",
+  "color": "#CE1241",
+  "feeCoefficient": 0.0695,
+  "bestBidQuote": {
+   "value": "0.1060",
+   "currency": "USD"
+  },
+  "bestAskQuote": {
+   "value": "0.1070",
+   "currency": "USD"
+  },
+  "titleShort": "Atlanta Braves",
+  "ep3SyncedAt": "2026-09-14T11:49:17Z",
+  "minimumTradeQty": 1,
+  "comboEnabled": false
+ }
+}

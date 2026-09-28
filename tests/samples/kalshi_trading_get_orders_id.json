@@ -1,0 +1,28 @@
+{
+  "order": {
+    "action": "buy",
+    "book_side": "bid",
+    "client_order_id": "5dbae457-f4ca-4525-81f8-556361d0b655",
+    "created_time": "2026-09-17T14:23:29.700547Z",
+    "exchange_index": 0,
+    "fill_count_fp": "0.00",
+    "initial_count_fp": "2.00",
+    "last_update_time": "2026-09-17T14:23:29.700547Z",
+    "maker_fees_dollars": "0.000000",
+    "maker_fill_cost_dollars": "0.000000",
+    "no_price_dollars": "0.9800",
+    "order_id": "01a0afc0-46e8-7596-b183-1ff448331615",
+    "outcome_side": "yes",
+    "remaining_count_fp": "2.00",
+    "self_trade_prevention_type": "taker_at_cross",
+    "side": "yes",
+    "status": "resting",
+    "subaccount_number": 0,
+    "taker_fees_dollars": "0.000000",
+    "taker_fill_cost_dollars": "0.000000",
+    "ticker": "KXGOLDH-26SEP1712-T4407.99",
+    "type": "limit",
+    "user_id": "488e312d-cc17-405c-9961-d389284068e2",
+    "yes_price_dollars": "0.0200"
+  }
+}

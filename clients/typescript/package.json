@@ -1,0 +1,20 @@
+{
+  "name": "synpath-typescript-example",
+  "private": true,
+  "type": "module",
+  "description": "Place, watch and cancel an order on a self-hosted Synpath server from TypeScript.",
+  "scripts": {
+    "types": "openapi-typescript openapi.json --default-non-nullable false -o src/synpath.d.ts",
+    "build": "tsc",
+    "start": "node dist/example.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.12",
+    "openapi-typescript": "^7.4.0",
+    "typescript": "^5.6.0"
+  }
+}

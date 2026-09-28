@@ -1,0 +1,2813 @@
+{
+ "events": [
+  {
+   "id": "6435",
+   "ticker": "mlb-nlchamp-2026-09-27",
+   "slug": "mlb-nlchamp-2026-09-27",
+   "title": "National League Champion",
+   "description": "National League Champion",
+   "startDate": "2026-09-07T00:00:00Z",
+   "endDate": "2026-09-27T23:59:00Z",
+   "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/event-images/mlb-national-league.png",
+   "active": true,
+   "closed": false,
+   "archived": false,
+   "category": "sports",
+   "createdAt": "2026-03-19T14:41:53Z",
+   "updatedAt": "2026-09-17T12:36:52Z",
+   "startTime": "2026-09-07T00:00:00Z",
+   "seriesSlug": "mlb-2026",
+   "period": "NS",
+   "markets": [
+    {
+     "id": "7909",
+     "question": "National League Champion",
+     "slug": "tec-mlb-nlchamp-2026-09-27-lad",
+     "endDate": "2026-11-06T16:20:09Z",
+     "category": "sports",
+     "startDate": "2026-03-19T14:32:23Z",
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/mlb/Polymarket_LAD.png",
+     "description": "Will Los Angeles Dodgers win the 2026 National League pennant, scheduled for October 23, 2026? If the event is postponed, delayed, or rescheduled, the expiration date will be amended to align with the new event date. If the event is not rescheduled within two weeks of the originally scheduled date, the instrument may settle at last fair market prices. If the event is canceled, the instrument may settle at last fair market prices. If the team is eliminated from contention, the instrument will settle to $0.00.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-03-19T14:41:53Z",
+     "updatedAt": "2026-09-17T12:22:36Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.001,
+     "gameStartTime": "2026-09-07T00:00:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "15817",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-nlchamp-2026-09-27-lad",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "Yes",
+       "price": "0.3900",
+       "marketId": 7909,
+       "long": true,
+       "teamId": 3014,
+       "team": {
+        "id": 3014,
+        "name": "Los Angeles Dodgers",
+        "abbreviation": "lad",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "alias": "Los Angeles Dodgers",
+        "safeName": "Dodgers",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#005A9C",
+        "providerId": 1,
+        "ordering": "away",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "displayAbbreviation": "LAD",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "ef64da7f-cfaf-4300-87b0-9313386b977c"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "1"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+        "color": {
+         "light": "#005A9C",
+         "dark": "#238FDA"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.3910",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "15818",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-nlchamp-2026-09-27-lad",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "No",
+       "price": "0.3910",
+       "marketId": 7909,
+       "long": false,
+       "teamId": 3014,
+       "team": {
+        "id": 3014,
+        "name": "Los Angeles Dodgers",
+        "abbreviation": "lad",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "alias": "Los Angeles Dodgers",
+        "safeName": "Dodgers",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#005A9C",
+        "providerId": 1,
+        "ordering": "home",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "displayAbbreviation": "LAD",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "ef64da7f-cfaf-4300-87b0-9313386b977c"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "1"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+        "color": {
+         "light": "#005A9C",
+         "dark": "#238FDA"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.61",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"No\",\"Yes\"]",
+     "outcomePrices": "[\"0.3900\",\"0.3910\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "Los Angeles Dodgers",
+     "subtitle": "",
+     "color": "#005A9C",
+     "feeCoefficient": 0.0695,
+     "bestBidQuote": {
+      "value": "0.3900",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.3910",
+      "currency": "USD"
+     },
+     "titleShort": "Los Angeles Dodgers",
+     "ep3SyncedAt": "2026-09-14T11:49:17Z",
+     "minimumTradeQty": 1,
+     "comboEnabled": false
+    },
+    {
+     "id": "7913",
+     "question": "National League Champion",
+     "slug": "tec-mlb-nlchamp-2026-09-27-mil",
+     "endDate": "2026-11-06T16:20:09Z",
+     "category": "sports",
+     "startDate": "2026-03-19T14:32:23Z",
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/mlb/Polymarket_MIL.png",
+     "description": "Will Milwaukee Brewers win the 2026 National League pennant, scheduled for October 23, 2026? If the event is postponed, delayed, or rescheduled, the expiration date will be amended to align with the new event date. If the event is not rescheduled within two weeks of the originally scheduled date, the instrument may settle at last fair market prices. If the event is canceled, the instrument may settle at last fair market prices. If the team is eliminated from contention, the instrument will settle to $0.00.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-03-19T14:41:53Z",
+     "updatedAt": "2026-09-17T12:36:52Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.001,
+     "gameStartTime": "2026-09-07T00:00:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "15825",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-nlchamp-2026-09-27-mil",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "Yes",
+       "price": "0.2220",
+       "marketId": 7913,
+       "long": true,
+       "teamId": 3016,
+       "team": {
+        "id": 3016,
+        "name": "Milwaukee Brewers",
+        "abbreviation": "mil",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "alias": "Milwaukee Brewers",
+        "safeName": "Brewers",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#BD9000",
+        "providerId": 32,
+        "ordering": "away",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "displayAbbreviation": "MIL",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "dcfd5266-00ce-442c-bc09-264cd20cf455"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "32"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+        "color": {
+         "light": "#BD9000",
+         "dark": "#EFBB34"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.2230",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "15826",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-nlchamp-2026-09-27-mil",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "No",
+       "price": "0.2230",
+       "marketId": 7913,
+       "long": false,
+       "teamId": 3016,
+       "team": {
+        "id": 3016,
+        "name": "Milwaukee Brewers",
+        "abbreviation": "mil",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "alias": "Milwaukee Brewers",
+        "safeName": "Brewers",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#BD9000",
+        "providerId": 32,
+        "ordering": "home",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "displayAbbreviation": "MIL",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "dcfd5266-00ce-442c-bc09-264cd20cf455"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "32"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+        "color": {
+         "light": "#BD9000",
+         "dark": "#EFBB34"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.778",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"No\",\"Yes\"]",
+     "outcomePrices": "[\"0.2220\",\"0.2230\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "Milwaukee Brewers",
+     "subtitle": "",
+     "color": "#BD9000",
+     "feeCoefficient": 0.0695,
+     "bestBidQuote": {
+      "value": "0.2220",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.2230",
+      "currency": "USD"
+     },
+     "titleShort": "Milwaukee Brewers",
+     "ep3SyncedAt": "2026-09-14T11:49:17Z",
+     "minimumTradeQty": 1,
+     "comboEnabled": false
+    },
+    {
+     "id": "7911",
+     "question": "National League Champion",
+     "slug": "tec-mlb-nlchamp-2026-09-27-phi",
+     "endDate": "2026-11-06T16:20:09Z",
+     "category": "sports",
+     "startDate": "2026-03-19T14:32:23Z",
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/mlb/Polymarket_PHI.png",
+     "description": "Will Philadelphia Phillies win the 2026 National League pennant, scheduled for October 23, 2026? If the event is postponed, delayed, or rescheduled, the expiration date will be amended to align with the new event date. If the event is not rescheduled within two weeks of the originally scheduled date, the instrument may settle at last fair market prices. If the event is canceled, the instrument may settle at last fair market prices. If the team is eliminated from contention, the instrument will settle to $0.00.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-03-19T14:41:53Z",
+     "updatedAt": "2026-09-17T12:36:52Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.001,
+     "gameStartTime": "2026-09-07T00:00:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "15821",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-nlchamp-2026-09-27-phi",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "Yes",
+       "price": "0.1040",
+       "marketId": 7911,
+       "long": true,
+       "teamId": 3020,
+       "team": {
+        "id": 3020,
+        "name": "Philadelphia Phillies",
+        "abbreviation": "phi",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+        "alias": "Philadelphia Phillies",
+        "safeName": "Phillies",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#e81828",
+        "providerId": 12,
+        "ordering": "away",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+        "displayAbbreviation": "PHI",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "2142e1ba-3b40-445c-b8bb-f1f8b1054220"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "12"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-phillies-dark-812a42df5d.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-phillies-dark-812a42df5d.png",
+        "color": {
+         "light": "#E81828",
+         "dark": "#DC3753"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.1090",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "15822",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-nlchamp-2026-09-27-phi",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "No",
+       "price": "0.1090",
+       "marketId": 7911,
+       "long": false,
+       "teamId": 3020,
+       "team": {
+        "id": 3020,
+        "name": "Philadelphia Phillies",
+        "abbreviation": "phi",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+        "alias": "Philadelphia Phillies",
+        "safeName": "Phillies",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#e81828",
+        "providerId": 12,
+        "ordering": "home",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+        "displayAbbreviation": "PHI",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "2142e1ba-3b40-445c-b8bb-f1f8b1054220"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "12"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-phillies-dark-812a42df5d.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-phillies-dark-812a42df5d.png",
+        "color": {
+         "light": "#E81828",
+         "dark": "#DC3753"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.896",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"No\",\"Yes\"]",
+     "outcomePrices": "[\"0.1040\",\"0.1090\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "Philadelphia Phillies",
+     "subtitle": "",
+     "color": "#e81828",
+     "feeCoefficient": 0.0695,
+     "bestBidQuote": {
+      "value": "0.1040",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.1090",
+      "currency": "USD"
+     },
+     "titleShort": "Philadelphia Phillies",
+     "ep3SyncedAt": "2026-09-14T11:49:17Z",
+     "minimumTradeQty": 1,
+     "comboEnabled": false
+    }
+   ],
+   "participants": [],
+   "hidden": false,
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports",
+     "createdAt": "2025-09-25T16:13:27Z",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "subtags": [],
+     "hub": null
+    },
+    {
+     "id": "4",
+     "label": "MLB",
+     "slug": "mlb",
+     "createdAt": "2025-09-25T16:13:36Z",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/league-images/MLB.png",
+     "tradable": false,
+     "league": {
+      "id": 5,
+      "name": "MLB",
+      "sportId": 5,
+      "tagId": 4,
+      "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/league-images/MLB.png",
+      "resolution": "https://www.mlb.com/",
+      "ordering": "away",
+      "activeSeriesId": 15,
+      "isOperational": true,
+      "automaticResolution": false,
+      "createdAt": "2026-03-05T18:30:42Z",
+      "slug": "mlb",
+      "abbreviation": "MLB"
+     },
+     "parentId": 15,
+     "subtags": [],
+     "hub": null
+    },
+    {
+     "id": "15",
+     "label": "Baseball",
+     "slug": "baseball",
+     "createdAt": "2026-03-05T18:30:42Z",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "image": "https://static.polymarket.us/images/new-category-icons/Icon-Baseball.png",
+     "tradable": false,
+     "sport": {
+      "id": 5,
+      "name": "Baseball",
+      "tagId": 15,
+      "createdAt": "2026-03-05T18:30:42Z",
+      "slug": "baseball",
+      "image": "https://static.polymarket.us/images/new-category-icons/Icon-Baseball.png"
+     },
+     "subtags": [
+      {
+       "id": "4",
+       "label": "MLB",
+       "slug": "mlb",
+       "createdAt": "2025-09-25T16:13:36Z",
+       "updatedAt": "2026-09-17T12:37:07Z",
+       "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/league-images/MLB.png",
+       "tradable": false,
+       "league": {
+        "id": 5,
+        "name": "MLB",
+        "sportId": 5,
+        "tagId": 4,
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/league-images/MLB.png",
+        "resolution": "https://www.mlb.com/",
+        "ordering": "away",
+        "activeSeriesId": 15,
+        "isOperational": true,
+        "automaticResolution": false,
+        "createdAt": "2026-03-05T18:30:42Z",
+        "slug": "mlb",
+        "abbreviation": "MLB"
+       },
+       "parentId": 15,
+       "subtags": [],
+       "hub": null
+      },
+      {
+       "id": "547",
+       "label": "NBP",
+       "slug": "nbp",
+       "tradable": false,
+       "parentId": 15,
+       "subtags": [],
+       "hub": null
+      },
+      {
+       "id": "543",
+       "label": "KBO",
+       "slug": "kbo",
+       "updatedAt": "2026-09-17T12:37:07Z",
+       "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/kbo3-e54d75ea82.png",
+       "tradable": false,
+       "league": {
+        "id": 60,
+        "name": "KBO",
+        "sportId": 5,
+        "tagId": 543,
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/kbo3-e54d75ea82.png",
+        "ordering": "home",
+        "activeSeriesId": 81,
+        "isOperational": true,
+        "automaticResolution": false,
+        "createdAt": "2026-06-22T18:51:07Z",
+        "slug": "kbo"
+       },
+       "parentId": 15,
+       "subtags": [],
+       "hub": null
+      }
+     ],
+     "hub": null
+    },
+    {
+     "id": "907",
+     "label": "Leagues",
+     "slug": "leagues",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "tradable": false,
+     "subtags": [],
+     "hub": null
+    }
+   ],
+   "teams": [
+    {
+     "id": 3001,
+     "name": "Atlanta Braves",
+     "abbreviation": "atl",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "alias": "Atlanta Braves",
+     "safeName": "Braves",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#CE1241",
+     "providerId": 26,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "displayAbbreviation": "ATL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "12079497-e414-450a-8bf2-29f91de646bf"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "26"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-dark-b861796ada.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-dark-b861796ada.png",
+     "color": {
+      "light": "#CE1241",
+      "dark": "#EB3160"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3002,
+     "name": "Arizona Diamondbacks",
+     "abbreviation": "az",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-light-91b254519e.png",
+     "alias": "Arizona Diamondbacks",
+     "safeName": "Diamondbacks",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#C22026",
+     "providerId": 14,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-light-91b254519e.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-light-91b254519e.png",
+     "displayAbbreviation": "AZ",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "25507be1-6a68-4267-bd82-e097d94b359b"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "14"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-dark-27eb06591d.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-dark-27eb06591d.png",
+     "color": {
+      "light": "#C22026",
+      "dark": "#C22026"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3005,
+     "name": "Chicago Cubs",
+     "abbreviation": "chc",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-light-57a78f992b.png",
+     "alias": "Chicago Cubs",
+     "safeName": "Cubs",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#0E3386",
+     "providerId": 9,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-light-57a78f992b.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-light-57a78f992b.png",
+     "displayAbbreviation": "CHC",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "55714da8-fcaf-4574-8443-59bfb511a524"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "9"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-cubs-dark-08018f6732.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-cubs-dark-08018f6732.png",
+     "color": {
+      "light": "#0E3386",
+      "dark": "#4671D3"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3006,
+     "name": "Cincinnati Reds",
+     "abbreviation": "cin",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-light-1557ae4033.png",
+     "alias": "Cincinnati Reds",
+     "safeName": "Reds",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#C6011F",
+     "providerId": 2,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-light-1557ae4033.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-light-1557ae4033.png",
+     "displayAbbreviation": "CIN",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "c874a065-c115-4e7d-b0f0-235584fb0e6f"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "2"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-dark-0b0cef8c63.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-dark-0b0cef8c63.png",
+     "color": {
+      "light": "#C6011F",
+      "dark": "#F42544"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3008,
+     "name": "Colorado Rockies",
+     "abbreviation": "col",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-light-d3a1e77962.png",
+     "alias": "Colorado Rockies",
+     "safeName": "Rockies",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#333366",
+     "providerId": 23,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-light-d3a1e77962.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-light-d3a1e77962.png",
+     "displayAbbreviation": "COL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "29dd9a87-5bcc-4774-80c3-7f50d985068b"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "23"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-dark-49d2962755.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-dark-49d2962755.png",
+     "color": {
+      "light": "#333366",
+      "dark": "#7760B1"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3014,
+     "name": "Los Angeles Dodgers",
+     "abbreviation": "lad",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+     "alias": "Los Angeles Dodgers",
+     "safeName": "Dodgers",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#005A9C",
+     "providerId": 1,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+     "displayAbbreviation": "LAD",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "ef64da7f-cfaf-4300-87b0-9313386b977c"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "1"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+     "color": {
+      "light": "#005A9C",
+      "dark": "#238FDA"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3015,
+     "name": "Miami Marlins",
+     "abbreviation": "mia",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-light-819a2dea7b.png",
+     "alias": "Miami Marlins",
+     "safeName": "Marlins",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#FF6600",
+     "providerId": 22,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-light-819a2dea7b.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-light-819a2dea7b.png",
+     "displayAbbreviation": "MIA",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "03556285-bdbb-4576-a06d-42f71f46ddc5"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "22"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-dark-518c257ea9.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-dark-518c257ea9.png",
+     "color": {
+      "light": "#F56100",
+      "dark": "#FF6600"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3016,
+     "name": "Milwaukee Brewers",
+     "abbreviation": "mil",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+     "alias": "Milwaukee Brewers",
+     "safeName": "Brewers",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#BD9000",
+     "providerId": 32,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+     "displayAbbreviation": "MIL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "dcfd5266-00ce-442c-bc09-264cd20cf455"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "32"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+     "color": {
+      "light": "#BD9000",
+      "dark": "#EFBB34"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3018,
+     "name": "New York Mets",
+     "abbreviation": "nym",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-light-f405e6069e.png",
+     "alias": "New York Mets",
+     "safeName": "Mets",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#ff5910",
+     "providerId": 18,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-light-f405e6069e.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-light-f405e6069e.png",
+     "displayAbbreviation": "NYM",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "f246a5e5-afdb-479c-9aaa-c68beeda7af6"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "18"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-dark-1fbe120489.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-dark-1fbe120489.png",
+     "color": {
+      "light": "#FF5910",
+      "dark": "#EB6931"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3020,
+     "name": "Philadelphia Phillies",
+     "abbreviation": "phi",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+     "alias": "Philadelphia Phillies",
+     "safeName": "Phillies",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#e81828",
+     "providerId": 12,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+     "displayAbbreviation": "PHI",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "2142e1ba-3b40-445c-b8bb-f1f8b1054220"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "12"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-phillies-dark-812a42df5d.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-phillies-dark-812a42df5d.png",
+     "color": {
+      "light": "#E81828",
+      "dark": "#DC3753"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3021,
+     "name": "Pittsburgh Pirates",
+     "abbreviation": "pit",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-light-753a8f1f31.png",
+     "alias": "Pittsburgh Pirates",
+     "safeName": "Pirates",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#FDB827",
+     "providerId": 4,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-light-753a8f1f31.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-light-753a8f1f31.png",
+     "displayAbbreviation": "PIT",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "481dfe7e-5dab-46ab-a49f-9dcc2b6e2cfd"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "4"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-pirates-dark-c982d7a648.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-pirates-dark-c982d7a648.png",
+     "color": {
+      "light": "#F4B015",
+      "dark": "#E8B039"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3022,
+     "name": "San Diego Padres",
+     "abbreviation": "sd",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-light-09ca60853e.png",
+     "alias": "San Diego Padres",
+     "safeName": "Padres",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#F5AF05",
+     "providerId": 33,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-light-09ca60853e.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-light-09ca60853e.png",
+     "displayAbbreviation": "SD",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "d52d5339-cbdd-43f3-9dfa-a42fd588b9a3"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "33"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-dark-316d4eb6a6.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-dark-316d4eb6a6.png",
+     "color": {
+      "light": "#F5AF05",
+      "dark": "#ECB11C"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3024,
+     "name": "San Francisco Giants",
+     "abbreviation": "sf",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-light-d7aecabaf7.png",
+     "alias": "San Francisco Giants",
+     "safeName": "Giants",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#FD5A1E",
+     "providerId": 15,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-light-d7aecabaf7.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-light-d7aecabaf7.png",
+     "displayAbbreviation": "SF",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "a7723160-10b7-4277-a309-d8dd95a8ae65"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "15"
+      }
+     ],
+     "longIconDark": "http://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-dark-0f5b2d6848.png",
+     "shortIconDark": "http://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-dark-0f5b2d6848.png",
+     "color": {
+      "light": "#FD5A1E",
+      "dark": "#F16430"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3025,
+     "name": "St. Louis Cardinals",
+     "abbreviation": "stl",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-light-4b1fcabf1b.png",
+     "alias": "St. Louis Cardinals",
+     "safeName": "Cardinals",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#C41E3A",
+     "providerId": 31,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-light-4b1fcabf1b.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-light-4b1fcabf1b.png",
+     "displayAbbreviation": "STL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "44671792-dc02-4fdd-a5ad-f5f17edaa9d7"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "31"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-dark-23b0bf637b.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-dark-23b0bf637b.png",
+     "color": {
+      "light": "#C41E3A",
+      "dark": "#DF405B"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3029,
+     "name": "Washington Nationals",
+     "abbreviation": "wsh",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-light-633f853a91.png",
+     "alias": "Washington Nationals",
+     "safeName": "Nationals",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#AB0003",
+     "providerId": 35,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-light-633f853a91.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-light-633f853a91.png",
+     "displayAbbreviation": "WSH",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "d89bed32-3aee-4407-99e3-4103641b999a"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "35"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-dark-d0245a961c.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-dark-d0245a961c.png",
+     "color": {
+      "light": "#AB0003",
+      "dark": "#DC2124"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    }
+   ],
+   "sortType": "price",
+   "marketGroups": [],
+   "primaryTag": {
+    "id": "4",
+    "label": "MLB",
+    "slug": "mlb",
+    "createdAt": "2025-09-25T16:13:36Z",
+    "updatedAt": "2026-09-17T12:37:07Z",
+    "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/league-images/MLB.png",
+    "tradable": false,
+    "league": {
+     "id": 5,
+     "name": "MLB",
+     "sportId": 5,
+     "tagId": 4,
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/league-images/MLB.png",
+     "resolution": "https://www.mlb.com/",
+     "ordering": "away",
+     "activeSeriesId": 15,
+     "isOperational": true,
+     "automaticResolution": false,
+     "createdAt": "2026-03-05T18:30:42Z",
+     "slug": "mlb",
+     "abbreviation": "MLB"
+    },
+    "parentId": 15,
+    "subtags": [],
+    "hub": null
+   },
+   "streamProvider": "",
+   "streamRequiresAuth": false,
+   "combos": {
+    "enabled": false,
+    "numMarkets": 0,
+    "numSpreadsAndTotalsMarkets": 0
+   },
+   "marketCounts": {
+    "numMarkets": 11,
+    "numSpreadsAndTotalsMarkets": 0
+   }
+  },
+  {
+   "id": "6436",
+   "ticker": "mlb-champ-2026-09-27",
+   "slug": "mlb-champ-2026-09-27",
+   "title": "World Series Champion",
+   "description": "World Series Champion",
+   "startDate": "2026-09-07T00:00:00Z",
+   "endDate": "2026-09-27T23:59:00Z",
+   "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/event-images/mlb-world-series.png",
+   "active": true,
+   "closed": false,
+   "archived": false,
+   "category": "sports",
+   "createdAt": "2026-03-19T14:41:52Z",
+   "updatedAt": "2026-09-17T12:36:52Z",
+   "startTime": "2026-09-07T00:00:00Z",
+   "seriesSlug": "mlb-2026",
+   "period": "NS",
+   "markets": [
+    {
+     "id": "7935",
+     "question": "World Series Champion",
+     "slug": "tec-mlb-champ-2026-09-27-lad",
+     "endDate": "2026-11-06T16:20:09Z",
+     "category": "sports",
+     "startDate": "2026-03-19T14:32:24Z",
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/mlb/Polymarket_LAD.png",
+     "description": "Will Los Angeles Dodgers win the 2026 MLB World Series, scheduled for October 23-November 1, 2026? If the event is postponed, delayed, or rescheduled, the expiration date will be amended to align with the new event date. If the event is not rescheduled within two weeks of the originally scheduled date, the instrument may settle at last fair market prices. If the event is canceled, the instrument may settle at last fair market prices. If the team is eliminated from contention, the instrument will settle to $0.00.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-03-19T14:41:53Z",
+     "updatedAt": "2026-09-17T12:36:52Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.001,
+     "gameStartTime": "2026-09-07T00:00:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "15869",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-champ-2026-09-27-lad",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "Yes",
+       "price": "0.2920",
+       "marketId": 7935,
+       "long": true,
+       "teamId": 3014,
+       "team": {
+        "id": 3014,
+        "name": "Los Angeles Dodgers",
+        "abbreviation": "lad",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "alias": "Los Angeles Dodgers",
+        "safeName": "Dodgers",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#005A9C",
+        "providerId": 1,
+        "ordering": "away",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "displayAbbreviation": "LAD",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "ef64da7f-cfaf-4300-87b0-9313386b977c"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "1"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+        "color": {
+         "light": "#005A9C",
+         "dark": "#238FDA"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.3000",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "15870",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-champ-2026-09-27-lad",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "No",
+       "price": "0.3000",
+       "marketId": 7935,
+       "long": false,
+       "teamId": 3014,
+       "team": {
+        "id": 3014,
+        "name": "Los Angeles Dodgers",
+        "abbreviation": "lad",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "alias": "Los Angeles Dodgers",
+        "safeName": "Dodgers",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#005A9C",
+        "providerId": 1,
+        "ordering": "home",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+        "displayAbbreviation": "LAD",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "ef64da7f-cfaf-4300-87b0-9313386b977c"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "1"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+        "color": {
+         "light": "#005A9C",
+         "dark": "#238FDA"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.708",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.2920\",\"0.3000\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "Los Angeles Dodgers",
+     "subtitle": "",
+     "color": "#005A9C",
+     "feeCoefficient": 0.0695,
+     "bestBidQuote": {
+      "value": "0.2920",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.3000",
+      "currency": "USD"
+     },
+     "titleShort": "Los Angeles Dodgers",
+     "ep3SyncedAt": "2026-09-14T11:49:17Z",
+     "minimumTradeQty": 1,
+     "comboEnabled": false
+    },
+    {
+     "id": "7930",
+     "question": "World Series Champion",
+     "slug": "tec-mlb-champ-2026-09-27-mil",
+     "endDate": "2026-11-06T16:20:09Z",
+     "category": "sports",
+     "startDate": "2026-03-19T14:32:24Z",
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/us-logos/mlb/Polymarket_MIL.png",
+     "description": "Will Milwaukee Brewers win the 2026 MLB World Series, scheduled for October 23-November 1, 2026? If the event is postponed, delayed, or rescheduled, the expiration date will be amended to align with the new event date. If the event is not rescheduled within two weeks of the originally scheduled date, the instrument may settle at last fair market prices. If the event is canceled, the instrument may settle at last fair market prices. If the team is eliminated from contention, the instrument will settle to $0.00.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-03-19T14:41:53Z",
+     "updatedAt": "2026-09-17T12:36:52Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.001,
+     "gameStartTime": "2026-09-07T00:00:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "15859",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-champ-2026-09-27-mil",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "Yes",
+       "price": "0.1590",
+       "marketId": 7930,
+       "long": true,
+       "teamId": 3016,
+       "team": {
+        "id": 3016,
+        "name": "Milwaukee Brewers",
+        "abbreviation": "mil",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "alias": "Milwaukee Brewers",
+        "safeName": "Brewers",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#BD9000",
+        "providerId": 32,
+        "ordering": "away",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "displayAbbreviation": "MIL",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "dcfd5266-00ce-442c-bc09-264cd20cf455"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "32"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+        "color": {
+         "light": "#BD9000",
+         "dark": "#EFBB34"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.1600",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "15860",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-champ-2026-09-27-mil",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "No",
+       "price": "0.1600",
+       "marketId": 7930,
+       "long": false,
+       "teamId": 3016,
+       "team": {
+        "id": 3016,
+        "name": "Milwaukee Brewers",
+        "abbreviation": "mil",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "alias": "Milwaukee Brewers",
+        "safeName": "Brewers",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#BD9000",
+        "providerId": 32,
+        "ordering": "home",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+        "displayAbbreviation": "MIL",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "dcfd5266-00ce-442c-bc09-264cd20cf455"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "32"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+        "color": {
+         "light": "#BD9000",
+         "dark": "#EFBB34"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.841",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.1590\",\"0.1600\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "Milwaukee Brewers",
+     "subtitle": "",
+     "color": "#BD9000",
+     "feeCoefficient": 0.0695,
+     "bestBidQuote": {
+      "value": "0.1590",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.1600",
+      "currency": "USD"
+     },
+     "titleShort": "Milwaukee Brewers",
+     "ep3SyncedAt": "2026-09-14T11:49:17Z",
+     "minimumTradeQty": 1,
+     "comboEnabled": false
+    },
+    {
+     "id": "7918",
+     "question": "World Series Champion",
+     "slug": "tec-mlb-champ-2026-09-27-nyy",
+     "endDate": "2026-11-06T16:20:09Z",
+     "category": "sports",
+     "startDate": "2026-03-19T14:32:24Z",
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/random-team-images/MLB/NYY.png",
+     "description": "Will New York Yankees win the 2026 MLB World Series, scheduled for October 23-November 1, 2026? If the event is postponed, delayed, or rescheduled, the expiration date will be amended to align with the new event date. If the event is not rescheduled within two weeks of the originally scheduled date, the instrument may settle at last fair market prices. If the event is canceled, the instrument may settle at last fair market prices. If the team is eliminated from contention, the instrument will settle to $0.00.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-03-19T14:41:53Z",
+     "updatedAt": "2026-09-17T12:36:52Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.001,
+     "gameStartTime": "2026-09-07T00:00:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "15835",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-champ-2026-09-27-nyy",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "Yes",
+       "price": "0.1230",
+       "marketId": 7918,
+       "long": true,
+       "teamId": 3019,
+       "team": {
+        "id": 3019,
+        "name": "New York Yankees",
+        "abbreviation": "nyy",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+        "alias": "New York Yankees",
+        "safeName": "Yankees",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#29568A",
+        "providerId": 29,
+        "ordering": "away",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+        "displayAbbreviation": "NYY",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "a09ec676-f887-43dc-bbb3-cf4bbaee9a18"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "29"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-dark-b02ec3d742.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-dark-b02ec3d742.png",
+        "color": {
+         "light": "#29568A",
+         "dark": "#37659A"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.1250",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "15836",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "tec-mlb-champ-2026-09-27-nyy",
+       "createdAt": "2026-03-19T14:41:53Z",
+       "updatedAt": "2026-03-19T14:41:53Z",
+       "description": "No",
+       "price": "0.1250",
+       "marketId": 7918,
+       "long": false,
+       "teamId": 3019,
+       "team": {
+        "id": 3019,
+        "name": "New York Yankees",
+        "abbreviation": "nyy",
+        "league": "mlb",
+        "record": "",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+        "alias": "New York Yankees",
+        "safeName": "Yankees",
+        "homeIcon": "",
+        "awayIcon": "",
+        "colorPrimary": "#29568A",
+        "providerId": 29,
+        "ordering": "home",
+        "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+        "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+        "displayAbbreviation": "NYY",
+        "conference": "",
+        "providerIds": [
+         {
+          "provider": "PROVIDER_SPORTRADAR",
+          "providerId": "a09ec676-f887-43dc-bbb3-cf4bbaee9a18"
+         },
+         {
+          "provider": "PROVIDER_SPORTSDATAIO",
+          "providerId": "29"
+         }
+        ],
+        "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-dark-b02ec3d742.png",
+        "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-dark-b02ec3d742.png",
+        "color": {
+         "light": "#29568A",
+         "dark": "#37659A"
+        },
+        "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+       },
+       "quote": {
+        "value": "0.877",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.1230\",\"0.1250\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "New York Yankees",
+     "subtitle": "",
+     "color": "#29568A",
+     "feeCoefficient": 0.0695,
+     "bestBidQuote": {
+      "value": "0.1230",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.1250",
+      "currency": "USD"
+     },
+     "titleShort": "New York Yankees",
+     "ep3SyncedAt": "2026-09-14T11:49:17Z",
+     "minimumTradeQty": 1,
+     "comboEnabled": false
+    }
+   ],
+   "participants": [],
+   "hidden": false,
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports",
+     "createdAt": "2025-09-25T16:13:27Z",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "subtags": [],
+     "hub": null
+    },
+    {
+     "id": "4",
+     "label": "MLB",
+     "slug": "mlb",
+     "createdAt": "2025-09-25T16:13:36Z",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/league-images/MLB.png",
+     "tradable": false,
+     "league": {
+      "id": 5,
+      "name": "MLB",
+      "sportId": 5,
+      "tagId": 4,
+      "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/league-images/MLB.png",
+      "resolution": "https://www.mlb.com/",
+      "ordering": "away",
+      "activeSeriesId": 15,
+      "isOperational": true,
+      "automaticResolution": false,
+      "createdAt": "2026-03-05T18:30:42Z",
+      "slug": "mlb",
+      "abbreviation": "MLB"
+     },
+     "subtags": [],
+     "hub": null
+    },
+    {
+     "id": "15",
+     "label": "Baseball",
+     "slug": "baseball",
+     "createdAt": "2026-03-05T18:30:42Z",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "image": "https://static.polymarket.us/images/new-category-icons/Icon-Baseball.png",
+     "tradable": false,
+     "sport": {
+      "id": 5,
+      "name": "Baseball",
+      "tagId": 15,
+      "createdAt": "2026-03-05T18:30:42Z",
+      "slug": "baseball",
+      "image": "https://static.polymarket.us/images/new-category-icons/Icon-Baseball.png"
+     },
+     "subtags": [],
+     "hub": null
+    },
+    {
+     "id": "871",
+     "label": "Awards",
+     "slug": "awards",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "tradable": false,
+     "subtags": [],
+     "hub": null
+    },
+    {
+     "id": "875",
+     "label": "World Series",
+     "slug": "world-series",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "tradable": false,
+     "subtags": [],
+     "hub": null
+    }
+   ],
+   "teams": [
+    {
+     "id": 3000,
+     "name": "Athletics",
+     "abbreviation": "ath",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/athletics-light-109bd18b21.png",
+     "alias": "Athletics",
+     "safeName": "Athletics",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#208273",
+     "providerId": 24,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/athletics-light-109bd18b21.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/athletics-light-109bd18b21.png",
+     "displayAbbreviation": "ATH",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "27a59d3b-ff7c-48ea-b016-4798f560f5e1"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "24"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/athletics-dark-58107360ca.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/athletics-dark-58107360ca.png",
+     "color": {
+      "light": "#208273",
+      "dark": "#208273"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3001,
+     "name": "Atlanta Braves",
+     "abbreviation": "atl",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "alias": "Atlanta Braves",
+     "safeName": "Braves",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#CE1241",
+     "providerId": 26,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-light-80bda9d362.png",
+     "displayAbbreviation": "ATL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "12079497-e414-450a-8bf2-29f91de646bf"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "26"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-dark-b861796ada.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atlanta-dark-b861796ada.png",
+     "color": {
+      "light": "#CE1241",
+      "dark": "#EB3160"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3002,
+     "name": "Arizona Diamondbacks",
+     "abbreviation": "az",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-light-91b254519e.png",
+     "alias": "Arizona Diamondbacks",
+     "safeName": "Diamondbacks",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#C22026",
+     "providerId": 14,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-light-91b254519e.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-light-91b254519e.png",
+     "displayAbbreviation": "AZ",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "25507be1-6a68-4267-bd82-e097d94b359b"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "14"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-dark-27eb06591d.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/arizona-dark-27eb06591d.png",
+     "color": {
+      "light": "#C22026",
+      "dark": "#C22026"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3003,
+     "name": "Baltimore Orioles",
+     "abbreviation": "bal",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/baltimore-light-6cf91a51f0.png",
+     "alias": "Baltimore Orioles",
+     "safeName": "Orioles",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#D94000",
+     "providerId": 19,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/baltimore-light-6cf91a51f0.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/baltimore-light-6cf91a51f0.png",
+     "displayAbbreviation": "BAL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "75729d34-bca7-4a0f-b3df-6f26c6ad3719"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "19"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/baltimore-dark-c91ac1c7eb.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/baltimore-dark-c91ac1c7eb.png",
+     "color": {
+      "light": "#D94000",
+      "dark": "#EC590A"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3004,
+     "name": "Boston Red Sox",
+     "abbreviation": "bos",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/boston-light-6d7c36fde2.png",
+     "alias": "Boston Red Sox",
+     "safeName": "Red Sox",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#BD3039",
+     "providerId": 25,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/boston-light-6d7c36fde2.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/boston-light-6d7c36fde2.png",
+     "displayAbbreviation": "BOS",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "93941372-eb4c-4c40-aced-fe3267174393"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "25"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/boston-dark-a4416eeae2.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/boston-dark-a4416eeae2.png",
+     "color": {
+      "light": "#BD3039",
+      "dark": "#D25860"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3005,
+     "name": "Chicago Cubs",
+     "abbreviation": "chc",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-light-57a78f992b.png",
+     "alias": "Chicago Cubs",
+     "safeName": "Cubs",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#0E3386",
+     "providerId": 9,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-light-57a78f992b.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-light-57a78f992b.png",
+     "displayAbbreviation": "CHC",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "55714da8-fcaf-4574-8443-59bfb511a524"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "9"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-cubs-dark-08018f6732.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-cubs-dark-08018f6732.png",
+     "color": {
+      "light": "#0E3386",
+      "dark": "#4671D3"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3006,
+     "name": "Cincinnati Reds",
+     "abbreviation": "cin",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-light-1557ae4033.png",
+     "alias": "Cincinnati Reds",
+     "safeName": "Reds",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#C6011F",
+     "providerId": 2,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-light-1557ae4033.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-light-1557ae4033.png",
+     "displayAbbreviation": "CIN",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "c874a065-c115-4e7d-b0f0-235584fb0e6f"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "2"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-dark-0b0cef8c63.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cincinnati-dark-0b0cef8c63.png",
+     "color": {
+      "light": "#C6011F",
+      "dark": "#F42544"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3007,
+     "name": "Cleveland Guardians",
+     "abbreviation": "cle",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cleveland-light-41e442f801.png",
+     "alias": "Cleveland Guardians",
+     "safeName": "Guardians",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#F60017",
+     "providerId": 10,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cleveland-light-41e442f801.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cleveland-light-41e442f801.png",
+     "displayAbbreviation": "CLE",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "80715d0d-0d2a-450f-a970-1b9a3b18c7e7"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "10"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cleveland-dark-1f6e8ef04a.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/cleveland-dark-1f6e8ef04a.png",
+     "color": {
+      "light": "#F60017",
+      "dark": "#DE2843"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3008,
+     "name": "Colorado Rockies",
+     "abbreviation": "col",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-light-d3a1e77962.png",
+     "alias": "Colorado Rockies",
+     "safeName": "Rockies",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#333366",
+     "providerId": 23,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-light-d3a1e77962.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-light-d3a1e77962.png",
+     "displayAbbreviation": "COL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "29dd9a87-5bcc-4774-80c3-7f50d985068b"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "23"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-dark-49d2962755.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/colorado-dark-49d2962755.png",
+     "color": {
+      "light": "#333366",
+      "dark": "#7760B1"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3009,
+     "name": "Chicago White Sox",
+     "abbreviation": "cws",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-white-sox-light-5e3f37a802.png",
+     "alias": "Chicago White Sox",
+     "safeName": "White Sox",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#868FA8",
+     "providerId": 16,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-white-sox-light-5e3f37a802.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-white-sox-light-5e3f37a802.png",
+     "displayAbbreviation": "CWS",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "47f490cd-2f58-4ef7-9dfd-2ad6ba6c1ae8"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "16"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-dark-1e116d22e1.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/chicago-dark-1e116d22e1.png",
+     "color": {
+      "light": "#868FA8",
+      "dark": "#868FA8"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3010,
+     "name": "Detroit Tigers",
+     "abbreviation": "det",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/detroit-light-748a82e3e9.png",
+     "alias": "Detroit Tigers",
+     "safeName": "Tigers",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#0C2C56",
+     "providerId": 17,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/detroit-light-748a82e3e9.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/detroit-light-748a82e3e9.png",
+     "displayAbbreviation": "DET",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "575c19b7-4052-41c2-9f0a-1c5813d02f99"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "17"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/detroit-dark-614831f5a5.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/detroit-dark-614831f5a5.png",
+     "color": {
+      "light": "#0C2C56",
+      "dark": "#FA4616"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3011,
+     "name": "Houston Astros",
+     "abbreviation": "hou",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/houston-light-04a7addd2a.png",
+     "alias": "Houston Astros",
+     "safeName": "Astros",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#1D5AA1",
+     "providerId": 30,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/houston-light-04a7addd2a.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/houston-light-04a7addd2a.png",
+     "displayAbbreviation": "HOU",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "eb21dadd-8f10-4095-8bf3-dfb3b779f107"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "30"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/houston-dark-fd692cf80b.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/houston-dark-fd692cf80b.png",
+     "color": {
+      "light": "#1D5AA1",
+      "dark": "#2864AB"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3012,
+     "name": "Kansas City Royals",
+     "abbreviation": "kc",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/kansas-city-light-dabb4f61f5.png",
+     "alias": "Kansas City Royals",
+     "safeName": "Royals",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#bd9b60",
+     "providerId": 5,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/kansas-city-light-dabb4f61f5.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/kansas-city-light-dabb4f61f5.png",
+     "displayAbbreviation": "KC",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "833a51a9-0d84-410f-bd77-da08c3e5e26e"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "5"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/kansas-city-dark-2fad781657.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/kansas-city-dark-2fad781657.png",
+     "color": {
+      "light": "#AF8D53",
+      "dark": "#9F855A"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3013,
+     "name": "Los Angeles Angels",
+     "abbreviation": "laa",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-angels-light-b1c4a5ea3d.png",
+     "alias": "Los Angeles Angels",
+     "safeName": "Angels",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#BA0021",
+     "providerId": 21,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-angels-light-b1c4a5ea3d.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-angels-light-b1c4a5ea3d.png",
+     "displayAbbreviation": "LAA",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "4f735188-37c8-473d-ae32-1f7e34ccf892"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "21"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-angels-dark-3c85a2f926.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-angels-dark-3c85a2f926.png",
+     "color": {
+      "light": "#BA0021",
+      "dark": "#F0284C"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3014,
+     "name": "Los Angeles Dodgers",
+     "abbreviation": "lad",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+     "alias": "Los Angeles Dodgers",
+     "safeName": "Dodgers",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#005A9C",
+     "providerId": 1,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-light-c8267be279.png",
+     "displayAbbreviation": "LAD",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "ef64da7f-cfaf-4300-87b0-9313386b977c"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "1"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/los-angeles-dodgers-dark-d81ed56c78.png",
+     "color": {
+      "light": "#005A9C",
+      "dark": "#238FDA"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3015,
+     "name": "Miami Marlins",
+     "abbreviation": "mia",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-light-819a2dea7b.png",
+     "alias": "Miami Marlins",
+     "safeName": "Marlins",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#FF6600",
+     "providerId": 22,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-light-819a2dea7b.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-light-819a2dea7b.png",
+     "displayAbbreviation": "MIA",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "03556285-bdbb-4576-a06d-42f71f46ddc5"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "22"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-dark-518c257ea9.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/miami-dark-518c257ea9.png",
+     "color": {
+      "light": "#F56100",
+      "dark": "#FF6600"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3016,
+     "name": "Milwaukee Brewers",
+     "abbreviation": "mil",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+     "alias": "Milwaukee Brewers",
+     "safeName": "Brewers",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#BD9000",
+     "providerId": 32,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-light-95f2b5f4a8.png",
+     "displayAbbreviation": "MIL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "dcfd5266-00ce-442c-bc09-264cd20cf455"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "32"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/milwaukee-dark-df69cd6a2a.png",
+     "color": {
+      "light": "#BD9000",
+      "dark": "#EFBB34"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3017,
+     "name": "Minnesota Twins",
+     "abbreviation": "min",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/minnesota-light-f385566f19.png",
+     "alias": "Minnesota Twins",
+     "safeName": "Twins",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#002b5c",
+     "providerId": 20,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/minnesota-light-f385566f19.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/minnesota-light-f385566f19.png",
+     "displayAbbreviation": "MIN",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "aa34e0ed-f342-4ec6-b774-c79b47b60e2d"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "20"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/minnesota-dark-5d9af044cb.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/minnesota-dark-5d9af044cb.png",
+     "color": {
+      "light": "#002B5C",
+      "dark": "#3774C7"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3018,
+     "name": "New York Mets",
+     "abbreviation": "nym",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-light-f405e6069e.png",
+     "alias": "New York Mets",
+     "safeName": "Mets",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#ff5910",
+     "providerId": 18,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-light-f405e6069e.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-light-f405e6069e.png",
+     "displayAbbreviation": "NYM",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "f246a5e5-afdb-479c-9aaa-c68beeda7af6"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "18"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-dark-1fbe120489.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-mets-dark-1fbe120489.png",
+     "color": {
+      "light": "#FF5910",
+      "dark": "#EB6931"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3019,
+     "name": "New York Yankees",
+     "abbreviation": "nyy",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+     "alias": "New York Yankees",
+     "safeName": "Yankees",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#29568A",
+     "providerId": 29,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-light-316abe4069.png",
+     "displayAbbreviation": "NYY",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "a09ec676-f887-43dc-bbb3-cf4bbaee9a18"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "29"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-dark-b02ec3d742.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/new-york-yankees-dark-b02ec3d742.png",
+     "color": {
+      "light": "#29568A",
+      "dark": "#37659A"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3020,
+     "name": "Philadelphia Phillies",
+     "abbreviation": "phi",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+     "alias": "Philadelphia Phillies",
+     "safeName": "Phillies",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#e81828",
+     "providerId": 12,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-light-b8e9d2da7d.png",
+     "displayAbbreviation": "PHI",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "2142e1ba-3b40-445c-b8bb-f1f8b1054220"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "12"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-phillies-dark-812a42df5d.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/philadelphia-phillies-dark-812a42df5d.png",
+     "color": {
+      "light": "#E81828",
+      "dark": "#DC3753"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3021,
+     "name": "Pittsburgh Pirates",
+     "abbreviation": "pit",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-light-753a8f1f31.png",
+     "alias": "Pittsburgh Pirates",
+     "safeName": "Pirates",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#FDB827",
+     "providerId": 4,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-light-753a8f1f31.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-light-753a8f1f31.png",
+     "displayAbbreviation": "PIT",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "481dfe7e-5dab-46ab-a49f-9dcc2b6e2cfd"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "4"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-pirates-dark-c982d7a648.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/pittsburgh-pirates-dark-c982d7a648.png",
+     "color": {
+      "light": "#F4B015",
+      "dark": "#E8B039"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3022,
+     "name": "San Diego Padres",
+     "abbreviation": "sd",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-light-09ca60853e.png",
+     "alias": "San Diego Padres",
+     "safeName": "Padres",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#F5AF05",
+     "providerId": 33,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-light-09ca60853e.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-light-09ca60853e.png",
+     "displayAbbreviation": "SD",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "d52d5339-cbdd-43f3-9dfa-a42fd588b9a3"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "33"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-dark-316d4eb6a6.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-diego-dark-316d4eb6a6.png",
+     "color": {
+      "light": "#F5AF05",
+      "dark": "#ECB11C"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3023,
+     "name": "Seattle Mariners",
+     "abbreviation": "sea",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/seattle-light-df6bb7c37c.png",
+     "alias": "Seattle Mariners",
+     "safeName": "Mariners",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#2D5D9D",
+     "providerId": 13,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/seattle-light-df6bb7c37c.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/seattle-light-df6bb7c37c.png",
+     "displayAbbreviation": "SEA",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "43a39081-52b4-4f93-ad29-da7f329ea960"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "13"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/seattle-dark-ee54eab90b.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/seattle-dark-ee54eab90b.png",
+     "color": {
+      "light": "#2D5D9D",
+      "dark": "#21867F"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3024,
+     "name": "San Francisco Giants",
+     "abbreviation": "sf",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-light-d7aecabaf7.png",
+     "alias": "San Francisco Giants",
+     "safeName": "Giants",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#FD5A1E",
+     "providerId": 15,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-light-d7aecabaf7.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-light-d7aecabaf7.png",
+     "displayAbbreviation": "SF",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "a7723160-10b7-4277-a309-d8dd95a8ae65"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "15"
+      }
+     ],
+     "longIconDark": "http://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-dark-0f5b2d6848.png",
+     "shortIconDark": "http://polymarket-upload.s3.us-east-2.amazonaws.com/san-francisco-dark-0f5b2d6848.png",
+     "color": {
+      "light": "#FD5A1E",
+      "dark": "#F16430"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3025,
+     "name": "St. Louis Cardinals",
+     "abbreviation": "stl",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-light-4b1fcabf1b.png",
+     "alias": "St. Louis Cardinals",
+     "safeName": "Cardinals",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#C41E3A",
+     "providerId": 31,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-light-4b1fcabf1b.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-light-4b1fcabf1b.png",
+     "displayAbbreviation": "STL",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "44671792-dc02-4fdd-a5ad-f5f17edaa9d7"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "31"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-dark-23b0bf637b.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/st-louis-dark-23b0bf637b.png",
+     "color": {
+      "light": "#C41E3A",
+      "dark": "#DF405B"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3026,
+     "name": "Tampa Bay Rays",
+     "abbreviation": "tb",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/tampa-bay-light-75db4bf507.png",
+     "alias": "Tampa Bay Rays",
+     "safeName": "Rays",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#8FBCE6",
+     "providerId": 11,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/tampa-bay-light-75db4bf507.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/tampa-bay-light-75db4bf507.png",
+     "displayAbbreviation": "TB",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "bdc11650-6f74-49c4-875e-778aeb7632d9"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "11"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/tampa-bay-dark-39efa95167.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/tampa-bay-dark-39efa95167.png",
+     "color": {
+      "light": "#6A96BE",
+      "dark": "#FFFFFF"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3027,
+     "name": "Texas Rangers",
+     "abbreviation": "tex",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/texas-light-7389ffab4d.png",
+     "alias": "Texas Rangers",
+     "safeName": "Rangers",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#c0111f",
+     "providerId": 28,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/texas-light-7389ffab4d.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/texas-light-7389ffab4d.png",
+     "displayAbbreviation": "TEX",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "d99f919b-1534-4516-8e8a-9cd106c6d8cd"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "28"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/texas-dark-34d50b4a31.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/texas-dark-34d50b4a31.png",
+     "color": {
+      "light": "#C0111F",
+      "dark": "#E73240"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3028,
+     "name": "Toronto Blue Jays",
+     "abbreviation": "tor",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/toronto-light-7c326024f9.png",
+     "alias": "Toronto Blue Jays",
+     "safeName": "Blue Jays",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#134A8E",
+     "providerId": 3,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/toronto-light-7c326024f9.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/toronto-light-7c326024f9.png",
+     "displayAbbreviation": "TOR",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "1d678440-b4b1-4954-9b39-70afb3ebbcfa"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "3"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/toronto-dark-b9d9895b22.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/toronto-dark-b9d9895b22.png",
+     "color": {
+      "light": "#134A8E",
+      "dark": "#3971B6"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    },
+    {
+     "id": 3029,
+     "name": "Washington Nationals",
+     "abbreviation": "wsh",
+     "league": "mlb",
+     "record": "",
+     "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-light-633f853a91.png",
+     "alias": "Washington Nationals",
+     "safeName": "Nationals",
+     "homeIcon": "",
+     "awayIcon": "",
+     "colorPrimary": "#AB0003",
+     "providerId": 35,
+     "longIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-light-633f853a91.png",
+     "shortIcon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-light-633f853a91.png",
+     "displayAbbreviation": "WSH",
+     "conference": "",
+     "providerIds": [
+      {
+       "provider": "PROVIDER_SPORTRADAR",
+       "providerId": "d89bed32-3aee-4407-99e3-4103641b999a"
+      },
+      {
+       "provider": "PROVIDER_SPORTSDATAIO",
+       "providerId": "35"
+      }
+     ],
+     "longIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-dark-d0245a961c.png",
+     "shortIconDark": "https://polymarket-upload.s3.us-east-2.amazonaws.com/washington-dark-d0245a961c.png",
+     "color": {
+      "light": "#AB0003",
+      "dark": "#DC2124"
+     },
+     "imageDisplayType": "IMAGE_DISPLAY_TYPE_LOGO"
+    }
+   ],
+   "sortType": "price",
+   "marketGroups": [],
+   "primaryTag": {
+    "id": "875",
+    "label": "World Series",
+    "slug": "world-series",
+    "updatedAt": "2026-09-17T12:37:07Z",
+    "tradable": false,
+    "subtags": [],
+    "hub": null
+   },
+   "secondaryTag": {
+    "id": "875",
+    "label": "World Series",
+    "slug": "world-series",
+    "updatedAt": "2026-09-17T12:37:07Z",
+    "tradable": false,
+    "subtags": [],
+    "hub": null
+   },
+   "streamProvider": "",
+   "streamRequiresAuth": false,
+   "combos": {
+    "enabled": false,
+    "numMarkets": 0,
+    "numSpreadsAndTotalsMarkets": 0
+   },
+   "marketCounts": {
+    "numMarkets": 24,
+    "numSpreadsAndTotalsMarkets": 0
+   }
+  }
+ ]
+}

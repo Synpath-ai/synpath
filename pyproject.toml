@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "synpath"
+version = "0.1.0"
+description = "One API for prediction markets. Kalshi and Polymarket, normalized, with every price labelled by source and time."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Synpath" }]
+keywords = ["prediction-markets", "kalshi", "polymarket", "unified-api", "trading", "market-data"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business :: Financial",
+]
+# `pip install synpath` is the whole install: the read API (httpx, pydantic),
+# order entry and streams (the venues' signing stacks and WebSockets), the
+# execution engine (aiosqlite for its journal) and the REST server (FastAPI,
+# uvicorn). Only the Polymarket US exchange gRPC streams stay optional.
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.6",
+    "cryptography>=42",
+    "eth-account>=0.13",
+    "PyJWT[crypto]>=2.8",
+    "websockets>=13",
+    "aiosqlite>=0.20",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+]
+
+[project.scripts]
+# `pip install synpath` puts a `synpath` command on the path: serve, doctor, status, halt...
+synpath = "synpath.__main__:main"
+
+[project.optional-dependencies]
+# `trading`, `ws`, `engine` and `server` are kept as empty extras so an
+# existing `pip install synpath[trading]` keeps working; everything they used
+# to add is in the base dependencies now.
+trading = []
+ws = []
+engine = []
+server = []
+# The Polymarket US exchange API streams over gRPC. The venue's protos are not
+# shipped: they are compiled at run time from the bundle the user downloads.
+grpc = ["grpcio>=1.60", "grpcio-tools>=1.60", "protobuf>=5.26", "PyJWT[crypto]>=2.8", "cryptography>=42"]
+dev = ["pytest>=8", "respx>=0.21", "anyio>=4", "synpath[grpc]"]
+
+[project.urls]
+Homepage = "https://synpath.dev"
+Documentation = "https://synpath.dev/docs"
+Repository = "https://github.com/Synpath-ai/synpath"
+Issues = "https://github.com/Synpath-ai/synpath/issues"
+Discord = "https://discord.gg/QZzsHTpGA3"
+
+[tool.hatch.build.targets.wheel]
+packages = ["synpath"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live: hits the real venue API; deselected by default",
+    "demo: places orders on a venue's demo or preprod environment with the configured credentials; deselected by default",
+]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
+addopts = "-m 'not live and not demo'"

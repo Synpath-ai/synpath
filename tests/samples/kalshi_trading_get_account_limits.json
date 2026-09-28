@@ -1,0 +1,12 @@
+{
+  "grants": [],
+  "read": {
+    "bucket_capacity": 600,
+    "refill_rate": 200
+  },
+  "usage_tier": "basic",
+  "write": {
+    "bucket_capacity": 100,
+    "refill_rate": 100
+  }
+}

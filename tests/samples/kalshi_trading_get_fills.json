@@ -1,0 +1,25 @@
+{
+  "cursor": "",
+  "fills": [
+    {
+      "action": "buy",
+      "book_side": "bid",
+      "count_fp": "1.00",
+      "created_time": "2026-09-17T14:23:31.496148Z",
+      "exchange_index": 0,
+      "fee_cost": "0.001400",
+      "fill_id": "072210b7-9701-9f67-dbeb-8607028b7a25",
+      "is_taker": true,
+      "market_ticker": "KXGOLDH-26SEP1712-T4407.99",
+      "no_price_dollars": "0.0200",
+      "order_id": "01a0afc0-4eb8-78d3-93cb-98d2093a3f2f",
+      "outcome_side": "yes",
+      "side": "yes",
+      "subaccount_number": 0,
+      "ticker": "KXGOLDH-26SEP1712-T4407.99",
+      "trade_id": "072210b7-9701-9f67-dbeb-8607028b7a25",
+      "ts": 1789655011,
+      "yes_price_dollars": "0.9800"
+    }
+  ]
+}

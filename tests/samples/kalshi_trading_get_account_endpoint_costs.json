@@ -1,0 +1,90 @@
+{
+  "default_cost": 10,
+  "endpoint_costs": [
+    {
+      "cost": 30,
+      "method": "POST",
+      "path": "/trade-api/v2/account/api_usage_level/upgrade"
+    },
+    {
+      "cost": 50,
+      "method": "GET",
+      "path": "/trade-api/v2/cfbenchmarks"
+    },
+    {
+      "cost": 50,
+      "method": "GET",
+      "path": "/trade-api/v2/cfbenchmarks/*endpoint"
+    },
+    {
+      "cost": 2,
+      "method": "POST",
+      "path": "/trade-api/v2/communications/quotes"
+    },
+    {
+      "cost": 2,
+      "method": "DELETE",
+      "path": "/trade-api/v2/communications/quotes/:quote_id"
+    },
+    {
+      "cost": 2,
+      "method": "GET",
+      "path": "/trade-api/v2/communications/quotes/:quote_id"
+    },
+    {
+      "cost": 2,
+      "method": "DELETE",
+      "path": "/trade-api/v2/communications/rfqs/:rfq_id/quotes/:quote_id"
+    },
+    {
+      "cost": 2,
+      "method": "GET",
+      "path": "/trade-api/v2/communications/rfqs/:rfq_id/quotes/:quote_id"
+    },
+    {
+      "cost": 1,
+      "method": "PUT",
+      "path": "/trade-api/v2/communications/rfqs/:rfq_id/quotes/:quote_id/confirm"
+    },
+    {
+      "cost": 5,
+      "method": "GET",
+      "path": "/trade-api/v2/margin/balance"
+    },
+    {
+      "cost": 1,
+      "method": "DELETE",
+      "path": "/trade-api/v2/margin/orders/:order_id"
+    },
+    {
+      "cost": 1,
+      "method": "POST",
+      "path": "/trade-api/v2/margin/orders/:order_id/decrease"
+    },
+    {
+      "cost": 2,
+      "method": "DELETE",
+      "path": "/trade-api/v2/portfolio/events/orders"
+    },
+    {
+      "cost": 2,
+      "method": "DELETE",
+      "path": "/trade-api/v2/portfolio/events/orders/:order_id"
+    },
+    {
+      "cost": 2,
+      "method": "DELETE",
+      "path": "/trade-api/v2/portfolio/events/orders/batched"
+    },
+    {
+      "cost": 2,
+      "method": "GET",
+      "path": "/trade-api/v2/portfolio/orders/:order_id"
+    },
+    {
+      "cost": 2,
+      "method": "POST",
+      "path": "/trade-api/v2/portfolio/subaccounts/positions/transfer/batched"
+    }
+  ]
+}

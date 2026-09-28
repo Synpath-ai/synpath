@@ -1,0 +1,364 @@
+{
+ "events": [
+  {
+   "id": "110012",
+   "ticker": "fed-gt25bps",
+   "slug": "fed-gt25bps",
+   "title": "Fed Rate Cut Greater Than 25bps?",
+   "description": "Fed Rate Cut Greater Than 25bps?",
+   "startDate": "2026-09-09T19:04:00Z",
+   "endDate": "2026-12-31T23:59:00Z",
+   "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/fed-gt25bps-da7ac85ef9.jpg",
+   "active": true,
+   "closed": false,
+   "archived": false,
+   "category": "macro",
+   "createdAt": "2026-09-11T20:52:49Z",
+   "updatedAt": "2026-09-17T02:24:16Z",
+   "startTime": "2026-09-09T19:04:00Z",
+   "seriesSlug": "fed",
+   "period": "NS",
+   "markets": [
+    {
+     "id": "796683",
+     "question": "Fed Rate Cut Greater Than 25bps?",
+     "slug": "cbpac-fed-gt25bps-2026-12-31",
+     "endDate": "2027-01-14T23:00:00Z",
+     "category": "macro",
+     "startDate": "2026-09-11T20:52:49Z",
+     "description": "This market will settle to Yes if the Federal Reserve takes a single monetary policy action to decrease the upper bound of the target range for the federal funds rate by more than 25 basis points by December 31, 2026, 11:59 PM ET. Outcome sourced from the Federal Reserve. \n\nMonetary policy actions taken at scheduled FOMC meetings or at unscheduled or emergency meetings will both qualify.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-09-11T20:52:49Z",
+     "updatedAt": "2026-09-17T02:24:16Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.01,
+     "gameStartTime": "2026-09-09T19:04:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "1592854",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "cbpac-fed-gt25bps-2026-12-31",
+       "createdAt": "2026-09-11T20:52:49Z",
+       "updatedAt": "2026-09-11T20:52:49Z",
+       "description": "Yes",
+       "price": "0.0200",
+       "marketId": 796683,
+       "long": true,
+       "quote": {
+        "value": "0.2000",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "1592855",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "cbpac-fed-gt25bps-2026-12-31",
+       "createdAt": "2026-09-11T20:52:49Z",
+       "updatedAt": "2026-09-11T20:52:49Z",
+       "description": "No",
+       "price": "0.2000",
+       "marketId": 796683,
+       "long": false,
+       "quote": {
+        "value": "0.98",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.0200\",\"0.2000\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "By December 31, 2026",
+     "feeCoefficient": 0.0695,
+     "sortOrder": 1,
+     "bestBidQuote": {
+      "value": "0.0200",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.2000",
+      "currency": "USD"
+     },
+     "titleShort": "By December 31, 2026",
+     "ep3SyncedAt": "2026-09-14T11:44:27Z",
+     "minimumTradeQty": 0.01,
+     "comboEnabled": false
+    }
+   ],
+   "participants": [],
+   "hidden": false,
+   "tags": [
+    {
+     "id": "32",
+     "label": "Econ",
+     "slug": "economics",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "image": "https://static.polymarket.us/images/new-category-icons/Icon-Economy.png",
+     "tradable": false,
+     "subtags": [
+      {
+       "id": "33",
+       "label": "Fed Decision",
+       "slug": "fed-decision",
+       "updatedAt": "2026-09-04T23:53:19Z",
+       "tradable": false,
+       "parentId": 32,
+       "subtags": [],
+       "hub": null
+      },
+      {
+       "id": "34",
+       "label": "CPI",
+       "slug": "cpi",
+       "updatedAt": "2026-09-04T23:53:19Z",
+       "tradable": false,
+       "parentId": 32,
+       "subtags": [],
+       "hub": null
+      }
+     ],
+     "hub": null
+    },
+    {
+     "id": "933",
+     "label": "Fed",
+     "slug": "fed",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "tradable": false,
+     "subtags": [],
+     "hub": null
+    }
+   ],
+   "teams": [],
+   "sortType": "manual",
+   "marketGroups": [],
+   "streamProvider": "",
+   "streamRequiresAuth": false,
+   "combos": {
+    "enabled": false
+   }
+  },
+  {
+   "id": "65123",
+   "ticker": "usfed-fomc-2026-10-28",
+   "slug": "usfed-fomc-2026-10-28",
+   "title": "Fed Decision in October",
+   "description": "Fed Decision in October",
+   "startDate": "2026-07-28T18:00:00Z",
+   "endDate": "2026-10-28T23:59:00Z",
+   "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/warsh-8fdcb0091a.jpg",
+   "active": true,
+   "closed": false,
+   "archived": false,
+   "category": "macro",
+   "createdAt": "2026-07-28T18:13:28Z",
+   "updatedAt": "2026-09-17T12:36:51Z",
+   "startTime": "2026-07-28T18:00:00Z",
+   "period": "NS",
+   "markets": [
+    {
+     "id": "313135",
+     "question": "Fed Decision in October",
+     "slug": "rdc-usfed-fomc-2026-10-28-hike50",
+     "endDate": "2026-11-11T23:00:00Z",
+     "category": "macro",
+     "startDate": "2026-07-28T18:13:34Z",
+     "description": "This market will settle to Yes if the Federal Reserve increases the upper bound of the target federal funds rate by 50 basis points or more at the October 2026 Federal Open Market Committee (FOMC) meeting, currently scheduled for October 27-28. Outcome sourced from the Federal Reserve.\n\nIf the change in the specified rate does not precisely match the displayed options, changes smaller than the smallest option of the same direction (increase/decrease) will be rounded to that smallest option, and changes greater than the smallest option of the same direction will be rounded to the nearest displayed option, with values exactly halfway between options being rounded away from zero.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-07-28T18:13:34Z",
+     "updatedAt": "2026-09-17T11:52:21Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.01,
+     "gameStartTime": "2026-07-28T18:00:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "625832",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "rdc-usfed-fomc-2026-10-28-hike50",
+       "createdAt": "2026-07-28T18:13:34Z",
+       "updatedAt": "2026-07-28T18:13:34Z",
+       "description": "Yes",
+       "price": "0.0100",
+       "marketId": 313135,
+       "long": true,
+       "quote": {
+        "value": "0.0200",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "625833",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "rdc-usfed-fomc-2026-10-28-hike50",
+       "createdAt": "2026-07-28T18:13:34Z",
+       "updatedAt": "2026-07-28T18:13:34Z",
+       "description": "No",
+       "price": "0.0200",
+       "marketId": 313135,
+       "long": false,
+       "quote": {
+        "value": "0.99",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.0100\",\"0.0200\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "50+ bps Increase",
+     "feeCoefficient": 0.0695,
+     "sortOrder": 1,
+     "bestBidQuote": {
+      "value": "0.0100",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.0200",
+      "currency": "USD"
+     },
+     "titleShort": "50+ bps Increase",
+     "ep3SyncedAt": "2026-09-14T11:49:07Z",
+     "minimumTradeQty": 0.01,
+     "comboEnabled": false
+    },
+    {
+     "id": "313134",
+     "question": "Fed Decision in October",
+     "slug": "rdc-usfed-fomc-2026-10-28-hike25",
+     "endDate": "2026-11-11T23:00:00Z",
+     "category": "macro",
+     "startDate": "2026-07-28T18:13:32Z",
+     "description": "This market will settle to Yes if the Federal Reserve increases the upper bound of the target federal funds rate by 25 basis points at the October 2026 Federal Open Market Committee (FOMC) meeting, currently scheduled for October 27-28. Outcome sourced from the Federal Reserve.\n\nIf the change in the specified rate does not precisely match the displayed options, changes smaller than the smallest option of the same direction (increase/decrease) will be rounded to that smallest option, and changes greater than the smallest option of the same direction will be rounded to the nearest displayed option, with values exactly halfway between options being rounded away from zero.",
+     "active": true,
+     "marketType": "futures",
+     "closed": false,
+     "createdAt": "2026-07-28T18:13:32Z",
+     "updatedAt": "2026-09-17T12:22:33Z",
+     "archived": false,
+     "orderPriceMinTickSize": 0.01,
+     "gameStartTime": "2026-07-28T18:00:00Z",
+     "manualActivation": false,
+     "sportsMarketType": "futures",
+     "marketSides": [
+      {
+       "id": "625830",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "rdc-usfed-fomc-2026-10-28-hike25",
+       "createdAt": "2026-07-28T18:13:32Z",
+       "updatedAt": "2026-07-28T18:13:32Z",
+       "description": "Yes",
+       "price": "0.4600",
+       "marketId": 313134,
+       "long": true,
+       "quote": {
+        "value": "0.4700",
+        "currency": "USD"
+       },
+       "tradable": true
+      },
+      {
+       "id": "625831",
+       "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+       "identifier": "rdc-usfed-fomc-2026-10-28-hike25",
+       "createdAt": "2026-07-28T18:13:32Z",
+       "updatedAt": "2026-07-28T18:13:32Z",
+       "description": "No",
+       "price": "0.4700",
+       "marketId": 313134,
+       "long": false,
+       "quote": {
+        "value": "0.54",
+        "currency": "USD"
+       },
+       "tradable": true
+      }
+     ],
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.4600\",\"0.4700\"]",
+     "ep3Status": "OPEN",
+     "status": "MARKET_STATUS_OPEN",
+     "assetPriceTerms": null,
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_FUTURE",
+     "hidden": false,
+     "tags": [],
+     "title": "25 bps Increase",
+     "feeCoefficient": 0.0695,
+     "sortOrder": 2,
+     "bestBidQuote": {
+      "value": "0.4600",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.4700",
+      "currency": "USD"
+     },
+     "titleShort": "25 bps Increase",
+     "ep3SyncedAt": "2026-09-14T11:49:07Z",
+     "minimumTradeQty": 0.01,
+     "comboEnabled": false
+    }
+   ],
+   "participants": [],
+   "hidden": false,
+   "tags": [
+    {
+     "id": "32",
+     "label": "Econ",
+     "slug": "economics",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "image": "https://static.polymarket.us/images/new-category-icons/Icon-Economy.png",
+     "tradable": false,
+     "subtags": [],
+     "hub": null
+    },
+    {
+     "id": "832",
+     "label": "macro",
+     "slug": "macro",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "subtags": [],
+     "hub": null
+    },
+    {
+     "id": "933",
+     "label": "Fed",
+     "slug": "fed",
+     "updatedAt": "2026-09-17T12:37:07Z",
+     "tradable": false,
+     "subtags": [],
+     "hub": null
+    }
+   ],
+   "teams": [],
+   "sortType": "manual",
+   "marketGroups": [],
+   "streamProvider": "",
+   "streamRequiresAuth": false,
+   "combos": {
+    "enabled": false
+   }
+  }
+ ]
+}

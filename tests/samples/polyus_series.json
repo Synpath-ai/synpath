@@ -1,0 +1,26 @@
+{
+ "series": [
+  {
+   "id": "29",
+   "slug": "rbcheri",
+   "title": "RBC Heritage",
+   "createdAt": "2026-04-08T00:00:01Z",
+   "updatedAt": "2026-04-08T00:00:01Z"
+  },
+  {
+   "id": "30",
+   "slug": "ipl-2026",
+   "title": "IPL 2026",
+   "createdAt": "2026-04-10T17:07:06Z",
+   "updatedAt": "2026-04-10T17:07:06Z"
+  },
+  {
+   "id": "31",
+   "slug": "weather",
+   "title": "Weather",
+   "active": false,
+   "createdAt": "2026-04-11T00:47:54Z",
+   "updatedAt": "2026-04-11T00:47:54Z"
+  }
+ ]
+}
