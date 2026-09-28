@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://raw.githubusercontent.com/Synpath-ai/synpath/main/assets/synpath-banner.png" alt="Synpath: one API for every prediction market" width="100%">
+
 # Synpath – One API for prediction markets
 
 **Build on prediction markets without building against each one.**<br/>
