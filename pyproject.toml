@@ -57,7 +57,7 @@ Homepage = "https://synpath.dev"
 Documentation = "https://synpath.dev/docs"
 Repository = "https://github.com/Synpath-ai/synpath"
 Issues = "https://github.com/Synpath-ai/synpath/issues"
-Discord = "https://discord.gg/QZzsHTpGA3"
+Discord = "https://synpath.dev/discord"
 
 [tool.hatch.build.targets.wheel]
 packages = ["synpath"]
