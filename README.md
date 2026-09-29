@@ -10,6 +10,7 @@ One open-source API across Kalshi, Polymarket and Polymarket US: market data, or
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
 <a href="https://synpath.dev/discord"><img src="https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+<a href="https://x.com/Synpath_Dev"><img src="https://img.shields.io/badge/follow-%40Synpath__Dev-000000?logo=x&logoColor=white" alt="Follow @Synpath_Dev on X"></a>
 
 </div>
 
