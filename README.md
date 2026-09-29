@@ -139,14 +139,7 @@ npx openapi-typescript openapi.json --default-non-nullable false -o src/synpath.
 
 ## Documentation
 
-- [CLI](https://synpath.dev/docs/quickstart): hosted data API sign-in and keys versus local venue trading server setup
-- [Unified API](https://synpath.dev/docs/sdks/python): methods, data structures, identifiers, paging, status, errors
-- [Capabilities](https://synpath.dev/docs/concepts/exchanges): what each venue can and cannot answer
-- [HTTP server](https://synpath.dev/docs/api-reference): routes, envelopes, typed client generation, trading routes with per-account keys, mounting behind your own auth
-- [Trading](https://synpath.dev/docs/concepts/orders): credentials, `Decimal` money, order entry on Kalshi, Polymarket and Polymarket US
-- [Streaming](https://synpath.dev/docs/ws-api-reference): WebSocket and gRPC books, trades, orders and fills as self-healing event streams
-- [Engine](docs/engine.md): a journal written before anything is sent, pre-trade risk, a ledger, reconciliation, a kill switch, the order types the venues do not hold, buckets that route one order across venues, paper trading
-- [TypeScript client](https://synpath.dev/docs/sdks/typescript): generate a typed client from the OpenAPI document, place through cancel without Python
+See the [API Reference](https://www.synpath.dev/docs) for detailed documentation and more examples.
 
 ## Development
 
