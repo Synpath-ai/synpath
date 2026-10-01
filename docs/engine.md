@@ -159,8 +159,12 @@ bound would walk each book to its end; a limit order on a bucket is refused. The
 lays the members' books side by side in bucket terms, a flipped member's
 YES book read as its NO book, prices every level net of the taker fee, and
 walks from the best net price to that worst price. A leg under its venue's minimum
-is dropped and its size moves to the next venue. The legs never sum to
-more than was asked.
+-- in contracts, or in value where the venue counts value (Opinion: 5 USDT
+of the token bought) -- is dropped and its size moves to the next venue. A
+venue that charges a minimum fee per order (Opinion: 0.25 USDT) has the
+floor added to each leg's cost: a leg it pushes past the worst price is
+dropped, and one whose size fills as fully for less elsewhere is moved. The
+legs never sum to more than was asked.
 
 The parent re-plans whenever a leg fills, a book moves or a leg is pulled.
 A leg still at a price the plan wants is kept, so it holds its place in the

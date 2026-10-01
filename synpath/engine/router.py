@@ -14,7 +14,14 @@ router and a footgun:
 * **Prices are net of the taker fee**, per level, because on Kalshi the fee
   is a curve in price and a 0.41 with fee can cost more than a 0.42 without.
 * **A leg below its venue's minimum is dropped and its size goes to the next
-  best venue**, rather than rounded up into more than the caller wanted.
+  best venue**, rather than rounded up into more than the caller wanted. The
+  minimum is in contracts, and where the venue has one (Opinion), in the
+  value of the token actually bought.
+
+A venue that charges a fee floor per order (Opinion: 0.25 USDT) makes a
+small leg cost more per contract than its levels say. Each leg's fee is
+raised to its floor after the walk; a leg that then breaks the limit is
+dropped, and one whose size fills as fully for less elsewhere is moved.
 """
 from __future__ import annotations
 
@@ -33,6 +40,9 @@ FeeFn = Callable[[str, Decimal, Decimal], Decimal]
 at that price, in the venue's currency. The plan asks per level."""
 
 Reason = Literal["", "worst_price", "liquidity", "min_amount"]
+
+FeeFloors = Mapping[str, Decimal]
+"""Per market id, the least one taker order pays. Absent means no floor."""
 
 PriceSize = tuple[Decimal, Decimal]
 
@@ -88,7 +98,8 @@ def default_precision(market_id: str) -> Precision:
     venue = market_id.split(":", 1)[0]
     rules = VENUE_RULES.get(venue, VENUE_RULES["polymarket"])
     return Precision(tick=rules["default_tick"], min_amount=rules["min_amount"],
-                     amount_step=rules["amount_step"], whole_contracts=rules["whole"])
+                     amount_step=rules["amount_step"], whole_contracts=rules["whole"],
+                     min_notional=rules.get("min_notional"))
 
 
 @dataclass(frozen=True)
@@ -113,7 +124,17 @@ class Leg:
     bucket_price: Decimal
     """The worst bucket-terms price this leg reaches, before fees."""
     net_price: Decimal
-    """Volume-weighted net price of the levels this leg takes, in bucket terms."""
+    """Volume-weighted net price of the levels this leg takes, in bucket terms,
+    with the venue's fee floor included where it binds."""
+    fee: Decimal = ZERO
+    """The taker fee this leg is expected to pay, floor included."""
+    fee_floor: Decimal = ZERO
+    """How much of `fee` is the floor over what the levels' fees add up to."""
+
+    def notional(self) -> Decimal:
+        """What the token this leg buys costs: YES at `price` on a buy, NO at
+        `1 - price` on a sell (a sell buys NO on a token venue)."""
+        return self.amount * (self.price if self.side == Side.BUY else Decimal("1") - self.price)
 
 
 @dataclass
@@ -170,26 +191,75 @@ def plan(
     side: Side,
     amount: Decimal,
     limit: Decimal,
+    floors: FeeFloors | None = None,
 ) -> Plan:
     """How to take `amount` of the bucket at no worse than `limit` net, given
-    what the books show now. Walks the merged book best-net first, stops at
-    the limit, then drops any leg under its venue's minimum and re-walks with
-    that venue excluded so its size goes to the next best."""
+    what the books show now.
+
+    Walks the merged book best-net first and stops at the limit. A leg under
+    its venue's minimum (contracts, or value where the venue has one) is
+    dropped and the walk repeated without that venue, so its size goes to
+    the next best. Then the fee floors: a leg whose floor takes it past the
+    limit is dropped the same way, and a floored leg is also dropped when the
+    walk without it fills as much for less."""
     asks, bids = merge(bucket, books, fee)
     levels = asks if side == Side.BUY else bids
-    excluded: set[str] = set()
-    out = Plan(side=side, amount=amount, limit=limit)
-    for _ in range(len(bucket.members) + 1):
-        legs, remaining, reason = _walk(bucket, levels, precision, side, amount, limit, excluded)
-        short = [leg for leg in legs if leg.amount < precision[leg.market_id].min_amount]
-        if not short:
-            out.legs, out.unfilled, out.reason = legs, remaining, reason
-            if remaining > 0 and reason == "" :
-                out.reason = "min_amount"
-            return out
-        excluded.update(leg.market_id for leg in short)
-    out.legs, out.unfilled, out.reason = [], amount, "min_amount"
+    floors = floors or {}
+
+    def settle(excluded: set[str]) -> tuple[list[Leg], Decimal, Reason, set[str]]:
+        excluded = set(excluded)
+        for _ in range(len(bucket.members) + 1):
+            legs, remaining, reason = _walk(bucket, levels, precision, side, amount, limit, excluded, floors)
+            bad = [leg for leg in legs if _too_small(leg, precision[leg.market_id]) or _past_limit(leg, side, limit)]
+            if not bad:
+                return legs, remaining, reason, excluded
+            excluded.update(leg.market_id for leg in bad)
+        return [], amount, "min_amount", excluded
+
+    best = settle(set())
+    for _ in range(len(bucket.members)):
+        moved = False
+        for leg in sorted((l for l in best[0] if l.fee_floor > 0), key=lambda l: -l.fee_floor):
+            other = settle(best[3] | {leg.market_id})
+            if _better(other, best, side):
+                best, moved = other, True
+                break
+        if not moved:
+            break
+
+    legs, remaining, reason, _ = best
+    out = Plan(side=side, amount=amount, limit=limit, legs=legs, unfilled=remaining, reason=reason)
+    if remaining > 0 and reason == "":
+        out.reason = "min_amount"
     return out
+
+
+def _too_small(leg: Leg, spec: Precision) -> bool:
+    if leg.amount < spec.min_amount:
+        return True
+    return spec.min_notional is not None and leg.notional() < spec.min_notional
+
+
+def _past_limit(leg: Leg, side: Side, limit: Decimal) -> bool:
+    """Only a fee floor can take a leg past the limit: every level it took
+    was inside it."""
+    if leg.fee_floor <= 0:
+        return False
+    return leg.net_price > limit if side == Side.BUY else leg.net_price < limit
+
+
+def _better(a: tuple, b: tuple, side: Side) -> bool:
+    """Whether plan `a` fills at least as much as `b` for less (a buy) or for
+    more (a sell), fees and floors included."""
+    legs_a, remaining_a = a[0], a[1]
+    legs_b, remaining_b = b[0], b[1]
+    if remaining_a > remaining_b:
+        return False
+    if remaining_a < remaining_b:
+        return True
+    total_a = sum((l.net_price * l.amount for l in legs_a), ZERO)
+    total_b = sum((l.net_price * l.amount for l in legs_b), ZERO)
+    return total_a < total_b if side == Side.BUY else total_a > total_b
 
 
 def _walk(
@@ -200,6 +270,7 @@ def _walk(
     amount: Decimal,
     limit: Decimal,
     excluded: set[str],
+    floors: FeeFloors,
 ) -> tuple[list[Leg], Decimal, Reason]:
     taken: dict[str, dict[str, Decimal]] = {}
     remaining = amount
@@ -214,9 +285,10 @@ def _walk(
             reason = "worst_price"
             break
         take = min(lvl.size, remaining)
-        slot = taken.setdefault(lvl.market_id, {"amount": ZERO, "cost": ZERO, "worst": lvl.price})
+        slot = taken.setdefault(lvl.market_id, {"amount": ZERO, "cost": ZERO, "fee": ZERO, "worst": lvl.price})
         slot["amount"] += take
         slot["cost"] += lvl.net_price * take
+        slot["fee"] += abs(lvl.net_price - lvl.price) * take
         slot["worst"] = max(slot["worst"], lvl.price) if side == Side.BUY else min(slot["worst"], lvl.price)
         remaining -= take
     else:
@@ -233,9 +305,14 @@ def _walk(
         remaining += slot["amount"] - qty
         member_side, member_price = member.to_member(side, slot["worst"])
         member_price = _round_price(member_price, spec.tick, member_side)
+        share = qty / slot["amount"]
+        curve = slot["fee"] * share
+        floor = floors.get(market_id)
+        extra = max(ZERO, floor - curve) if floor is not None and curve > 0 else ZERO
+        net = slot["cost"] / slot["amount"] + (extra / qty if side == Side.BUY else -extra / qty)
         legs.append(Leg(
             market_id=market_id, flip=member.flip, side=member_side, price=member_price, amount=qty,
-            bucket_price=slot["worst"], net_price=slot["cost"] / slot["amount"],
+            bucket_price=slot["worst"], net_price=net, fee=curve + extra, fee_floor=extra,
         ))
     return legs, remaining, reason
 
