@@ -107,18 +107,26 @@ async with PolymarketMarketStream() as stream:
             print(event.market_id, event.side, event.best_bid, event.best_ask)
 ```
 
-**The engine, and the orders the venues do not hold**
+**Smart order routing: one order across Kalshi and Polymarket**
 
 ```python
-from synpath.engine import Engine, EngineConfig, RiskConfig
-from synpath import OrderType
+from synpath import Bucket, BucketMember, OrderType, PolymarketTrading
+from synpath.engine import Engine, EngineConfig
 
-async with Engine({"kalshi": kalshi}, EngineConfig(journal_path="trading.db"),
-                  risk=RiskConfig(max_order_contracts=Decimal("100"))) as engine:
+creds = load_credentials()
+async with KalshiTrading(require("kalshi", creds)) as kalshi, \
+           PolymarketTrading(require("polymarket", creds)) as poly, \
+           Engine({"kalshi": kalshi, "polymarket": poly}, EngineConfig(journal_path="trading.db")) as engine:
+    # The same market on both venues; flip=True where a venue asks the question the other way round
+    bucket = await engine.save_bucket(Bucket(book="alpha", name="Fed cut in December", members=[
+        BucketMember(market_id="kalshi:KXFEDDECISION-26DEC-C25"),
+        BucketMember(market_id="polymarket:2252244", flip=True),
+    ]))
+    # Both order books combined, each level net of fees, filled from the cheapest price outward
     await engine.submit(OrderRequest(
-        market_id=market.id, side=Side.SELL, amount=Decimal("20"),
-        type=OrderType.TRAILING_STOP, stop_price=Decimal("0.40"),
-        params={"trail": "0.03"}, book="alpha",
+        market_id=bucket.market_id, side=Side.BUY, amount=Decimal("500"),
+        type=OrderType.MARKET, price=Decimal("0.45"),   # the worst price you accept
+        book="alpha",
     ))
 ```
 
