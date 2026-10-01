@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "synpath"
-version = "0.1.0"
+version = "0.2.0"
 description = "One API for prediction markets. Kalshi and Polymarket, normalized, with every price labelled by source and time."
 readme = "README.md"
 requires-python = ">=3.10"
