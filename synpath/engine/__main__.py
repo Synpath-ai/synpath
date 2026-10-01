@@ -60,6 +60,7 @@ ADAPTERS = {
     "polymarket": ("..trading.polymarket", "PolymarketTrading"),
     "polymarket_us": ("..trading.polymarket_us", "PolymarketUSTrading"),
     "polymarket_us_exchange": ("..trading.polymarket_us_exchange", "PolymarketUSExchangeTrading"),
+    "opinion": ("..trading.opinion", "OpinionTrading"),
 }
 
 

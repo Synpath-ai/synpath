@@ -118,10 +118,27 @@ def ask_polymarket_us(p: Prompter) -> dict[str, str]:
     return {"POLYMARKET_US_KEY_ID": key_id, "POLYMARKET_US_SECRET_KEY": secret}
 
 
+def ask_opinion(p: Prompter) -> dict[str, str]:
+    p.say("\nOpinion: the private key of the wallet you connected on opinion.trade, after enabling trading there.")
+    p.say("The key is typed hidden. Leave the API key empty to create one by signing with this wallet.")
+    key = p.value("Private key (0x...)", secret=True,
+                  check=lambda raw: None if PRIVATE_KEY.match(raw) else "That is not a private key: 64 hex characters, "
+                                                                        "optionally starting with 0x.")
+    key = key if key.startswith("0x") else "0x" + key
+    api_key = p.value("API key (empty to create one)", secret=True, default="", check=lambda raw: None)
+    if not api_key:
+        from .opinion import create_api_key
+
+        api_key = create_api_key(key)
+        p.say("  Created the API key.")
+    return {"OPINION_PRIVATE_KEY": key, "OPINION_API_KEY": api_key}
+
+
 VENUES: list[tuple[str, str, Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", "KALSHI_KEY_ID", ask_kalshi),
     ("Polymarket", "POLYMARKET_PRIVATE_KEY", ask_polymarket),
     ("Polymarket US", "POLYMARKET_US_KEY_ID", ask_polymarket_us),
+    ("Opinion", "OPINION_PRIVATE_KEY", ask_opinion),
 ]
 
 

@@ -20,6 +20,8 @@ loaded; the adapters are what use it.
   Polymarket US       POLYMARKET_US_CLIENT_ID, POLYMARKET_US_PRIVATE_KEY_PATH,
     (exchange API)    POLYMARKET_US_PARTICIPANT_ID, POLYMARKET_US_ACCOUNT,
                       POLYMARKET_US_ENV (preprod|prod)
+  Opinion             OPINION_PRIVATE_KEY, OPINION_API_KEY, and optionally
+                      OPINION_MULTISIG_ADDRESS
 """
 from __future__ import annotations
 
@@ -139,7 +141,31 @@ class PolymarketUSExchangeCredentials:
         return [self.private_key_pem.decode(errors="ignore")]
 
 
-Credentials = KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
+@dataclass(frozen=True, repr=False)
+class OpinionCredentials:
+    """Opinion: the wallet that signs orders, and the account's API key."""
+
+    private_key: str = field(repr=False)
+    """The signer's private key, hex: the wallet connected on opinion.trade.
+    Signs every order (EIP-712) for the account's Safe."""
+    api_key: str = field(repr=False)
+    """The Open API key, from `POST /auth/api-key` signed by the same wallet,
+    or the venue's application form."""
+    multisig_address: str | None = None
+    """The account's Safe, which holds the USDT and tokens ("MyProfile" on
+    opinion.trade). Read from the venue on first use when not given."""
+    _public = ("multisig_address",)
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.private_key, self.api_key]
+
+
+Credentials = (
+    KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
+    | OpinionCredentials
+)
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
     "kalshi": ("KALSHI_KEY_ID", "KALSHI_PRIVATE_KEY_PATH", "KALSHI_ENV"),
@@ -154,6 +180,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "POLYMARKET_US_CLIENT_ID", "POLYMARKET_US_PRIVATE_KEY_PATH", "POLYMARKET_US_PARTICIPANT_ID",
         "POLYMARKET_US_ACCOUNT", "POLYMARKET_US_ENV",
     ),
+    "opinion": ("OPINION_PRIVATE_KEY", "OPINION_API_KEY", "OPINION_MULTISIG_ADDRESS"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -295,11 +322,28 @@ def load_polymarket_us_exchange(env: Mapping[str, str]) -> PolymarketUSExchangeC
     )
 
 
+def load_opinion(env: Mapping[str, str]) -> OpinionCredentials | None:
+    key = env.get("OPINION_PRIVATE_KEY")
+    if not key:
+        return None
+    api_key = env.get("OPINION_API_KEY")
+    if not api_key:
+        raise CredentialsMissing(
+            "OPINION_PRIVATE_KEY is set but OPINION_API_KEY is not; create one by signing with the same wallet "
+            "(https://docs.opinion.trade/developer-guide/opinion-open-api/authentication)"
+        )
+    safe = env.get("OPINION_MULTISIG_ADDRESS") or None
+    if safe and not re.match(r"^0x[0-9a-fA-F]{40}$", safe):
+        raise CredentialsMissing(f"OPINION_MULTISIG_ADDRESS must be a 0x address, got {safe!r}")
+    return OpinionCredentials(private_key=key, api_key=api_key, multisig_address=safe)
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
     "polymarket_us": load_polymarket_us,
     "polymarket_us_exchange": load_polymarket_us_exchange,
+    "opinion": load_opinion,
 }
 
 

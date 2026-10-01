@@ -31,7 +31,7 @@ def doctor(dotenv: str | None) -> int:
     for venue, creds in loaded.items():
         if creds is None:
             names = ENV_NAMES[venue]
-            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us") else ""
+            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion") else ""
             rows.append((venue, "not configured", f"set {names[0]}{hint}"))
             continue
         stage = getattr(creds, "env", "-")
@@ -41,6 +41,12 @@ def doctor(dotenv: str | None) -> int:
             identity = f"participant {creds.participant_id}"
         elif getattr(creds, "funder", None):
             identity = f"funder {creds.funder} (signature type {creds.signature_type})"
+        elif venue == "opinion":
+            # Opinion's API key is itself the secret, so the wallet names the account.
+            from .polymarket_signing import WalletSigner
+
+            safe = f", safe {creds.multisig_address}" if creds.multisig_address else ""
+            identity = f"wallet {WalletSigner(creds.private_key).address}{safe}"
         elif getattr(creds, "api_key", None):
             identity = f"api key {creds.api_key[:8]}…"
         else:

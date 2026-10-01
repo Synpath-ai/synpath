@@ -71,6 +71,13 @@ def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any])
         elif venue == "polymarket_us" and creds is not None:
             from ..ws.polymarket_us import PolymarketUSMarketStream, PolymarketUSPrivateStream
             out[venue] = VenueStreams(market=PolymarketUSMarketStream(creds), private=PolymarketUSPrivateStream(creds))
+        elif venue == "opinion" and creds is not None:
+            from ..ws.opinion import OpinionMarketStream, OpinionUserStream
+            catalog = getattr(adapter, "catalog", None)
+            out[venue] = VenueStreams(
+                market=OpinionMarketStream(api_key=creds.api_key, catalog=catalog),
+                private=OpinionUserStream(api_key=creds.api_key, catalog=catalog),
+            )
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

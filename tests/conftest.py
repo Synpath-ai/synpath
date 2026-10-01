@@ -116,3 +116,28 @@ def polyus_prices():
 @pytest.fixture
 def polyus_series():
     return load("polyus_series.json")
+
+
+@pytest.fixture
+def opinion_topics():
+    return load("opinion_markets.json")["result"]["list"]
+
+
+@pytest.fixture
+def opinion_market():
+    return load("opinion_market.json")["result"]["data"]
+
+
+@pytest.fixture
+def opinion_categorical():
+    return load("opinion_categorical.json")["result"]["data"]
+
+
+@pytest.fixture
+def opinion_child():
+    return load("opinion_child.json")["result"]["data"]
+
+
+@pytest.fixture
+def opinion_resolved():
+    return load("opinion_resolved.json")["result"]["list"]

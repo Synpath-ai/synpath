@@ -48,7 +48,7 @@ BookModel = Literal["shared_complement", "native_per_outcome"]
                        (Polymarket: one per CLOB token).
 """
 
-PriceSource = Literal["trade", "sampled_mid", "bid_ask_mid"]
+PriceSource = Literal["trade", "sampled_mid", "sampled_last", "bid_ask_mid"]
 """Where a candle's OHLC actually came from. See `Candle`."""
 
 T = TypeVar("T")
@@ -471,6 +471,8 @@ class Candle(_Base):
       bid_ask_mid — no trades; midpoint of the venue's bid/ask bars
       sampled_mid — the venue published price samples, not bars, and these were
                     bucketed by this library (Polymarket)
+      sampled_last — the same, but the samples are the last traded price, not a
+                    midpoint: a period without trades repeats the last one (Opinion)
     """
     bid_close: float | None = None
     ask_close: float | None = None
@@ -508,6 +510,9 @@ class FeeSchedule(_Base):
     exponent: float | None = None
     """Polymarket: the power applied to `P * (1 - P)`. Every live market
     publishes `1`; `None` means 1."""
+    min_fee: float | None = None
+    """Smallest fee one taker order is charged, in collateral, where the venue
+    has a floor (Opinion: 0.25 USDT). `None` means no floor."""
     info: dict[str, Any] = Field(default_factory=dict)
 
     def estimate(self, price: float, contracts: float, *, taker: bool = True) -> float | None:
@@ -533,6 +538,10 @@ class FeeSchedule(_Base):
           published directly: `taker_rate` and `maker_rate` hold the venue's
           thetas, and a negative maker theta is a rebate, returned here as a
           negative fee. `exponent` is 1 unless the venue says otherwise.
+        * `opinion_curve` (Opinion) — `rate * notional * P * (1 - P)`, notional
+          being `P * C`, as the venue's fee docs define it, and never less than
+          `min_fee` for a taker order. `taker_rate` and `maker_rate` hold the
+          venue's curve coefficients; a zero rate is a free market, no floor.
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:
@@ -540,6 +549,11 @@ class FeeSchedule(_Base):
             fee = round(0.07 * share * self.multiplier * contracts * price * (1 - price), 9)
             if self.rounding == "up_to_cent":
                 fee = math.ceil(fee * 100 - 1e-9) / 100
+            return round(fee, 6)
+        if self.fee_type == "opinion_curve" and rate is not None:
+            fee = rate * price * contracts * price * (1 - price)
+            if taker and rate > 0 and contracts > 0 and self.min_fee is not None:
+                fee = max(fee, self.min_fee)
             return round(fee, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent

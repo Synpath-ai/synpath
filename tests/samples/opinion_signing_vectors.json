@@ -1,0 +1,96 @@
+{
+ "private_key": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+ "safe": "0x1111111111111111111111111111111111111111",
+ "exchange": "0x5f45344126d6488025b0b84a3a8189f2487a7246",
+ "chain_id": 56,
+ "cases": [
+  {
+   "name": "buy limit",
+   "side": 0,
+   "price": "0.45",
+   "maker_input": "45",
+   "trading_method": 2,
+   "order": {
+    "salt": "12345",
+    "maker": "0x1111111111111111111111111111111111111111",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "taker": "0x0000000000000000000000000000000000000000",
+    "tokenId": "75412273803674445758900415334684151472292182399939034781239749105696457113226",
+    "makerAmount": "45000000000000000000",
+    "takerAmount": "100000000000000000000",
+    "expiration": "0",
+    "nonce": "0",
+    "feeRateBps": "0",
+    "side": "0",
+    "signatureType": "2"
+   },
+   "signature": "0x53a758374bf826f2a79ce278d94cd4bb003fa73a1637e900923ad966508e8b0b11543720a8c48e7e19c2a26ced2d0d9892716fa55d9fdc7d61c22dc70d89e3771c"
+  },
+  {
+   "name": "sell limit",
+   "side": 1,
+   "price": "0.723",
+   "maker_input": "37.5",
+   "trading_method": 2,
+   "order": {
+    "salt": "999",
+    "maker": "0x1111111111111111111111111111111111111111",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "taker": "0x0000000000000000000000000000000000000000",
+    "tokenId": "75412273803674445758900415334684151472292182399939034781239749105696457113226",
+    "makerAmount": "37500000000000000000",
+    "takerAmount": "27112500000000000000",
+    "expiration": "0",
+    "nonce": "0",
+    "feeRateBps": "0",
+    "side": "1",
+    "signatureType": "2"
+   },
+   "signature": "0x08d7c617fd014b7976ee504c88c705797be07301ae84f6ebedd92d85c529481035c92e74b13a84847507944680b1537c45ec54bf8f42cf802cb1b1d3dd1faf391c"
+  },
+  {
+   "name": "buy limit odd",
+   "side": 0,
+   "price": "0.071",
+   "maker_input": "6.2",
+   "trading_method": 2,
+   "order": {
+    "salt": "42",
+    "maker": "0x1111111111111111111111111111111111111111",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "taker": "0x0000000000000000000000000000000000000000",
+    "tokenId": "75412273803674445758900415334684151472292182399939034781239749105696457113226",
+    "makerAmount": "6199999999999999930",
+    "takerAmount": "87323943661971830000",
+    "expiration": "0",
+    "nonce": "0",
+    "feeRateBps": "0",
+    "side": "0",
+    "signatureType": "2"
+   },
+   "signature": "0x3613a7eeb9a3c777283b91b59c57697b050b12135f22b1d88449c58de31232ff05cf1efae61b0e58ee809b287abcf6e2cd59c16b67a7d5cf092b3057abc2a5321c"
+  },
+  {
+   "name": "market buy",
+   "side": 0,
+   "price": "0",
+   "maker_input": "20",
+   "trading_method": 1,
+   "order": {
+    "salt": "7",
+    "maker": "0x1111111111111111111111111111111111111111",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "taker": "0x0000000000000000000000000000000000000000",
+    "tokenId": "75412273803674445758900415334684151472292182399939034781239749105696457113226",
+    "makerAmount": "20000000000000000000",
+    "takerAmount": "0",
+    "expiration": "0",
+    "nonce": "0",
+    "feeRateBps": "0",
+    "side": "0",
+    "signatureType": "2"
+   },
+   "signature": "0xb8d954d7c861b18b8d69434b40ffbbedbbf59d6ea5c96b7b2c4371172bfbb8157792e5afaa33e21a88bf734240f3696fa92a7b3ae7d8d877c03feb61176fb05e1b"
+  }
+ ]
+}

@@ -353,4 +353,9 @@ def _polymarket_us(creds: Credentials) -> TradingExchange:
     return PolymarketUSTrading(creds)  # type: ignore[arg-type]
 
 
-_TRADING = {"kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us}
+def _opinion(creds: Credentials) -> TradingExchange:
+    from .trading.opinion import OpinionTrading
+    return OpinionTrading(creds)  # type: ignore[arg-type]
+
+
+_TRADING = {"kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion}
