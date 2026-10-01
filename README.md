@@ -16,6 +16,8 @@ One open-source API across Kalshi, Polymarket, Polymarket US and Opinion: market
 **🆕 New: Smart order routing across Kalshi and Polymarket.**<br/>
 One order, both order books combined, filled from the cheapest price after fees. **[See how it works →](https://www.synpath.dev/docs/concepts/buckets)**
 
+⭐ **If Synpath saves you time, [star it on GitHub](https://github.com/Synpath-ai/synpath).** It's how other traders find it.
+
 ---
 
 ## Supported Exchanges
