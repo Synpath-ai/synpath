@@ -590,7 +590,30 @@ class TestSortVocabulary:
             venue.fetch_markets(sort="by_vibes")
 
     def test_every_venue_sorts(self, venue_class):
-        assert venue_class.has["sort"] is True
+        """Every key on every venue, or -- where the venue publishes no figure
+        for a key at all (Opinion has no liquidity) -- `partial`, and that key
+        refused before any request rather than answered unsorted."""
+        from synpath.base import MARKET_SORTS
+
+        assert venue_class.has["sort"] in (True, "partial")
+        if venue_class.has["sort"] is True:
+            return
+        venue = venue_class(limiter=None)
+
+        class Unreachable:
+            def get(self, path, params=None):
+                raise AssertionError(f"{venue_class.id} asked the venue before refusing a sort")
+
+        venue.http = Unreachable()
+        refused = 0
+        for key in MARKET_SORTS:
+            try:
+                venue.fetch_markets(sort=key, limit=1)
+            except NotSupported:
+                refused += 1
+            except AssertionError:
+                continue
+        assert 0 < refused < len(MARKET_SORTS)
 
     def test_kalshi_orders_the_page_it_read(self, kalshi_event):
         """The venue ignores its own sort parameters, so the page is ordered

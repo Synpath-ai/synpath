@@ -31,6 +31,8 @@ asyncio.run(main())
 | `PolymarketUserStream` | CLOB user channel | CLOB API credentials, or a `PolymarketTrading` to derive them | orders; fills with settlement state |
 | `PolymarketUSMarketStream` | `api.polymarket.us/v1/ws/markets` | retail API key | full books, top of book, trades, market state |
 | `PolymarketUSPrivateStream` | `api.polymarket.us/v1/ws/private` | retail API key | orders, fills, positions, balances |
+| `OpinionMarketStream` | `ws.opinion.trade` | Opinion API key (every channel needs one) | books, trades, last prices |
+| `OpinionUserStream` | `ws.opinion.trade` | Opinion API key | orders; fills once the chain confirms them |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -85,6 +87,15 @@ jittered exponential backoff between attempts.
   a fresh snapshot.
 - *Polymarket US* sends the whole visible book every time, so books cannot
   drift.
+- *Opinion* sends one changed level per message, with no snapshot and no
+  sequence number. The stream reads each book over REST once the
+  subscription is live and replays the changes that arrived during the read.
+  A change is read as the level's whole size (the venue documents `size` as
+  the level's shares), so replaying one the snapshot already holds is
+  harmless; `tests/test_opinion_ws_live.py` checks this against the venue.
+  Nothing in the feed reveals a missed message, so every book is read again
+  on a timer (`resync_interval`, 60 s by default): a book that disagrees
+  while no change was in flight is a `gap`, and is replaced.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to
@@ -214,6 +225,10 @@ documented heartbeat and rely on gRPC keepalive.
   covers.
 - **Polymarket US:** built to the venue's documentation and SDK, with the
   envelope spellings both of them accept.
+- **Opinion:** built to the venue's documentation and SDK samples, with the
+  REST books recorded for the read adapter. `tests/test_opinion_ws_live.py`
+  checks streamed books against the venue's own over a live minute; it needs
+  `OPINION_API_KEY`.
 - **Polymarket US exchange API (gRPC):** a real local gRPC server speaking
   the venue's own compiled messages. It covers a refused token, a snapshot,
   an execution report and a drop, and a drop-copy resume token surviving a

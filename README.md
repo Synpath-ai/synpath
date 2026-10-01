@@ -5,7 +5,7 @@
 # Synpath – One API for prediction markets <a href="https://x.com/Synpath_Dev"><img src="https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2FSynpath_Dev&style=social&label=Follow" alt="Follow @Synpath_Dev on X" height="28"></a>
 
 **Build on prediction markets without building against each one.**<br/>
-One open-source API across Kalshi, Polymarket and Polymarket US: market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
+One open-source API across Kalshi, Polymarket, Polymarket US and Opinion: market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
 
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <a href="https://pepy.tech/projects/synpath"><img src="https://img.shields.io/pepy/dt/synpath?label=Total%20Downloads&color=blue" alt="Total Downloads"></a>
@@ -25,10 +25,11 @@ One order, both order books combined, filled from the cheapest price after fees.
 | <img src="assets/kalshi.png" width="20" height="20" alt="Kalshi"> | [Kalshi](https://kalshi.com) | `kalshi` | ✓ | ✓ | WebSocket | one book per market, both sides read it |
 | <img src="assets/polymarket.png" width="20" height="20" alt="Polymarket"> | [Polymarket](https://polymarket.com) | `polymarket` | ✓ | ✓ | WebSocket | one book per outcome token |
 | <img src="assets/polymarket.png" width="20" height="20" alt="Polymarket US"> | [Polymarket US](https://polymarket.us) | `polymarket_us` | ✓ | ✓ retail and exchange APIs | WebSocket and gRPC | one book per market, both sides read it |
+| | [Opinion](https://opinion.trade) | `opinion` | ✓ | ✓ not yet live-tested | WebSocket (API key) | one book per outcome token |
 
 ## Why Synpath
 
-- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket and Polymarket US, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
+- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US and Opinion, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
 
 - **Traders deserve advanced order types.** Stops, trailing stops, icebergs, OCO, brackets, TWAP and pegs, on every venue, even where the exchange has none. Orders are journaled before they're sent, so a crash never places one twice.
 
@@ -74,7 +75,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # ['kalshi', 'polymarket', 'polymarket_us']
+for venue_id in synpath.exchanges:                 # ['kalshi', 'polymarket', 'polymarket_us', 'opinion']
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 

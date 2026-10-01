@@ -52,9 +52,13 @@ def _validate(anchor: str) -> None:
         )
 
 
-def match_market(anchor: str, *, base_url: str | None = None, client: Any = None,
+def match_market(anchor: str, *, venue: str | None = None, base_url: str | None = None, client: Any = None,
                  api_key: str | None = None) -> MarketMatch:
-    """The other venue's listing of the same proposition as `anchor`.
+    """Another venue's listing of the same proposition as `anchor`.
+
+    `venue` names which venue to look on. Without it the service answers with the counterpart it
+    always has -- Polymarket for a Kalshi anchor, Kalshi for a Polymarket one -- and Opinion only
+    where nothing else lists the proposition.
 
     `anchor` is a Synpath id for a market you already hold, never a query -- browse each venue's
     own catalog with `fetch_markets(query=...)` first if you do not have one yet. `client` is an
@@ -67,7 +71,10 @@ def match_market(anchor: str, *, base_url: str | None = None, client: Any = None
     """
     _validate(anchor)
     # Only the client this call built for itself is closed after, never one the caller owns.
-    body = call(_client(base_url, client), "GET", "/match/market", params={"id": anchor},
+    if venue is not None and venue not in ids.VENUES:
+        raise BadRequest(f"unknown venue {venue!r}; expected one of {', '.join(ids.VENUES)}")
+    params = {"id": anchor, **({"venue": venue} if venue else {})}
+    body = call(_client(base_url, client), "GET", "/match/market", params=params,
                 api_key=api_key, owned=client is None, use_stored=True)
     return MarketMatch.model_validate(body)
 

@@ -42,6 +42,7 @@ from .errors import (
 from .kalshi import Kalshi
 from .polymarket import Polymarket
 from .polymarket_us import PolymarketUS
+from .opinion import Opinion
 from .matching import match_event, match_market
 from .history import fetch_order_book_at, fetch_order_book_range, fetch_trades_range
 from .bucket import Bucket, BucketMember, BucketOrderReport, BucketPosition
@@ -75,12 +76,13 @@ from .types import (
     TradesRangeResponse,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 exchanges: dict[str, type[Exchange]] = {
     "kalshi": Kalshi,
     "polymarket": Polymarket,
     "polymarket_us": PolymarketUS,
+    "opinion": Opinion,
 }
 """Every venue this library speaks, by id."""
 
@@ -101,6 +103,7 @@ def exchange(venue: str, **kwargs) -> Exchange:
 # keeps working. Imported last, after the read API it builds on.
 from .trading import (
     TradingExchange, KalshiTrading, PolymarketTrading, PolymarketUSTrading, PolymarketUSExchangeTrading,
+    OpinionTrading,
     Account, Balance, EditRequest, FeeEstimate, Fill, HeldBy, Liquidity,
     Order, OrderRequest, OrderStatus, OrderType, Position, PositionSide,
     Precision, Settlement, SettlementState, Side, TimeInForce,
@@ -128,6 +131,7 @@ _STREAM_CLASSES = (
     "PolymarketUSExchangeTradeCaptureStream", "PolymarketUSExchangePositionChangeStream",
     "PolymarketUSExchangeInstrumentStream", "PolymarketUSExchangePositionStream",
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
+    "OpinionMarketStream", "OpinionUserStream",
 )
 _SERVER_NAMES = ("create_app", "create_trading_app", "VenueRegistry", "ControlStore", "Principal")
 
@@ -149,7 +153,7 @@ def __getattr__(name: str):
 
 
 __all__ = [
-    "Kalshi", "Polymarket", "PolymarketUS", "Exchange", "exchange", "exchanges",
+    "Kalshi", "Polymarket", "PolymarketUS", "Opinion", "Exchange", "exchange", "exchanges",
     "Capability", "HttpClient", "RateLimiter",
     "Market", "Event", "Outcome", "Quote", "MarketStats", "OrderBook",
     "OrderLevel", "Trade", "Candle", "FeeSchedule", "Series", "Page",
@@ -166,6 +170,7 @@ __all__ = [
     "MarketNotFound", "NotSupported", "AuthenticationError",
     # order entry
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
+    "OpinionTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce",

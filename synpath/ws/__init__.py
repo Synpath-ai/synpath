@@ -38,6 +38,9 @@ def __getattr__(name: str):
     if name in ("PolymarketUSMarketStream", "PolymarketUSPrivateStream"):
         from . import polymarket_us
         return getattr(polymarket_us, name)
+    if name in ("OpinionMarketStream", "OpinionUserStream"):
+        from . import opinion
+        return getattr(opinion, name)
     if name.startswith("PolymarketUSExchange"):
         from . import polymarket_us_exchange
         return getattr(polymarket_us_exchange, name)
@@ -52,4 +55,5 @@ __all__ = [
     "PolymarketUSExchangeTradeCaptureStream", "PolymarketUSExchangePositionChangeStream",
     "PolymarketUSExchangeInstrumentStream", "PolymarketUSExchangePositionStream",
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
+    "OpinionMarketStream", "OpinionUserStream",
 ]

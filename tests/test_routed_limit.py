@@ -289,3 +289,44 @@ class TestRefusals:
             BucketMember(market_id=K), BucketMember(market_id="polymarket_us:slug")]))
         with pytest.raises(BadRequest, match="polymarket_us"):
             await engine.submit(request(other))
+
+
+class TestFeeFloors:
+    """A venue that charges at least a fixed fee per order (Opinion: 0.25 USDT)."""
+
+    @staticmethod
+    def floored(paper: PaperVenue, rate: D, floor: D) -> list:
+        """Quote fees as `rate` a contract, never under `floor` an order."""
+        from synpath.trading.types import FeeEstimate
+
+        asked: list = []
+
+        async def estimate(market_id, side, price, amount):
+            asked.append(amount)
+            return FeeEstimate(venue=paper.venue, market_id=market_id, side=side, price=price, amount=amount,
+                               taker_fee=max(rate * amount, floor), maker_fee=D("0"), min_fee=floor)
+
+        paper.fetch_fee_estimate = estimate
+        return asked
+
+    async def test_the_curve_is_read_under_the_floor_and_a_small_leg_goes_elsewhere(self, setup):
+        engine, kalshi, poly, clock, bucket = setup
+        # At 0.0001 a contract the floor hides the curve on 100 contracts
+        # (0.01 under 0.25); 10,000 shows it (1.00).
+        asked = self.floored(poly, D("0.0001"), D("0.25"))
+        book(kalshi, engine, K, asks=[(D("0.402"), D("100"))])
+        book(poly, engine, P, asks=[(D("0.400"), D("10"))])
+        parent = await engine.submit(request(bucket, amount=D("40")))
+        assert asked[:2] == [D("100"), D("10000")]
+        managed = engine.orders.get(parent.id)
+        assert managed.fee_cache[f"{P}@0.400"] == D("0.0001") and managed.fee_floors[P] == D("0.25")
+        # Polymarket's 10 are 0.2c cheaper but pay 0.25 in fees: Kalshi takes all 40.
+        assert poly.orders == {} and [o.amount for o in kalshi.orders.values()] == [D("40")]
+
+    async def test_a_floor_worth_paying_is_paid(self, setup):
+        engine, kalshi, poly, clock, bucket = setup
+        self.floored(poly, D("0.0001"), D("0.25"))
+        book(kalshi, engine, K, asks=[(D("0.45"), D("1000"))])
+        book(poly, engine, P, asks=[(D("0.40"), D("1000"))])
+        await engine.submit(request(bucket, amount=D("50"), price=D("0.46")))
+        assert kalshi.orders == {} and [o.amount for o in poly.orders.values()] == [D("50")]

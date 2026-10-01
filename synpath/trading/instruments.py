@@ -35,6 +35,10 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # Every live market trades whole contracts today, but a market may set a
     # fractional `minimumTradeQty`; the trading adapters read it per market.
     "polymarket_us": {"default_tick": Decimal("0.001"), "min_amount": Decimal("1"), "amount_step": Decimal("1"), "whole": True},
+    # Prices to a tenth of a cent on every book read, and at least 5 USDT an
+    # order, counted on the token actually bought.
+    "opinion": {"default_tick": Decimal("0.001"), "min_amount": Decimal("1"), "amount_step": Decimal("0.01"), "whole": False,
+                "min_notional": Decimal("5")},
 }
 
 
@@ -79,6 +83,7 @@ def precision_for(market: Market) -> Precision:
         amount_step=rules["amount_step"],
         whole_contracts=rules["whole"],
         face_value=D(market.face_value),
+        min_notional=rules.get("min_notional"),
     )
 
 

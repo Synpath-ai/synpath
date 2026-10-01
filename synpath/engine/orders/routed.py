@@ -36,6 +36,18 @@ from .. import router
 from .base import ZERO, Child, Context, D, ManagedOrder, now_ms
 from .manager import register
 
+FEE_REFERENCE_TRIES = 4
+"""Larger reference orders asked for while a venue's floor hides its curve:
+100, then 10,000, a million and 100 million contracts."""
+
+FEE_REFERENCE = Decimal("100")
+"""Contracts in the order a level's fee is quoted for, then divided back to
+one contract. A one-contract quote overstates the rate wherever a venue
+charges per order: Kalshi rounds each order's fee up to the cent, and
+Opinion charges at least 0.25 USDT an order, which would read as 25c a
+contract and keep the router off the venue entirely. The floor itself is
+kept per member and applied to whole legs by the plan."""
+
 
 @dataclass
 class LegState:
@@ -93,6 +105,8 @@ class RoutedLimit(ManagedOrder):
         self.stop_reason = ""
         self.fees_paid = ZERO
         self.fee_cache: dict[str, Decimal] = {}
+        self.fee_floors: dict[str, Decimal] = {}
+        """Per member, the least one taker order pays, as its venue reported."""
         """`market_id@price` -> taker fee per contract."""
         self.fee_unknown: set[str] = set()
         self._replanning = False
@@ -287,7 +301,7 @@ class RoutedLimit(ManagedOrder):
             return
         await self._price_fees(ctx, books)
         plan = router.plan(self.bucket, books, self.precision, self._fee,
-                           side=self.side, amount=self.known_remaining, limit=self.limit)
+                           side=self.side, amount=self.known_remaining, limit=self.limit, floors=self.fee_floors)
         wanted = {leg.market_id: leg for leg in plan.legs}
 
         # Keep a leg that is still at a price the plan wants, as long as what
@@ -327,7 +341,10 @@ class RoutedLimit(ManagedOrder):
         placed = 0
         for market_id, want in wanted.items():
             size = min(want.amount, budget)
-            if size <= 0 or size < self.precision[market_id].min_amount:
+            spec = self.precision[market_id]
+            if size <= 0 or size < spec.min_amount:
+                continue
+            if spec.min_notional is not None and want.notional() * size / want.amount < spec.min_notional:
                 continue
             request = self.child_request(market_id=market_id, side=want.side, price=want.price, amount=size,
                                          type=OrderType.LIMIT, time_in_force=TimeInForce.GTC)
@@ -420,13 +437,24 @@ class RoutedLimit(ManagedOrder):
                 await ctx.publish("managed.fee_unknown", {"market_id": market_id})
             return ZERO
         side, price = member_order
-        try:
-            estimate = await adapter.fetch_fee_estimate(market_id, side, price, Decimal("1"))
-        except Exception as exc:   # a fee the venue would not quote is not a reason to stop
-            await ctx.publish("managed.fee_unknown", {"market_id": market_id, "error": str(exc)})
-            return ZERO
-        fee = getattr(estimate, "taker_fee", None)
-        return D(fee, ZERO) if fee is not None else ZERO
+        reference = FEE_REFERENCE
+        fee = None
+        for _ in range(FEE_REFERENCE_TRIES):
+            try:
+                estimate = await adapter.fetch_fee_estimate(market_id, side, price, reference)
+            except Exception as exc:   # a fee the venue would not quote is not a reason to stop
+                await ctx.publish("managed.fee_unknown", {"market_id": market_id, "error": str(exc)})
+                return ZERO
+            fee = getattr(estimate, "taker_fee", None)
+            floor = getattr(estimate, "min_fee", None)
+            if floor is not None:
+                self.fee_floors[market_id] = D(floor, ZERO)
+            if fee is None or floor is None or D(fee, ZERO) > D(floor, ZERO):
+                break
+            # The floor is all this quote shows: ask for a larger order until
+            # the curve under it does.
+            reference *= 100
+        return D(fee, ZERO) / reference if fee is not None else ZERO
 
     # -- reporting ------------------------------------------------------------
 
@@ -474,6 +502,7 @@ class RoutedLimit(ManagedOrder):
             "legs": {k: v.to_dict() for k, v in self.legs.items()},
             "rounds": self.rounds, "started_at": self.started_at, "stop_reason": self.stop_reason,
             "fees_paid": str(self.fees_paid), "fee_cache": {k: str(v) for k, v in self.fee_cache.items()},
+            "fee_floors": {k: str(v) for k, v in self.fee_floors.items()},
         }
 
     def load_extra(self, extra: dict[str, Any]) -> None:
@@ -491,6 +520,7 @@ class RoutedLimit(ManagedOrder):
         self.stop_reason = extra.get("stop_reason") or ""
         self.fees_paid = D(extra.get("fees_paid"), ZERO)
         self.fee_cache = {k: D(v) for k, v in (extra.get("fee_cache") or {}).items()}
+        self.fee_floors = {k: D(v) for k, v in (extra.get("fee_floors") or {}).items()}
 
 
 __all__ = ["RoutedLimit", "LegState", "bucket_id_of"]

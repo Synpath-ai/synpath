@@ -2,9 +2,9 @@
 
 A Synpath id names one listing on one venue and carries the venue in front of
 the venue's own id, separated by a colon: `kalshi:KXFEDDECISION-26SEP-C25`,
-`polymarket:2252244`, `polymarket_us:tec-mlb-nlchamp-2026-09-27-atl`. Nothing
-is hashed or re-keyed, so the part after the colon is what the venue's own
-website and API call the thing.
+`polymarket:2252244`, `polymarket_us:tec-mlb-nlchamp-2026-09-27-atl`,
+`opinion:5342`. Nothing is hashed or re-keyed, so the part after the colon is
+what the venue's own website and API call the thing.
 
 The venue in the id is what lets one field route a call: `synpath.Client`
 reads the prefix and hands the call to that venue's adapter. Every venue
@@ -15,7 +15,7 @@ The colon is safe as a separator: no venue's native id contains one.
 """
 from __future__ import annotations
 
-VENUES: tuple[str, ...] = ("kalshi", "polymarket", "polymarket_us")
+VENUES: tuple[str, ...] = ("kalshi", "polymarket", "polymarket_us", "opinion")
 """Every venue this library speaks, by id. `synpath.exchanges` is the same
 list with the adapter classes attached; this one exists so the id helpers do
 not import the adapters."""

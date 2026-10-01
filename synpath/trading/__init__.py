@@ -65,11 +65,15 @@ def __getattr__(name: str):
     if name == "PolymarketUSExchangeTrading":
         from .polymarket_us_exchange import PolymarketUSExchangeTrading
         return PolymarketUSExchangeTrading
+    if name == "OpinionTrading":
+        from .opinion import OpinionTrading
+        return OpinionTrading
     raise AttributeError(name)
 
 
 __all__ = [
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
+    "OpinionTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce",

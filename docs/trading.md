@@ -53,6 +53,7 @@ they point at and the public half of the identity. It prints no secret.
 | Polymarket | `POLYMARKET_PRIVATE_KEY`, `POLYMARKET_SIGNATURE_TYPE` (3 Deposit Wallet, used by every account created since May 2026 and what `synpath init` suggests; 1 proxy, 2 Safe, 0 allowlisted EOA, which is also what an unset value means), `POLYMARKET_FUNDER` (the wallet address, required for 1-3); optional `POLYMARKET_API_KEY` / `_API_SECRET` / `_API_PASSPHRASE` (derived when absent), `POLYMARKET_BUILDER_CODE`, `POLYMARKET_RELAYER_API_KEY` / `_RELAYER_API_KEY_ADDRESS` (gasless wallet transactions), `POLYMARKET_RPC_URL` (an EOA's own transactions) |
 | Polymarket US, retail API | `POLYMARKET_US_KEY_ID`, `POLYMARKET_US_SECRET_KEY` (from polymarket.us/developer) |
 | Polymarket US, exchange API | `POLYMARKET_US_CLIENT_ID`, `POLYMARKET_US_PRIVATE_KEY_PATH`, `POLYMARKET_US_PARTICIPANT_ID`, `POLYMARKET_US_ACCOUNT` (optional), `POLYMARKET_US_ENV` = `preprod` or `prod` |
+| Opinion | `OPINION_PRIVATE_KEY` (the wallet connected on opinion.trade), `OPINION_API_KEY` (`synpath init` creates it by signing with that wallet), `OPINION_MULTISIG_ADDRESS` (optional; the account's Safe, read from the venue when absent) |
 
 ## Through your own server
 
@@ -316,3 +317,32 @@ five-second latency stopgap, not a rate limit, and maps to `OrderRejected`
 with `reason="latency_stopgap"`: safe to resend. Venue `day` orders do not
 cancel at the session roll, so `day` is refused here as on the other venues.
 
+## Opinion
+
+`OpinionTrading`. **Not yet tested against the live venue**: it is built to
+Opinion's documentation and its own SDK, with signing and amounts checked
+byte for byte against the SDK's code. Start small.
+
+Orders are the CTF exchange's EIP-712 `Order` on BNB Chain, signed by the
+wallet for the account's Safe, which holds the USDT and the tokens; the
+Safe's address is read from the venue when not configured. YES and NO are
+separate tokens, as on Polymarket: `buy` buys YES, `sell` buys NO at
+`1 - price`, and with `reduce_only` they sell the tokens held instead.
+
+The venue rests limit orders until cancelled and has nothing else: no time
+in force, no post-only, and a market buy that spends a USDT amount rather
+than taking a number of contracts. So `market` and `ioc` are sent as a limit
+at the price given and the unmatched rest is cancelled at once; `fok`, `gtd`
+and `post_only` are refused. The two amounts of an order must state its
+price exactly, which trims the size to four significant digits of its USDT
+value: the order's `amount` is what was actually sent. The minimum order is
+5 USDT. Fees are taker only, `rate * notional * p * (1 - p)` with the rate
+read from the venue's fee contract, and at least 0.25 USDT an order.
+
+A match moves an order's filled figures, and produces a trade, only once the
+chain confirms it. `OpinionUserStream` carries both
+([Streaming](streaming.md)). The one-time approvals ("enable trading") are
+made on opinion.trade; split, merge and redeem are not built here.
+
+Opinion's terms bar residents and citizens of several countries, the UK and
+US among them: check them before trading.

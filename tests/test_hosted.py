@@ -134,3 +134,22 @@ def test_an_unreachable_host_names_the_address():
         raise httpx.ConnectError("connection refused")
     with pytest.raises(NetworkError, match="could not reach https://api.synpath.dev"):
         synpath.match_market("kalshi:KX-A", client=client(handler))
+
+
+def test_match_market_names_the_venue_only_when_asked():
+    seen: list = []
+    match = {"anchor": "kalshi:KX-A", "event_id": None,
+             "matched": {"id": "opinion:5342", "venue": "opinion", "side_map": {"yes": "yes", "no": "no"}}}
+    found = synpath.match_market("kalshi:KX-A", venue="opinion", client=answering(match, seen))
+    assert seen[0].url.params["venue"] == "opinion" and found.matched.venue == "opinion"
+    synpath.match_market("kalshi:KX-A", client=answering({**match, "matched": None}, seen))
+    assert "venue" not in seen[1].url.params, "no venue named, the service's own default"
+    with pytest.raises(synpath.BadRequest):
+        synpath.match_market("kalshi:KX-A", venue="river", client=answering(match, seen))
+    assert len(seen) == 2
+
+
+def test_an_opinion_anchor_is_a_synpath_id():
+    seen: list = []
+    synpath.match_event("opinion:337", client=answering({"anchor": "opinion:337", "event_ids": [], "events": {"kalshi": None}}, seen))
+    assert seen[0].url.params["id"] == "opinion:337"

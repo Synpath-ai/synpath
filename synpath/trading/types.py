@@ -173,6 +173,10 @@ class Precision(_Base):
     whole_contracts: bool = False
     """Polymarket US: integers only."""
     face_value: Decimal = Decimal("1")
+    min_notional: Decimal | None = None
+    """Smallest order the venue takes, in collateral: what the token actually
+    bought costs (Opinion: 5 USDT). `None` where the venue counts only
+    contracts."""
 
 
 class OrderRequest(_Base):
@@ -403,6 +407,9 @@ class FeeEstimate(_Base):
     maker_fee: Decimal | None = None
     """Negative where the venue pays makers."""
     builder_fee: Decimal | None = None
+    min_fee: Decimal | None = None
+    """The least one taker order pays, where the venue has a floor (Opinion:
+    0.25 USDT), already applied to `taker_fee`. `None` means no floor."""
     currency: str = "USD"
     info: dict[str, Any] = Field(default_factory=dict)
 
