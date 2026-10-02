@@ -39,3 +39,7 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy -p synpath-core --all-targets -- -D warnings
       - run: cargo test -p synpath-core
+      - name: The sdist builds and carries what its metadata names
+        run: |
+          pipx run maturin sdist --out dist
+          tar tzf dist/*.tar.gz | grep -q '/LICENSE$' || { echo "LICENSE missing from the sdist; PyPI refuses it"; exit 1; }

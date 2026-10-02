@@ -69,6 +69,8 @@ manifest-path = "bindings/python/Cargo.toml"
 python-source = "."
 features = ["pyo3/extension-module"]
 exclude = ["**/__pycache__/**", "**/*.pyc"]
+# The metadata names LICENSE as the license file, and PyPI refuses an sdist without it.
+include = [{ path = "LICENSE", format = "sdist" }]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
