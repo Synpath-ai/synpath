@@ -43,3 +43,9 @@ jobs:
         run: |
           pipx run maturin sdist --out dist
           tar tzf dist/*.tar.gz | grep -q '/LICENSE$' || { echo "LICENSE missing from the sdist; PyPI refuses it"; exit 1; }
+      - name: Without Rust, installing the sdist says to install Rust
+        run: |
+          python3 -m venv /tmp/norust
+          out=$(env -i HOME=/tmp/norust-home PATH=/usr/bin:/bin /tmp/norust/bin/python -m pip install --no-deps dist/*.tar.gz 2>&1 || true)
+          echo "$out" | tail -20
+          echo "$out" | grep -q "sh.rustup.rs" || { echo "the install-Rust message did not appear"; exit 1; }
