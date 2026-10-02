@@ -1,6 +1,8 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+# maturin builds the Rust core (`bindings/python`) into `synpath._core` and
+# ships it inside the `synpath` package, one abi3 wheel per platform.
+requires = ["maturin>=1.15,<2"]
+build-backend = "maturin"
 
 [project]
 name = "synpath"
@@ -59,8 +61,14 @@ Repository = "https://github.com/Synpath-ai/synpath"
 Issues = "https://github.com/Synpath-ai/synpath/issues"
 Discord = "https://synpath.dev/discord"
 
-[tool.hatch.build.targets.wheel]
-packages = ["synpath"]
+[tool.maturin]
+# Mixed Rust/Python layout: the `synpath/` directory is the package, and the
+# extension lands in it as `synpath._core`.
+module-name = "synpath._core"
+manifest-path = "bindings/python/Cargo.toml"
+python-source = "."
+features = ["pyo3/extension-module"]
+exclude = ["**/__pycache__/**", "**/*.pyc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

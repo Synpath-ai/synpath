@@ -35,7 +35,7 @@ from decimal import Decimal
 from typing import Any
 from urllib.parse import urlencode
 
-from .. import ids
+from .. import _native, ids
 from ..base import Capability
 from ..errors import AuthenticationError
 from ..trading.opinion import fill_of, order_of, outcome_of
@@ -339,6 +339,33 @@ class OpinionMarketStream(_OpinionStream):
         return side, price, size
 
     # -- reading --------------------------------------------------------------
+
+    def handle_raw(self, raw: str) -> list[Event] | None:
+        """A depth change, decoded and applied by the Rust core on the same
+        book. A change held back while a snapshot is fetched stays a dict
+        for the replay, so that, everything else, and everything when the
+        core is not built, goes to `handle`."""
+        if _native.core is None:
+            return None
+        change = _native.core.opinion_depth(raw)
+        if change is None:
+            return None
+        token = change.token
+        watched = self.tokens.get(token)
+        if watched is None:
+            return []
+        if token in self._pending:
+            return None
+        book = self.books.get(token)
+        if book is None or not book.ready:
+            return []
+        if not isinstance(book, _native.core.LocalBook):
+            return None
+        bids, asks, best_bid, best_ask = change.apply(book)
+        return [BookEvent(
+            venue=VENUE, market_id=watched.market_id, side=watched.side_of(token), kind="delta",  # type: ignore[arg-type]
+            bids=bids, asks=asks, best_bid=best_bid, best_ask=best_ask,
+        )]
 
     def handle(self, message: Any) -> list[Event]:
         if isinstance(message, list):

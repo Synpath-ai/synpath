@@ -24,8 +24,14 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket, Ed25519 and private-key JWT
-for Polymarket US. Nothing further is needed to place an order.
+stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket and Opinion, Ed25519 and
+private-key JWT for Polymarket US. Nothing further is needed to place an order.
+
+Polymarket and Opinion orders are hashed and signed by the Rust core
+(`synpath._core`), in about 20 microseconds rather than the 3 milliseconds
+`eth_account` takes; the signatures are the same bytes, pinned against the
+venues' own signing vectors. The key stays in the process either way, and
+`SYNPATH_PURE_PYTHON=1` signs with `eth_account` instead.
 
 ## Credentials
 

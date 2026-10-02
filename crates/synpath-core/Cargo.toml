@@ -1,0 +1,16 @@
+[package]
+name = "synpath-core"
+version = "0.1.0"
+description = "The hot paths of Synpath, the unified prediction-market API: order books first."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+hex = "0.4.3"
+k256 = { version = "0.14.0", features = ["ecdsa"] }
+rust_decimal = "1.43.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["raw_value"] }
+sha3 = "0.12.0"

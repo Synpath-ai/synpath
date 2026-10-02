@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_UP, Decimal
 from typing import Any, Literal
 
+from .. import _native
 from .errors import InvalidOrder
 
 CHAIN_ID = 137
@@ -98,11 +99,26 @@ def _eth():
 # ---------------------------------------------------------------------------
 
 class WalletSigner:
-    """Holds the private key. Nothing else in the package sees it."""
+    """Holds the private key. Nothing else in the package sees it.
+
+    With the Rust core installed, orders and digests are signed by its
+    `Secp256k1Signer`, which holds its own copy of the key; the signatures
+    are the same bytes `eth_account` makes. Anything else (typed data in
+    general, transactions) is signed by `eth_account`.
+    """
 
     def __init__(self, private_key: str):
         _, Account, _, _, _ = _eth()
         self._account = Account.from_key(private_key)
+        self._native = None
+        if _native.core is not None:
+            try:
+                key = private_key.hex() if isinstance(private_key, (bytes, bytearray)) else str(private_key)
+                native = _native.core.Secp256k1Signer(key)
+            except (TypeError, ValueError):
+                native = None
+            if native is not None and native.address == self._account.address:
+                self._native = native
 
     @property
     def address(self) -> str:
@@ -114,6 +130,8 @@ class WalletSigner:
         return "0x" + signed.signature.hex().removeprefix("0x")
 
     def sign_digest(self, digest: bytes) -> bytes:
+        if self._native is not None and len(digest) == 32:
+            return bytes(self._native.sign_digest(bytes(digest)))
         _, Account, _, _, _ = _eth()
         return bytes(Account._sign_hash(digest, private_key=self._account.key).signature)
 
@@ -316,12 +334,32 @@ def order_typed_data(order: dict[str, Any], *, neg_risk: bool) -> dict[str, Any]
     }
 
 
+def _native_order(order: dict[str, Any]) -> tuple | None:
+    """The order's fields as the Rust core takes them, or `None` when they
+    are not plain enough to hand over (the Python path then reads them)."""
+    try:
+        return (
+            str(int(order["salt"])), order["maker"], order["signer"], str(int(order["tokenId"])),
+            str(int(order["makerAmount"])), str(int(order["takerAmount"])),
+            0 if order["side"] == "BUY" else 1, int(order["signatureType"]), str(int(order["timestamp"])),
+            order["metadata"], order["builder"],
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def order_hash(order: dict[str, Any], *, neg_risk: bool) -> str:
     """The EIP-712 digest of the order, which is the id the CLOB gives it.
 
     Known before the order is sent, so a journal can record the id first
     and a lost response is recoverable by asking for that id.
     """
+    fields = _native_order(order) if _native.core is not None else None
+    if fields is not None:
+        try:
+            return _native.core.polymarket_order_hash(*fields, neg_risk)
+        except (TypeError, ValueError, OverflowError):
+            pass  # the Python encoder reads it, and raises what it always raised
     _, _, encode_typed_data, keccak, _ = _eth()
     message = encode_typed_data(full_message=order_typed_data(order, neg_risk=neg_risk))
     return "0x" + keccak(b"\x19" + message.version + message.header + message.body).hex().removeprefix("0x")
@@ -362,6 +400,13 @@ def sign_order(signer: WalletSigner, order: dict[str, Any], *, neg_risk: bool) -
     ERC-7739 expects: inner signature, app domain separator, contents hash,
     the contents type string and its two-byte length.
     """
+    native = getattr(signer, "_native", None)
+    fields = _native_order(order) if native is not None else None
+    if fields is not None:
+        try:
+            return native.polymarket_sign_order(*fields, neg_risk)
+        except (TypeError, ValueError, OverflowError):
+            pass  # the Python encoder reads it, and raises what it always raised
     if int(order["signatureType"]) != DEPOSIT_WALLET:
         return signer.sign_typed_data(order_typed_data(order, neg_risk=neg_risk))
     abi_encode, _, _, keccak, _ = _eth()

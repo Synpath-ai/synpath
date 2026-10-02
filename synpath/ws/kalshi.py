@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
-from .. import ids
+from .. import _native, ids
 from ..base import Capability
 from ..kalshi import parse_ts
 from ..trading.credentials import KalshiCredentials
@@ -226,6 +226,39 @@ class KalshiStream(Stream):
         return book if side != "no" else book.mirrored()
 
     # -- reading --------------------------------------------------------------
+
+    def handle_raw(self, raw: str) -> list[Event] | None:
+        """Book snapshots and deltas, decoded and applied by the Rust core on
+        these same books. The sequence check runs here in between, as in
+        `handle`. Everything else, and everything when the core is not built,
+        goes to `handle`."""
+        if _native.core is None:
+            return None
+        decoded = _native.core.kalshi_book_message(raw, self.books)
+        if decoded is None:
+            return None
+        sid = decoded.sid
+        channel = self._by_sid.get(sid) if sid is not None else None
+        if channel is not None and decoded.seq_number is not None:
+            self._check_sequence(channel, decoded.seq_number, decoded.kind)
+        done = decoded.apply(self.books)
+        if done is None:
+            return []
+        seq = decoded.seq
+        if done[0] == "snapshot":
+            _, ticker, recovering, bids, asks, best_bid, best_ask, info = done
+            self._snapshot_requested.pop(ticker, None)
+            if recovering:
+                self.status("resynced", f"orderbook {ticker}", key=ticker)
+            return [BookEvent(
+                venue=VENUE, market_id=ids.qualify(VENUE, ticker), kind="snapshot", bids=bids, asks=asks,
+                best_bid=best_bid, best_ask=best_ask, sequence=seq, info=info,
+            )]
+        _, ticker, bids, asks, best_bid, best_ask, stamp, info = done
+        return [BookEvent(
+            venue=VENUE, market_id=ids.qualify(VENUE, ticker), kind="delta", bids=bids, asks=asks,
+            best_bid=best_bid, best_ask=best_ask, sequence=seq, timestamp=stamp, info=info,
+        )]
 
     def handle(self, message: Any) -> list[Event]:
         if not isinstance(message, dict):

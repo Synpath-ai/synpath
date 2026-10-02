@@ -160,4 +160,15 @@ def order_typed_data(order: dict[str, Any], *, exchange: str) -> dict[str, Any]:
 
 
 def sign_order(signer: WalletSigner, order: dict[str, Any], *, exchange: str) -> str:
+    native = getattr(signer, "_native", None)
+    if native is not None:
+        try:
+            return native.opinion_sign_order(
+                str(int(order["salt"])), order["maker"], order["signer"], order["taker"],
+                str(int(order["tokenId"])), str(int(order["makerAmount"])), str(int(order["takerAmount"])),
+                str(int(order["expiration"])), str(int(order["nonce"])), str(int(order["feeRateBps"])),
+                int(order["side"]), int(order["signatureType"]), exchange,
+            )
+        except (KeyError, TypeError, ValueError, OverflowError):
+            pass  # the Python encoder reads it, and raises what it always raised
     return signer.sign_typed_data(order_typed_data(order, exchange=exchange))

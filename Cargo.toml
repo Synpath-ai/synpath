@@ -1,0 +1,19 @@
+# The Rust core under the Python API.
+#
+#   crates/synpath-core   pure Rust: no I/O, no Python. The hot paths live here.
+#   bindings/python       PyO3 wrappers, built by maturin into `synpath._core`.
+#
+# Every piece here has a pure-Python twin in `synpath/`, and the test suite runs
+# against both, so the two cannot drift apart.
+[workspace]
+members = ["crates/synpath-core", "bindings/python"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Synpath-ai/synpath"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
