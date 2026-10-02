@@ -22,6 +22,12 @@ A venue that charges a fee floor per order (Opinion: 0.25 USDT) makes a
 small leg cost more per contract than its levels say. Each leg's fee is
 raised to its floor after the walk; a leg that then breaks the limit is
 dropped, and one whose size fills as fully for less elsewhere is moved.
+
+With the Rust core installed, reading a Rust book into bucket terms, the
+merge of the side being planned and the walk itself run there
+(`synpath._core.router_levels`); sizing the legs, the floors and the
+re-walks stay here, so every division rounds as before. A plan Rust cannot
+carry exactly in Python's `Decimal` terms is made here from the start.
 """
 from __future__ import annotations
 
@@ -29,6 +35,7 @@ from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from typing import Any, Callable, Literal, Mapping
 
+from .. import _native
 from ..bucket import Bucket, BucketMember
 from ..trading.instruments import VENUE_RULES
 from ..trading.types import Precision, Side
@@ -75,6 +82,10 @@ def view(book: Any, member: BucketMember, *, face_value: Decimal = Decimal("1"))
                 out.append((price, size))
         return tuple(out)
 
+    if _native.core is not None and face_value == 1:
+        fast = _native.core.router_view(book, member.book_side() == "no")
+        if fast is not None:
+            return BookView(member.market_id, fast[0], fast[1])
     side_in = getattr(book, "side", "yes")
     if callable(getattr(book, "levels", None)):
         bids, asks = book.levels()
@@ -182,6 +193,14 @@ def _per_contract(fee: FeeFn, market_id: str, price: Decimal) -> Decimal:
     return charged if charged > 0 else ZERO
 
 
+class _Inexact(Exception):
+    """The Rust walk met a number it could not carry exactly; plan in Python."""
+
+
+Taken = dict[str, dict[str, Decimal]]
+Walk = Callable[[set[str]], tuple[Taken, Decimal, Reason]]
+
+
 def plan(
     bucket: Bucket,
     books: Mapping[str, Any],
@@ -202,14 +221,57 @@ def plan(
     the next best. Then the fee floors: a leg whose floor takes it past the
     limit is dropped the same way, and a floored leg is also dropped when the
     walk without it fills as much for less."""
+    floors = floors or {}
+    if _native.core is not None:
+        walk = _native_walk(bucket, books, fee, side, amount, limit)
+        if walk is not None:
+            try:
+                return _plan(bucket, precision, side, amount, limit, floors, walk)
+            except _Inexact:
+                pass
     asks, bids = merge(bucket, books, fee)
     levels = asks if side == Side.BUY else bids
-    floors = floors or {}
+    return _plan(bucket, precision, side, amount, limit, floors,
+                 lambda excluded: _walk_levels(levels, side, amount, limit, excluded))
 
+
+def _native_walk(
+    bucket: Bucket, books: Mapping[str, Any], fee: FeeFn, side: Side, amount: Decimal, limit: Decimal,
+) -> Walk | None:
+    """The walk on the Rust core: the side being planned merged there once,
+    then walked once per call. `None` to plan in Python."""
+    rows = []
+    for member in bucket.members:
+        book = books.get(member.market_id)
+        if book is None:
+            continue
+        seen = book if isinstance(book, BookView) else view(book, member)
+        rows.append((member.market_id, seen.asks if side == Side.BUY else seen.bids))
+    buy = side == Side.BUY
+    levels = _native.core.router_levels(rows, fee, buy)
+    if levels is None:
+        return None
+
+    def walk(excluded: set[str]) -> tuple[Taken, Decimal, Reason]:
+        done = levels.walk(buy, amount, limit, sorted(excluded))
+        if done is None:
+            raise _Inexact
+        slots, remaining, reason = done
+        taken = {m: {"amount": a, "cost": c, "fee": f, "worst": w} for m, a, c, f, w in slots}
+        return taken, remaining, reason
+
+    return walk
+
+
+def _plan(
+    bucket: Bucket, precision: Mapping[str, Precision], side: Side, amount: Decimal, limit: Decimal,
+    floors: FeeFloors, walk: Walk,
+) -> Plan:
     def settle(excluded: set[str]) -> tuple[list[Leg], Decimal, Reason, set[str]]:
         excluded = set(excluded)
         for _ in range(len(bucket.members) + 1):
-            legs, remaining, reason = _walk(bucket, levels, precision, side, amount, limit, excluded, floors)
+            taken, remaining, reason = walk(excluded)
+            legs, remaining = _legs(bucket, taken, remaining, precision, side, floors)
             bad = [leg for leg in legs if _too_small(leg, precision[leg.market_id]) or _past_limit(leg, side, limit)]
             if not bad:
                 return legs, remaining, reason, excluded
@@ -262,17 +324,13 @@ def _better(a: tuple, b: tuple, side: Side) -> bool:
     return total_a < total_b if side == Side.BUY else total_a > total_b
 
 
-def _walk(
-    bucket: Bucket,
-    levels: list[Level],
-    precision: Mapping[str, Precision],
-    side: Side,
-    amount: Decimal,
-    limit: Decimal,
-    excluded: set[str],
-    floors: FeeFloors,
-) -> tuple[list[Leg], Decimal, Reason]:
-    taken: dict[str, dict[str, Decimal]] = {}
+def _walk_levels(
+    levels: list[Level], side: Side, amount: Decimal, limit: Decimal, excluded: set[str],
+) -> tuple[Taken, Decimal, Reason]:
+    """What each member's levels give, best first, up to `amount` and no
+    worse than `limit` net: per member the contracts, their net cost, their
+    fees and the worst price reached, in the order members were first taken."""
+    taken: Taken = {}
     remaining = amount
     reason: Reason = "liquidity"
     for lvl in levels:
@@ -294,6 +352,16 @@ def _walk(
     else:
         if remaining <= 0:
             reason = ""
+    return taken, remaining, reason
+
+
+def _legs(
+    bucket: Bucket, taken: Taken, remaining: Decimal, precision: Mapping[str, Precision], side: Side,
+    floors: FeeFloors,
+) -> tuple[list[Leg], Decimal]:
+    """The walk's takings as legs: rounded down to each venue's step, priced
+    on its tick toward the side that cannot worsen the limit, the fee floor
+    added where it binds. What rounding gives back is unfilled again."""
     legs: list[Leg] = []
     for market_id, slot in taken.items():
         member = bucket.member(market_id)
@@ -314,7 +382,7 @@ def _walk(
             market_id=market_id, flip=member.flip, side=member_side, price=member_price, amount=qty,
             bucket_price=slot["worst"], net_price=net, fee=curve + extra, fee_floor=extra,
         ))
-    return legs, remaining, reason
+    return legs, remaining
 
 
 def _round_amount(amount: Decimal, spec: Precision) -> Decimal:

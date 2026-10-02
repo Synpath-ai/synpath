@@ -66,6 +66,13 @@ kept on the YES leg and `side="no"` is the mirrored view; on Polymarket each
 side is its own book. `BookEvent` and `QuoteEvent` carry `side`; a
 `TradeEvent` is in the YES price with `taker_side` on the YES leg.
 
+The books and the book messages run on the Rust core (`synpath._core`):
+snapshots and deltas from Kalshi, Polymarket, Polymarket US and Opinion are
+parsed and applied there, and the events come out as the same Python objects.
+`book.bids` and `book.asks` read and write like the `dict`s they replace. Set
+`SYNPATH_PURE_PYTHON=1` to run everything on the pure-Python twins instead;
+the test suite runs both and requires them to agree frame by frame.
+
 ## What the streams promise
 
 **Subscriptions survive reconnects.** `watch_*` records what you asked for;

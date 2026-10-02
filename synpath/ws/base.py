@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, AsyncIterator, Awaitable, Callable, Literal
 
+from .. import _native
 from ..base import Capability, complete_capabilities
 from ..trading.types import Balance, Fill, Order, Position, Side
 
@@ -196,12 +197,16 @@ class StreamStatusEvent(Event):
 # Local book
 # ---------------------------------------------------------------------------
 
-class LocalBook:
+class PyLocalBook:
     """One side of a market's book: price -> size on each side, plus readiness.
 
     `ready` is false until a snapshot has been applied and becomes false again
     when the stream loses confidence in it (a gap, a reconnect); a book that
     is not ready ignores deltas rather than applying them to a stale base.
+
+    This is the pure-Python twin of the Rust core's book. `LocalBook`, below,
+    is the Rust one when it is installed and this one otherwise; both have the
+    same methods and the same values (see `synpath._native`).
     """
 
     __slots__ = ("bids", "asks", "ready", "sequence", "timestamp")
@@ -249,13 +254,17 @@ class LocalBook:
             bids, asks = bids[:depth], asks[:depth]
         return tuple(BookLevel(p, s) for p, s in bids), tuple(BookLevel(p, s) for p, s in asks)
 
-    def mirrored(self, face_value: Decimal = ONE) -> "LocalBook":
+    def mirrored(self, face_value: Decimal = ONE) -> "PyLocalBook":
         """The other side's view: bids become asks at `1 - p`."""
-        other = LocalBook()
+        other = PyLocalBook()
         other.bids = {face_value - p: s for p, s in self.asks.items()}
         other.asks = {face_value - p: s for p, s in self.bids.items()}
         other.ready, other.sequence, other.timestamp = self.ready, self.sequence, self.timestamp
         return other
+
+
+LocalBook = _native.pick("LocalBook", PyLocalBook)
+"""The book every stream keeps: the Rust core's when installed, else `PyLocalBook`."""
 
 
 def D(value: Any) -> Decimal:
@@ -361,6 +370,12 @@ class Stream:
     def handle(self, message: Any) -> list[Event]:
         """One decoded message as events."""
         return []
+
+    def handle_raw(self, raw: str) -> list[Event] | None:
+        """One undecoded frame as events, by the Rust core, or `None` to have
+        `handle` read it instead. A stream overrides this where the core
+        handles its messages; whatever the core declines goes to `handle`."""
+        return None
 
     # -- lifecycle ------------------------------------------------------------
 
@@ -533,10 +548,15 @@ class Stream:
         if isinstance(raw, bytes):
             raw = raw.decode("utf-8")
         try:
-            message = json.loads(raw)
-        except ValueError:
-            message = raw
-        try:
+            fast = self.handle_raw(raw) if isinstance(raw, str) else None
+            if fast is not None:
+                for event in fast:
+                    self.emit(event)
+                return
+            try:
+                message = json.loads(raw)
+            except ValueError:
+                message = raw
             for event in self.handle(message):
                 self.emit(event)
         except Exception as exc:

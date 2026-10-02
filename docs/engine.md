@@ -166,6 +166,12 @@ floor added to each leg's cost: a leg it pushes past the worst price is
 dropped, and one whose size fills as fully for less elsewhere is moved. The
 legs never sum to more than was asked.
 
+The merge and the walk run on the Rust core (`synpath._core`), which makes a
+re-plan over three venues of fifty levels a side about four times faster.
+The leg sizing, rounding and floors stay in Python, and a plan whose numbers
+Rust cannot carry exactly as Python's `Decimal` would is made in Python from
+the start, so the plan is the same either way.
+
 The parent re-plans whenever a leg fills, a book moves or a leg is pulled.
 A leg still at a price the plan wants is kept, so it holds its place in the
 queue; only a leg whose price is wrong is cancelled and re-placed, and not

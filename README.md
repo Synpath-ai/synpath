@@ -44,7 +44,7 @@ pip install synpath              # market data, order entry, streams, the engine
 pip install "synpath[grpc]"      # + Polymarket US exchange gRPC streams
 ```
 
-Python 3.10 or newer.
+Python 3.10 or newer. The hot paths (order books, reading the venues' book streams, order signing and the order router) run on a Rust core that ships prebuilt inside the wheel for Linux, macOS and Windows; nothing else to install.
 
 **Hosted API.** Run `synpath login`, then `synpath keys create`. It serves tick-level Kalshi order book and trade history, and cross-venue market matching. Trading stays on your machine: Synpath never holds your keys or funds.
 
@@ -157,12 +157,20 @@ See the [API Reference](https://www.synpath.dev/docs) for detailed documentation
 ```bash
 git clone https://github.com/Synpath-ai/synpath
 cd synpath
-pip install -e ".[dev]"
+pip install -e ".[dev]"   # builds the Rust core too: needs a Rust toolchain (rustup.rs)
 
 pytest              # offline, against recorded venue payloads
 pytest -m live      # market data against the real venues
 pytest -m demo      # order entry on a venue's demo environment
+SYNPATH_PURE_PYTHON=1 pytest   # the same tests on the pure-Python fallback
+cargo test -p synpath-core     # the Rust core on its own
 ```
+
+The Rust core lives in `crates/synpath-core` (pure Rust) and
+`bindings/python` (its PyO3 wrapper, built as `synpath._core`). Every class
+it provides has a pure-Python twin with the same interface, and the library
+uses the twin when the extension is not built. Venue adapters are plain
+Python: adding a venue needs no Rust.
 
 The `demo` tests place and cancel real orders on a demo exchange with the
 credentials in your environment, and leave the account flat. `python -m

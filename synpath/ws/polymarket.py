@@ -25,7 +25,7 @@ from typing import Any
 
 import httpx
 
-from .. import ids
+from .. import _native, ids
 from ..base import Capability
 from ..trading.polymarket import GAMMA_URL, MarketTokens, fills_of, order_of
 from ..trading.types import Account, OrderStatus, Side
@@ -127,6 +127,33 @@ class PolymarketMarketStream(Stream):
         return ids.qualify(VENUE, condition), "yes"
 
     # -- reading --------------------------------------------------------------
+
+    def handle_raw(self, raw: str) -> list[Event] | None:
+        """Book snapshots and price changes, parsed and applied by the Rust
+        core on these same books, with the same top-of-book checks. Frames
+        holding anything else, and everything when the core is not built,
+        go to `handle`."""
+        if _native.core is None:
+            return None
+        done = _native.core.polymarket_market(raw, self.books, self._unverified, self.markets)
+        if done is None:
+            return None
+        events: list[Event] = []
+        for item in done:
+            if item[0] == "book":
+                _, token, condition, kind, bids, asks, best_bid, best_ask, stamp, info = item
+                market_id, side = self._where(token, condition)
+                events.append(BookEvent(
+                    venue=VENUE, market_id=market_id, side=side, kind=kind, bids=bids, asks=asks,  # type: ignore[arg-type]
+                    best_bid=best_bid, best_ask=best_ask, timestamp=stamp, info=info if info is not None else {},
+                ))
+            elif item[0] == "gap":
+                _, token, local_bid, local_ask, venue_bid, venue_ask = item
+                self.status("gap", f"book {token}: local top {local_bid}/{local_ask}, venue {venue_bid}/{venue_ask}", key=token)
+                self._later(self._resubscribe(token))
+            elif item[0] == "resynced":
+                self.status("resynced", f"book {item[1]}", key=item[1])
+        return events
 
     def handle(self, message: Any) -> list[Event]:
         if isinstance(message, list):

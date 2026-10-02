@@ -17,5 +17,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # An editable install builds the Rust core (synpath._core) with maturin.
       - run: pip install -e ".[dev]"
-      - run: pytest -q
+      - name: Tests on the Rust core
+        run: pytest -q
+      - name: Tests on the pure-Python twins
+        run: pytest -q
+        env:
+          SYNPATH_PURE_PYTHON: "1"
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy -p synpath-core --all-targets -- -D warnings
+      - run: cargo test -p synpath-core

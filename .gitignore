@@ -10,3 +10,8 @@ dist/
 !.env.example
 *.pem
 *.key
+
+# Rust build output: cargo, and the extension maturin builds in place for an editable install
+target/
+synpath/*.so
+synpath/*.pyd

@@ -26,7 +26,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from .. import ids
+from .. import _native, ids
 from ..base import Capability
 from ..polymarket_us import parse_ts
 from ..trading.credentials import PolymarketUSCredentials
@@ -145,6 +145,20 @@ class PolymarketUSMarketStream(_SignedStream):
         book = self.books.get(ids.native(VENUE, market_id))
         return None if book is None else book if side != "no" else book.mirrored()
 
+    def handle_raw(self, raw: str) -> list[Event] | None:
+        """Full market data, parsed and applied to the book by the Rust core.
+        Everything else, and everything when the core is not built, goes to
+        `handle`."""
+        if _native.core is None:
+            return None
+        done = _native.core.polymarket_us_market_data(raw, self.books)
+        if done is None:
+            return None
+        slug, bids, asks, best_bid, best_ask, transact_time, native, stats = done
+        stamp = parse_ts(transact_time)
+        self.books[slug].timestamp = stamp
+        return self._market_events(slug, bids, asks, best_bid, best_ask, stamp, native, stats)
+
     def handle(self, message: Any) -> list[Event]:
         if not isinstance(message, dict):
             return []
@@ -185,12 +199,16 @@ class PolymarketUSMarketStream(_SignedStream):
         stamp = parse_ts(data.get("transactTime"))
         book.timestamp = stamp
         bids, asks = book.levels()
+        return self._market_events(slug, bids, asks, book.best_bid, book.best_ask, stamp, data.get("state"), data.get("stats"))
+
+    def _market_events(
+        self, slug: str, bids: Any, asks: Any, best_bid: Any, best_ask: Any, stamp: int | None, native: Any, stats: Any,
+    ) -> list[Event]:
         events: list[Event] = [BookEvent(
             venue=VENUE, market_id=ids.qualify(VENUE, slug), kind="snapshot", bids=bids, asks=asks,
-            best_bid=book.best_bid, best_ask=book.best_ask, timestamp=stamp,
-            info={"state": data.get("state"), "stats": data.get("stats")},
+            best_bid=best_bid, best_ask=best_ask, timestamp=stamp,
+            info={"state": native, "stats": stats},
         )]
-        native = data.get("state")
         if native and self.states.get(slug) != native:
             self.states[slug] = native
             events.append(MarketStatusEvent(

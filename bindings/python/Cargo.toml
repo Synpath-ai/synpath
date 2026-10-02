@@ -1,0 +1,20 @@
+[package]
+name = "synpath-python"
+version = "0.1.0"
+description = "PyO3 bindings: synpath-core as `synpath._core`."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+synpath-core = { path = "../../crates/synpath-core" }
+pyo3 = { version = "0.29.3", features = ["extension-module", "abi3-py310", "rust_decimal"] }
+rust_decimal = "1.43.0"
+serde_json = "1.0.151"
+k256 = { version = "0.14.0", features = ["ecdsa"] }
+hex = "0.4.3"

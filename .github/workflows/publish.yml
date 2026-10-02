@@ -3,12 +3,16 @@ name: publish
 # Publishing a GitHub release uploads that version to PyPI through Trusted
 # Publishing: PyPI trusts this workflow in this repository, so no API token is
 # stored anywhere. The release tag must match the version in pyproject.toml.
+#
+# The package carries a Rust core (synpath._core), so it ships one wheel per
+# platform. Each wheel is abi3: it serves every Python from 3.10 up. The sdist
+# builds from source and needs a Rust toolchain.
 on:
   release:
     types: [published]
 
 jobs:
-  build:
+  version:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,21 +23,77 @@ jobs:
         run: |
           version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           test "${GITHUB_REF_NAME#v}" = "$version" || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
-      - run: pip install build twine
-      - run: python -m build
-      - run: twine check dist/*
-      - name: Install the wheel and run it, outside the checkout
-        run: |
-          python -m venv /tmp/check
-          /tmp/check/bin/pip install dist/*.whl
-          cd /tmp && /tmp/check/bin/python -c "import synpath; print(synpath.__file__)" && /tmp/check/bin/synpath --help > /dev/null
+
+  wheels:
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64, manylinux: auto }
+          - { os: ubuntu-latest, target: aarch64, manylinux: auto }
+          - { os: ubuntu-latest, target: x86_64, manylinux: musllinux_1_2 }
+          - { os: ubuntu-latest, target: aarch64, manylinux: musllinux_1_2 }
+          - { os: macos-14, target: aarch64 }
+          - { os: macos-14, target: x86_64 }   # cross-built on Apple silicon
+          - { os: windows-latest, target: x64 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'auto' }}
+          args: --release --out dist
       - uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: wheel-${{ matrix.os }}-${{ matrix.target }}-${{ matrix.manylinux || 'native' }}
           path: dist/
 
+  sdist:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+  check:
+    needs: [wheels, sdist]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+      - name: Install this platform's wheel and run it, outside any checkout
+        shell: bash
+        run: |
+          pip install twine && twine check dist/*
+          python -m venv check
+          if [ -x check/bin/python ]; then py=check/bin/python; else py=check/Scripts/python; fi
+          $py -m pip install --no-index --find-links dist --no-deps synpath
+          $py -m pip install synpath   # its dependencies, from PyPI
+          $py -c "import synpath, synpath._native as n; from synpath.ws import LocalBook; assert n.ENABLED, 'no Rust core in the wheel'; print(synpath.__file__, LocalBook)"
+          if [ -x check/bin/synpath ]; then check/bin/synpath --help > /dev/null; else check/Scripts/synpath --help > /dev/null; fi
+
   publish:
-    needs: build
+    needs: check
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -43,6 +103,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dist
           path: dist/
+          merge-multiple: true
       - uses: pypa/gh-action-pypi-publish@release/v1
