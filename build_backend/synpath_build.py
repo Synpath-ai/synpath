@@ -17,21 +17,17 @@ from pathlib import Path
 
 import maturin
 
-MESSAGE = """
-==============================================================================
- synpath: no prebuilt wheel for this platform, so pip is building it from
- source, and that needs Rust, which is not installed.
+INSTALL_RUST = (
+    "winget install Rustlang.Rustup"
+    if os.name == "nt"
+    else "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+)
 
- Install Rust (one command, about a minute):
+MESSAGE = f"""
+synpath: please install Rust, then run pip install synpath again.
 
-     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    {INSTALL_RUST}
 
- (Windows: download rustup-init.exe from https://rustup.rs)
-
- Then open a new terminal and run the install again:
-
-     pip install synpath
-==============================================================================
 """
 
 
