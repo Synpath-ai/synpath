@@ -358,4 +358,12 @@ def _opinion(creds: Credentials) -> TradingExchange:
     return OpinionTrading(creds)  # type: ignore[arg-type]
 
 
-_TRADING = {"kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion}
+def _hyperliquid(creds: Credentials) -> TradingExchange:
+    from .trading.hyperliquid import HyperliquidTrading
+    return HyperliquidTrading(creds)  # type: ignore[arg-type]
+
+
+_TRADING = {
+    "kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion,
+    "hyperliquid": _hyperliquid,
+}

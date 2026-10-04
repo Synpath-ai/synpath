@@ -1,0 +1,1 @@
+{"status":"order","order":{"order":{"coin":"#75440","side":"B","limitPx":"0.0743","sz":"5187.0","oid":563771939145,"timestamp":1790964336710,"triggerCondition":"N/A","isTrigger":false,"triggerPx":"0.0","children":[],"isPositionTpsl":false,"reduceOnly":false,"orderType":"Limit","origSz":"7192.0","tif":"Gtc","cloid":null},"status":"canceled","statusTimestamp":1790964514711}}

@@ -68,12 +68,15 @@ def __getattr__(name: str):
     if name == "OpinionTrading":
         from .opinion import OpinionTrading
         return OpinionTrading
+    if name == "HyperliquidTrading":
+        from .hyperliquid import HyperliquidTrading
+        return HyperliquidTrading
     raise AttributeError(name)
 
 
 __all__ = [
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
-    "OpinionTrading",
+    "OpinionTrading", "HyperliquidTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce",

@@ -33,6 +33,8 @@ asyncio.run(main())
 | `PolymarketUSPrivateStream` | `api.polymarket.us/v1/ws/private` | retail API key | orders, fills, positions, balances |
 | `OpinionMarketStream` | `ws.opinion.trade` | Opinion API key (every channel needs one) | books, trades, last prices |
 | `OpinionUserStream` | `ws.opinion.trade` | Opinion API key | orders; fills once the chain confirms them |
+| `HyperliquidMarketStream` | `api.hyperliquid.xyz/ws` (or the testnet) | none | outcome books, prints, top of book, 24h volume |
+| `HyperliquidUserStream` | `api.hyperliquid.xyz/ws` | none: the account's address only | orders; fills (splits, merges and settlements as venue events) |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -103,6 +105,13 @@ jittered exponential backoff between attempts.
   Nothing in the feed reveals a missed message, so every book is read again
   on a timer (`resync_interval`, 60 s by default): a book that disagrees
   while no change was in flight is a `gap`, and is replaced.
+
+- *Hyperliquid* sends the whole book (up to 20 levels a side) on every
+  change, so every message is a snapshot and a missed one is repaired by the
+  next. Books are kept on the YES coin; the NO view is the mirror, which
+  `tests/test_hyperliquid_ws_live.py` checks against the venue's own NO
+  coin. A trades subscription opens with a replay of recent prints; prints
+  older than the subscription are dropped, so a stop never fires on one.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to
@@ -236,6 +245,10 @@ documented heartbeat and rely on gRPC keepalive.
   REST books recorded for the read adapter. `tests/test_opinion_ws_live.py`
   checks streamed books against the venue's own over a live minute; it needs
   `OPINION_API_KEY`.
+- **Hyperliquid:** recorded messages from every channel, and fills and
+  orders of active accounts (buys and sells on both coins, splits, merges,
+  settlements, every order state). `tests/test_hyperliquid_ws_live.py` runs
+  both streams against the venue without a key.
 - **Polymarket US exchange API (gRPC):** a real local gRPC server speaking
   the venue's own compiled messages. It covers a refused token, a snapshot,
   an execution report and a drop, and a drop-copy resume token surviving a

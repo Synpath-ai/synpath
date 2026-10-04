@@ -24,8 +24,8 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket and Opinion, Ed25519 and
-private-key JWT for Polymarket US. Nothing further is needed to place an order.
+stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion and Hyperliquid,
+Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
 (`synpath._core`), in about 20 microseconds rather than the 3 milliseconds
@@ -60,6 +60,7 @@ they point at and the public half of the identity. It prints no secret.
 | Polymarket US, retail API | `POLYMARKET_US_KEY_ID`, `POLYMARKET_US_SECRET_KEY` (from polymarket.us/developer) |
 | Polymarket US, exchange API | `POLYMARKET_US_CLIENT_ID`, `POLYMARKET_US_PRIVATE_KEY_PATH`, `POLYMARKET_US_PARTICIPANT_ID`, `POLYMARKET_US_ACCOUNT` (optional), `POLYMARKET_US_ENV` = `preprod` or `prod` |
 | Opinion | `OPINION_PRIVATE_KEY` (the wallet connected on opinion.trade), `OPINION_API_KEY` (`synpath init` creates it by signing with that wallet), `OPINION_MULTISIG_ADDRESS` (optional; the account's Safe, read from the venue when absent) |
+| Hyperliquid | `HYPERLIQUID_PRIVATE_KEY` (an API wallet's key is safest: it trades but cannot withdraw), `HYPERLIQUID_ACCOUNT_ADDRESS` (the account an API wallet trades for; not needed with the account's own key), `HYPERLIQUID_TESTNET` (`1` for the test network) |
 
 ## Through your own server
 
@@ -352,3 +353,37 @@ made on opinion.trade; split, merge and redeem are not built here.
 
 Opinion's terms bar residents and citizens of several countries, the UK and
 US among them: check them before trading.
+
+## Hyperliquid
+
+`HyperliquidTrading`, for outcome markets (HIP-4). Signing is pinned against
+the venue SDK's own test vectors, and `tests/test_hyperliquid_trading_live.py`
+sends a signed order to the test network from a throwaway key: the venue
+answers with the address it recovered from the signature, which is that
+key's. **No order has been filled with real funds through it yet.**
+
+An outcome trades as two coins, YES and NO, as on Polymarket: `buy` buys the
+YES coin, `sell` buys the NO coin at `1 - price`, and with `reduce_only` they
+sell the coin held instead. Orders are L1 actions signed by the key in
+`HYPERLIQUID_PRIVATE_KEY` for the account; with an API wallet (approved on
+app.hyperliquid.xyz under More -> API), `HYPERLIQUID_ACCOUNT_ADDRESS` names
+the account, since its orders, fills and balances are what is read.
+
+Limits rest until cancelled (`gtc`); `ioc` and `market` are sent as `Ioc`
+limits at the price given, and `post_only` as `Alo`. `fok` and `gtd` are
+refused. Prices take at most five significant figures and sizes are whole
+contracts, at least 10 USDC an order, counted on the coin bought; anything
+else is refused before signing rather than rounded. A `client_order_id` is
+sent as the venue's 16-byte cloid (hashed when it is not one already).
+`create_orders` and `cancel_all_orders` are one signed action each.
+
+Fees are charged only on a fill that closes a position, and at settlement:
+the spot rate (7 bps taker, 4 bps maker at the lowest tier) times the
+market's deployer scale. `fetch_fee_estimate` reports that closing charge
+and says an opening fill pays nothing. Balances are the spot side's USDC;
+positions are the two coins' balances netted on the YES leg.
+`HyperliquidUserStream` carries orders and fills ([Streaming](streaming.md)).
+
+Hyperliquid's terms bar the US, Ontario and sanctioned places; some outcome
+front ends bar more, the UK among them. Check what applies to you before
+trading with real funds.
