@@ -78,6 +78,14 @@ def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any])
                 market=OpinionMarketStream(api_key=creds.api_key, catalog=catalog),
                 private=OpinionUserStream(api_key=creds.api_key, catalog=catalog),
             )
+        elif venue == "hyperliquid":
+            from ..ws.hyperliquid import HyperliquidMarketStream, HyperliquidUserStream
+            address = getattr(creds, "address", None)
+            testnet = getattr(creds, "testnet", False)
+            out[venue] = VenueStreams(
+                market=HyperliquidMarketStream(testnet=testnet),
+                private=HyperliquidUserStream(address=address, testnet=testnet) if address else None,
+            )
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

@@ -36,7 +36,8 @@ def test_it_writes_every_venue_asked_for_readable_by_the_owner_only(tmp_path: Pa
         ["y", "kid-1", str(pem), "",            # Kalshi: prod by default
          "y", WALLET, "",                        # Polymarket: signature type 3 by default
          "y", "us-key",                           # Polymarket US
-         "n"],                                    # Opinion
+         "n",                                     # Opinion
+         "n"],                                    # Hyperliquid
         secrets=[KEY, "us-secret"],
     )
     assert run(env, p) == 0
@@ -58,7 +59,7 @@ def test_wrong_values_are_asked_again_with_the_reason(tmp_path: Path):
     p, said = scripted(
         ["y", "", "kid-1", str(tmp_path / "missing.pem"), str(not_pem), str(pem), "staging", "demo",
          "y", "0x1234", WALLET, "7", "1",
-         "n", "n"],
+         "n", "n", "n"],
         secrets=["nothex", KEY[2:]],
     )
     assert run(tmp_path / ".env", p) == 0
@@ -75,7 +76,7 @@ def test_an_existing_file_keeps_its_other_lines_and_is_tightened(tmp_path: Path)
     env = tmp_path / ".env"
     env.write_text("# mine\nSOMETHING_ELSE=keep\nPOLYMARKET_US_KEY_ID=old\n")
     os.chmod(env, 0o644)
-    p, _ = scripted(["n", "n", "y", "new-key", "n"], secrets=["new-secret"])
+    p, _ = scripted(["n", "n", "y", "new-key", "n", "n"], secrets=["new-secret"])
     assert run(env, p) == 0
     text = env.read_text()
     assert "# mine" in text and "SOMETHING_ELSE=keep" in text
@@ -85,7 +86,7 @@ def test_an_existing_file_keeps_its_other_lines_and_is_tightened(tmp_path: Path)
 
 
 def test_saying_no_to_everything_writes_nothing(tmp_path: Path):
-    p, said = scripted(["n", "n", "n", "n"])
+    p, said = scripted(["n", "n", "n", "n", "n"])
     assert run(tmp_path / ".env", p) == 0
     assert not (tmp_path / ".env").exists() and any("Nothing changed." in line for line in said)
 
@@ -98,7 +99,7 @@ def test_merge_quotes_values_with_spaces_and_updates_in_place():
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
 def test_inside_a_git_repository_it_offers_to_ignore_the_file(tmp_path: Path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
-    p, said = scripted(["n", "n", "y", "k", "n", "y"], secrets=["s"])
+    p, said = scripted(["n", "n", "y", "k", "n", "n", "y"], secrets=["s"])
     assert run(tmp_path / ".env", p) == 0
     assert (tmp_path / ".gitignore").read_text() == ".env\n"
     ignored = subprocess.run(["git", "check-ignore", "-q", ".env"], cwd=tmp_path)
@@ -107,7 +108,7 @@ def test_inside_a_git_repository_it_offers_to_ignore_the_file(tmp_path: Path):
 
 def test_opinion_takes_a_key_it_is_given(tmp_path: Path):
     env = tmp_path / ".env"
-    p, _ = scripted(["n", "n", "n", "y"], secrets=[KEY[2:], "opinion-api-key"])
+    p, _ = scripted(["n", "n", "n", "y", "n"], secrets=[KEY[2:], "opinion-api-key"])
     assert run(env, p) == 0
     values = read_dotenv(env)
     assert values["OPINION_PRIVATE_KEY"] == KEY and values["OPINION_API_KEY"] == "opinion-api-key"
@@ -119,8 +120,29 @@ def test_opinion_creates_the_api_key_when_left_empty(tmp_path: Path, monkeypatch
 
     signed_with: list[str] = []
     monkeypatch.setattr(opinion, "create_api_key", lambda key: signed_with.append(key) or "created-key")
-    p, said = scripted(["n", "n", "n", "y"], secrets=[KEY, ""])
+    p, said = scripted(["n", "n", "n", "y", "n"], secrets=[KEY, ""])
     assert run(tmp_path / ".env", p) == 0
     assert signed_with == [KEY]
     assert read_dotenv(tmp_path / ".env")["OPINION_API_KEY"] == "created-key"
     assert any("Created the API key" in line for line in said)
+
+
+def test_hyperliquid_takes_an_api_wallet_and_its_account(tmp_path: Path):
+    env = tmp_path / ".env"
+    p, said = scripted(["n", "n", "n", "n", "y", "0x1234", WALLET, "maybe", "y"], secrets=[KEY[2:]])
+    assert run(env, p) == 0
+    values = read_dotenv(env)
+    assert values["HYPERLIQUID_PRIVATE_KEY"] == KEY and values["HYPERLIQUID_ACCOUNT_ADDRESS"] == WALLET
+    assert values["HYPERLIQUID_TESTNET"] == "1"
+    loaded = load_credentials({}, dotenv=env, redact_logs=False)["hyperliquid"]
+    assert loaded is not None and loaded.testnet and loaded.address == WALLET.lower()
+    assert any("not a wallet address" in line for line in said)
+
+
+def test_hyperliquid_with_the_accounts_own_key(tmp_path: Path):
+    env = tmp_path / ".env"
+    p, _ = scripted(["n", "n", "n", "n", "y", "", ""], secrets=[KEY])
+    assert run(env, p) == 0
+    values = read_dotenv(env)
+    assert values["HYPERLIQUID_PRIVATE_KEY"] == KEY
+    assert "HYPERLIQUID_ACCOUNT_ADDRESS" not in values and "HYPERLIQUID_TESTNET" not in values

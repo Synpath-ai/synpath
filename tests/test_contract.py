@@ -494,10 +494,22 @@ class TestSharedVocabulary:
         venue = venue_class(limiter=None)
         venue_reached = []
 
+        # Empty answers to a venue that reads its catalog over POST
+        # (Hyperliquid's `/info`), by request type.
+        empty_posts = {
+            "outcomeMeta": {"outcomes": [], "questions": []},
+            "outcomeTemplates": [],
+            "spotMetaAndAssetCtxs": [{}, []],
+        }
+
         class FakeHttp:
             def get(self, path, params=None):
                 venue_reached.append(params or {})
                 return {"events": [], "markets": [], "next_cursor": None}
+
+            def post(self, path, json=None):
+                venue_reached.append(json or {})
+                return empty_posts.get((json or {}).get("type"), {})
 
         for attribute in ("http", "gamma"):
             if hasattr(venue, attribute):
@@ -505,6 +517,8 @@ class TestSharedVocabulary:
 
         for status in MARKET_STATUSES:
             venue_reached.clear()
+            if hasattr(venue, "_catalog"):
+                venue._catalog = None  # a cached catalog would answer without asking
             try:
                 venue.fetch_markets(status=status, limit=1)
             except NotSupported:
@@ -602,6 +616,9 @@ class TestSortVocabulary:
 
         class Unreachable:
             def get(self, path, params=None):
+                raise AssertionError(f"{venue_class.id} asked the venue before refusing a sort")
+
+            def post(self, path, json=None):
                 raise AssertionError(f"{venue_class.id} asked the venue before refusing a sort")
 
         venue.http = Unreachable()

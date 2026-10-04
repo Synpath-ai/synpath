@@ -39,6 +39,10 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # order, counted on the token actually bought.
     "opinion": {"default_tick": Decimal("0.001"), "min_amount": Decimal("1"), "amount_step": Decimal("0.01"), "whole": False,
                 "min_notional": Decimal("5")},
+    # Prices take at most five significant figures, which a 0.0001 grid
+    # always meets inside (0, 1); whole contracts; at least 10 in quote an order.
+    "hyperliquid": {"default_tick": Decimal("0.0001"), "min_amount": Decimal("1"), "amount_step": Decimal("1"), "whole": True,
+                    "min_notional": Decimal("10")},
 }
 
 

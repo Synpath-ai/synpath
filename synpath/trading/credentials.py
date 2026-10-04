@@ -22,6 +22,9 @@ loaded; the adapters are what use it.
                       POLYMARKET_US_ENV (preprod|prod)
   Opinion             OPINION_PRIVATE_KEY, OPINION_API_KEY, and optionally
                       OPINION_MULTISIG_ADDRESS
+  Hyperliquid         HYPERLIQUID_PRIVATE_KEY, and optionally
+                      HYPERLIQUID_ACCOUNT_ADDRESS (when the key is an API
+                      wallet) and HYPERLIQUID_TESTNET
 """
 from __future__ import annotations
 
@@ -162,9 +165,39 @@ class OpinionCredentials:
         return [self.private_key, self.api_key]
 
 
+@dataclass(frozen=True, repr=False)
+class HyperliquidCredentials:
+    """Hyperliquid: the key that signs, and the account it signs for."""
+
+    private_key: str = field(repr=False)
+    """The signer's private key, hex: the account's own wallet, or an API
+    wallet the account approved on app.hyperliquid.xyz (More -> API), which
+    can trade but never withdraw."""
+    account_address: str | None = None
+    """The account the orders are for. Needed when `private_key` is an API
+    wallet; with the account's own key it is that key's address."""
+    testnet: bool = False
+    """Sign for and talk to the test network, where outcomes trade for test funds."""
+    _public = ("account_address", "testnet")
+    __repr__ = _redacted_repr
+
+    @property
+    def address(self) -> str:
+        """The account's address, lowercase: given, or the key's own."""
+        if self.account_address:
+            return self.account_address.lower()
+        from .polymarket_signing import WalletSigner
+
+        return WalletSigner(self.private_key).address.lower()
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.private_key]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
-    | OpinionCredentials
+    | OpinionCredentials | HyperliquidCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -181,6 +214,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "POLYMARKET_US_ACCOUNT", "POLYMARKET_US_ENV",
     ),
     "opinion": ("OPINION_PRIVATE_KEY", "OPINION_API_KEY", "OPINION_MULTISIG_ADDRESS"),
+    "hyperliquid": ("HYPERLIQUID_PRIVATE_KEY", "HYPERLIQUID_ACCOUNT_ADDRESS", "HYPERLIQUID_TESTNET"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -338,12 +372,28 @@ def load_opinion(env: Mapping[str, str]) -> OpinionCredentials | None:
     return OpinionCredentials(private_key=key, api_key=api_key, multisig_address=safe)
 
 
+def load_hyperliquid(env: Mapping[str, str]) -> HyperliquidCredentials | None:
+    key = env.get("HYPERLIQUID_PRIVATE_KEY")
+    if not key:
+        return None
+    if not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("HYPERLIQUID_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    account = env.get("HYPERLIQUID_ACCOUNT_ADDRESS") or None
+    if account and not re.match(r"^0x[0-9a-fA-F]{40}$", account):
+        raise CredentialsMissing(f"HYPERLIQUID_ACCOUNT_ADDRESS must be a 0x address, got {account!r}")
+    testnet = (env.get("HYPERLIQUID_TESTNET") or "").strip().lower() in ("1", "true", "yes")
+    return HyperliquidCredentials(
+        private_key=key if key.startswith("0x") else "0x" + key, account_address=account, testnet=testnet,
+    )
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
     "polymarket_us": load_polymarket_us,
     "polymarket_us_exchange": load_polymarket_us_exchange,
     "opinion": load_opinion,
+    "hyperliquid": load_hyperliquid,
 }
 
 
