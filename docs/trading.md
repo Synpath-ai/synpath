@@ -327,9 +327,8 @@ cancel at the session roll, so `day` is refused here as on the other venues.
 
 ## Opinion
 
-`OpinionTrading`. **Not yet tested against the live venue**: it is built to
-Opinion's documentation and its own SDK, with signing and amounts checked
-byte for byte against the SDK's code. Start small.
+`OpinionTrading`, built to Opinion's documentation and its own SDK, with
+signing and amounts checked byte for byte against the SDK's code.
 
 Orders are the CTF exchange's EIP-712 `Order` on BNB Chain, signed by the
 wallet for the account's Safe, which holds the USDT and the tokens; the
@@ -358,10 +357,7 @@ US among them: check them before trading.
 ## Hyperliquid
 
 `HyperliquidTrading`, for outcome markets (HIP-4). Signing is pinned against
-the venue SDK's own test vectors, and `tests/test_hyperliquid_trading_live.py`
-sends a signed order to the test network from a throwaway key: the venue
-answers with the address it recovered from the signature, which is that
-key's. **No order has been filled with real funds through it yet.**
+the venue SDK's own test vectors.
 
 An outcome trades as two coins, YES and NO, as on Polymarket: `buy` buys the
 YES coin, `sell` buys the NO coin at `1 - price`, and with `reduce_only` they
@@ -391,11 +387,9 @@ trading with real funds.
 
 ## predict.fun
 
-`PredictFunTrading`. **Not yet tested against the live venue**: it is built
-to predict.fun's documentation and its SDK (`predict-sdk` 0.0.22). Order
-hashes and both kinds of signature are checked against independent EIP-712
-encoders and the SDK's algorithm. No order has been placed through it yet:
-start small.
+`PredictFunTrading`, built to predict.fun's documentation and its SDK
+(`predict-sdk` 0.0.22). Order hashes and both kinds of signature are checked
+against independent EIP-712 encoders and the SDK's algorithm.
 
 Orders are the CTF exchange's EIP-712 `Order` on BNB Chain, verified by one
 of four exchanges by the market's kind (neg-risk or not, yield-bearing or

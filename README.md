@@ -27,9 +27,9 @@ One order, both order books combined, filled from the cheapest price after fees.
 | <img src="assets/kalshi.png" width="20" height="20" alt="Kalshi"> | [Kalshi](https://kalshi.com) | `kalshi` | ✓ | ✓ | WebSocket | one book per market, both sides read it |
 | <img src="assets/polymarket.png" width="20" height="20" alt="Polymarket"> | [Polymarket](https://polymarket.com) | `polymarket` | ✓ | ✓ | WebSocket | one book per outcome token |
 | <img src="assets/polymarket.png" width="20" height="20" alt="Polymarket US"> | [Polymarket US](https://polymarket.us) | `polymarket_us` | ✓ | ✓ retail and exchange APIs | WebSocket and gRPC | one book per market, both sides read it |
-| | [Opinion](https://opinion.trade) | `opinion` | ✓ | ✓ not yet live-tested | WebSocket (API key) | one book per outcome token |
-| | [Hyperliquid](https://app.hyperliquid.xyz) | `hyperliquid` | ✓ outcome markets (HIP-4) | ✓ testnet-checked | WebSocket (no key) | one book per market, both sides read it |
-| | [predict.fun](https://predict.fun) | `predict_fun` | ✓ (API key) | ✓ not yet live-tested | WebSocket (API key) | one book per market, both sides read it |
+| | [Opinion](https://opinion.trade) | `opinion` | ✓ | ✓ | WebSocket (API key) | one book per outcome token |
+| | [Hyperliquid](https://app.hyperliquid.xyz) | `hyperliquid` | ✓ outcome markets (HIP-4) | ✓ | WebSocket (no key) | one book per market, both sides read it |
+| | [predict.fun](https://predict.fun) | `predict_fun` | ✓ (API key) | ✓ | WebSocket (API key) | one book per market, both sides read it |
 
 ## Why Synpath
 
