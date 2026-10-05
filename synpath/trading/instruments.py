@@ -43,6 +43,9 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # always meets inside (0, 1); whole contracts; at least 10 in quote an order.
     "hyperliquid": {"default_tick": Decimal("0.0001"), "min_amount": Decimal("1"), "amount_step": Decimal("1"), "whole": True,
                     "min_notional": Decimal("10")},
+    # Two or three decimals of price per market (its `decimalPrecision`);
+    # sizes to a hundredth of a share at least, as the venue's SDK checks.
+    "predict_fun": {"default_tick": Decimal("0.01"), "min_amount": Decimal("0.01"), "amount_step": Decimal("0.01"), "whole": False},
 }
 
 

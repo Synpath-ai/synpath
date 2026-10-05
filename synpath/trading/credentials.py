@@ -25,6 +25,9 @@ loaded; the adapters are what use it.
   Hyperliquid         HYPERLIQUID_PRIVATE_KEY, and optionally
                       HYPERLIQUID_ACCOUNT_ADDRESS (when the key is an API
                       wallet) and HYPERLIQUID_TESTNET
+  predict.fun         PREDICT_FUN_PRIVATE_KEY, PREDICT_FUN_API_KEY (mainnet),
+                      and optionally PREDICT_FUN_ACCOUNT_ADDRESS (a Predict
+                      account), PREDICT_FUN_TESTNET, PREDICT_FUN_RPC_URL
 """
 from __future__ import annotations
 
@@ -195,9 +198,44 @@ class HyperliquidCredentials:
         return [self.private_key]
 
 
+@dataclass(frozen=True, repr=False)
+class PredictFunCredentials:
+    """predict.fun: the key that signs, the account it signs for, and the
+    API key mainnet needs."""
+
+    private_key: str = field(repr=False)
+    """The signer's private key, hex: a plain wallet's own, or, for a
+    Predict account, its owner key (the Privy wallet, exported from
+    predict.fun's account settings)."""
+    api_key: str | None = field(default=None, repr=False)
+    """The mainnet API key (developers.predict.fun). The test network needs none."""
+    account_address: str | None = None
+    """The Predict account (the deposit address) the key signs for. Unset,
+    the key's own wallet trades."""
+    testnet: bool = False
+    """Trade on BNB Chain's test network, for test USDT."""
+    rpc_url: str | None = None
+    """A BNB Chain node for the balance read. A public one when unset."""
+    _public = ("account_address", "testnet", "rpc_url")
+    __repr__ = _redacted_repr
+
+    @property
+    def address(self) -> str:
+        """The address that makes the orders and holds the funds."""
+        if self.account_address:
+            return self.account_address
+        from .polymarket_signing import WalletSigner
+
+        return WalletSigner(self.private_key).address
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.private_key] + ([self.api_key] if self.api_key else [])
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
-    | OpinionCredentials | HyperliquidCredentials
+    | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -215,6 +253,10 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
     ),
     "opinion": ("OPINION_PRIVATE_KEY", "OPINION_API_KEY", "OPINION_MULTISIG_ADDRESS"),
     "hyperliquid": ("HYPERLIQUID_PRIVATE_KEY", "HYPERLIQUID_ACCOUNT_ADDRESS", "HYPERLIQUID_TESTNET"),
+    "predict_fun": (
+        "PREDICT_FUN_PRIVATE_KEY", "PREDICT_FUN_API_KEY", "PREDICT_FUN_ACCOUNT_ADDRESS", "PREDICT_FUN_TESTNET",
+        "PREDICT_FUN_RPC_URL",
+    ),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -387,6 +429,28 @@ def load_hyperliquid(env: Mapping[str, str]) -> HyperliquidCredentials | None:
     )
 
 
+def load_predict_fun(env: Mapping[str, str]) -> PredictFunCredentials | None:
+    key = env.get("PREDICT_FUN_PRIVATE_KEY")
+    if not key:
+        return None
+    if not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("PREDICT_FUN_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    testnet = (env.get("PREDICT_FUN_TESTNET") or "").strip().lower() in ("1", "true", "yes")
+    api_key = env.get("PREDICT_FUN_API_KEY") or None
+    if not api_key and not testnet:
+        raise CredentialsMissing(
+            "PREDICT_FUN_PRIVATE_KEY is set but PREDICT_FUN_API_KEY is not; mainnet needs one "
+            "(https://developers.predict.fun), or set PREDICT_FUN_TESTNET=1"
+        )
+    account = env.get("PREDICT_FUN_ACCOUNT_ADDRESS") or None
+    if account and not re.match(r"^0x[0-9a-fA-F]{40}$", account):
+        raise CredentialsMissing(f"PREDICT_FUN_ACCOUNT_ADDRESS must be a 0x address, got {account!r}")
+    return PredictFunCredentials(
+        private_key=key if key.startswith("0x") else "0x" + key, api_key=api_key, account_address=account,
+        testnet=testnet, rpc_url=env.get("PREDICT_FUN_RPC_URL") or None,
+    )
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -394,6 +458,7 @@ LOADERS = {
     "polymarket_us_exchange": load_polymarket_us_exchange,
     "opinion": load_opinion,
     "hyperliquid": load_hyperliquid,
+    "predict_fun": load_predict_fun,
 }
 
 

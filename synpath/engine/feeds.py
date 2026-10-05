@@ -86,6 +86,14 @@ def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any])
                 market=HyperliquidMarketStream(testnet=testnet),
                 private=HyperliquidUserStream(address=address, testnet=testnet) if address else None,
             )
+        elif venue == "predict_fun" and creds is not None and not getattr(creds, "testnet", False):
+            # Mainnet only: the venue documents no test-network WebSocket.
+            from ..ws.predict_fun import PredictFunMarketStream, PredictFunUserStream
+            jwt = getattr(adapter, "jwt", None)
+            out[venue] = VenueStreams(
+                market=PredictFunMarketStream(api_key=creds.api_key),
+                private=PredictFunUserStream(api_key=creds.api_key, jwt=jwt) if jwt else None,
+            )
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

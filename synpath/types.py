@@ -538,6 +538,9 @@ class FeeSchedule(_Base):
           published directly: `taker_rate` and `maker_rate` hold the venue's
           thetas, and a negative maker theta is a rebate, returned here as a
           negative fee. `exponent` is 1 unless the venue says otherwise.
+        * `min_price` (predict.fun) — `rate * min(P, 1 - P) * C` for a
+          taker, on the cheaper side of the market; a maker pays `maker_rate`
+          (zero on every market read so far).
         * `hyperliquid_outcome` (Hyperliquid) — `rate * P * C`, the notional
           of the fill, charged only when the fill closes a position (and at
           settlement); a fill that opens one pays nothing. The estimate is the
@@ -559,6 +562,8 @@ class FeeSchedule(_Base):
             if taker and rate > 0 and contracts > 0 and self.min_fee is not None:
                 fee = max(fee, self.min_fee)
             return round(fee, 6)
+        if self.fee_type == "min_price" and rate is not None:
+            return round(rate * min(price, 1 - price) * contracts, 6)
         if self.fee_type == "hyperliquid_outcome" and rate is not None:
             return round(rate * price * contracts, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:

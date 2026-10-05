@@ -15,7 +15,7 @@ The colon is safe as a separator: no venue's native id contains one.
 """
 from __future__ import annotations
 
-VENUES: tuple[str, ...] = ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid")
+VENUES: tuple[str, ...] = ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun")
 """Every venue this library speaks, by id. `synpath.exchanges` is the same
 list with the adapter classes attached; this one exists so the id helpers do
 not import the adapters."""

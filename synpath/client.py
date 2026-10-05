@@ -363,7 +363,12 @@ def _hyperliquid(creds: Credentials) -> TradingExchange:
     return HyperliquidTrading(creds)  # type: ignore[arg-type]
 
 
+def _predict_fun(creds: Credentials) -> TradingExchange:
+    from .trading.predict_fun import PredictFunTrading
+    return PredictFunTrading(creds)  # type: ignore[arg-type]
+
+
 _TRADING = {
     "kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion,
-    "hyperliquid": _hyperliquid,
+    "hyperliquid": _hyperliquid, "predict_fun": _predict_fun,
 }

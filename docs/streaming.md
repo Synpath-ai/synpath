@@ -35,6 +35,8 @@ asyncio.run(main())
 | `OpinionUserStream` | `ws.opinion.trade` | Opinion API key | orders; fills once the chain confirms them |
 | `HyperliquidMarketStream` | `api.hyperliquid.xyz/ws` (or the testnet) | none | outcome books, prints, top of book, 24h volume |
 | `HyperliquidUserStream` | `api.hyperliquid.xyz/ws` | none: the account's address only | orders; fills (splits, merges and settlements as venue events) |
+| `PredictFunMarketStream` | `ws.predict.fun` | predict.fun API key | whole books, last settled price, market and trading status |
+| `PredictFunUserStream` | `ws.predict.fun` | API key and a wallet JWT | orders; fills as matched, then confirmed or failed on chain |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -112,6 +114,12 @@ jittered exponential backoff between attempts.
   `tests/test_hyperliquid_ws_live.py` checks against the venue's own NO
   coin. A trades subscription opens with a replay of recent prints; prints
   older than the subscription are dropped, so a stop never fires on one.
+
+- *predict.fun* sends the whole book, in YES prices, on every change and on
+  subscribing, so a missed message is repaired by the next. The server's
+  heartbeat (every 15 seconds) must be echoed with its exact value or the
+  connection closes; the stream echoes it. There is no public trades channel:
+  the last settled price rides on the book.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to
