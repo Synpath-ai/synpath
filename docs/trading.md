@@ -24,7 +24,7 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion and Hyperliquid,
+stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid and predict.fun,
 Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
@@ -61,6 +61,7 @@ they point at and the public half of the identity. It prints no secret.
 | Polymarket US, exchange API | `POLYMARKET_US_CLIENT_ID`, `POLYMARKET_US_PRIVATE_KEY_PATH`, `POLYMARKET_US_PARTICIPANT_ID`, `POLYMARKET_US_ACCOUNT` (optional), `POLYMARKET_US_ENV` = `preprod` or `prod` |
 | Opinion | `OPINION_PRIVATE_KEY` (the wallet connected on opinion.trade), `OPINION_API_KEY` (`synpath init` creates it by signing with that wallet), `OPINION_MULTISIG_ADDRESS` (optional; the account's Safe, read from the venue when absent) |
 | Hyperliquid | `HYPERLIQUID_PRIVATE_KEY` (an API wallet's key is safest: it trades but cannot withdraw), `HYPERLIQUID_ACCOUNT_ADDRESS` (the account an API wallet trades for; not needed with the account's own key), `HYPERLIQUID_TESTNET` (`1` for the test network) |
+| predict.fun | `PREDICT_FUN_PRIVATE_KEY` (a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_API_KEY` (mainnet; from developers.predict.fun), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 
 ## Through your own server
 
@@ -387,3 +388,49 @@ positions are the two coins' balances netted on the YES leg.
 Hyperliquid's terms bar the US, Ontario and sanctioned places; some outcome
 front ends bar more, the UK among them. Check what applies to you before
 trading with real funds.
+
+## predict.fun
+
+`PredictFunTrading`. **Not yet tested against the live venue**: it is built
+to predict.fun's documentation and its SDK (`predict-sdk` 0.0.22). Order
+hashes and both kinds of signature are checked against independent EIP-712
+encoders and the SDK's algorithm. No order has been placed through it yet:
+start small.
+
+Orders are the CTF exchange's EIP-712 `Order` on BNB Chain, verified by one
+of four exchanges by the market's kind (neg-risk or not, yield-bearing or
+not). A plain wallet signs its own orders. A Predict account (the smart
+wallet the web app makes) is the orders' maker and holds the USDT; its owner
+key signs for it, wrapped for the account's Kernel validator. YES and NO are
+separate tokens: `buy` buys YES, `sell` buys NO at `1 - price`, and with
+`reduce_only` they sell the tokens held instead.
+
+Orders, cancels and account reads need a login token, which the adapter gets
+by signing the venue's login message with the same key, and renews when the
+venue refuses it. **Signing that message accepts predict.fun's Terms of
+Service**, as logging in on the site does: read them, and check they allow
+you to trade, before the first call.
+
+Limits rest until cancelled (`gtc`) or until `expires_at` (`gtd`), post-only
+on request. `market`, `ioc` and `fok` go as the venue's `MARKET` strategy at
+the price given as the worst accepted, so whatever does not match at once is
+dropped; `fok` sets the venue's fill-or-kill flag. Prices keep three
+significant digits and sizes five, as the venue's SDK keeps them: the
+order's `amount` is what was actually sent. Fees are taker only,
+`rate * min(p, 1 - p)` a share (2% on every market so far); makers pay
+nothing.
+
+A cancel takes the order off the venue's book (`cancel_orders` takes up to
+100 a request). The signed order stays valid on chain until cancelled there,
+which this adapter does not do; only the venue's operator matches orders,
+so a removed order does not fill through it. A market can lock an order
+against removal for a while after it is placed; such a cancel is refused
+with `reason="removal_locked"`.
+
+Fills are settled matches, read from the venue's public match record for the
+account's address; `PredictFunUserStream` carries orders, and fills as
+matched, then confirmed or failed on chain ([Streaming](streaming.md)). The
+balance is the address's USDT on chain, less what open orders hold.
+Approvals (the one-time "enable trading") come with a Predict account; a
+plain wallet sets them with the venue's SDK. Split, merge and redeem are not
+built here.

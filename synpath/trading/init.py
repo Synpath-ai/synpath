@@ -152,12 +152,37 @@ def ask_hyperliquid(p: Prompter) -> dict[str, str]:
     return values
 
 
+def ask_predict_fun(p: Prompter) -> dict[str, str]:
+    p.say("\npredict.fun: a Predict account (made by the web app) trades with its owner key -- export it under")
+    p.say("Account -> Settings -> Privy wallet -- and its deposit address. A plain wallet needs only its key.")
+    p.say("The key is typed hidden. Mainnet needs an API key from developers.predict.fun.")
+    key = p.value("Private key (0x...)", secret=True,
+                  check=lambda raw: None if PRIVATE_KEY.match(raw) else "That is not a private key: 64 hex characters, "
+                                                                        "optionally starting with 0x.")
+    account = p.value("Predict account (deposit) address (empty for a plain wallet)",
+                      default="", check=lambda raw: None if not raw or ADDRESS.match(raw) else
+                      "That is not a wallet address: 0x and 40 hex characters.")
+    testnet = p.value("Use the test network? (y/n)", check=_choice("y", "n"), default="n")
+    values = {"PREDICT_FUN_PRIVATE_KEY": key if key.startswith("0x") else "0x" + key}
+    if testnet == "n":
+        api_key = p.value("API key (typed hidden; empty to keep the one in .env)", secret=True, default="",
+                          check=lambda raw: None)
+        if api_key:
+            values["PREDICT_FUN_API_KEY"] = api_key
+    if account:
+        values["PREDICT_FUN_ACCOUNT_ADDRESS"] = account
+    if testnet == "y":
+        values["PREDICT_FUN_TESTNET"] = "1"
+    return values
+
+
 VENUES: list[tuple[str, str, Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", "KALSHI_KEY_ID", ask_kalshi),
     ("Polymarket", "POLYMARKET_PRIVATE_KEY", ask_polymarket),
     ("Polymarket US", "POLYMARKET_US_KEY_ID", ask_polymarket_us),
     ("Opinion", "OPINION_PRIVATE_KEY", ask_opinion),
     ("Hyperliquid", "HYPERLIQUID_PRIVATE_KEY", ask_hyperliquid),
+    ("predict.fun", "PREDICT_FUN_PRIVATE_KEY", ask_predict_fun),
 ]
 
 
