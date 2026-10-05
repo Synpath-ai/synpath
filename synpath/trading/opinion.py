@@ -1,10 +1,8 @@
 """Opinion order entry, and the venue's order and trade records on the YES leg.
 
-**Not yet tested against the live venue.** Built to Opinion's documentation
-and its own SDK (`opinion_clob_sdk` 0.7, `opinion_api` 0.4): signing and
-amounts are checked byte for byte against the SDK's code, every request
-against the SDK's wire shapes. The first account to trade through it should
-start small.
+Built to Opinion's documentation and its own SDK (`opinion_clob_sdk` 0.7,
+`opinion_api` 0.4): signing and amounts are checked byte for byte against the
+SDK's code, every request against the SDK's wire shapes.
 
 Four facts about the venue shape this adapter.
 
@@ -345,8 +343,7 @@ def build_signed_order(
 # ---------------------------------------------------------------------------
 
 class OpinionTrading(TradingExchange):
-    """Opinion order entry. Not yet tested against the live venue; see the
-    module docstring.
+    """Opinion order entry; see the module docstring.
 
     ```python
     from synpath.trading.credentials import load_credentials, require

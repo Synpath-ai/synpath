@@ -1,10 +1,8 @@
 """predict.fun order entry, and the venue's order and trade records on the YES leg.
 
-**Not yet tested against the live venue with funds.** Built to predict.fun's
-documentation and its own SDK (`predict-sdk` 0.0.22): hashing and both kinds
-of signature are checked against independent EIP-712 encoders and the SDK's
-algorithm; requests follow the venue's OpenAPI. The first account to trade
-through it should start small.
+Built to predict.fun's documentation and its own SDK (`predict-sdk` 0.0.22):
+hashing and both kinds of signature are checked against independent EIP-712
+encoders and the SDK's algorithm; requests follow the venue's OpenAPI.
 
 **Every order is a signed message.** The order is the CTF exchange's EIP-712
 `Order`, signed by a plain wallet or, for a Predict account (the smart
@@ -447,8 +445,7 @@ def build_signed_order(
 # ---------------------------------------------------------------------------
 
 class PredictFunTrading(TradingExchange):
-    """predict.fun order entry. Not yet tested against the live venue with
-    funds; see the module docstring.
+    """predict.fun order entry; see the module docstring.
 
     ```python
     from synpath.trading.credentials import load_credentials, require

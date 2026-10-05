@@ -303,9 +303,7 @@ def position_of(rows: list[dict[str, Any]], *, market_id: str, account: Account 
 class HyperliquidTrading(TradingExchange):
     """Hyperliquid outcome order entry.
 
-    Signing is checked byte for byte against the venue's own SDK, and the
-    test network recovers the signing wallet from it; no order has been
-    filled with real funds through this adapter yet.
+    Signing is checked byte for byte against the venue's own SDK.
 
     ```python
     from synpath.trading.credentials import load_credentials, require
