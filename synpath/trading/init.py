@@ -176,6 +176,18 @@ def ask_predict_fun(p: Prompter) -> dict[str, str]:
     return values
 
 
+def ask_limitless(p: Prompter) -> dict[str, str]:
+    p.say("\nLimitless: the private key of the wallet you connected on limitless.exchange, and a scoped API")
+    p.say("token derived there (profile, API tokens, Derive): its id and its secret. Keys are typed hidden.")
+    key = p.value("Private key (0x...)", secret=True,
+                  check=lambda raw: None if PRIVATE_KEY.match(raw) else "That is not a private key: 64 hex characters, "
+                                                                        "optionally starting with 0x.")
+    token_id = p.value("API token id", check=_required("The token id"))
+    secret = p.value("API token secret (typed hidden)", secret=True, check=_required("The token secret"))
+    return {"LIMITLESS_PRIVATE_KEY": key if key.startswith("0x") else "0x" + key,
+            "LIMITLESS_API_TOKEN_ID": token_id, "LIMITLESS_API_SECRET": secret}
+
+
 VENUES: list[tuple[str, str, Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", "KALSHI_KEY_ID", ask_kalshi),
     ("Polymarket", "POLYMARKET_PRIVATE_KEY", ask_polymarket),
@@ -183,6 +195,7 @@ VENUES: list[tuple[str, str, Callable[[Prompter], dict[str, str]]]] = [
     ("Opinion", "OPINION_PRIVATE_KEY", ask_opinion),
     ("Hyperliquid", "HYPERLIQUID_PRIVATE_KEY", ask_hyperliquid),
     ("predict.fun", "PREDICT_FUN_PRIVATE_KEY", ask_predict_fun),
+    ("Limitless", "LIMITLESS_PRIVATE_KEY", ask_limitless),
 ]
 
 

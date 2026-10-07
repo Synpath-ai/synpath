@@ -1,0 +1,213 @@
+{
+ "clob": [
+  {
+   "market": {
+    "slug": "eth-up-or-down-hourly-1783634400",
+    "status": "RESOLVED",
+    "title": "ETH Up or Down - Hourly",
+    "conditionId": "0xd24bc23b3ccd8cf95a93155f036d8dae0f5b2e03f0c3e21aec81caa7b7e9d1aa",
+    "id": 318325,
+    "address": null,
+    "imageUrl": "https://cdn.limitless.exchange/price-oracles/58/d570277d-5f47-4206-a69d-44e7b4e8570d.svg",
+    "closed": true,
+    "expirationDate": "2026-07-09T23:00:00.000Z",
+    "deadline": "2026-07-09T23:00:00.000Z",
+    "negRiskRequestId": null,
+    "winningOutcomeIndex": 1,
+    "payoutNumerators": null,
+    "yesPositionId": "82414958550756961158398890185352039720822250565992645628773289355094221810294",
+    "noPositionId": "100018205846877211681017905295706620014422774563107236035482112808706744272943",
+    "collateralToken": {
+     "id": 7,
+     "decimals": 6,
+     "symbol": "USDC",
+     "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    },
+    "venue": {
+     "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+     "adapter": null,
+     "operator": null
+    },
+    "group": {
+     "imageUrl": null
+    }
+   },
+   "latestTrade": {
+    "outcomeTokenPrice": 0.88,
+    "latestNoPrice": 0.12,
+    "latestYesPrice": 0.88
+   },
+   "orders": {
+    "liveOrders": [],
+    "totalCollateralLocked": "0"
+   },
+   "positions": {
+    "no": {
+     "openedAt": null,
+     "cost": "1",
+     "fillPrice": "405000",
+     "marketValue": "8889",
+     "realisedPnl": "-514940",
+     "unrealizedPnl": "0"
+    },
+    "yes": {
+     "openedAt": null,
+     "cost": "3745955",
+     "fillPrice": "940000",
+     "marketValue": "3526600",
+     "realisedPnl": "0",
+     "unrealizedPnl": "0"
+    }
+   },
+   "tokensBalance": {
+    "no": "3",
+    "yes": "3985058"
+   },
+   "rewards": {
+    "isEarning": false,
+    "epochs": []
+   },
+   "makerAddress": "0x0000000000000000000000000000000000000001"
+  },
+  {
+   "market": {
+    "slug": "sol-up-or-down-hourly-1787950800",
+    "status": "RESOLVED",
+    "title": "SOL Up or Down - Hourly",
+    "conditionId": "0x5dafec140b1901db071e81202bd0dca71e90c50d4eca9a40f4e3aa74accfd4db",
+    "id": 377907,
+    "address": null,
+    "imageUrl": "https://cdn.limitless.exchange/price-oracles/59/b63917ab-c5b2-43ac-9898-695f56c065f8.svg",
+    "closed": true,
+    "expirationDate": "2026-08-28T22:00:00.000Z",
+    "deadline": "2026-08-28T22:00:00.000Z",
+    "negRiskRequestId": null,
+    "winningOutcomeIndex": 1,
+    "payoutNumerators": null,
+    "yesPositionId": "108165025678571911302588594353325627836475481752149641926325711651480015853207",
+    "noPositionId": "100161899608916335870516613941627788060718000759273441468102904935401484017126",
+    "collateralToken": {
+     "id": 7,
+     "decimals": 6,
+     "symbol": "USDC",
+     "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    },
+    "venue": {
+     "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+     "adapter": null,
+     "operator": null
+    },
+    "group": {
+     "imageUrl": null
+    }
+   },
+   "latestTrade": {
+    "outcomeTokenPrice": 0.424,
+    "latestNoPrice": 0.576,
+    "latestYesPrice": 0.424
+   },
+   "orders": {
+    "liveOrders": [],
+    "totalCollateralLocked": "0"
+   },
+   "positions": {
+    "no": {
+     "openedAt": null,
+     "cost": "2",
+     "fillPrice": "567391",
+     "marketValue": "48322",
+     "realisedPnl": "-524816",
+     "unrealizedPnl": "0"
+    },
+    "yes": {
+     "openedAt": null,
+     "cost": "1940000",
+     "fillPrice": "369707",
+     "marketValue": "2293705",
+     "realisedPnl": "0",
+     "unrealizedPnl": "0"
+    }
+   },
+   "tokensBalance": {
+    "no": "3",
+    "yes": "5247390"
+   },
+   "rewards": {
+    "isEarning": false,
+    "epochs": []
+   },
+   "makerAddress": "0x0000000000000000000000000000000000000001"
+  },
+  {
+   "market": {
+    "slug": "sol-up-or-down-hourly-1787454000",
+    "status": "RESOLVED",
+    "title": "SOL Up or Down - Hourly",
+    "conditionId": "0x5badaf8935cd212989c77462a14d84b08503d5797b7649d06c8c0e7d16534f00",
+    "id": 370590,
+    "address": null,
+    "imageUrl": "https://cdn.limitless.exchange/price-oracles/59/b63917ab-c5b2-43ac-9898-695f56c065f8.svg",
+    "closed": true,
+    "expirationDate": "2026-08-23T04:00:00.000Z",
+    "deadline": "2026-08-23T04:00:00.000Z",
+    "negRiskRequestId": null,
+    "winningOutcomeIndex": 1,
+    "payoutNumerators": null,
+    "yesPositionId": "4275583605356847392978273340474035191414693147156493673814310881480169894985",
+    "noPositionId": "100655828421308079330049589938399924527331050206760174880379461356540125988617",
+    "collateralToken": {
+     "id": 7,
+     "decimals": 6,
+     "symbol": "USDC",
+     "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    },
+    "venue": {
+     "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+     "adapter": null,
+     "operator": null
+    },
+    "group": {
+     "imageUrl": null
+    }
+   },
+   "latestTrade": {
+    "outcomeTokenPrice": 0.00215,
+    "latestNoPrice": 0.99785,
+    "latestYesPrice": 0.00215
+   },
+   "orders": {
+    "liveOrders": [],
+    "totalCollateralLocked": "0"
+   },
+   "positions": {
+    "no": {
+     "openedAt": null,
+     "cost": "1",
+     "fillPrice": "630000",
+     "marketValue": "60822",
+     "realisedPnl": "756614",
+     "unrealizedPnl": "0"
+    },
+    "yes": {
+     "openedAt": null,
+     "cost": "0",
+     "fillPrice": "0",
+     "marketValue": "0",
+     "realisedPnl": "0",
+     "unrealizedPnl": "0"
+    }
+   },
+   "tokensBalance": {
+    "no": "1",
+    "yes": "0"
+   },
+   "rewards": {
+    "isEarning": false,
+    "epochs": []
+   },
+   "makerAddress": "0x0000000000000000000000000000000000000001"
+  }
+ ],
+ "amm": [],
+ "group": []
+}

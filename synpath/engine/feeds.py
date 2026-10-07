@@ -94,6 +94,14 @@ def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any])
                 market=PredictFunMarketStream(api_key=creds.api_key),
                 private=PredictFunUserStream(api_key=creds.api_key, jwt=jwt) if jwt else None,
             )
+        elif venue == "limitless":
+            from ..ws.limitless import LimitlessMarketStream, LimitlessUserStream
+            token_id, secret = getattr(creds, "token_id", None), getattr(creds, "secret", None)
+            catalog = getattr(adapter, "catalog", None)
+            out[venue] = VenueStreams(
+                market=LimitlessMarketStream(),
+                private=LimitlessUserStream(token_id=token_id, secret=secret, catalog=catalog) if token_id and secret else None,
+            )
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

@@ -1,0 +1,624 @@
+{
+ "automationType": "manual",
+ "id": 10014718,
+ "slug": "what-price-will-bitcoin-hit-on-october-7-2026-1791345926180",
+ "stableSlug": "what-price-will-bitcoin-hit-on-october-7-2026",
+ "outcomeTokens": [
+  "Yes",
+  "No"
+ ],
+ "properties": [
+  {
+   "propertyKeySlug": "domain",
+   "value": [
+    "crypto"
+   ]
+  },
+  {
+   "propertyKeySlug": "duration",
+   "value": [
+    "daily"
+   ]
+  },
+  {
+   "propertyKeySlug": "ticker",
+   "value": [
+    "btc"
+   ]
+  }
+ ],
+ "title": "What price will Bitcoin hit on October 7?",
+ "ogImageURI": "",
+ "imageUrl": "https://polymarket-upload.s3.us-east-2.amazonaws.com/BTC+fullsize.png",
+ "expirationDate": "Oct 8, 2026",
+ "expirationTimestamp": 1791432000000,
+ "expired": false,
+ "creator": {
+  "name": "Limitless",
+  "username": "Limitless",
+  "imageURI": "https://limitless.exchange/assets/images/logo.svg",
+  "link": "https://x.com/trylimitless",
+  "address": "0x60e61631d9a585797cDee9f79FafDecf3bd7F64D"
+ },
+ "collateralToken": {
+  "symbol": "USDC",
+  "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "decimals": 6
+ },
+ "tags": [
+  "Daily",
+  "Lumy"
+ ],
+ "tradeType": "clob",
+ "marketType": "group",
+ "createdAt": "2026-10-07T04:06:14.453Z",
+ "updatedAt": "2026-10-07T04:06:14.453Z",
+ "categories": [
+  "Daily"
+ ],
+ "status": "FUNDED",
+ "priorityIndex": 0,
+ "markets": [
+  {
+   "id": 422802,
+   "automationType": "manual",
+   "conditionId": "0x10033fad4978a3854da30dcb9d227aca33ef6539dcbf5be8a203faea70168155",
+   "description": "<p>This market will immediately resolve to &quot;Yes&quot; if any Binance 1-minute candle for Bitcoin (BTC/USDT) on the date specified in the title, between 12:00 AM ET and 11:59 PM ET has a final &qu",
+   "groupId": 10014718,
+   "collateralToken": {
+    "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "decimals": 6,
+    "symbol": "USDC"
+   },
+   "title": "\u2191 92,000",
+   "proxyTitle": null,
+   "expirationDate": "Oct 8, 2026",
+   "expirationTimestamp": 1791432000000,
+   "createdAt": "2026-10-07T04:05:31.999Z",
+   "startAt": null,
+   "updatedAt": "2026-10-07T04:06:09.409Z",
+   "categories": [
+    "Daily"
+   ],
+   "status": "FUNDED",
+   "expired": false,
+   "hidden": false,
+   "creator": {
+    "name": "Limitless",
+    "username": "Limitless",
+    "imageURI": "https://limitless.exchange/assets/images/logo.svg",
+    "link": "https://x.com/trylimitless",
+    "address": "0x60e61631d9a585797cDee9f79FafDecf3bd7F64D"
+   },
+   "tags": [
+    "Daily",
+    "Lumy"
+   ],
+   "volume": "0",
+   "volumeFormatted": "0.000000",
+   "tokens": {
+    "yes": "45636562459773237452659064851096285978655136547332679742125358059907797509165",
+    "no": "67923438963452202671456296090853955159213374400698894436979051081990692888126"
+   },
+   "prices": [
+    0.4995,
+    0.5005
+   ],
+   "tradePrices": {
+    "buy": {
+     "market": [
+      0.998,
+      0.999
+     ],
+     "limit": [
+      0.001,
+      0.002
+     ]
+    },
+    "sell": {
+     "market": [
+      0.001,
+      0.002
+     ],
+     "limit": [
+      0.998,
+      0.999
+     ]
+    }
+   },
+   "isOther": false,
+   "isRewardable": true,
+   "slug": "92000-1791345926192",
+   "tradeType": "clob",
+   "venue": {
+    "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+    "adapter": null
+   },
+   "marketType": "group",
+   "priorityIndex": 0,
+   "properties": [
+    {
+     "propertyKeySlug": "domain",
+     "value": [
+      "crypto"
+     ]
+    },
+    {
+     "propertyKeySlug": "duration",
+     "value": [
+      "daily"
+     ]
+    },
+    {
+     "propertyKeySlug": "ticker",
+     "value": [
+      "btc"
+     ]
+    }
+   ],
+   "winningOutcomeIndex": null,
+   "payoutNumerators": null,
+   "metadata": {
+    "fee": true,
+    "pythLazerId": null,
+    "externalSlug": "will-bitcoin-reach-92k-on-october-7-2026",
+    "oracleVersion": 1,
+    "externalProvider": "polymarket",
+    "pythLazerChannel": null,
+    "externalRulesWatch": {
+     "rulesHash": "bf8ad3ef26c9761d4d54208b85b557c721c8cfbbbae5c9c98ece8f97b6181b2e",
+     "clarificationIds": []
+    },
+    "pythProHistorySymbol": null,
+    "pythToleranceSeconds": null,
+    "pythToleranceDirection": null,
+    "isPolyArbitrage": true
+   },
+   "settings": {
+    "minSize": "100000000",
+    "maxSpread": 0.035,
+    "dailyReward": "0",
+    "effectiveDailyReward": "0",
+    "currentRewardsMultiplier": 1,
+    "rewardsEpoch": "0",
+    "c": "3",
+    "rebateRate": "0.3",
+    "takerDelayMs": 250,
+    "creatorFeePct": 0
+   },
+   "orderInGroup": 21,
+   "imageUrl": null,
+   "logo": null
+  },
+  {
+   "id": 422803,
+   "automationType": "manual",
+   "conditionId": "0x1247a70134c6e6a4704741e264761463661520b46129e853c19ea433b7c019c6",
+   "description": "<p>This market will immediately resolve to &quot;Yes&quot; if any Binance 1-minute candle for Bitcoin (BTC/USDT) on the date specified in the title, between 12:00 AM ET and 11:59 PM ET has a final &qu",
+   "groupId": 10014718,
+   "collateralToken": {
+    "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "decimals": 6,
+    "symbol": "USDC"
+   },
+   "title": "\u2191 91,000",
+   "proxyTitle": null,
+   "expirationDate": "Oct 8, 2026",
+   "expirationTimestamp": 1791432000000,
+   "createdAt": "2026-10-07T04:05:37.400Z",
+   "startAt": null,
+   "updatedAt": "2026-10-07T04:06:09.412Z",
+   "categories": [
+    "Daily"
+   ],
+   "status": "FUNDED",
+   "expired": false,
+   "hidden": false,
+   "creator": {
+    "name": "Limitless",
+    "username": "Limitless",
+    "imageURI": "https://limitless.exchange/assets/images/logo.svg",
+    "link": "https://x.com/trylimitless",
+    "address": "0x60e61631d9a585797cDee9f79FafDecf3bd7F64D"
+   },
+   "tags": [
+    "Daily",
+    "Lumy"
+   ],
+   "volume": "0",
+   "volumeFormatted": "0.000000",
+   "tokens": {
+    "yes": "60267817066456221839933596319930106676679149621842902496171359396021007029802",
+    "no": "58771422536168056593870341428969556839249895965720843138275146420162618609825"
+   },
+   "prices": [
+    0.4995,
+    0.5005
+   ],
+   "tradePrices": {
+    "buy": {
+     "market": [
+      0.998,
+      0.999
+     ],
+     "limit": [
+      0.001,
+      0.002
+     ]
+    },
+    "sell": {
+     "market": [
+      0.001,
+      0.002
+     ],
+     "limit": [
+      0.998,
+      0.999
+     ]
+    }
+   },
+   "isOther": false,
+   "isRewardable": true,
+   "slug": "91000-1791345926192",
+   "tradeType": "clob",
+   "venue": {
+    "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+    "adapter": null
+   },
+   "marketType": "group",
+   "priorityIndex": 0,
+   "properties": [
+    {
+     "propertyKeySlug": "domain",
+     "value": [
+      "crypto"
+     ]
+    },
+    {
+     "propertyKeySlug": "duration",
+     "value": [
+      "daily"
+     ]
+    },
+    {
+     "propertyKeySlug": "ticker",
+     "value": [
+      "btc"
+     ]
+    }
+   ],
+   "winningOutcomeIndex": null,
+   "payoutNumerators": null,
+   "metadata": {
+    "fee": true,
+    "pythLazerId": null,
+    "externalSlug": "will-bitcoin-reach-91k-on-october-7-2026",
+    "oracleVersion": 1,
+    "externalProvider": "polymarket",
+    "pythLazerChannel": null,
+    "externalRulesWatch": {
+     "rulesHash": "bf8ad3ef26c9761d4d54208b85b557c721c8cfbbbae5c9c98ece8f97b6181b2e",
+     "clarificationIds": []
+    },
+    "pythProHistorySymbol": null,
+    "pythToleranceSeconds": null,
+    "pythToleranceDirection": null,
+    "isPolyArbitrage": true
+   },
+   "settings": {
+    "minSize": "100000000",
+    "maxSpread": 0.035,
+    "dailyReward": "0",
+    "effectiveDailyReward": "0",
+    "currentRewardsMultiplier": 1,
+    "rewardsEpoch": "0",
+    "c": "3",
+    "rebateRate": "0.3",
+    "takerDelayMs": 250,
+    "creatorFeePct": 0
+   },
+   "orderInGroup": 211,
+   "imageUrl": null,
+   "logo": null
+  },
+  {
+   "id": 422804,
+   "automationType": "manual",
+   "conditionId": "0x7b9449f4185c39854a0a66a447ba95a7f8aa79e312d189eb3ac82ee55e12fdb7",
+   "description": "<p>This market will immediately resolve to &quot;Yes&quot; if any Binance 1-minute candle for Bitcoin (BTC/USDT) on the date specified in the title, between 12:00 AM ET and 11:59 PM ET has a final &qu",
+   "groupId": 10014718,
+   "collateralToken": {
+    "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "decimals": 6,
+    "symbol": "USDC"
+   },
+   "title": "\u2191 90,000",
+   "proxyTitle": null,
+   "expirationDate": "Oct 8, 2026",
+   "expirationTimestamp": 1791432000000,
+   "createdAt": "2026-10-07T04:05:38.466Z",
+   "startAt": null,
+   "updatedAt": "2026-10-07T04:06:09.416Z",
+   "categories": [
+    "Daily"
+   ],
+   "status": "FUNDED",
+   "expired": false,
+   "hidden": false,
+   "creator": {
+    "name": "Limitless",
+    "username": "Limitless",
+    "imageURI": "https://limitless.exchange/assets/images/logo.svg",
+    "link": "https://x.com/trylimitless",
+    "address": "0x60e61631d9a585797cDee9f79FafDecf3bd7F64D"
+   },
+   "tags": [
+    "Daily",
+    "Lumy"
+   ],
+   "volume": "0",
+   "volumeFormatted": "0.000000",
+   "tokens": {
+    "yes": "57633821103143777268602103370086635001821000520327972534670121064925966120360",
+    "no": "21201969093515332042396518344368164768517810580638538628677562495108300891666"
+   },
+   "prices": [
+    0.4995,
+    0.5005
+   ],
+   "tradePrices": {
+    "buy": {
+     "market": [
+      0.998,
+      0.999
+     ],
+     "limit": [
+      0.001,
+      0.002
+     ]
+    },
+    "sell": {
+     "market": [
+      0.001,
+      0.002
+     ],
+     "limit": [
+      0.998,
+      0.999
+     ]
+    }
+   },
+   "isOther": false,
+   "isRewardable": true,
+   "slug": "90000-1791345926192",
+   "tradeType": "clob",
+   "venue": {
+    "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+    "adapter": null
+   },
+   "marketType": "group",
+   "priorityIndex": 0,
+   "properties": [
+    {
+     "propertyKeySlug": "domain",
+     "value": [
+      "crypto"
+     ]
+    },
+    {
+     "propertyKeySlug": "duration",
+     "value": [
+      "daily"
+     ]
+    },
+    {
+     "propertyKeySlug": "ticker",
+     "value": [
+      "btc"
+     ]
+    }
+   ],
+   "winningOutcomeIndex": null,
+   "payoutNumerators": null,
+   "metadata": {
+    "fee": true,
+    "pythLazerId": null,
+    "externalSlug": "will-bitcoin-reach-90k-on-october-7-2026",
+    "oracleVersion": 1,
+    "externalProvider": "polymarket",
+    "pythLazerChannel": null,
+    "externalRulesWatch": {
+     "rulesHash": "bf8ad3ef26c9761d4d54208b85b557c721c8cfbbbae5c9c98ece8f97b6181b2e",
+     "clarificationIds": []
+    },
+    "pythProHistorySymbol": null,
+    "pythToleranceSeconds": null,
+    "pythToleranceDirection": null,
+    "isPolyArbitrage": true
+   },
+   "settings": {
+    "minSize": "100000000",
+    "maxSpread": 0.035,
+    "dailyReward": "0",
+    "effectiveDailyReward": "0",
+    "currentRewardsMultiplier": 1,
+    "rewardsEpoch": "0",
+    "c": "3",
+    "rebateRate": "0.3",
+    "takerDelayMs": 250,
+    "creatorFeePct": 0
+   },
+   "orderInGroup": 180,
+   "imageUrl": null,
+   "logo": null
+  },
+  {
+   "id": 422805,
+   "automationType": "manual",
+   "conditionId": "0xebbc19448c611106b68baed3df0dc2b466964a9f00e12b77ae0bd7d6b59b51e0",
+   "description": "<p>This market will immediately resolve to &quot;Yes&quot; if any Binance 1-minute candle for Bitcoin (BTC/USDT) on the date specified in the title, between 12:00 AM ET and 11:59 PM ET has a final &qu",
+   "groupId": 10014718,
+   "collateralToken": {
+    "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "decimals": 6,
+    "symbol": "USDC"
+   },
+   "title": "\u2191 89,000",
+   "proxyTitle": null,
+   "expirationDate": "Oct 8, 2026",
+   "expirationTimestamp": 1791432000000,
+   "createdAt": "2026-10-07T04:05:44.067Z",
+   "startAt": null,
+   "updatedAt": "2026-10-07T04:06:09.420Z",
+   "categories": [
+    "Daily"
+   ],
+   "status": "FUNDED",
+   "expired": false,
+   "hidden": false,
+   "creator": {
+    "name": "Limitless",
+    "username": "Limitless",
+    "imageURI": "https://limitless.exchange/assets/images/logo.svg",
+    "link": "https://x.com/trylimitless",
+    "address": "0x60e61631d9a585797cDee9f79FafDecf3bd7F64D"
+   },
+   "tags": [
+    "Daily",
+    "Lumy"
+   ],
+   "volume": "0",
+   "volumeFormatted": "0.000000",
+   "tokens": {
+    "yes": "82838703159108206694332648748199291667360469844536500098161381224443377600057",
+    "no": "59563809720095868764003064950354210798913638993087580552727973544979085677638"
+   },
+   "prices": [
+    0.4995,
+    0.5005
+   ],
+   "tradePrices": {
+    "buy": {
+     "market": [
+      0.998,
+      0.999
+     ],
+     "limit": [
+      0.001,
+      0.002
+     ]
+    },
+    "sell": {
+     "market": [
+      0.001,
+      0.002
+     ],
+     "limit": [
+      0.998,
+      0.999
+     ]
+    }
+   },
+   "isOther": false,
+   "isRewardable": true,
+   "slug": "89000-1791345926192",
+   "tradeType": "clob",
+   "venue": {
+    "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+    "adapter": null
+   },
+   "marketType": "group",
+   "priorityIndex": 0,
+   "properties": [
+    {
+     "propertyKeySlug": "domain",
+     "value": [
+      "crypto"
+     ]
+    },
+    {
+     "propertyKeySlug": "duration",
+     "value": [
+      "daily"
+     ]
+    },
+    {
+     "propertyKeySlug": "ticker",
+     "value": [
+      "btc"
+     ]
+    }
+   ],
+   "winningOutcomeIndex": null,
+   "payoutNumerators": null,
+   "metadata": {
+    "fee": true,
+    "pythLazerId": null,
+    "externalSlug": "will-bitcoin-reach-89k-on-october-7-2026",
+    "oracleVersion": 1,
+    "externalProvider": "polymarket",
+    "pythLazerChannel": null,
+    "externalRulesWatch": {
+     "rulesHash": "bf8ad3ef26c9761d4d54208b85b557c721c8cfbbbae5c9c98ece8f97b6181b2e",
+     "clarificationIds": []
+    },
+    "pythProHistorySymbol": null,
+    "pythToleranceSeconds": null,
+    "pythToleranceDirection": null,
+    "isPolyArbitrage": true
+   },
+   "settings": {
+    "minSize": "100000000",
+    "maxSpread": 0.035,
+    "dailyReward": "0",
+    "effectiveDailyReward": "0",
+    "currentRewardsMultiplier": 1,
+    "rewardsEpoch": "0",
+    "c": "3",
+    "rebateRate": "0.3",
+    "takerDelayMs": 250,
+    "creatorFeePct": 0
+   },
+   "orderInGroup": 120,
+   "imageUrl": null,
+   "logo": null
+  }
+ ],
+ "metadata": {
+  "fee": true,
+  "type": "ladder",
+  "isBannered": false,
+  "externalSlug": "what-price-will-bitcoin-hit-on-october-7-2026",
+  "submarketOrder": [
+   422802,
+   422803,
+   422804,
+   422805,
+   422806,
+   422807,
+   422808,
+   422809,
+   422810,
+   422811,
+   422812,
+   422813,
+   422814,
+   422815,
+   422816,
+   422817
+  ],
+  "isPolyArbitrage": true,
+  "externalProvider": "polymarket",
+  "polymarketSeriesId": 10200,
+  "polymarketHitSymbol": "BTCUSDT",
+  "polymarketHitDuration": "daily",
+  "preserveSubmarketOrder": true
+ },
+ "venue": {
+  "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+  "adapter": null
+ },
+ "volume": "0",
+ "volumeFormatted": "0.000000",
+ "dailyReward": "0"
+}

@@ -24,7 +24,7 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid and predict.fun,
+stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun and Limitless,
 Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
@@ -62,6 +62,7 @@ they point at and the public half of the identity. It prints no secret.
 | Opinion | `OPINION_PRIVATE_KEY` (the wallet connected on opinion.trade), `OPINION_API_KEY` (`synpath init` creates it by signing with that wallet), `OPINION_MULTISIG_ADDRESS` (optional; the account's Safe, read from the venue when absent) |
 | Hyperliquid | `HYPERLIQUID_PRIVATE_KEY` (an API wallet's key is safest: it trades but cannot withdraw), `HYPERLIQUID_ACCOUNT_ADDRESS` (the account an API wallet trades for; not needed with the account's own key), `HYPERLIQUID_TESTNET` (`1` for the test network) |
 | predict.fun | `PREDICT_FUN_PRIVATE_KEY` (a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_API_KEY` (mainnet; from developers.predict.fun), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
+| Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
 
 ## Through your own server
 
@@ -428,3 +429,40 @@ balance is the address's USDT on chain, less what open orders hold.
 Approvals (the one-time "enable trading") come with a Predict account; a
 plain wallet sets them with the venue's SDK. Split, merge and redeem are not
 built here.
+
+## Limitless
+
+`LimitlessTrading`, built to Limitless's documentation and its SDK
+(`limitless-sdk` 1.1.1). Order hashes and signatures are checked against an
+independent EIP-712 encoder, and amounts against the docs' worked examples.
+
+Orders are the CTF exchange's EIP-712 `Order` on Base, signed by the wallet
+itself, with the market's exchange as the verifying contract. Every request is
+also signed with a scoped API token. The profile must be in EOA trading mode:
+an account that once turned on the web app's one-click smart wallet rejects
+orders its own wallet signs, until `use_eoa_trading_mode()` switches it back
+(the web app's one-click trading then stops until it is switched again
+there). YES and NO are separate tokens: `buy` buys YES, `sell` buys NO at
+`1 - price`, and with `reduce_only` they sell the tokens held instead.
+
+Limits rest until cancelled (`gtc`), post-only on request. `market` and `ioc`
+go as the venue's fill-and-kill at the price given as the worst accepted. The
+venue's fill-or-kill spends a USDC amount with no price limit, so `fok` is
+refused, and orders cannot expire, so `gtd` and `day` are refused too. Prices
+take at most three decimals between 1c and 99c; sizes are cut to thousandths
+of a share so the collateral is exact. Fees are taker only and fall as the
+price rises; every order carries the profile's fee rate, which the venue
+checks. A `client_order_id` is sent as the venue's own and comes back on
+every order event.
+
+The venue lists orders market by market: `fetch_orders` takes a market, and
+`fetch_open_orders` and `cancel_all_orders` across the account read the
+markets with open orders from the account's positions first. Fills are the
+settled trades in the account's history; `LimitlessUserStream` carries orders,
+and fills as matched, then mined or failed on chain ([Streaming](streaming.md)).
+The balance is the wallet's USDC on Base, less what open orders hold.
+Approvals (USDC and the outcome tokens to each market's exchange), split,
+merge and redeem are not built here.
+
+Limitless's terms bar use wherever it would be unlawful, and sanctioned
+persons. Check what applies to you before trading.

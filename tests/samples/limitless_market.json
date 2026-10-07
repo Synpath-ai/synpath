@@ -1,0 +1,155 @@
+{
+ "id": 422348,
+ "automationType": "lumy",
+ "conditionId": "0x0bc333a75d9ad70d6ebb021707e88c0aaf3afd812d19d2ec6f15f5fe202a7f8c",
+ "negRiskRequestId": null,
+ "description": "<p>This market will resolve to &quot;Up&quot; if the &quot;Close&quot; price for the Binance 1 minute candle for BTC/USDT closing at 12:01 in the ET timezone on Oct 6 &#39;26 is lower than the final &",
+ "groupId": null,
+ "collateralToken": {
+  "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "decimals": 6,
+  "symbol": "USDC"
+ },
+ "title": "BTC Up or Down Daily",
+ "proxyTitle": null,
+ "expirationDate": "Oct 7, 2026",
+ "expirationTimestamp": 1791388800000,
+ "createdAt": "2026-10-06T17:50:07.942Z",
+ "startAt": "2026-10-06T16:00:00.000Z",
+ "updatedAt": "2026-10-06T17:51:09.690Z",
+ "categories": [
+  "Crypto",
+  "Daily"
+ ],
+ "status": "FUNDED",
+ "expired": false,
+ "hidden": false,
+ "creator": {
+  "name": "Limitless",
+  "username": "Limitless",
+  "imageURI": "https://limitless.exchange/assets/images/logo.svg",
+  "link": "https://x.com/trylimitless",
+  "address": "0x60e61631d9a585797cDee9f79FafDecf3bd7F64D"
+ },
+ "tags": [
+  "Lumy",
+  "Pareto"
+ ],
+ "volume": "215066725",
+ "volumeFormatted": "215.066725",
+ "tokens": {
+  "yes": "70247938366373245371875476852050312741984939645649004595595165572008042615343",
+  "no": "99077791304863914050366560588394007604061238265274085733005208627717171204514"
+ },
+ "prices": [
+  0.037,
+  0.963
+ ],
+ "tradePrices": {
+  "buy": {
+   "market": [
+    0.053,
+    0.979
+   ],
+   "limit": [
+    0.021,
+    0.947
+   ]
+  },
+  "sell": {
+   "market": [
+    0.021,
+    0.947
+   ],
+   "limit": [
+    0.053,
+    0.979
+   ]
+  }
+ },
+ "isOther": false,
+ "isRewardable": true,
+ "slug": "btc-up-or-down-daily-p-1791308105925",
+ "stableSlug": "btc-daily-price",
+ "tradeType": "clob",
+ "venue": {
+  "exchange": "0x05c748E2f4DcDe0ec9Fa8DDc40DE6b867f923fa5",
+  "adapter": null
+ },
+ "marketType": "single",
+ "priorityIndex": 0,
+ "properties": [
+  {
+   "propertyKeySlug": "domain",
+   "value": [
+    "crypto"
+   ]
+  },
+  {
+   "propertyKeySlug": "duration",
+   "value": [
+    "daily"
+   ]
+  },
+  {
+   "propertyKeySlug": "ticker",
+   "value": [
+    "btc"
+   ]
+  }
+ ],
+ "winningOutcomeIndex": null,
+ "payoutNumerators": null,
+ "metadata": {
+  "fee": true,
+  "chart": {
+   "candle": "daily",
+   "market": "spot",
+   "source": "binance",
+   "symbol": "BTCUSDT",
+   "windowOpenAt": "2026-10-06T16:00:00.000Z"
+  },
+  "openPrice": "85747.06",
+  "isBannered": false,
+  "externalSlug": "bitcoin-up-or-down-on-october-7-2026",
+  "isPolyArbitrage": true,
+  "externalProvider": "polymarket",
+  "externalRulesWatch": {
+   "rulesHash": "3618746da51864b203e9cca02e449ed33aa6e1ec5d4a4e6ca7abcf4321f12020",
+   "clarificationIds": [
+    28828
+   ]
+  },
+  "polymarketSeriesId": 41,
+  "openPriceCapturedAt": "2026-10-06T16:00:00.000Z"
+ },
+ "settings": {
+  "minSize": "100000000",
+  "maxSpread": 0.035,
+  "dailyReward": "0",
+  "effectiveDailyReward": "0",
+  "currentRewardsMultiplier": 1,
+  "rewardsEpoch": "0",
+  "c": "3",
+  "rebateRate": "1",
+  "takerDelayMs": 250,
+  "creatorFeePct": 0
+ },
+ "imageUrl": "https://cdn.limitless.exchange/price-oracles/57/1546e81a-9e31-4292-b36c-b54e9443e4b1.svg",
+ "logo": "https://cdn.limitless.exchange/price-oracles/57/1546e81a-9e31-4292-b36c-b54e9443e4b1.svg",
+ "priceOracleMetadata": {
+  "ticker": "BTCUSDT",
+  "assetType": "CRYPTO",
+  "pythAddress": null,
+  "chartSource": "binance",
+  "chainlinkFeedId": null,
+  "chainlinkFeedAddress": null,
+  "chainlinkPair": null,
+  "chainlinkStreamUrl": null,
+  "symbol": "BTC",
+  "name": "BTC"
+ },
+ "groupSlug": null,
+ "frequency": "daily",
+ "subFrequency": null
+}

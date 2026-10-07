@@ -368,7 +368,12 @@ def _predict_fun(creds: Credentials) -> TradingExchange:
     return PredictFunTrading(creds)  # type: ignore[arg-type]
 
 
+def _limitless(creds: Credentials) -> TradingExchange:
+    from .trading.limitless import LimitlessTrading
+    return LimitlessTrading(creds)  # type: ignore[arg-type]
+
+
 _TRADING = {
     "kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion,
-    "hyperliquid": _hyperliquid, "predict_fun": _predict_fun,
+    "hyperliquid": _hyperliquid, "predict_fun": _predict_fun, "limitless": _limitless,
 }
