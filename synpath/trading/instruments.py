@@ -46,6 +46,8 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # Two or three decimals of price per market (its `decimalPrecision`);
     # sizes to a hundredth of a share at least, as the venue's SDK checks.
     "predict_fun": {"default_tick": Decimal("0.01"), "min_amount": Decimal("0.01"), "amount_step": Decimal("0.01"), "whole": False},
+    # Prices to a tenth of a cent between 1c and 99c; sizes in thousandths of a share.
+    "limitless": {"default_tick": Decimal("0.001"), "min_amount": Decimal("0.001"), "amount_step": Decimal("0.001"), "whole": False},
 }
 
 

@@ -37,6 +37,8 @@ asyncio.run(main())
 | `HyperliquidUserStream` | `api.hyperliquid.xyz/ws` | none: the account's address only | orders; fills (splits, merges and settlements as venue events) |
 | `PredictFunMarketStream` | `ws.predict.fun` | predict.fun API key | whole books, last settled price, market and trading status |
 | `PredictFunUserStream` | `ws.predict.fun` | API key and a wallet JWT | orders; fills as matched, then confirmed or failed on chain |
+| `LimitlessMarketStream` | `ws.limitless.exchange` | none | whole books, market resolutions |
+| `LimitlessUserStream` | `ws.limitless.exchange` | a Limitless API token | orders; fills as matched, then mined or failed on chain |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -120,6 +122,14 @@ jittered exponential backoff between attempts.
   heartbeat (every 15 seconds) must be echoed with its exact value or the
   connection closes; the stream echoes it. There is no public trades channel:
   the last settled price rides on the book.
+- *Limitless* speaks Socket.IO; the stream handles its framing and answers
+  its pings, so no Socket.IO client is needed. Each book frame is the whole
+  YES book, sent again on every subscribe, and a subscription replaces the
+  last, so the stream always sends its whole set. No public trades channel.
+  Order-engine frames name a token rather than a market; the account stream
+  places them from the markets given to `watch_orders`, then from one walk
+  of the open catalog. The venue closes every connection after 24 hours; the
+  stream reconnects with a freshly signed handshake.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

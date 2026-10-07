@@ -30,6 +30,7 @@ One order, both order books combined, filled from the cheapest price after fees.
 | | [Opinion](https://opinion.trade) | `opinion` | ✓ | ✓ | WebSocket (API key) | one book per outcome token |
 | | [Hyperliquid](https://app.hyperliquid.xyz) | `hyperliquid` | ✓ outcome markets (HIP-4) | ✓ | WebSocket (no key) | one book per market, both sides read it |
 | | [predict.fun](https://predict.fun) | `predict_fun` | ✓ (API key) | ✓ | WebSocket (API key) | one book per market, both sides read it |
+| | [Limitless](https://limitless.exchange) | `limitless` | ✓ | ✓ | WebSocket | one book per market, both sides read it |
 
 ## Why Synpath
 
@@ -79,7 +80,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # ['kalshi', 'polymarket', 'polymarket_us', 'opinion', 'hyperliquid', 'predict_fun']
+for venue_id in synpath.exchanges:                 # ['kalshi', 'polymarket', 'polymarket_us', 'opinion', 'hyperliquid', 'predict_fun', 'limitless']
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 

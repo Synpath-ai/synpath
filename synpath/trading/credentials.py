@@ -28,6 +28,8 @@ loaded; the adapters are what use it.
   predict.fun         PREDICT_FUN_PRIVATE_KEY, PREDICT_FUN_API_KEY (mainnet),
                       and optionally PREDICT_FUN_ACCOUNT_ADDRESS (a Predict
                       account), PREDICT_FUN_TESTNET, PREDICT_FUN_RPC_URL
+  Limitless           LIMITLESS_PRIVATE_KEY, LIMITLESS_API_TOKEN_ID,
+                      LIMITLESS_API_SECRET, and optionally LIMITLESS_RPC_URL
 """
 from __future__ import annotations
 
@@ -233,9 +235,37 @@ class PredictFunCredentials:
         return [self.private_key] + ([self.api_key] if self.api_key else [])
 
 
+@dataclass(frozen=True, repr=False)
+class LimitlessCredentials:
+    """Limitless: the wallet that signs orders, and the scoped API token that
+    signs every request."""
+
+    private_key: str = field(repr=False)
+    """The wallet's private key, hex: the wallet connected on limitless.exchange,
+    in EOA trading mode. Signs every order (EIP-712)."""
+    token_id: str
+    """The scoped API token's id (limitless.exchange, profile, API tokens, Derive)."""
+    secret: str = field(repr=False)
+    """The token's secret, base64, shown once when the token is derived."""
+    rpc_url: str | None = None
+    """A Base node for the balance read. A public one when unset."""
+    _public = ("token_id", "rpc_url")
+    __repr__ = _redacted_repr
+
+    @property
+    def address(self) -> str:
+        from .polymarket_signing import WalletSigner
+
+        return WalletSigner(self.private_key).address
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.private_key, self.secret]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
-    | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials
+    | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -257,6 +287,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "PREDICT_FUN_PRIVATE_KEY", "PREDICT_FUN_API_KEY", "PREDICT_FUN_ACCOUNT_ADDRESS", "PREDICT_FUN_TESTNET",
         "PREDICT_FUN_RPC_URL",
     ),
+    "limitless": ("LIMITLESS_PRIVATE_KEY", "LIMITLESS_API_TOKEN_ID", "LIMITLESS_API_SECRET", "LIMITLESS_RPC_URL"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -451,6 +482,31 @@ def load_predict_fun(env: Mapping[str, str]) -> PredictFunCredentials | None:
     )
 
 
+def load_limitless(env: Mapping[str, str]) -> LimitlessCredentials | None:
+    key = env.get("LIMITLESS_PRIVATE_KEY")
+    if not key:
+        return None
+    if not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("LIMITLESS_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    token_id, secret = env.get("LIMITLESS_API_TOKEN_ID"), env.get("LIMITLESS_API_SECRET")
+    if not token_id or not secret:
+        raise CredentialsMissing(
+            "LIMITLESS_PRIVATE_KEY is set but LIMITLESS_API_TOKEN_ID / LIMITLESS_API_SECRET are not; derive a "
+            "scoped API token on limitless.exchange (profile, API tokens, Derive)"
+        )
+    import base64
+    import binascii
+
+    try:
+        base64.b64decode(secret, validate=True)
+    except (binascii.Error, ValueError):
+        raise CredentialsMissing("LIMITLESS_API_SECRET must be the base64 secret shown when the token was derived") from None
+    return LimitlessCredentials(
+        private_key=key if key.startswith("0x") else "0x" + key, token_id=token_id, secret=secret,
+        rpc_url=env.get("LIMITLESS_RPC_URL") or None,
+    )
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -459,6 +515,7 @@ LOADERS = {
     "opinion": load_opinion,
     "hyperliquid": load_hyperliquid,
     "predict_fun": load_predict_fun,
+    "limitless": load_limitless,
 }
 
 

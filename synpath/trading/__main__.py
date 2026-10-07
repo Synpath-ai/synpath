@@ -31,7 +31,7 @@ def doctor(dotenv: str | None) -> int:
     for venue, creds in loaded.items():
         if creds is None:
             names = ENV_NAMES[venue]
-            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun") else ""
+            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless") else ""
             rows.append((venue, "not configured", f"set {names[0]}{hint}"))
             continue
         stage = getattr(creds, "env", "-")
@@ -60,6 +60,8 @@ def doctor(dotenv: str | None) -> int:
             stage = "testnet" if creds.testnet else "mainnet"
             identity = (f"Predict account {creds.account_address}, owner {signer}" if creds.account_address
                         else f"wallet {signer}")
+        elif venue == "limitless":
+            identity = f"wallet {creds.address}, API token {creds.token_id}"
         elif getattr(creds, "api_key", None):
             identity = f"api key {creds.api_key[:8]}…"
         else:

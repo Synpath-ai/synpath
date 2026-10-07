@@ -45,6 +45,7 @@ from .polymarket_us import PolymarketUS
 from .opinion import Opinion
 from .hyperliquid import Hyperliquid
 from .predict_fun import PredictFun
+from .limitless import Limitless
 from .matching import match_event, match_market
 from .history import fetch_order_book_at, fetch_order_book_range, fetch_trades_range
 from .bucket import Bucket, BucketMember, BucketOrderReport, BucketPosition
@@ -87,6 +88,7 @@ exchanges: dict[str, type[Exchange]] = {
     "opinion": Opinion,
     "hyperliquid": Hyperliquid,
     "predict_fun": PredictFun,
+    "limitless": Limitless,
 }
 """Every venue this library speaks, by id."""
 
@@ -107,7 +109,7 @@ def exchange(venue: str, **kwargs) -> Exchange:
 # keeps working. Imported last, after the read API it builds on.
 from .trading import (
     TradingExchange, KalshiTrading, PolymarketTrading, PolymarketUSTrading, PolymarketUSExchangeTrading,
-    OpinionTrading, HyperliquidTrading, PredictFunTrading,
+    OpinionTrading, HyperliquidTrading, PredictFunTrading, LimitlessTrading,
     Account, Balance, EditRequest, FeeEstimate, Fill, HeldBy, Liquidity,
     Order, OrderRequest, OrderStatus, OrderType, Position, PositionSide,
     Precision, Settlement, SettlementState, Side, TimeInForce,
@@ -136,7 +138,7 @@ _STREAM_CLASSES = (
     "PolymarketUSExchangeInstrumentStream", "PolymarketUSExchangePositionStream",
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
     "OpinionMarketStream", "OpinionUserStream", "HyperliquidMarketStream", "HyperliquidUserStream",
-    "PredictFunMarketStream", "PredictFunUserStream",
+    "PredictFunMarketStream", "PredictFunUserStream", "LimitlessMarketStream", "LimitlessUserStream",
 )
 _SERVER_NAMES = ("create_app", "create_trading_app", "VenueRegistry", "ControlStore", "Principal")
 
@@ -158,7 +160,7 @@ def __getattr__(name: str):
 
 
 __all__ = [
-    "Kalshi", "Polymarket", "PolymarketUS", "Opinion", "Hyperliquid", "PredictFun", "Exchange", "exchange", "exchanges",
+    "Kalshi", "Polymarket", "PolymarketUS", "Opinion", "Hyperliquid", "PredictFun", "Limitless", "Exchange", "exchange", "exchanges",
     "Capability", "HttpClient", "RateLimiter",
     "Market", "Event", "Outcome", "Quote", "MarketStats", "OrderBook",
     "OrderLevel", "Trade", "Candle", "FeeSchedule", "Series", "Page",
@@ -175,7 +177,7 @@ __all__ = [
     "MarketNotFound", "NotSupported", "AuthenticationError",
     # order entry
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
-    "OpinionTrading", "HyperliquidTrading", "PredictFunTrading",
+    "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce",

@@ -1,0 +1,185 @@
+{
+ "data": [
+  {
+   "blockTimestamp": 1791369162,
+   "collateralAmount": "13.379309",
+   "market": {
+    "closed": false,
+    "collateral": {
+     "symbol": "USDC",
+     "id": "7",
+     "decimals": 6
+    },
+    "group": null,
+    "condition_id": "0xdc7b165b58a830d55ea0100504236df50b10ab4c8064e68cad15e693d88b8d69",
+    "conditionId": "0xdc7b165b58a830d55ea0100504236df50b10ab4c8064e68cad15e693d88b8d69",
+    "funding": "0",
+    "id": "422928",
+    "imageUrl": "https://cdn.limitless.exchange/price-oracles/57/1546e81a-9e31-4292-b36c-b54e9443e4b1.svg",
+    "payoutNumerators": null,
+    "status": "FUNDED",
+    "winningOutcomeIndex": null,
+    "slug": "btc-up-or-down-hourly-p-1791356705387",
+    "title": "BTC Up or Down Hourly",
+    "expirationDate": "2026-10-07T11:00:00.000Z"
+   },
+   "outcomeTokenAmount": "22.298849",
+   "outcomeTokenAmounts": [
+    "0",
+    "22.298849"
+   ],
+   "outcomeIndex": 1,
+   "outcomeTokenPrice": 0.6,
+   "orderId": "5aafdc6f-abd1-4784-a3cd-bb67ca6c8ea8",
+   "strategy": "Market Sell",
+   "tradeEventId": "a594c8a6-85c8-4608-b364-a2f6fa05916e",
+   "transactionHash": "0xdf0e37a9c5533eebcdd38775948d31ea813221651f8ab4b5546009e925f603bc"
+  },
+  {
+   "blockTimestamp": 1791368779,
+   "collateralAmount": "0.999999",
+   "market": {
+    "closed": false,
+    "collateral": {
+     "symbol": "USDC",
+     "id": "7",
+     "decimals": 6
+    },
+    "group": null,
+    "condition_id": "0x2ec670718c303c1a7b89d124219282d300855ed533a78d71cfcc7981fa9ec88c",
+    "conditionId": "0x2ec670718c303c1a7b89d124219282d300855ed533a78d71cfcc7981fa9ec88c",
+    "funding": "0",
+    "id": "422932",
+    "imageUrl": "https://cdn.limitless.exchange/price-oracles/60/2fd1b992-ea43-4b87-9002-0aa637218112.svg",
+    "payoutNumerators": null,
+    "status": "FUNDED",
+    "winningOutcomeIndex": null,
+    "slug": "doge-up-or-down-hourly-p-1791356718506",
+    "title": "DOGE Up or Down Hourly",
+    "expirationDate": "2026-10-07T11:00:00.000Z"
+   },
+   "outcomeTokenAmount": "1.265822",
+   "outcomeTokenAmounts": [
+    "0",
+    "1.265822"
+   ],
+   "outcomeIndex": 1,
+   "outcomeTokenPrice": 0.79,
+   "orderId": "dd159368-54bd-4707-9832-e3201faaebeb",
+   "strategy": "Market Buy",
+   "tradeEventId": "63335628-5665-421f-9d8d-3c358c4a3cfe",
+   "transactionHash": "0x044667d5fe3dd2aa8554dd46776f4ebae79412b31dfa8c4cb5a1c674f4d73ec6"
+  },
+  {
+   "blockTimestamp": 1791368478,
+   "collateralAmount": "8",
+   "market": {
+    "closed": false,
+    "collateral": {
+     "symbol": "USDC",
+     "id": "7",
+     "decimals": 6
+    },
+    "group": null,
+    "condition_id": "0xdc7b165b58a830d55ea0100504236df50b10ab4c8064e68cad15e693d88b8d69",
+    "conditionId": "0xdc7b165b58a830d55ea0100504236df50b10ab4c8064e68cad15e693d88b8d69",
+    "funding": "0",
+    "id": "422928",
+    "imageUrl": "https://cdn.limitless.exchange/price-oracles/57/1546e81a-9e31-4292-b36c-b54e9443e4b1.svg",
+    "payoutNumerators": null,
+    "status": "FUNDED",
+    "winningOutcomeIndex": null,
+    "slug": "btc-up-or-down-hourly-p-1791356705387",
+    "title": "BTC Up or Down Hourly",
+    "expirationDate": "2026-10-07T11:00:00.000Z"
+   },
+   "outcomeTokenAmount": "22.988505",
+   "outcomeTokenAmounts": [
+    "0",
+    "22.988505"
+   ],
+   "outcomeIndex": 1,
+   "outcomeTokenPrice": 0.348,
+   "orderId": "f1185abc-1194-4b23-af67-50e5f660b504",
+   "strategy": "Market Buy",
+   "tradeEventId": "a415eed7-f543-453c-b2ef-2d4151a0afff",
+   "transactionHash": "0x4a4fb80b3a7238dde0eac18e86fc5d9a1637633aebdee9f95a28037a8b3bc990"
+  },
+  {
+   "blockTimestamp": 1791368288,
+   "collateralAmount": "1",
+   "market": {
+    "closed": false,
+    "collateral": {
+     "symbol": "USDC",
+     "id": "7",
+     "decimals": 6
+    },
+    "group": null,
+    "condition_id": "0xdc7b165b58a830d55ea0100504236df50b10ab4c8064e68cad15e693d88b8d69",
+    "conditionId": "0xdc7b165b58a830d55ea0100504236df50b10ab4c8064e68cad15e693d88b8d69",
+    "funding": "0",
+    "id": "422928",
+    "imageUrl": "https://cdn.limitless.exchange/price-oracles/57/1546e81a-9e31-4292-b36c-b54e9443e4b1.svg",
+    "payoutNumerators": null,
+    "status": "FUNDED",
+    "winningOutcomeIndex": null,
+    "slug": "btc-up-or-down-hourly-p-1791356705387",
+    "title": "BTC Up or Down Hourly",
+    "expirationDate": "2026-10-07T11:00:00.000Z"
+   },
+   "outcomeTokenAmount": "2.169197",
+   "outcomeTokenAmounts": [
+    "0",
+    "2.169197"
+   ],
+   "outcomeIndex": 1,
+   "outcomeTokenPrice": 0.461,
+   "orderId": "643f4799-6e92-48cd-8b96-fb698b34c1b6",
+   "strategy": "Market Buy",
+   "tradeEventId": "8faa85b6-4552-411d-b07e-56194c414cbe",
+   "transactionHash": "0x27599a9f773459e3c91f9fc37cb674a3826310cf9a03d7c742cb909efe881c97"
+  },
+  {
+   "blockTimestamp": 1791368049,
+   "collateralAmount": "21.570837",
+   "indexSets": [
+    "1",
+    "2"
+   ],
+   "market": {
+    "closed": true,
+    "collateral": {
+     "symbol": "USDC",
+     "id": "7",
+     "decimals": 6
+    },
+    "group": null,
+    "condition_id": "0xe7f1a0d90a3446b16d48ad3e4bc1683b7f335f00e11477adea5fe18b971e17a7",
+    "conditionId": "0xe7f1a0d90a3446b16d48ad3e4bc1683b7f335f00e11477adea5fe18b971e17a7",
+    "funding": "0",
+    "id": "422890",
+    "imageUrl": "https://cdn.limitless.exchange/price-oracles/57/1546e81a-9e31-4292-b36c-b54e9443e4b1.svg",
+    "payoutNumerators": [
+     0,
+     1
+    ],
+    "status": "RESOLVED",
+    "winningOutcomeIndex": 1,
+    "slug": "btc-up-or-down-hourly-p-1791353109380",
+    "title": "BTC Up or Down Hourly",
+    "expirationDate": "2026-10-07T10:00:00.000Z"
+   },
+   "outcomeTokenAmount": "0",
+   "outcomeTokenAmounts": [
+    "0",
+    "0"
+   ],
+   "outcomeIndex": 0,
+   "outcomeTokenPrice": 1,
+   "strategy": "Claim",
+   "transactionHash": "0x0e47cdb5fa2503d7f1e54513edd9ae3a177a160bee1d1a2f32ee36822949b17f"
+  }
+ ],
+ "nextCursor": "ARdPB1EXK00AEFxXWFxcclZHQEtWQRhHblVfK0AYQU0vWEQbTlNeGlpEQUVXQhlPTA"
+}

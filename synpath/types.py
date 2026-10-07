@@ -549,6 +549,13 @@ class FeeSchedule(_Base):
           being `P * C`, as the venue's fee docs define it, and never less than
           `min_fee` for a taker order. `taker_rate` and `maker_rate` hold the
           venue's curve coefficients; a zero rate is a free market, no floor.
+        * `limitless_curve` (Limitless) — a buy taker pays a percentage of the
+          tokens bought that falls with the price: 3% up to 50c, down to 0.4%
+          near $1. The venue publishes the curve as a table of points, not a
+          formula, so the rate is interpolated between them; the estimate is
+          that rate times the notional, `P * C`. A maker pays nothing.
+          `taker_rate` is the curve's ceiling (0.03); a zero rate is a free
+          market.
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:
@@ -566,10 +573,33 @@ class FeeSchedule(_Base):
             return round(rate * min(price, 1 - price) * contracts, 6)
         if self.fee_type == "hyperliquid_outcome" and rate is not None:
             return round(rate * price * contracts, 6)
+        if self.fee_type == "limitless_curve" and rate is not None:
+            if not taker or rate == 0:
+                return 0.0
+            return round(limitless_buy_rate(price) * rate / LIMITLESS_FEE_CEILING * price * contracts, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent
             return round(rate * contracts * (price * (1 - price)) ** power, 6)
         return None
+
+
+LIMITLESS_FEE_CEILING = 0.03
+LIMITLESS_BUY_CURVE: tuple[tuple[float, float], ...] = (
+    (0.50, 0.0300), (0.55, 0.0252), (0.60, 0.0213), (0.65, 0.0180), (0.70, 0.0151), (0.75, 0.0126),
+    (0.80, 0.0105), (0.85, 0.0085), (0.90, 0.0068), (0.95, 0.0053), (0.99, 0.0042), (0.999, 0.0040),
+)
+"""Limitless's published buy-fee points: (price, rate). Flat at 3% below 50c."""
+
+
+def limitless_buy_rate(price: float) -> float:
+    """The buy taker rate at `price`, linear between the published points."""
+    points = LIMITLESS_BUY_CURVE
+    if price <= points[0][0]:
+        return points[0][1]
+    for (p0, r0), (p1, r1) in zip(points, points[1:]):
+        if price <= p1:
+            return r0 + (r1 - r0) * (price - p0) / (p1 - p0)
+    return points[-1][1]
 
 
 class MarketLink(_Base):
