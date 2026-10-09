@@ -13,10 +13,56 @@ One open-source API across Kalshi, Polymarket, Polymarket US and Opinion: market
 
 </div>
 
-**🆕 New: Smart order routing across Kalshi and Polymarket.**<br/>
-One order, both order books combined, filled from the cheapest price after fees. **[See how it works →](https://www.synpath.dev/docs/concepts/buckets)**
+**🆕 New: free tick-level Kalshi order book history.**<br/>
+Every public Kalshi market, full depth, every change and every trade, straight from Kalshi's live feed. Sign up from your terminal and query it in one line of Python. **[Get it in 60 seconds ↓](#free-kalshi-tick-data-in-60-seconds)**
 
-⭐ **If Synpath saves you time, [star it on GitHub](https://github.com/Synpath-ai/synpath).** It's how other traders find it.
+⭐ **[Star Synpath on GitHub](https://github.com/Synpath-ai/synpath)** if the data saves you money. Stars are how we decide what to open up next.
+
+---
+
+## Free Kalshi tick data in 60 seconds
+
+**1. Install**
+
+```bash
+pip install synpath
+```
+
+**2. Sign up**: opens Google sign-in in your browser, then returns to the terminal. Free, no card.
+
+```bash
+synpath login
+```
+
+**3. Create your API key**: it's saved on your machine and Python picks it up automatically.
+
+```bash
+synpath keys create my-laptop
+```
+
+**4. Query any moment**
+
+```python
+import synpath
+
+t = 1790776800000   # any moment, in Unix milliseconds
+
+# The full book exactly as it stood at that millisecond
+snap = synpath.fetch_order_book_at("kalshi:KXQUANTUM-30", as_of_ms=t)
+print(snap.book.bids[0].price, snap.book.asks[0].price, len(snap.book.bids), "bid levels")
+
+# Every change over an hour: a starting book, then each update in arrival order
+changes = synpath.fetch_order_book_range("kalshi:KXQUANTUM-30", start_ms=t, end_ms=t + 3_600_000)
+
+# Every trade: price, size and taker side
+trades = synpath.fetch_trades_range("kalshi:KXQUANTUM-30", start_ms=t, end_ms=t + 3_600_000)
+```
+
+No silent gaps: if we weren't recording at a moment, you get the reason instead of an empty book. Up to an hour per request; plain HTTP works too (`Authorization: Bearer <key>`). More: **[synpath.dev/tick-data](https://www.synpath.dev/tick-data)** · **[API reference](https://www.synpath.dev/docs/api-reference/history/book-at)**
+
+> ⭐ **Free data stays free as long as people use it.** If this saves you a data bill, [star the repo](https://github.com/Synpath-ai/synpath). It takes one click and it's how other traders find it.
+
+**Also new: smart order routing across Kalshi and Polymarket.** One order, both order books combined, filled from the cheapest price after fees. [See how it works →](https://www.synpath.dev/docs/concepts/buckets)
 
 ---
 
@@ -49,7 +95,7 @@ pip install "synpath[grpc]"      # + Polymarket US exchange gRPC streams
 
 Python 3.10 or newer. The hot paths (order books, reading the venues' book streams, order signing and the order router) run on a Rust core that ships prebuilt inside the wheel for Linux, macOS and Windows; nothing else to install.
 
-**Hosted API.** Run `synpath login`, then `synpath keys create`. It serves tick-level Kalshi order book and trade history, and cross-venue market matching. Trading stays on your machine: Synpath never holds your keys or funds.
+**Hosted API.** Run `synpath login`, then `synpath keys create` ([step by step ↑](#free-kalshi-tick-data-in-60-seconds)). It serves tick-level Kalshi order book and trade history, and cross-venue market matching. Trading stays on your machine: Synpath never holds your keys or funds.
 
 ## Quick Start
 
