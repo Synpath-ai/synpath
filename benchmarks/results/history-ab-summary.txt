@@ -1,9 +1,0 @@
-cell                                     pairs   median      min      max skipped
-history/export:10                            3    0.890    0.882    0.891       0
-history/export:100                           3    0.855    0.847    0.866       0
-history/export:1000                          3    0.904    0.890    0.913       0
-history/materialize:10                       3    0.805    0.778    0.826       0
-history/materialize:100                      3    0.768    0.762    0.771       0
-history/materialize:1000                     3    0.855    0.832    0.864       0
-
-ratio = candidate / control; below 1.0 means the candidate used less of the measured quantity.
