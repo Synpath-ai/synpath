@@ -1,0 +1,1 @@
+{"workload": "synthetic", "depth": 100, "seed": 1729, "states": 128, "ns_per_state": 674482.125, "median_pass_ns": 86333712, "export_bytes": 0, "includes": "model validation, deltas, full materialization", "excludes": "network, disk I/O; initial snapshot export", "traced_peak_bytes": 583925, "p50_ns": 647237.5, "p99_ns": 699060}

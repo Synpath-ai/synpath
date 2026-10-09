@@ -1,0 +1,13 @@
+cell,round,arm,value
+history/materialize:100,0,control,197720.1689453125
+history/materialize:100,0,candidate,202546.77018229166
+history/export:100,0,control,304162.0377604167
+history/export:100,0,candidate,319980.94140625
+history/materialize:100,1,candidate,207061.6923828125
+history/materialize:100,1,control,207702.71744791666
+history/export:100,1,candidate,314101.4296875
+history/export:100,1,control,315381.9671223958
+history/materialize:100,2,control,210123.06803385416
+history/materialize:100,2,candidate,212122.0234375
+history/export:100,2,control,297608.7532552083
+history/export:100,2,candidate,302040.9612630208
