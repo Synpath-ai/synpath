@@ -1,11 +1,55 @@
 """The standalone historical-book example stays compatible with the API models."""
 
 import json
+import random
+from decimal import Decimal
 
 import httpx
 import pytest
 
-from examples.track_historical_book import BookGap, BookState, iter_book_timeline
+from examples.track_historical_book import BookGap, BookState, _ReplayBook, iter_book_timeline
+from synpath import HistoricalOrderBook, OrderLevel
+from synpath.types import iso
+
+
+@pytest.mark.parametrize("depth", [0, 1, 10, 100, 1000])
+def test_materialization_matches_individual_level_validation(depth):
+    rng = random.Random(20261009 + depth)
+    initial = HistoricalOrderBook(
+        market_id="kalshi:M", venue="kalshi", side="no", as_of_ms=1000,
+        timestamp=1000, depth_scope="full", book_model="shared_complement",
+        derived=True, info={"source": "recorded"},
+        bids=[OrderLevel(price=(4999-i)/10000, size=100) for i in range(depth)],
+        asks=[OrderLevel(price=(5001+i)/10000, size=100) for i in range(depth)])
+    replay = _ReplayBook(initial)
+    for index in range(20):
+        # Insert, update, delete and reinsert prices, including different scales.
+        side = rng.choice(["bid", "ask"])
+        levels = replay.bids if side == "bid" else replay.asks
+        price = Decimal(rng.choice(["0.4", "0.40", "0.6000"]))
+        current = levels.get(price, Decimal(0))
+        delta = -current if index % 3 == 0 else Decimal("1.25")
+        replay.delta(side, str(price), str(delta))
+        stamp = 1001 + index
+        # The previous implementation is the oracle: each level is constructed
+        # and validated separately before the enclosing historical book.
+        expected = HistoricalOrderBook(
+            market_id=initial.market_id, side=initial.side, venue=initial.venue,
+            bids=[OrderLevel(price=float(p), size=float(replay.bids[p]))
+                  for p in sorted(replay.bids, reverse=True)],
+            asks=[OrderLevel(price=float(p), size=float(replay.asks[p]))
+                  for p in sorted(replay.asks)],
+            timestamp=stamp, datetime=iso(stamp), as_of_ms=stamp,
+            venue_timestamp_ms=stamp-1, depth_scope="full",
+            book_model=initial.book_model, derived=initial.derived, info=initial.info)
+        actual = replay.materialize(stamp, stamp-1)
+        assert actual.model_dump() == expected.model_dump()
+        assert actual.model_dump_json() == expected.model_dump_json()
+        assert all(isinstance(level, OrderLevel) for level in actual.bids + actual.asks)
+        # Outputs must remain independent, even though most levels don't change.
+        if actual.bids:
+            actual.bids[0].size = -999
+            assert replay.materialize(stamp, stamp-1) == expected
 
 
 def _book(size: int) -> dict:
