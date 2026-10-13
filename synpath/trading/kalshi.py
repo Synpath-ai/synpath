@@ -15,7 +15,7 @@ made.
 here is an immediate-or-cancel limit at the caller's protection price, and a
 request without one is refused rather than sent at a price nobody chose.
 
-Every request is signed: `timestamp + METHOD + path`, RSA-PSS with SHA-256
+Every request is signed: `timestamp + METHOD + path`, Ed25519 or RSA-PSS with SHA-256
 over the full request path (`/trade-api/v2/...`, no query string), sent in
 three headers. The private key never leaves `KalshiSigner`.
 
@@ -102,29 +102,37 @@ class KalshiSigner:
 
     The signing payload is `timestamp_ms + METHOD + path` with `path` the full
     request path including the `/trade-api/v2` prefix and excluding any query
-    string, per the venue's own examples. RSA-PSS, SHA-256, salt length equal
-    to the digest -- the combination the venue's reference client uses and
-    that a `openssl dgst -sigopt rsa_pss_saltlen:digest` reproduces.
+    string, per the venue's own examples. The key's type picks the scheme:
+    an Ed25519 key (the venue's default for new keys) signs the payload
+    directly; an RSA key uses RSA-PSS, SHA-256, salt length equal to the
+    digest -- the combination the venue's reference client uses and that a
+    `openssl dgst -sigopt rsa_pss_saltlen:digest` reproduces.
     """
 
     def __init__(self, key_id: str, private_key_pem: bytes):
         try:
             from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
         except ImportError as exc:  # pragma: no cover - depends on the environment
             raise ImportError("Kalshi signing needs the `cryptography` package: pip install synpath") from exc
         self.key_id = key_id
         self._key = serialization.load_pem_private_key(private_key_pem, password=None)
+        if not isinstance(self._key, (ed25519.Ed25519PrivateKey, rsa.RSAPrivateKey)):
+            raise ValueError(f"Kalshi keys are Ed25519 or RSA; this one is {type(self._key).__name__}")
 
     def sign(self, timestamp_ms: int, method: str, path: str) -> str:
         from cryptography.hazmat.primitives import hashes
-        from cryptography.hazmat.primitives.asymmetric import padding
+        from cryptography.hazmat.primitives.asymmetric import ed25519, padding
 
         payload = f"{timestamp_ms}{method.upper()}{path}".encode()
-        signature = self._key.sign(
-            payload,
-            padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.DIGEST_LENGTH),
-            hashes.SHA256(),
-        )
+        if isinstance(self._key, ed25519.Ed25519PrivateKey):
+            signature = self._key.sign(payload)
+        else:
+            signature = self._key.sign(
+                payload,
+                padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.DIGEST_LENGTH),
+                hashes.SHA256(),
+            )
         return base64.b64encode(signature).decode()
 
     def headers(self, method: str, path: str, *, timestamp_ms: int | None = None) -> dict[str, str]:

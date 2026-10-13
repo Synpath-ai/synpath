@@ -15,7 +15,7 @@ from pathlib import Path
 import httpx
 import pytest
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, rsa
 
 from synpath.errors import AuthenticationError, BadRequest, ExchangeError, MarketNotFound
 from synpath.trading import (
@@ -75,6 +75,22 @@ class TestSigner:
             padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.DIGEST_LENGTH),
             hashes.SHA256(),
         )
+
+    def test_ed25519_key_signs_the_payload_directly(self):
+        import base64
+        key = ed25519.Ed25519PrivateKey.generate()
+        pem = key.private_bytes(
+            serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption(),
+        )
+        sig = KalshiSigner("key-123", pem).sign(1700000000000, "get", "/trade-api/v2/portfolio/balance")
+        key.public_key().verify(base64.b64decode(sig), b"1700000000000GET/trade-api/v2/portfolio/balance")
+
+    def test_other_key_types_are_refused(self):
+        pem = ec.generate_private_key(ec.SECP256R1()).private_bytes(
+            serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption(),
+        )
+        with pytest.raises(ValueError, match="Ed25519 or RSA"):
+            KalshiSigner("key-123", pem)
 
     def test_headers_carry_key_signature_and_timestamp(self, pem):
         signer = KalshiSigner("key-123", pem)
