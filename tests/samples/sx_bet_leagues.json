@@ -1,0 +1,542 @@
+{
+ "status": "success",
+ "data": [
+  {
+   "leagueId": 246,
+   "label": "NCAAF",
+   "sportId": 8,
+   "popularity": 2567557.95073,
+   "eventsByType": {
+    "first-half-lines": 59,
+    "first-period-lines": 59,
+    "game-lines": 59
+   }
+  },
+  {
+   "leagueId": 243,
+   "label": "NFL",
+   "sportId": 8,
+   "popularity": 1900020.361604,
+   "eventsByType": {
+    "first-half-lines": 14,
+    "player-props": 12,
+    "third-period-lines": 10,
+    "first-period-lines": 14,
+    "second-period-lines": 11,
+    "game-lines": 27
+   }
+  },
+  {
+   "leagueId": 1535,
+   "label": "ATP - Shanghai",
+   "sportId": 6,
+   "popularity": 1368680.10767,
+   "eventsByType": {
+    "first-period-lines": 6,
+    "third-period-lines": 6,
+    "second-period-lines": 6,
+    "set-betting": 6,
+    "game-lines": 6
+   }
+  },
+  {
+   "leagueId": 1114,
+   "label": "La Liga",
+   "sportId": 5,
+   "popularity": 1210334.725908,
+   "eventsByType": {
+    "game-lines": 10,
+    "1X2": 10
+   }
+  },
+  {
+   "leagueId": 29,
+   "label": "English Premier League",
+   "sportId": 5,
+   "popularity": 1040332.381932,
+   "eventsByType": {
+    "1X2": 10,
+    "game-lines": 10
+   }
+  },
+  {
+   "leagueId": 1113,
+   "label": "Serie A",
+   "sportId": 5,
+   "popularity": 878461.494687,
+   "eventsByType": {
+    "1X2": 10,
+    "game-lines": 10
+   }
+  },
+  {
+   "leagueId": 1112,
+   "label": "Ligue 1",
+   "sportId": 5,
+   "popularity": 798983.744326,
+   "eventsByType": {
+    "game-lines": 9,
+    "1X2": 9
+   }
+  },
+  {
+   "leagueId": 171,
+   "label": "MLB",
+   "sportId": 3,
+   "popularity": 780607.032582,
+   "eventsByType": {
+    "game-lines": 2,
+    "first-five-innings": 2
+   }
+  },
+  {
+   "leagueId": 244,
+   "label": "German Bundesliga",
+   "sportId": 5,
+   "popularity": 704917.35942,
+   "eventsByType": {
+    "game-lines": 9,
+    "1X2": 9
+   },
+   "extra": "{ \"sidebarGroup\": \"Germany\" }"
+  },
+  {
+   "leagueId": 1110,
+   "label": "Campeonato Brasileiro",
+   "sportId": 5,
+   "popularity": 599652.036448,
+   "eventsByType": {
+    "game-lines": 10,
+    "1X2": 10
+   }
+  },
+  {
+   "leagueId": 3,
+   "label": "NHL",
+   "sportId": 2,
+   "popularity": 536656.808484,
+   "eventsByType": {
+    "game-lines": 16
+   }
+  },
+  {
+   "leagueId": 1115,
+   "label": "Major League Soccer",
+   "sportId": 5,
+   "popularity": 508493.064238,
+   "eventsByType": {
+    "1X2": 30,
+    "game-lines": 30
+   }
+  },
+  {
+   "leagueId": 1777,
+   "label": "Liga Profesional",
+   "sportId": 5,
+   "popularity": 379878.079315,
+   "eventsByType": {
+    "game-lines": 15,
+    "1X2": 15
+   },
+   "extra": "{ \"sidebarGroup\": \"Argentina\" }"
+  },
+  {
+   "leagueId": 1074,
+   "label": "WTA Wuhan",
+   "sportId": 6,
+   "popularity": 327773.345102,
+   "eventsByType": {
+    "second-period-lines": 13,
+    "first-period-lines": 13,
+    "set-betting": 13,
+    "third-period-lines": 12,
+    "game-lines": 13
+   }
+  },
+  {
+   "leagueId": 1313,
+   "label": "The Championship",
+   "sportId": 5,
+   "popularity": 279019.183498,
+   "eventsByType": {
+    "game-lines": 24,
+    "1X2": 24
+   }
+  },
+  {
+   "leagueId": 1624,
+   "label": "Eliteserien",
+   "sportId": 5,
+   "popularity": 265767.040565,
+   "eventsByType": {
+    "game-lines": 8,
+    "1X2": 8
+   },
+   "extra": ""
+  },
+  {
+   "leagueId": 1117,
+   "label": "NBA Preseason",
+   "sportId": 1,
+   "popularity": 259930.407007,
+   "eventsByType": {
+    "game-lines": 5
+   }
+  },
+  {
+   "leagueId": 1778,
+   "label": "Brasileiro Serie B",
+   "sportId": 5,
+   "popularity": 246731.72885,
+   "eventsByType": {
+    "1X2": 10,
+    "game-lines": 10
+   },
+   "extra": "{ \"sidebarGroup\": \"Brazil\" }"
+  },
+  {
+   "leagueId": 34,
+   "label": "UFC",
+   "sportId": 7,
+   "popularity": 201629.518045,
+   "eventsByType": {
+    "game-lines": 13
+   }
+  },
+  {
+   "leagueId": 1788,
+   "label": "Primera Nacional",
+   "sportId": 5,
+   "popularity": 200475.37789,
+   "eventsByType": {
+    "1X2": 18,
+    "game-lines": 18
+   },
+   "extra": "{ \"sidebarGroup\": \"Argentina\" }"
+  },
+  {
+   "leagueId": 1622,
+   "label": "K1-League",
+   "sportId": 5,
+   "popularity": 193757.505824,
+   "eventsByType": {
+    "1X2": 6,
+    "game-lines": 6
+   },
+   "extra": "\"\\\"\\\"\""
+  },
+  {
+   "leagueId": 1236,
+   "label": "Portugal Primeira Liga",
+   "sportId": 5,
+   "popularity": 175004.899107,
+   "eventsByType": {
+    "1X2": 1,
+    "game-lines": 1
+   }
+  },
+  {
+   "leagueId": 1330,
+   "label": "Eredivisie",
+   "sportId": 5,
+   "popularity": 173182.927301,
+   "eventsByType": {
+    "game-lines": 9,
+    "1X2": 9
+   },
+   "extra": "{ \"sidebarGroup\": \"Netherlands\" }"
+  },
+  {
+   "leagueId": 1439,
+   "label": "Serie B",
+   "sportId": 5,
+   "popularity": 158880.362932,
+   "eventsByType": {
+    "game-lines": 10,
+    "1X2": 10
+   }
+  },
+  {
+   "leagueId": 1331,
+   "label": "Super Lig",
+   "sportId": 5,
+   "popularity": 158027.172532,
+   "eventsByType": {
+    "1X2": 9,
+    "game-lines": 9
+   },
+   "extra": ""
+  },
+  {
+   "leagueId": 1776,
+   "label": "Liga MX",
+   "sportId": 5,
+   "popularity": 135372.452144,
+   "eventsByType": {
+    "game-lines": 9,
+    "1X2": 9
+   },
+   "extra": "{ \"sidebarGroup\": \"Mexico\" }"
+  },
+  {
+   "leagueId": 239,
+   "label": "Allsvenskan",
+   "sportId": 5,
+   "popularity": 115894.556469,
+   "eventsByType": {
+    "1X2": 8,
+    "game-lines": 8
+   },
+   "extra": "{ \"sidebarGroup\": \"Sweden\" }"
+  },
+  {
+   "leagueId": 1626,
+   "label": "Veikkausliiga",
+   "sportId": 5,
+   "popularity": 113255.277771,
+   "eventsByType": {
+    "1X2": 6,
+    "game-lines": 6
+   },
+   "extra": ""
+  },
+  {
+   "leagueId": 1516,
+   "label": "Women's World Cup",
+   "sportId": 5,
+   "popularity": 110669.127594,
+   "eventsByType": {
+    "1X2": 15,
+    "game-lines": 16
+   },
+   "extra": "{ \"sidebarGroup\": \"World Cup\" }"
+  },
+  {
+   "leagueId": 1780,
+   "label": "Primera A",
+   "sportId": 5,
+   "popularity": 105787.816114,
+   "eventsByType": {
+    "1X2": 11,
+    "game-lines": 11
+   },
+   "extra": "{ \"sidebarGroup\": \"Colombia\" }"
+  },
+  {
+   "leagueId": 1181,
+   "label": "China Super League",
+   "sportId": 5,
+   "popularity": 95209.549441,
+   "eventsByType": {
+    "1X2": 8,
+    "game-lines": 8
+   },
+   "extra": "{ \"sidebarGroup\": \"China\" }"
+  },
+  {
+   "leagueId": 1795,
+   "label": "Austrian Bundesliga",
+   "sportId": 5,
+   "popularity": 86615.614256,
+   "eventsByType": {
+    "1X2": 6,
+    "game-lines": 6
+   },
+   "extra": "{ \"sidebarGroup\": \"Austria\" }"
+  },
+  {
+   "leagueId": 1783,
+   "label": "Superliga",
+   "sportId": 5,
+   "popularity": 86020.924623,
+   "eventsByType": {
+    "1X2": 6,
+    "game-lines": 6
+   },
+   "extra": "{ \"sidebarGroup\": \"Denmark\" }"
+  },
+  {
+   "leagueId": 1786,
+   "label": "Premiership",
+   "sportId": 5,
+   "popularity": 73173.034819,
+   "eventsByType": {
+    "game-lines": 6,
+    "1X2": 6
+   },
+   "extra": "{ \"sidebarGroup\": \"Scotland\" }"
+  },
+  {
+   "leagueId": 1782,
+   "label": "First League",
+   "sportId": 5,
+   "popularity": 69125.777972,
+   "eventsByType": {
+    "1X2": 9,
+    "game-lines": 9
+   },
+   "extra": "{ \"sidebarGroup\": \"Czech Republic\" }"
+  },
+  {
+   "leagueId": 1621,
+   "label": "Superettan",
+   "sportId": 5,
+   "popularity": 65069.278194,
+   "eventsByType": {
+    "game-lines": 8,
+    "1X2": 8
+   },
+   "extra": ""
+  },
+  {
+   "leagueId": 1623,
+   "label": "K2-League",
+   "sportId": 5,
+   "popularity": 61964.274062,
+   "eventsByType": {
+    "1X2": 8,
+    "game-lines": 8
+   },
+   "extra": ""
+  },
+  {
+   "leagueId": 1785,
+   "label": "Russian Premier League",
+   "sportId": 5,
+   "popularity": 61928.670506,
+   "eventsByType": {
+    "game-lines": 8,
+    "1X2": 8
+   },
+   "extra": "{ \"sidebarGroup\": \"Russia\" }"
+  },
+  {
+   "leagueId": 1784,
+   "label": "LigaPro",
+   "sportId": 5,
+   "popularity": 36323.188771,
+   "eventsByType": {
+    "game-lines": 8,
+    "1X2": 8
+   },
+   "extra": "{ \"sidebarGroup\": \"Ecuador\" }"
+  },
+  {
+   "leagueId": 1790,
+   "label": "Canadian Premier League",
+   "sportId": 5,
+   "popularity": 28840.170011,
+   "eventsByType": {
+    "1X2": 4,
+    "game-lines": 4
+   },
+   "extra": "{ \"sidebarGroup\": \"Canada\" }"
+  },
+  {
+   "leagueId": 1789,
+   "label": "Division Profesional",
+   "sportId": 5,
+   "popularity": 27559.039225,
+   "eventsByType": {
+    "game-lines": 8,
+    "1X2": 8
+   },
+   "extra": "{ \"sidebarGroup\": \"Bolivia\" }"
+  },
+  {
+   "leagueId": 1561,
+   "label": "ATP Challenger - Maia",
+   "sportId": 6,
+   "popularity": 24440.059205,
+   "eventsByType": {
+    "game-lines": 14,
+    "third-period-lines": 11,
+    "first-period-lines": 14,
+    "second-period-lines": 14,
+    "set-betting": 14
+   }
+  },
+  {
+   "leagueId": 1593,
+   "label": "Olympics Womens Soccer",
+   "sportId": 5,
+   "popularity": 9979.706104,
+   "eventsByType": {
+    "1X2": 11,
+    "game-lines": 11
+   }
+  },
+  {
+   "leagueId": 1063,
+   "label": "DWCS",
+   "sportId": 7,
+   "popularity": 8802.680269,
+   "eventsByType": {
+    "game-lines": 5
+   }
+  },
+  {
+   "leagueId": 1,
+   "label": "NBA",
+   "sportId": 1,
+   "popularity": 0,
+   "eventsByType": {
+    "first-period-lines": 1,
+    "game-lines": 41,
+    "first-half-lines": 16
+   }
+  },
+  {
+   "leagueId": 30,
+   "label": "Champions League_UEFA",
+   "sportId": 5,
+   "popularity": 0,
+   "eventsByType": {
+    "game-lines": 18,
+    "1X2": 18
+   }
+  },
+  {
+   "leagueId": 1781,
+   "label": "Copa Sudamericana",
+   "sportId": 5,
+   "popularity": 0,
+   "eventsByType": {
+    "1X2": 2,
+    "game-lines": 2
+   },
+   "extra": "{ \"sidebarGroup\": \"International\" }"
+  },
+  {
+   "leagueId": 1309,
+   "label": "UEFA Conference League",
+   "sportId": 5,
+   "popularity": 0,
+   "eventsByType": {
+    "1X2": 18,
+    "game-lines": 18
+   }
+  },
+  {
+   "leagueId": 31,
+   "label": "Europa League_UEFA",
+   "sportId": 5,
+   "popularity": 0,
+   "eventsByType": {
+    "game-lines": 18,
+    "1X2": 18
+   }
+  },
+  {
+   "leagueId": 1631,
+   "label": "Copa Libertadores",
+   "sportId": 5,
+   "popularity": 0,
+   "eventsByType": {
+    "1X2": 2,
+    "game-lines": 2
+   },
+   "extra": ""
+  }
+ ]
+}

@@ -188,6 +188,20 @@ def ask_limitless(p: Prompter) -> dict[str, str]:
             "LIMITLESS_API_TOKEN_ID": token_id, "LIMITLESS_API_SECRET": secret}
 
 
+def ask_sx_bet(p: Prompter) -> dict[str, str]:
+    p.say("\nSX Bet: the private key of the wallet you sign in to sx.bet with (your account address, not its")
+    p.say("proxy wallet), and the API key generated there (Account, API key). Both are typed hidden.")
+    key = p.value("Private key (0x...)", secret=True,
+                  check=lambda raw: None if PRIVATE_KEY.match(raw) else "That is not a private key: 64 hex characters, "
+                                                                        "optionally starting with 0x.")
+    api_key = p.value("API key (typed hidden)", secret=True, check=_required("The API key"))
+    testnet = p.value("Use the test network? (y/n)", check=_choice("y", "n"), default="n")
+    values = {"SX_BET_PRIVATE_KEY": key if key.startswith("0x") else "0x" + key, "SX_BET_API_KEY": api_key}
+    if testnet == "y":
+        values["SX_BET_TESTNET"] = "1"
+    return values
+
+
 VENUES: list[tuple[str, str, Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", "KALSHI_KEY_ID", ask_kalshi),
     ("Polymarket", "POLYMARKET_PRIVATE_KEY", ask_polymarket),
@@ -196,6 +210,7 @@ VENUES: list[tuple[str, str, Callable[[Prompter], dict[str, str]]]] = [
     ("Hyperliquid", "HYPERLIQUID_PRIVATE_KEY", ask_hyperliquid),
     ("predict.fun", "PREDICT_FUN_PRIVATE_KEY", ask_predict_fun),
     ("Limitless", "LIMITLESS_PRIVATE_KEY", ask_limitless),
+    ("SX Bet", "SX_BET_PRIVATE_KEY", ask_sx_bet),
 ]
 
 

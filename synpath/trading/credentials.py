@@ -263,9 +263,36 @@ class LimitlessCredentials:
         return [self.private_key, self.secret]
 
 
+@dataclass(frozen=True, repr=False)
+class SxBetCredentials:
+    """SX Bet: the wallet that signs orders, and the API key every request
+    (and every realtime channel) carries."""
+
+    private_key: str = field(repr=False)
+    """The wallet's private key, hex: the account's own address, never the
+    proxy wallet. Signs every order (EIP-712)."""
+    api_key: str = field(repr=False)
+    """The SX Bet API key, generated on sx.bet under Account. It belongs to
+    the same address."""
+    testnet: bool = False
+    """The Toronto test network (api.toronto.sx.bet) instead of mainnet."""
+    _public = ("testnet",)
+    __repr__ = _redacted_repr
+
+    @property
+    def address(self) -> str:
+        from .polymarket_signing import WalletSigner
+
+        return WalletSigner(self.private_key).address
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.private_key, self.api_key]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
-    | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials
+    | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -288,6 +315,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "PREDICT_FUN_RPC_URL",
     ),
     "limitless": ("LIMITLESS_PRIVATE_KEY", "LIMITLESS_API_TOKEN_ID", "LIMITLESS_API_SECRET", "LIMITLESS_RPC_URL"),
+    "sx_bet": ("SX_BET_PRIVATE_KEY", "SX_BET_API_KEY", "SX_BET_TESTNET"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -507,6 +535,21 @@ def load_limitless(env: Mapping[str, str]) -> LimitlessCredentials | None:
     )
 
 
+def load_sx_bet(env: Mapping[str, str]) -> SxBetCredentials | None:
+    key = env.get("SX_BET_PRIVATE_KEY")
+    if not key:
+        return None
+    if not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("SX_BET_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    api_key = env.get("SX_BET_API_KEY")
+    if not api_key:
+        raise CredentialsMissing(
+            "SX_BET_PRIVATE_KEY is set but SX_BET_API_KEY is not; generate an API key on sx.bet (Account, API key)"
+        )
+    testnet = str(env.get("SX_BET_TESTNET") or "").strip().lower() in ("1", "true", "yes")
+    return SxBetCredentials(private_key=key if key.startswith("0x") else "0x" + key, api_key=api_key, testnet=testnet)
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -516,6 +559,7 @@ LOADERS = {
     "hyperliquid": load_hyperliquid,
     "predict_fun": load_predict_fun,
     "limitless": load_limitless,
+    "sx_bet": load_sx_bet,
 }
 
 

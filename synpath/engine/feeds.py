@@ -102,6 +102,15 @@ def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any])
                 market=LimitlessMarketStream(),
                 private=LimitlessUserStream(token_id=token_id, secret=secret, catalog=catalog) if token_id and secret else None,
             )
+        elif venue == "sx_bet" and creds is not None:
+            # Every SX Bet channel, public ones included, needs the API key.
+            from ..ws.sx_bet import SxBetMarketStream, SxBetUserStream
+            testnet = bool(getattr(creds, "testnet", False))
+            catalog = getattr(adapter, "catalog", None)
+            out[venue] = VenueStreams(
+                market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
+                private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=creds.address),
+            )
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

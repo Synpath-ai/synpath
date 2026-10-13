@@ -77,12 +77,15 @@ def __getattr__(name: str):
     if name == "LimitlessTrading":
         from .limitless import LimitlessTrading
         return LimitlessTrading
+    if name == "SxBetTrading":
+        from .sx_bet import SxBetTrading
+        return SxBetTrading
     raise AttributeError(name)
 
 
 __all__ = [
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
-    "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading",
+    "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce",

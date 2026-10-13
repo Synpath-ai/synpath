@@ -556,6 +556,9 @@ class FeeSchedule(_Base):
           that rate times the notional, `P * C`. A maker pays nothing.
           `taker_rate` is the curve's ceiling (0.03); a zero rate is a free
           market.
+        * `profit_on_win` (SX Bet) — `rate * (1 - P) * C`, a share of the
+          profit, charged at settlement and only if the bet wins. The estimate
+          is that charge, so on a bet that loses it is an upper bound.
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:
@@ -577,6 +580,8 @@ class FeeSchedule(_Base):
             if not taker or rate == 0:
                 return 0.0
             return round(limitless_buy_rate(price) * rate / LIMITLESS_FEE_CEILING * price * contracts, 6)
+        if self.fee_type == "profit_on_win" and rate is not None:
+            return round(rate * (1 - price) * contracts, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent
             return round(rate * contracts * (price * (1 - price)) ** power, 6)
