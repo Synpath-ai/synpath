@@ -24,7 +24,7 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet,
+stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet,
 Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
