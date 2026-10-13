@@ -24,7 +24,7 @@ from typing import Iterator, Literal
 
 import httpx
 
-from synpath import HistoricalOrderBook, OrderBookRangeResponse, OrderLevel
+from synpath import HistoricalOrderBook, OrderBookRangeResponse
 from synpath.types import iso
 
 HOUR_MS = 60 * 60 * 1000
@@ -72,8 +72,10 @@ class _ReplayBook:
             levels[key] = quantity
 
     def materialize(self, timestamp_ms: int, venue_timestamp_ms: int | None) -> HistoricalOrderBook:
-        def sorted_levels(levels: dict[Decimal, Decimal], reverse: bool) -> list[OrderLevel]:
-            return [OrderLevel(price=float(price), size=float(levels[price]))
+        # Let the enclosing model validate all levels in one traversal, rather
+        # than calling a Python model constructor for every unchanged level.
+        def sorted_levels(levels: dict[Decimal, Decimal], reverse: bool) -> list[dict[str, float]]:
+            return [{"price": float(price), "size": float(levels[price])}
                     for price in sorted(levels, reverse=reverse)]
 
         return HistoricalOrderBook(
