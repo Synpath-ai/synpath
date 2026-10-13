@@ -283,15 +283,24 @@ venue cancels every order on those credentials. A failed beat is recorded in
 run through Polymarket's gasless relayer for a Deposit Wallet (with no key
 of your own needed; a Relayer API key, if set, is used when Synpath's relayer
 access is unavailable) and as signed Polygon transactions for an EOA (an RPC endpoint and
-POL for gas). Legacy proxy and Safe wallets can trade but these calls are
-not built for them, hence `split_merge = "partial"`. NegRisk conversion is
+POL for gas). `approve_trading` covers both exchanges and the neg-risk
+adapter, which orders on a neg-risk market (several outcomes of one event)
+also need. Legacy proxy and Safe wallets: these calls are not built for them,
+hence `split_merge = "partial"`, and the exchange now refuses their API
+orders too ("please use the deposit wallet flow"). Such an account moves to
+its signer's Deposit Wallet (deploy it, move the pUSD, approve trading) and
+then trades with `POLYMARKET_SIGNATURE_TYPE=3` and that wallet as
+`POLYMARKET_FUNDER`. The funder is the address in polymarket.com's profile
+menu, not the deposit address its Deposit window shows. NegRisk conversion is
 not built: the V2 documentation publishes no interface for it.
 
 **Errors.** The venue answers in words, not codes; the documented phrases
 map to `InsufficientFunds`, `InvalidOrder` (tick, minimum size, expiry),
 `MarketHalted` (cancel-only, post-only mode, closed-only accounts) and
 `OrderRejected` with a `reason` (`post_only_would_cross`, `fok_not_filled`,
-`fak_no_match`, `duplicate`).
+`fak_no_match`, `duplicate`, and for a wallet set up wrongly
+`deposit_wallet_required` or `funder_not_signers_wallet`, each with what to
+change).
 
 ## Polymarket US
 

@@ -499,7 +499,22 @@ def error_of(message: str, *, body: Any = None, status: int | None = None) -> Ex
     ones."""
     text = message.lower()
     if "not enough balance" in text or "allowance" in text:
+        if "allowance is not enough" in text:
+            message += " -- an approval is missing; run approve_trading() once from this wallet"
         return InsufficientFunds(message, body=body, status=status)
+    if "deposit wallet flow" in text:
+        # A legacy proxy or Safe wallet: the CLOB takes API orders only from a Deposit Wallet now,
+        # whatever the docs' wallet table still lists (seen 2026-10-13).
+        return OrderRejected(
+            f"{message} -- this account trades from a legacy wallet, and the exchange now takes API orders only "
+            "from a Deposit Wallet: deploy the signer's Deposit Wallet, move the pUSD into it, approve trading, "
+            "then set POLYMARKET_SIGNATURE_TYPE=3 and POLYMARKET_FUNDER to it",
+            reason="deposit_wallet_required", info=body if isinstance(body, dict) else {}, body=body, status=status)
+    if "signer address has to be the address of the api key" in text:
+        return OrderRejected(
+            f"{message} -- POLYMARKET_FUNDER is not this signer's account wallet: copy the address from the "
+            "profile menu on polymarket.com, not the deposit address the Deposit window shows",
+            reason="funder_not_signers_wallet", info=body if isinstance(body, dict) else {}, body=body, status=status)
     if "tick size" in text or "lower than the minimum" in text or "invalid expiration" in text:
         return InvalidOrder(message)
     if "cancel-only" in text or "post-only mode" in text or "trading is currently disabled" in text \
@@ -1117,10 +1132,12 @@ class PolymarketTrading(TradingExchange):
         return {spender: from_poly_raw_amount(value) for spender, value in ((raw or {}).get("allowances") or {}).items()}
 
     async def check_approvals(self) -> dict[str, bool]:
-        """Whether each exchange may spend the wallet's pUSD. Missing ones
-        are what `approve_trading` fixes."""
+        """Whether each contract an order needs may spend the wallet's pUSD:
+        both exchanges and the neg-risk adapter. Missing ones are what
+        `approve_trading` fixes."""
         allowances = {k.lower(): v for k, v in (await self.fetch_allowances()).items()}
-        return {spender: allowances.get(spender.lower(), Decimal("0")) > 0 for spender in (sig.EXCHANGE, sig.NEG_RISK_EXCHANGE)}
+        return {spender: allowances.get(spender.lower(), Decimal("0")) > 0
+                for spender in (sig.EXCHANGE, sig.NEG_RISK_EXCHANGE, sig.NEG_RISK_ADAPTER)}
 
     async def sync_allowances(self, *, token_id: str | None = None) -> None:
         """Tell the CLOB to re-read on-chain balances and allowances, after an
@@ -1133,11 +1150,12 @@ class PolymarketTrading(TradingExchange):
     async def approve_trading(self, *, include_adapters: bool = True) -> dict[str, Any]:
         """Grant every approval trading needs, in one wallet transaction.
 
-        pUSD and the conditional tokens for both exchanges, and with
+        pUSD and the conditional tokens for both exchanges and the neg-risk
+        adapter (orders on a neg-risk market need it), and with
         `include_adapters` for both collateral adapters that split, merge and
         redeem use. Idempotent: an approval already granted is granted again.
         """
-        spenders = [sig.EXCHANGE, sig.NEG_RISK_EXCHANGE]
+        spenders = [sig.EXCHANGE, sig.NEG_RISK_EXCHANGE, sig.NEG_RISK_ADAPTER]
         if include_adapters:
             spenders += [sig.CTF_COLLATERAL_ADAPTER, sig.NEG_RISK_CTF_COLLATERAL_ADAPTER]
         calls = sig.trading_approval_calls(spenders)

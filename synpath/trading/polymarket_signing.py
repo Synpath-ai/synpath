@@ -41,6 +41,11 @@ CONDITIONAL_TOKENS = "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045"
 PUSD = "0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB"
 CTF_COLLATERAL_ADAPTER = "0xAdA100Db00Ca00073811820692005400218FcE1f"
 NEG_RISK_CTF_COLLATERAL_ADAPTER = "0xadA2005600Dec949baf300f4C6120000bDB6eAab"
+NEG_RISK_ADAPTER = "0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296"
+"""The CLOB checks the wallet's pUSD allowance to this adapter before it accepts
+an order on a neg-risk market (several outcomes of one event), as well as the
+neg-risk exchange's (seen 2026-10-13: an order refused with `spender:
+0xd91E…, allowance: 0`)."""
 DEPOSIT_WALLET_FACTORY = "0x00000000000Fb5C9ADea0298D729A0CB3823Cc07"
 """Addresses from the venue's contract page, Polygon mainnet, CLOB V2."""
 
@@ -483,9 +488,10 @@ def collateral_adapter_for(neg_risk: bool) -> str:
 
 def trading_approval_calls(spenders: list[str] | None = None) -> list[dict[str, str]]:
     """Unlimited pUSD and conditional-token approvals for each spender: by
-    default both exchanges (trading) and both collateral adapters (split,
-    merge, redeem)."""
-    spenders = spenders or [EXCHANGE, NEG_RISK_EXCHANGE, CTF_COLLATERAL_ADAPTER, NEG_RISK_CTF_COLLATERAL_ADAPTER]
+    default both exchanges and the neg-risk adapter (trading) and both
+    collateral adapters (split, merge, redeem)."""
+    spenders = spenders or [EXCHANGE, NEG_RISK_EXCHANGE, NEG_RISK_ADAPTER, CTF_COLLATERAL_ADAPTER,
+                            NEG_RISK_CTF_COLLATERAL_ADAPTER]
     calls = [{"target": PUSD, "value": "0", "data": approve_calldata(spender)} for spender in spenders]
     calls += [{"target": CONDITIONAL_TOKENS, "value": "0", "data": set_approval_for_all_calldata(spender)} for spender in spenders]
     return calls
