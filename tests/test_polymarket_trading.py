@@ -155,7 +155,8 @@ class TestWalletCalls:
         calls = sig.trading_approval_calls([sig.EXCHANGE, sig.NEG_RISK_EXCHANGE])
         assert [c["target"] for c in calls] == [sig.PUSD, sig.PUSD, sig.CONDITIONAL_TOKENS, sig.CONDITIONAL_TOKENS]
         assert sig.NEG_RISK_EXCHANGE[2:].lower() in calls[1]["data"].lower()
-        assert len(sig.trading_approval_calls()) == 8
+        assert len(sig.trading_approval_calls()) == 10
+        assert sig.NEG_RISK_ADAPTER[2:].lower() in "".join(c["data"].lower() for c in sig.trading_approval_calls())
 
     def test_wallet_batch_signature_recovers_to_the_signer(self):
         signer = sig.WalletSigner(KEY)
@@ -396,6 +397,9 @@ class TestNormalizers:
         ("order couldn't be fully filled. FOK orders are fully filled or killed.", OrderRejected, "fok_not_filled"),
         ("no orders found to match with FAK order. FAK orders are partially filled or killed if no match is found.", OrderRejected, "fak_no_match"),
         ("order 0x1 is invalid. Duplicated.", OrderRejected, "duplicate"),
+        # Seen live 2026-10-13, on a legacy proxy-wallet account.
+        ("maker address not allowed, please use the deposit wallet flow", OrderRejected, "deposit_wallet_required"),
+        ("the order signer address has to be the address of the API KEY", OrderRejected, "funder_not_signers_wallet"),
     ])
     def test_documented_errors(self, message, kind, reason):
         err = error_of(message)
@@ -651,7 +655,7 @@ class TestAdapter:
         assert submit.headers["RELAYER_API_KEY"] == "relayer-key"
         body = json.loads(submit.content)
         assert body["type"] == "WALLET" and body["to"] == sig.DEPOSIT_WALLET_FACTORY and body["nonce"] == "12"
-        assert body["depositWalletParams"]["depositWallet"] == WALLET and len(body["depositWalletParams"]["calls"]) == 8
+        assert body["depositWalletParams"]["depositWallet"] == WALLET and len(body["depositWalletParams"]["calls"]) == 10
         typed = sig.wallet_batch_typed_data(WALLET, 12, int(body["depositWalletParams"]["deadline"]), body["depositWalletParams"]["calls"])
         assert EthAccount.recover_message(encode_typed_data(full_message=typed), signature=body["signature"]) == ADDRESS
 
@@ -808,3 +812,9 @@ class TestBuilderCode:
         assert all(r.status == OrderStatus.OPEN for r in results)
         second = json.loads(venue.sent("POST", "/orders")[1].content)
         assert [e["order"]["builder"] for e in second] == [sig.ZERO_BYTES32]
+
+
+def test_a_missing_approval_says_how_to_fix_it():
+    err = error_of("not enough balance / allowance: the allowance is not enough -> spender: "
+                   "0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296, allowance: 0")
+    assert isinstance(err, InsufficientFunds) and "approve_trading()" in str(err)
