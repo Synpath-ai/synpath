@@ -48,6 +48,10 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     "predict_fun": {"default_tick": Decimal("0.01"), "min_amount": Decimal("0.01"), "amount_step": Decimal("0.01"), "whole": False},
     # Prices to a tenth of a cent between 1c and 99c; sizes in thousandths of a share.
     "limitless": {"default_tick": Decimal("0.001"), "min_amount": Decimal("0.001"), "amount_step": Decimal("0.001"), "whole": False},
+    # Prices on a 0.125% ladder; the stake is what is counted, at least 1 USDC,
+    # so contracts take any size to a millionth.
+    "sx_bet": {"default_tick": Decimal("0.00125"), "min_amount": Decimal("0.000001"), "amount_step": Decimal("0.000001"),
+               "whole": False, "min_notional": Decimal("1")},
 }
 
 

@@ -39,6 +39,8 @@ asyncio.run(main())
 | `PredictFunUserStream` | `ws.predict.fun` | API key and a wallet JWT | orders; fills as matched, then confirmed or failed on chain |
 | `LimitlessMarketStream` | `ws.limitless.exchange` | none | whole books, market resolutions |
 | `LimitlessUserStream` | `ws.limitless.exchange` | a Limitless API token | orders; fills as matched, then mined or failed on chain |
+| `SxBetMarketStream` | `realtime.sx.bet` (or the testnet) | SX Bet API key (every channel needs one) | whole books, top of book, the tape of taker bets, market changes and settlements |
+| `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address | orders; fills as matched, then escrowed or failed on chain |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -130,6 +132,14 @@ jittered exponential backoff between attempts.
   places them from the markets given to `watch_orders`, then from one walk
   of the open catalog. The venue closes every connection after 24 hours; the
   stream reconnects with a freshly signed handshake.
+- *SX Bet* speaks Centrifugo's JSON protocol; the stream sends its commands
+  and answers its pings itself, so no Centrifugo client is needed. Every
+  channel, public ones included, needs a short-lived token made from an SX Bet
+  API key; the stream fetches one on every connect and renews it before it
+  expires. Each book publication is the whole book with a version that only
+  grows, and a quiet market publishes nothing, so each book is seeded from the
+  REST snapshot when its subscription is confirmed. Trades and market changes
+  are venue-wide channels, filtered here to the markets asked for.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

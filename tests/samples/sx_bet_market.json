@@ -1,0 +1,32 @@
+{
+ "status": "success",
+ "data": [
+  {
+   "status": "ACTIVE",
+   "marketHash": "0xa09448bca58066a900a83e7a7a58b704197a845fc479836d1085488042ef0740",
+   "outcomeOneName": "Alexander Zverev",
+   "outcomeTwoName": "Alexander Bublik",
+   "outcomeVoidName": "NO_CONTEST",
+   "teamOneName": "Alexander Zverev",
+   "teamTwoName": "Alexander Bublik",
+   "type": 52,
+   "gameTime": 1791885600,
+   "sportXeventId": "L20488133",
+   "liveEnabled": true,
+   "sportLabel": "Tennis",
+   "sportId": 6,
+   "tradingModes": [
+    "CLOB"
+   ],
+   "leagueId": 1535,
+   "leagueLabel": "ATP - Shanghai",
+   "group1": "ATP - Shanghai",
+   "chainVersion": "SXR",
+   "isQuarterLineMarket": false,
+   "binaryOnly": false,
+   "participantOneId": 302472,
+   "participantTwoId": 346414,
+   "__type": "Market"
+  }
+ ]
+}

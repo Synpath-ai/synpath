@@ -373,7 +373,12 @@ def _limitless(creds: Credentials) -> TradingExchange:
     return LimitlessTrading(creds)  # type: ignore[arg-type]
 
 
+def _sx_bet(creds: Credentials) -> TradingExchange:
+    from .trading.sx_bet import SxBetTrading
+    return SxBetTrading(creds)  # type: ignore[arg-type]
+
+
 _TRADING = {
     "kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion,
-    "hyperliquid": _hyperliquid, "predict_fun": _predict_fun, "limitless": _limitless,
+    "hyperliquid": _hyperliquid, "predict_fun": _predict_fun, "limitless": _limitless, "sx_bet": _sx_bet,
 }

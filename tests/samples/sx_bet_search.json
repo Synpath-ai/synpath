@@ -1,0 +1,101 @@
+{
+ "status": "success",
+ "data": [
+  {
+   "gameTime": "2026-10-14T02:10:00.000Z",
+   "teamOneName": "L.A. Lakers",
+   "teamTwoName": "Golden State Warriors",
+   "providerEventId": "20503047",
+   "provider": "LSPORT",
+   "type": [
+    28,
+    226,
+    342
+   ],
+   "eventId": "L20503047",
+   "chainVersion": "SXR",
+   "league": {
+    "leagueId": 1117,
+    "sportId": 1,
+    "label": "NBA Preseason"
+   }
+  },
+  {
+   "gameTime": "2026-10-22T02:00:00.000Z",
+   "teamOneName": "L.A. Lakers",
+   "teamTwoName": "Golden State Warriors",
+   "providerEventId": "19774927",
+   "provider": "LSPORT",
+   "type": [
+    28,
+    53,
+    226,
+    342
+   ],
+   "eventId": "L19774927",
+   "chainVersion": "SXR",
+   "league": {
+    "leagueId": 1,
+    "sportId": 1,
+    "label": "NBA"
+   }
+  },
+  {
+   "gameTime": "2026-10-31T02:00:00.000Z",
+   "teamOneName": "Golden State Warriors",
+   "teamTwoName": "L.A. Lakers",
+   "providerEventId": "19789680",
+   "provider": "LSPORT",
+   "type": [
+    28,
+    226,
+    342
+   ],
+   "eventId": "L19789680",
+   "chainVersion": "SXR",
+   "league": {
+    "leagueId": 1,
+    "sportId": 1,
+    "label": "NBA"
+   }
+  },
+  {
+   "gameTime": "2026-11-28T02:30:00.000Z",
+   "teamOneName": "San Antonio Spurs",
+   "teamTwoName": "L.A. Lakers",
+   "providerEventId": "19789668",
+   "provider": "LSPORT",
+   "type": [
+    28,
+    226,
+    342
+   ],
+   "eventId": "L19789668",
+   "chainVersion": "SXR",
+   "league": {
+    "leagueId": 1,
+    "sportId": 1,
+    "label": "NBA"
+   }
+  },
+  {
+   "gameTime": "2026-12-25T22:00:00.000Z",
+   "teamOneName": "L.A. Lakers",
+   "teamTwoName": "Philadelphia 76ers",
+   "providerEventId": "19767210",
+   "provider": "LSPORT",
+   "type": [
+    28,
+    226,
+    342
+   ],
+   "eventId": "L19767210",
+   "chainVersion": "SXR",
+   "league": {
+    "leagueId": 1,
+    "sportId": 1,
+    "label": "NBA"
+   }
+  }
+ ]
+}

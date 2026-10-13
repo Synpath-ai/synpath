@@ -64,6 +64,7 @@ ADAPTERS = {
     "hyperliquid": ("..trading.hyperliquid", "HyperliquidTrading"),
     "predict_fun": ("..trading.predict_fun", "PredictFunTrading"),
     "limitless": ("..trading.limitless", "LimitlessTrading"),
+    "sx_bet": ("..trading.sx_bet", "SxBetTrading"),
 }
 
 

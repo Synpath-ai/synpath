@@ -606,10 +606,12 @@ class TestSortVocabulary:
     def test_every_venue_sorts(self, venue_class):
         """Every key on every venue, or -- where the venue publishes no figure
         for a key at all (Opinion has no liquidity) -- `partial`, and that key
-        refused before any request rather than answered unsorted."""
+        refused before any request rather than answered unsorted. A venue with
+        no figure for any key (SX Bet: no volume, liquidity or listing time)
+        is `False` and refuses them all the same way."""
         from synpath.base import MARKET_SORTS
 
-        assert venue_class.has["sort"] in (True, "partial")
+        assert venue_class.has["sort"] in (True, "partial", False)
         if venue_class.has["sort"] is True:
             return
         venue = venue_class(limiter=None)
@@ -630,7 +632,10 @@ class TestSortVocabulary:
                 refused += 1
             except AssertionError:
                 continue
-        assert 0 < refused < len(MARKET_SORTS)
+        if venue_class.has["sort"] is False:
+            assert refused == len(MARKET_SORTS)
+        else:
+            assert 0 < refused < len(MARKET_SORTS)
 
     def test_kalshi_orders_the_page_it_read(self, kalshi_event):
         """The venue ignores its own sort parameters, so the page is ordered
