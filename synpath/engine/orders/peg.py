@@ -126,7 +126,7 @@ class Peg(ManagedOrder):
         if size <= 0:
             await self.complete_if_done(ctx)
             return
-        request = self.child_request(amount=size, price=target, type=OrderType.LIMIT,
+        request = self.child_request(quantity=size, price=target, type=OrderType.LIMIT,
                                      time_in_force=TimeInForce.GTC, post_only=self.request.post_only)
         order = await ctx.submit_child(request)
         self.track(order, size, target)

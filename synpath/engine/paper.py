@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, Callable, Iterable, Sequence
 
+from .._deprecated import renamed_kwargs
 from ..base import Capability
 from ..trading.base import TradingExchange
 from ..trading.errors import InvalidOrder, OrderNotFound
@@ -45,7 +46,7 @@ Level = tuple[Decimal, Decimal]
 FeeModel = Callable[[str, Decimal, Decimal, Liquidity], Decimal]
 
 
-def no_fees(market_id: str, price: Decimal, amount: Decimal, liquidity: Liquidity) -> Decimal:
+def no_fees(market_id: str, price: Decimal, quantity: Decimal, liquidity: Liquidity) -> Decimal:
     return ZERO
 
 
@@ -56,14 +57,14 @@ def quadratic_fee(rate: Decimal = Decimal("0.07"), *, exponent: Decimal = ONE, m
     uses the same shape with its own rate and exponent. `maker_rate` of zero
     is both venues today.
     """
-    def fee(market_id: str, price: Decimal, amount: Decimal, liquidity: Liquidity) -> Decimal:
+    def fee(market_id: str, price: Decimal, quantity: Decimal, liquidity: Liquidity) -> Decimal:
         applied = rate if liquidity != Liquidity.MAKER else (maker_rate if maker_rate is not None else rate)
         if not applied:
             return ZERO
         edge = price * (ONE - price)
         if exponent != ONE:
             edge = Decimal(str(float(edge) ** float(exponent)))
-        raw = applied * amount * edge
+        raw = applied * quantity * edge
         cents = (raw * 100).to_integral_value(rounding="ROUND_CEILING")
         return cents / 100
     return fee
@@ -128,7 +129,7 @@ class PaperVenue(TradingExchange):
     paper = PaperVenue(venue="kalshi", fees=quadratic_fee())
     paper.set_book("KXX:yes", bids=[(D("0.41"), D("500"))], asks=[(D("0.43"), D("300"))])
     order = await paper.create_order(request)      # rests behind 500 contracts
-    paper.on_trade("KXX:yes", price=D("0.41"), amount=D("520"))   # 20 of them are ours
+    paper.on_trade("KXX:yes", price=D("0.41"), quantity=D("520"))   # 20 of them are ours
     ```
 
     Feed it books and trades from `synpath.ws` and a strategy runs against
@@ -220,7 +221,8 @@ class PaperVenue(TradingExchange):
         bids, asks = book.levels(depth)
         self.set_book(market_id, bids=[(l.price, l.size) for l in bids], asks=[(l.price, l.size) for l in asks])
 
-    def on_trade(self, market_id: str, *, price: Decimal, amount: Decimal, taker_side: Side | None = None) -> list[Fill]:
+    @renamed_kwargs(amount="quantity")  # TODO(0.9): remove
+    def on_trade(self, market_id: str, *, price: Decimal, quantity: Decimal, taker_side: Side | None = None) -> list[Fill]:
         """A print on the tape. Consumes queue ahead and fills what it reaches."""
         made: list[Fill] = []
         for order_id, rest in list(self.resting.items()):
@@ -230,16 +232,16 @@ class PaperVenue(TradingExchange):
             if taker_side is not None and taker_side == order.side:
                 # A taker on our own side lifts the other side of the book.
                 continue
-            consumed = min(rest.queue_ahead, amount)
+            consumed = min(rest.queue_ahead, quantity)
             rest.queue_ahead -= consumed
-            left = amount - consumed
+            left = quantity - consumed
             if left <= 0:
                 continue
             fillable = min(left, order.remaining or ZERO)
             if fillable > 0:
-                made.append(self._fill(rest, price=price, amount=fillable, liquidity=Liquidity.MAKER))
-            amount = left - fillable
-            if amount <= 0:
+                made.append(self._fill(rest, price=price, quantity=fillable, liquidity=Liquidity.MAKER))
+            quantity = left - fillable
+            if quantity <= 0:
                 break
         return made
 
@@ -256,7 +258,7 @@ class PaperVenue(TradingExchange):
             id=order_id, client_order_id=request.client_order_id, venue=self.venue, account=request.account or self.account,
             market_id=request.market_id, side=request.side,
             type=request.type, time_in_force=request.time_in_force, status=OrderStatus.OPEN, price=price,
-            amount=request.amount, filled=ZERO, remaining=request.amount, book=request.book, trader=request.trader,
+            quantity=request.quantity, filled=ZERO, remaining=request.quantity, book=request.book, trader=request.trader,
             created_at=int(self.clock() * 1000), tags=dict(request.tags), expires_at=request.expires_at,
             post_only=request.post_only, reduce_only=request.reduce_only,
         )
@@ -317,11 +319,11 @@ class PaperVenue(TradingExchange):
             raise OrderNotFound(f"paper: no resting order {request.order_id}")
         order = rest.order
         new_price = request.price if request.price is not None else order.price
-        new_amount = request.amount if request.amount is not None else order.amount
-        shrinking = new_price == order.price and new_amount < order.amount
+        new_quantity = request.quantity if request.quantity is not None else order.quantity
+        shrinking = new_price == order.price and new_quantity < order.quantity
         updated = order.model_copy(update={
-            "price": new_price, "amount": new_amount,
-            "remaining": max(ZERO, new_amount - order.filled),
+            "price": new_price, "quantity": new_quantity,
+            "remaining": max(ZERO, new_quantity - order.filled),
             "queue_priority_preserved": shrinking,
         })
         self.orders[order.id] = updated
@@ -384,13 +386,13 @@ class PaperVenue(TradingExchange):
             available=self.cash - self.locked, locked=self.locked, timestamp=int(self.clock() * 1000),
         )
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> Any:
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> Any:
         from ..trading.types import FeeEstimate
 
         return FeeEstimate(
-            venue=self.venue, market_id=market_id, side=side, price=price, amount=amount,
-            taker_fee=self.fees(market_id, price, amount, Liquidity.TAKER),
-            maker_fee=self.fees(market_id, price, amount, Liquidity.MAKER),
+            venue=self.venue, market_id=market_id, side=side, price=price, quantity=quantity,
+            taker_fee=self.fees(market_id, price, quantity, Liquidity.TAKER),
+            maker_fee=self.fees(market_id, price, quantity, Liquidity.MAKER),
         )
 
     async def close(self) -> None:
@@ -420,54 +422,54 @@ class PaperVenue(TradingExchange):
                     break
                 if order.side == Side.SELL and price < limit:
                     break
-            amount = min(size, remaining)
-            taken.append((price, amount))
-            remaining -= amount
-        for price, amount in taken:
-            self._fill(rest, price=price, amount=amount, liquidity=Liquidity.TAKER)
-            self._consume(book, order.side, price, amount)
+            quantity = min(size, remaining)
+            taken.append((price, quantity))
+            remaining -= quantity
+        for price, quantity in taken:
+            self._fill(rest, price=price, quantity=quantity, liquidity=Liquidity.TAKER)
+            self._consume(book, order.side, price, quantity)
         if taken:
             # Whatever is left joins the queue at its own price, behind the rest.
             rest.queue_ahead = book.size_at(order.side, order.price) if order.price is not None else ZERO
 
     @staticmethod
-    def _consume(book: BookState, side: Side, price: Decimal, amount: Decimal) -> None:
+    def _consume(book: BookState, side: Side, price: Decimal, quantity: Decimal) -> None:
         levels = book.asks if side == Side.BUY else book.bids
         for index, (level_price, size) in enumerate(levels):
             if level_price == price:
-                left = size - amount
+                left = size - quantity
                 if left > 0:
                     levels[index] = (level_price, left)
                 else:
                     levels.pop(index)
                 return
 
-    def _fill(self, rest: Resting, *, price: Decimal, amount: Decimal, liquidity: Liquidity) -> Fill:
+    def _fill(self, rest: Resting, *, price: Decimal, quantity: Decimal, liquidity: Liquidity) -> Fill:
         order = rest.order
-        fee = self.fees(order.market_id, price, amount, liquidity)
+        fee = self.fees(order.market_id, price, quantity, liquidity)
         stamp = int(self.clock() * 1000)
         fill = Fill(
             id=f"pf-{uuid.uuid4().hex[:12]}", order_id=order.id, client_order_id=order.client_order_id,
             venue=self.venue, account=order.account or self.account,
-            market_id=order.market_id, side=order.side, price=price, amount=amount, fee=fee, fee_currency="USD",
+            market_id=order.market_id, side=order.side, price=price, quantity=quantity, fee=fee, fee_currency="USD",
             liquidity=liquidity, timestamp=stamp,
         )
         self.fills.append(fill)
         self.pending.append(fill)
-        filled = order.filled + amount
-        average = ((order.average_price or ZERO) * order.filled + price * amount) / filled if filled else ZERO
+        filled = order.filled + quantity
+        average = ((order.average_price or ZERO) * order.filled + price * quantity) / filled if filled else ZERO
         updated = order.model_copy(update={
-            "filled": filled, "remaining": order.amount - filled, "average_price": average,
-            "last_fill_price": price, "last_fill_amount": amount, "fee": (order.fee or ZERO) + fee,
-            "status": OrderStatus.CLOSED if order.amount - filled <= 0 else OrderStatus.OPEN,
+            "filled": filled, "remaining": order.quantity - filled, "average_price": average,
+            "last_fill_price": price, "last_fill_quantity": quantity, "fee": (order.fee or ZERO) + fee,
+            "status": OrderStatus.CLOSED if order.quantity - filled <= 0 else OrderStatus.OPEN,
             "updated_at": stamp,
         })
         self.orders[order.id] = updated
         rest.order = updated
         self._changed(updated)
-        signed = amount if order.side == Side.BUY else -amount
+        signed = quantity if order.side == Side.BUY else -quantity
         self.positions_held[order.market_id] = self.positions_held.get(order.market_id, ZERO) + signed
-        self.cash -= (price * amount if order.side == Side.BUY else -price * amount) + fee
+        self.cash -= (price * quantity if order.side == Side.BUY else -price * quantity) + fee
         if updated.remaining is not None and updated.remaining <= 0:
             self.resting.pop(order.id, None)
         return fill
@@ -477,13 +479,13 @@ class PaperVenue(TradingExchange):
         order = self.orders[order_id]
         mine = [f for f in self.fills if f.order_id == order_id]
         for fill in mine:
-            signed = fill.amount if fill.side == Side.BUY else -fill.amount
+            signed = fill.quantity if fill.side == Side.BUY else -fill.quantity
             self.positions_held[fill.market_id] = self.positions_held.get(fill.market_id, ZERO) - signed
-            self.cash += (fill.price * fill.amount if fill.side == Side.BUY else -fill.price * fill.amount) + (fill.fee or ZERO)
+            self.cash += (fill.price * fill.quantity if fill.side == Side.BUY else -fill.price * fill.quantity) + (fill.fee or ZERO)
         self.fills = [f for f in self.fills if f.order_id != order_id]
         self.pending = [f for f in self.pending if f.order_id != order_id]
         self.orders[order_id] = order.model_copy(update={
-            "filled": ZERO, "remaining": order.amount, "average_price": None, "fee": ZERO,
+            "filled": ZERO, "remaining": order.quantity, "average_price": None, "fee": ZERO,
         })
         if order_id in self.resting:
             self.resting[order_id].order = self.orders[order_id]

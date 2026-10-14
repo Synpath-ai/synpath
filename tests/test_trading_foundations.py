@@ -68,17 +68,17 @@ class TestMoney:
             with pytest.raises(InvalidOrder, match="outside"):
                 money.validate_price(bad, precision)
 
-    def test_amount_rules_per_venue(self):
-        whole = Precision(tick=D("0.001"), min_amount=D("1"), amount_step=D("1"), whole_contracts=True)
+    def test_quantity_rules_per_venue(self):
+        whole = Precision(tick=D("0.001"), min_quantity=D("1"), quantity_step=D("1"), whole_contracts=True)
         with pytest.raises(InvalidOrder, match="whole contracts"):
-            money.validate_amount(D("1.5"), whole)
-        five = Precision(tick=D("0.01"), min_amount=D("5"))
+            money.validate_quantity(D("1.5"), whole)
+        five = Precision(tick=D("0.01"), min_quantity=D("5"))
         with pytest.raises(InvalidOrder, match="below the minimum"):
-            money.validate_amount(D("4.9"), five)
-        assert money.validate_amount(D("5"), five) == D("5")
-        cents = Precision(tick=D("0.01"), min_amount=D("0.01"), amount_step=D("0.01"))
+            money.validate_quantity(D("4.9"), five)
+        assert money.validate_quantity(D("5"), five) == D("5")
+        cents = Precision(tick=D("0.01"), min_quantity=D("0.01"), quantity_step=D("0.01"))
         with pytest.raises(InvalidOrder, match="multiple"):
-            money.validate_amount(D("1.005"), cents)
+            money.validate_quantity(D("1.005"), cents)
 
     def test_kalshi_wire_formats(self):
         assert money.kalshi_dollars(D("0.56")) == "0.5600"
@@ -103,25 +103,25 @@ class TestMoney:
 class TestTypes:
     def test_limit_needs_a_price_and_gtd_needs_an_expiry(self):
         with pytest.raises(ValueError, match="needs a price"):
-            OrderRequest(market_id="kalshi:m", side=Side.BUY, amount=D("1"))
+            OrderRequest(market_id="kalshi:m", side=Side.BUY, quantity=D("1"))
         with pytest.raises(ValueError, match="expires_at"):
-            OrderRequest(market_id="kalshi:m", side=Side.BUY, amount=D("1"), price=D("0.5"),
+            OrderRequest(market_id="kalshi:m", side=Side.BUY, quantity=D("1"), price=D("0.5"),
                          time_in_force=TimeInForce.GTD)
-        ok = OrderRequest(market_id="kalshi:m", side=Side.BUY, amount=D("1"), price=D("0.5"))
+        ok = OrderRequest(market_id="kalshi:m", side=Side.BUY, quantity=D("1"), price=D("0.5"))
         assert ok.type == OrderType.LIMIT and ok.time_in_force == TimeInForce.GTC
 
     def test_stop_orders_need_their_prices(self):
         with pytest.raises(ValueError, match="stop_price"):
-            OrderRequest(market_id="kalshi:m", side=Side.SELL, amount=D("1"), type=OrderType.STOP_MARKET)
+            OrderRequest(market_id="kalshi:m", side=Side.SELL, quantity=D("1"), type=OrderType.STOP_MARKET)
         with pytest.raises(ValueError, match="limit price"):
-            OrderRequest(market_id="kalshi:m", side=Side.SELL, amount=D("1"), type=OrderType.STOP_LIMIT,
+            OrderRequest(market_id="kalshi:m", side=Side.SELL, quantity=D("1"), type=OrderType.STOP_LIMIT,
                          stop_price=D("0.3"))
 
     def test_remaining_is_derived_and_partial_fill_is_a_number_not_a_state(self):
         order = Order(
             id="1", venue="kalshi", market_id="kalshi:m", side=Side.BUY,
             type=OrderType.LIMIT, time_in_force=TimeInForce.GTC, status=OrderStatus.OPEN,
-            amount=D("10"), filled=D("4"),
+            quantity=D("10"), filled=D("4"),
         )
         assert order.remaining == D("6")
         assert order.status == OrderStatus.OPEN and not order.is_terminal
@@ -133,7 +133,7 @@ class TestTypes:
     def test_decimals_survive_json(self):
         fill = Fill(
             id="f", order_id="o", venue="polymarket", market_id="polymarket:1",
-            side=Side.BUY, price=D("0.4200"), amount=D("12.5"), timestamp=1_700_000_000_000,
+            side=Side.BUY, price=D("0.4200"), quantity=D("12.5"), timestamp=1_700_000_000_000,
             settlement=SettlementState.MATCHED,
         )
         back = Fill.model_validate_json(fill.model_dump_json())
@@ -154,7 +154,7 @@ class TestTypes:
 
     def test_edit_request_carries_its_own_idempotency_key(self):
         edit = EditRequest(order_id="o", price=D("0.5"), client_order_id="edit-1")
-        assert edit.amount is None and edit.client_order_id == "edit-1"
+        assert edit.quantity is None and edit.client_order_id == "edit-1"
 
 
 class TestCredentials:
@@ -345,9 +345,9 @@ class TestMarketMaster:
         from synpath.polymarket_us import normalize_market as u
 
         kalshi = precision_for(k(kalshi_market, kalshi_event))
-        assert kalshi.amount_step == D("0.01") and not kalshi.whole_contracts
+        assert kalshi.quantity_step == D("0.01") and not kalshi.whole_contracts
         poly = precision_for(p(poly_market))
-        assert poly.min_amount == D("5") and poly.tick == D("0.01")
+        assert poly.min_quantity == D("5") and poly.tick == D("0.01")
         polyus = precision_for(u(polyus_market))
         assert polyus.whole_contracts and polyus.tick == D("0.001")
 

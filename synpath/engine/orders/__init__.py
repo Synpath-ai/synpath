@@ -16,9 +16,9 @@ from decimal import Decimal
 from synpath.trading.types import OrderRequest, OrderType, Side
 
 await engine.submit(OrderRequest(
-    market_id="kalshi:KXX", side=Side.SELL, amount=Decimal("20"),
+    market_id="kalshi:KXX", side=Side.SELL, quantity=Decimal("20"),
     type=OrderType.TRAILING_STOP, stop_price=Decimal("0.40"),
-    params={"trail": "0.03", "trigger_source": "touch"},
+    trigger_source="touch", params={"trail": "0.03"},
 ))
 ```
 """

@@ -121,13 +121,13 @@ class TestReads:
 class TestTrading:
     async def test_an_order_goes_to_the_venue_in_its_market_id(self, client):
         c, _, trading, k, p = client
-        request = OrderRequest(market_id=p.id, side="sell", amount=5, price="0.30")
+        request = OrderRequest(market_id=p.id, side="sell", quantity=5, price="0.30")
         assert await c.create_order(request) is request
         assert trading["polymarket"].calls == [("create_order", p.id)] and trading["kalshi"].calls == []
 
     async def test_a_batch_fans_out_and_comes_back_in_order(self, client):
         c, _, trading, k, p = client
-        requests = [OrderRequest(market_id=m, side="buy", amount=5, price="0.30") for m in (p.id, k.id, p.id)]
+        requests = [OrderRequest(market_id=m, side="buy", quantity=5, price="0.30") for m in (p.id, k.id, p.id)]
         results = await c.create_orders(requests)
         assert results == requests
         assert trading["polymarket"].calls[-1] == ("create_orders", [p.id, p.id])
@@ -152,7 +152,7 @@ class TestTrading:
     async def test_missing_credentials_name_the_variables(self):
         c = Client({})
         with pytest.raises(CredentialsMissing, match="KALSHI_KEY_ID"):
-            await c.create_order(OrderRequest(market_id="kalshi:KXFOO-25", side="buy", amount=1, price="0.5"))
+            await c.create_order(OrderRequest(market_id="kalshi:KXFOO-25", side="buy", quantity=1, price="0.5"))
 
     async def test_close_closes_everything_it_built(self, client):
         c, reads, trading, *_ = client

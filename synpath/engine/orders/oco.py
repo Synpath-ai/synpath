@@ -32,19 +32,19 @@ from .manager import register
 VENUE_TYPES = (OrderType.LIMIT, OrderType.MARKET)
 
 
-def leg_request(spec: Mapping[str, Any], *, parent: ManagedOrder, amount: Decimal | None = None) -> OrderRequest:
+def leg_request(spec: Mapping[str, Any], *, parent: ManagedOrder, quantity: Decimal | None = None) -> OrderRequest:
     """One leg's request, inheriting what the parent already knows."""
     body: dict[str, Any] = {
         "market_id": spec.get("market_id", parent.market_id),
         "side": spec.get("side", parent.side.value),
-        "amount": str(amount if amount is not None else D(spec.get("amount"), parent.amount)),
+        "quantity": str(quantity if quantity is not None else D(spec.get("quantity"), parent.quantity)),
         "type": spec.get("type", "limit"),
         "account": parent.account.model_dump(mode="json"),
         "book": parent.request.book,
         "trader": parent.request.trader,
         "tags": {**parent.request.tags, "parent": parent.id},
     }
-    for key in ("price", "stop_price", "time_in_force", "expires_at", "post_only", "reduce_only", "params"):
+    for key in ("price", "stop_price", "trigger_source", "time_in_force", "expires_at", "post_only", "reduce_only", "params"):
         if spec.get(key) is not None:
             body[key] = spec[key]
     if "reduce_only" not in body and parent.request.reduce_only:
@@ -55,28 +55,28 @@ def leg_request(spec: Mapping[str, Any], *, parent: ManagedOrder, amount: Decima
 class _Linked(ManagedOrder):
     """Shared machinery for parents whose legs must be resized together."""
 
-    async def place_leg(self, ctx: Context, spec: Mapping[str, Any], amount: Decimal, tag: str) -> Child:
-        request = leg_request(spec, parent=self, amount=amount)
+    async def place_leg(self, ctx: Context, spec: Mapping[str, Any], quantity: Decimal, tag: str) -> Child:
+        request = leg_request(spec, parent=self, quantity=quantity)
         order = await ctx.submit_child(request)
-        child = self.track(order, amount, D(request.price))
+        child = self.track(order, quantity, D(request.price))
         self.leg_of[child.order_id] = tag
         self.spec_of[tag] = dict(spec)
-        await ctx.publish("managed.leg", {"leg": tag, "order_id": order.id, "amount": str(amount),
+        await ctx.publish("managed.leg", {"leg": tag, "order_id": order.id, "quantity": str(quantity),
                                           "type": str(spec.get("type", "limit"))})
         return child
 
-    async def resize_leg(self, ctx: Context, tag: str, amount: Decimal) -> None:
+    async def resize_leg(self, ctx: Context, tag: str, quantity: Decimal) -> None:
         """Cancel and re-place a leg at a new size; below one contract, pull it."""
         for child in list(self.live_children):
             if self.leg_of.get(child.order_id) != tag:
                 continue
             await ctx.cancel_child(child.order_id)
             child.status = "canceled"
-        if amount <= 0:
+        if quantity <= 0:
             return
         spec = self.spec_of.get(tag)
         if spec:
-            await self.place_leg(ctx, spec, amount, tag)
+            await self.place_leg(ctx, spec, quantity, tag)
 
     def leg_children(self, tag: str) -> list[Child]:
         return [c for c in self.children if self.leg_of.get(c.order_id) == tag]
@@ -183,31 +183,31 @@ class Bracket(_Linked):
     async def start(self, ctx: Context) -> None:
         self.state = "working"
         if self.entry is not None:
-            await self.place_leg(ctx, {**self.entry, "side": self.side.value}, self.amount, "entry")
+            await self.place_leg(ctx, {**self.entry, "side": self.side.value}, self.quantity, "entry")
         else:
-            self.entered = self.amount
-            await self.protect(ctx, self.amount)
+            self.entered = self.quantity
+            await self.protect(ctx, self.quantity)
         await ctx.save()
 
-    async def protect(self, ctx: Context, amount: Decimal) -> None:
-        """Put the take-profit and the stop-loss out for `amount` contracts."""
-        if amount <= 0:
+    async def protect(self, ctx: Context, quantity: Decimal) -> None:
+        """Put the take-profit and the stop-loss out for `quantity` contracts."""
+        if quantity <= 0:
             return
         side = self.exit_side()
         if self.take_profit:
-            await self.place_leg(ctx, {**self.take_profit, "side": side}, amount, "take_profit")
+            await self.place_leg(ctx, {**self.take_profit, "side": side}, quantity, "take_profit")
         if self.stop_loss:
             spec = {"type": "stop_market", **self.stop_loss, "side": side}
-            await self.place_leg(ctx, spec, amount, "stop_loss")
-        self.protected += amount
-        await ctx.publish("managed.protected", {"amount": str(amount), "protected": str(self.protected)})
+            await self.place_leg(ctx, spec, quantity, "stop_loss")
+        self.protected += quantity
+        await ctx.publish("managed.protected", {"quantity": str(quantity), "protected": str(self.protected)})
 
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         tag = self.leg_of.get(child.order_id, "")
         if tag == "entry":
-            self.entered += fill.amount
+            self.entered += fill.quantity
             # Protect what has actually been bought, as it is bought.
-            await self.protect(ctx, fill.amount)
+            await self.protect(ctx, fill.quantity)
             await ctx.save()
             return
         # An exit filled: the other side of the protection must shrink.

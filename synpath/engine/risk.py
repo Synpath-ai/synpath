@@ -253,9 +253,9 @@ class RiskEngine:
                         "price_collar", f"price {price} is {away} from the mark {mark}, over the collar {config.price_collar}",
                         detail={"mark": str(mark), "away": str(away)},
                     )
-        if config.max_order_contracts is not None and request.amount > config.max_order_contracts:
-            return self._no("max_order_contracts", f"{request.amount} contracts is over the {config.max_order_contracts} limit")
-        notional = (price or ONE) * request.amount
+        if config.max_order_contracts is not None and request.quantity > config.max_order_contracts:
+            return self._no("max_order_contracts", f"{request.quantity} contracts is over the {config.max_order_contracts} limit")
+        notional = (price or ONE) * request.quantity
         if config.max_order_notional is not None and notional > config.max_order_notional:
             return self._no("max_order_notional", f"{notional} is over the {config.max_order_notional} order limit")
 
@@ -264,7 +264,7 @@ class RiskEngine:
         # alike (an iceberg's reloads, a TWAP's slices, two parents on one
         # market), so the window applies to orders sent from outside only.
         if config.duplicate_window_ms and not deliberate and not request.tags.get("parent"):
-            signature = (market_id, request.side.value, str(price), str(request.amount))
+            signature = (market_id, request.side.value, str(price), str(request.quantity))
             cutoff = now - config.duplicate_window_ms / 1000
             for stamp, seen in reversed(self._recent):
                 if stamp < cutoff:
@@ -301,7 +301,7 @@ class RiskEngine:
                     detail={"order_id": crossing.id, "book": crossing.book or ""},
                 )
 
-        signed = request.amount if request.side == Side.BUY else -request.amount
+        signed = request.quantity if request.side == Side.BUY else -request.quantity
         if self.ledger is not None:
             current = self._net_contracts(account.key, venue, market_id)
             after = abs(current + signed)
@@ -341,7 +341,7 @@ class RiskEngine:
         """Count an order that actually went out, for the rate and duplicate windows."""
         now = self.clock()
         self._sent.append(now)
-        self._recent.append((now, (request.market_id, request.side.value, str(request.price), str(request.amount))))
+        self._recent.append((now, (request.market_id, request.side.value, str(request.price), str(request.quantity))))
 
     def _self_cross(self, request: OrderRequest, resting: list[Order], account: Account, price: Decimal) -> Order | None:
         scope = self.config.self_trade_prevention

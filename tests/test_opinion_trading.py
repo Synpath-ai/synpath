@@ -57,7 +57,7 @@ def info(opinion_market):
 
 
 def request(**kwargs):
-    base = {"market_id": "opinion:8453", "side": Side.BUY, "amount": D("100"), "price": D("0.45")}
+    base = {"market_id": "opinion:8453", "side": Side.BUY, "quantity": D("100"), "price": D("0.45")}
     return OrderRequest(**{**base, **kwargs})
 
 
@@ -120,12 +120,12 @@ class TestBuild:
         assert body["tradingMethod"] == 2 and body["price"] == "0.5"
 
     def test_the_size_is_trimmed_as_the_venue_needs(self, signer, info):
-        _, contracts = build_signed_order(request(amount=D("123.456"), price=D("0.5")), info, signer=signer,
+        _, contracts = build_signed_order(request(quantity=D("123.456"), price=D("0.5")), info, signer=signer,
                                           maker=SAFE, now_s=1, salt=5)
         assert contracts == D("123.46")
 
     @pytest.mark.parametrize("change, reason", [
-        ({"amount": D("10"), "price": D("0.3")}, "minimum order"),
+        ({"quantity": D("10"), "price": D("0.3")}, "minimum order"),
         ({"time_in_force": TimeInForce.FOK}, "not available"),
         ({"time_in_force": TimeInForce.GTD, "expires_at": 4102444800000}, "not available"),
         ({"post_only": True}, "post-only"),
@@ -144,7 +144,7 @@ class TestRecords:
                "tradingMethod": 2, "createdAt": 1766735464}
         order = order_of(row)
         assert order.side == Side.SELL and order.price == D("0.6")
-        assert (order.amount, order.filled, order.remaining, order.cost) == (D("50"), D("20"), D("30"), D("12"))
+        assert (order.quantity, order.filled, order.remaining, order.cost) == (D("50"), D("20"), D("30"), D("12"))
 
     def test_a_rest_trade_row(self):
         row = {"tradeNo": "t-1", "orderNo": "o-1", "marketId": 8453, "side": "Sell", "outcomeSide": 2,
@@ -241,7 +241,7 @@ class TestAdapter:
         adapter = venue({("POST", "/order"): ok({"orderData": {"orderId": "o-1", "status": 1}})})
         order = await adapter.create_order(request(client_order_id="c-1"))
         assert order.id == "o-1" and order.status == OrderStatus.OPEN and order.client_order_id == "c-1"
-        assert order.amount == D("100") and order.price == D("0.45")
+        assert order.quantity == D("100") and order.price == D("0.45")
         [post] = [c for c in adapter.http.calls if c[1] == "/order"]
         assert post[2]["json"]["maker"] == SAFE and "signature" not in order.info["request"]
 

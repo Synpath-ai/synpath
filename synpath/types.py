@@ -25,7 +25,9 @@ import math
 from datetime import datetime as _dt, timezone
 from typing import Any, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, computed_field, model_validator
+
+from ._deprecated import QUANTITY, rename_input, renamed_fields
 
 MarketStatus = Literal["unopened", "open", "closed", "settled"]
 """Normalized lifecycle. `native_status` always carries the venue's own word.
@@ -114,6 +116,12 @@ class _Base(BaseModel):
         if computed and isinstance(data, dict) and not computed.keys().isdisjoint(data):
             return {key: value for key, value in data.items() if key not in computed}
         return data
+
+    @model_validator(mode="before")
+    @classmethod
+    def _renamed(cls, data: Any) -> Any:
+        # TODO(0.9): remove with synpath._deprecated.
+        return rename_input(data, getattr(cls, "__synpath_renamed__", {}))
 
 
 class Quote(_Base):
@@ -343,6 +351,7 @@ class OrderBook(_Base):
         return self.asks[0] if self.asks else None
 
 
+@renamed_fields(QUANTITY)  # TODO(0.9): remove
 class Trade(_Base):
     """One execution, from the taker's point of view."""
 
@@ -354,7 +363,8 @@ class Trade(_Base):
     price: float
     """Always the YES price, 0-1. A trade where the taker bought NO at 0.30 is
     reported as `price=0.70, side="sell"`."""
-    amount: float
+    quantity: float
+    """Contracts traded."""
     side: Literal["buy", "sell", "unknown"] = "unknown"
     """What the taker did on the YES leg: `buy` took YES, `sell` took NO.
     `unknown` when the venue does not say."""
@@ -380,6 +390,10 @@ class HistoryCoverage(_Base):
 class HistoricalTrade(Trade):
     """A Trade plus its recorder receive time and timestamp provenance."""
 
+    __synpath_renamed__ = {}  # the hosted service's `amount` is no deprecation: read it quietly
+    quantity: float = Field(validation_alias=AliasChoices("quantity", "amount"))
+    """Contracts traded. The hosted history service names it `amount`; both
+    names are read, and it is always written as `quantity`."""
     observed_at_ms: int
     timestamp_source: Literal["venue", "recorder_fallback"]
 

@@ -140,17 +140,17 @@ class TestTrades:
         row = {"tradeId": "t", "isBettingOutcomeOne": True, "weightedAverageOdds": "40000000000000000000",
                "totalStake": "2000000", "totalReturn": "5000000", "betTime": "2026-10-13T09:00:00.000Z"}
         trade = normalize_trade(row, market_id="sx_bet:x")
-        assert (trade.side, trade.price, trade.amount) == ("buy", 0.4, 5.0)
+        assert (trade.side, trade.price, trade.quantity) == ("buy", 0.4, 5.0)
 
     def test_a_bet_on_outcome_two_sells_yes_at_one_minus_its_price(self):
         row = {"tradeId": "t", "isBettingOutcomeOne": False, "weightedAverageOdds": "40000000000000000000",
                "totalStake": "2000000", "totalReturn": "5000000", "betTime": "2026-10-13T09:00:00.000Z"}
         trade = normalize_trade(row, market_id="sx_bet:x")
-        assert (trade.side, trade.price, trade.amount) == ("sell", 0.6, 5.0)
+        assert (trade.side, trade.price, trade.quantity) == ("sell", 0.6, 5.0)
 
     def test_recorded_tape(self):
         trades = [normalize_trade(r, market_id="sx_bet:x") for r in TRADES]
-        assert trades and all(0 < t.price < 1 and t.amount > 0 for t in trades)
+        assert trades and all(0 < t.price < 1 and t.quantity > 0 for t in trades)
         assert not any("userAddress" in t.info for t in trades)
 
     def test_candles_carry_volume(self):

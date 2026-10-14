@@ -427,7 +427,7 @@ def normalize_trade(trade: dict[str, Any], *, face_value: float = 1.0) -> Trade:
         timestamp=timestamp,
         datetime=iso(timestamp) or "",
         price=price or 0.0,
-        amount=to_float(trade.get("count_fp")) or to_float(trade.get("count")) or 0.0,
+        quantity=to_float(trade.get("count_fp")) or to_float(trade.get("count")) or 0.0,
         side="buy" if taker == "yes" else "sell" if taker == "no" else "unknown",
         info=trade,
     )

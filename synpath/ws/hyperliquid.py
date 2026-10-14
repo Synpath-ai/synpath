@@ -237,7 +237,7 @@ class HyperliquidMarketStream(_HyperliquidStream):
         side = row.get("side")
         return TradeEvent(
             venue=VENUE, market_id=market_id, id=str(row.get("tid") or row.get("hash") or ""),
-            price=Decimal(str(row["px"])), amount=Decimal(str(row["sz"])),
+            price=Decimal(str(row["px"])), quantity=Decimal(str(row["sz"])),
             taker_side=Side.BUY if side == "B" else Side.SELL if side == "A" else None,
             timestamp=stamp, info=row,
         )

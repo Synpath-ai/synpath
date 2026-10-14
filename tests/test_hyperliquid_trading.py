@@ -85,7 +85,7 @@ class TestSigning:
 
 
 def request(**kwargs) -> OrderRequest:
-    base = {"market_id": "hyperliquid:7544", "side": Side.BUY, "amount": Decimal("100"), "price": Decimal("0.5")}
+    base = {"market_id": "hyperliquid:7544", "side": Side.BUY, "quantity": Decimal("100"), "price": Decimal("0.5")}
     return OrderRequest(**{**base, **kwargs})
 
 
@@ -116,8 +116,8 @@ class TestOrderWire:
 
     @pytest.mark.parametrize("change, reason", [
         ({"price": Decimal("0.123456")}, "significant figures"),
-        ({"amount": Decimal("100.5")}, "whole contracts"),
-        ({"amount": Decimal("10"), "price": Decimal("0.5")}, "minimum order"),
+        ({"quantity": Decimal("100.5")}, "whole contracts"),
+        ({"quantity": Decimal("10"), "price": Decimal("0.5")}, "minimum order"),
         ({"price": Decimal("1")}, "between 0 and 1"),
         ({"time_in_force": TimeInForce.FOK}, "not available"),
         ({"type": OrderType.STOP_MARKET, "stop_price": Decimal("0.4")}, "execution engine"),
@@ -215,7 +215,7 @@ class TestAdapter:
 
     def test_a_batch_reports_each_order(self):
         venue = trading({"order": ok("order", [{"resting": {"oid": 1}}, {"error": "Order must have minimum value of $10."}])})
-        results = asyncio.run(venue.create_orders([request(), request(price=Decimal("0.6")), request(amount=Decimal("1.5"))]))
+        results = asyncio.run(venue.create_orders([request(), request(price=Decimal("0.6")), request(quantity=Decimal("1.5"))]))
         assert results[0].id == "1"
         assert isinstance(results[1], InvalidOrder) and isinstance(results[2], InvalidOrder)
         assert len(venue.http.calls[0][1]["action"]["orders"]) == 2

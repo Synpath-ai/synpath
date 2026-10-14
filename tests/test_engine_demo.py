@@ -98,7 +98,7 @@ class TestEngineOnDemo:
         engine = await engine_for(tmp_path / "demo.db", kalshi)
         try:
             order = await engine.submit(OrderRequest(
-                instrument_id=f"{market}:yes", side=Side.BUY, amount=D("1"), price=D("0.02"),
+                instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("1"), price=D("0.02"),
                 book="demo-check", trader="tests",
             ))
             assert order.client_order_id and order.book == "demo-check"
@@ -124,7 +124,7 @@ class TestEngineOnDemo:
         path = tmp_path / "demo.db"
         engine = await engine_for(path, kalshi)
         order = await engine.submit(OrderRequest(
-            instrument_id=f"{market}:yes", side=Side.BUY, amount=D("1"), price=D("0.02"), book="demo-restart",
+            instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("1"), price=D("0.02"), book="demo-restart",
         ))
         # Rewind the journal to the moment before the answer came back, which
         # is what a process killed mid-submit leaves behind.
@@ -150,7 +150,7 @@ class TestEngineOnDemo:
         engine = await engine_for(tmp_path / "demo.db", kalshi)
         try:
             for price in ("0.02", "0.03"):
-                await engine.submit(OrderRequest(instrument_id=f"{market}:yes", side=Side.BUY, amount=D("1"),
+                await engine.submit(OrderRequest(instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("1"),
                                                  price=D(price), book="demo-halt"))
             result = await engine.halt("demo drill", policy="cancel")
             # Kalshi answers its account-wide cancel with 204 and no count, so
@@ -158,7 +158,7 @@ class TestEngineOnDemo:
             assert "kalshi" in result["canceled"] and not str(result["canceled"]["kalshi"]).startswith("failed")
             assert await no_open_orders(kalshi), "the halt left orders resting at the venue"
             with pytest.raises(RiskRejected):
-                await engine.submit(OrderRequest(instrument_id=f"{market}:yes", side=Side.BUY, amount=D("1"),
+                await engine.submit(OrderRequest(instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("1"),
                                                  price=D("0.02"), book="demo-halt"))
         finally:
             await kalshi.cancel_all_orders()

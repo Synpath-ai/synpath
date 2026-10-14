@@ -14,6 +14,7 @@ from typing import Any
 
 import httpx
 
+from ._deprecated import renamed_kwargs
 from .errors import AuthenticationError, BadRequest, ExchangeError, NetworkError, NotSupported
 from .server.local import resolve_key
 from .trading.errors import InsufficientFunds, OrderNotFound, RiskRejected
@@ -178,7 +179,8 @@ class RemoteTrading:
         raise NotSupported("settlements are read from the venue, not through a synpath server; "
                            "use synpath.Client(load_credentials()) for them")
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
+    @renamed_kwargs(amount="quantity")  # TODO(0.9): remove
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
         raise NotSupported("fee estimates are read from the venue, not through a synpath server; "
                            "use synpath.Client(load_credentials()) or fetch_fee_schedule() for them")
 

@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import Any
 
+from .._deprecated import renamed_kwargs
 from ..base import Capability, complete_capabilities
 from ..errors import NotSupported
 from ..types import Page
@@ -33,6 +34,11 @@ class TradingExchange(ABC):
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         complete_capabilities(cls)
+        # TODO(0.9): remove. Every adapter's own `fetch_fee_estimate` takes
+        # the old `amount=` for one release.
+        own = cls.__dict__.get("fetch_fee_estimate")
+        if own is not None and not getattr(own, "__wrapped__", None):
+            cls.fetch_fee_estimate = renamed_kwargs(amount="quantity")(own)  # type: ignore[method-assign]
 
     # -- orders ---------------------------------------------------------------
 
@@ -107,7 +113,7 @@ class TradingExchange(ABC):
     ) -> Page[Settlement]:
         raise NotSupported(f"{self.id}: fetch_settlements")
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
         """What an order on this market would cost, in the YES price."""
         raise NotSupported(f"{self.id}: fetch_fee_estimate")
 

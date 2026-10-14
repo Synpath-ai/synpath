@@ -10,7 +10,7 @@ book = client.fetch_order_book("polymarket:2252244", side="no")
 client = synpath.Client(synpath.load_credentials())   # KALSHI_*, POLYMARKET_* from .env
 async with client:
     order = await client.create_order(OrderRequest(
-        market_id=market.id, side="buy", type="limit", price="0.05", amount=5,
+        market_id=market.id, side="buy", type="limit", price="0.05", quantity=5,
     ))
     await client.cancel_order(order.id, market_id=order.market_id)
 ```
@@ -39,6 +39,7 @@ from decimal import Decimal
 from typing import Any, Iterable, Mapping
 
 from . import ids
+from ._deprecated import renamed_kwargs
 from .base import Exchange
 from .bucket import Bucket, BucketMember, BucketOrderReport, BucketPosition
 from .errors import BadRequest
@@ -294,10 +295,11 @@ class Client:
             market_id=market_id, since=since, limit=limit, cursor=cursor,
         )
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
+    @renamed_kwargs(amount="quantity")  # TODO(0.9): remove
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
         if self._remote and not self.credentials:
-            return await self._remote.fetch_fee_estimate(market_id, side, price, amount)
-        return await self.trading(self._venue(market_id)).fetch_fee_estimate(market_id, side, price, amount)
+            return await self._remote.fetch_fee_estimate(market_id, side, price, quantity)
+        return await self.trading(self._venue(market_id)).fetch_fee_estimate(market_id, side, price, quantity)
 
     # -- housekeeping ---------------------------------------------------------
 

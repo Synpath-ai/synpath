@@ -38,7 +38,7 @@ from typing import Any, AsyncIterator, Iterable
 
 from ..trading.types import Account, Fill, Order, OrderRequest
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS orders (
     terminal INTEGER NOT NULL DEFAULT 0,
     book TEXT,
     trader TEXT,
-    amount TEXT NOT NULL,
+    quantity TEXT NOT NULL,
     filled TEXT NOT NULL,
     price TEXT,
     parent_id TEXT,
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS fills (
     market_id TEXT NOT NULL,
     side TEXT NOT NULL,
     price TEXT NOT NULL,
-    amount TEXT NOT NULL,
+    quantity TEXT NOT NULL,
     fee TEXT,
     settlement TEXT NOT NULL,
     book TEXT,
@@ -191,6 +191,21 @@ def now_ms() -> int:
 
 def _dump(value: Any) -> str:
     return json.dumps(value, default=str, separators=(",", ":"))
+
+
+_RENAMED = {"amount": "quantity", "last_fill_amount": "last_fill_quantity"}
+_VERBATIM = frozenset({"info", "raw", "tags"})
+
+
+def _quantity_keys(value: Any) -> Any:
+    """A payload written before 4 with this library's own `amount` keys
+    named `quantity`. A venue's raw record (`info`, `raw`) is left as the
+    venue sent it."""
+    if isinstance(value, dict):
+        return {_RENAMED.get(k, k): (v if k in _VERBATIM else _quantity_keys(v)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_quantity_keys(v) for v in value]
+    return value
 
 
 def _text(value: Decimal | None) -> str | None:
@@ -331,10 +346,17 @@ class Journal:
 
         2 -> 3: `orders.parent_id` (a child names its parent in a column, not
         only inside its payload) and `managed_orders.account_key` nullable (a
-        parent across venues has no single account)."""
+        parent across venues has no single account).
+
+        3 -> 4: a number of contracts is `quantity`, never `amount`: the
+        `orders` and `fills` columns are renamed and the stored payloads
+        (orders, fills, intents, engine-held parents) rewritten to the new
+        names. The append-only `events` log keeps what it said at the time."""
         orders = await self._columns("orders")
         if "parent_id" not in orders:
             await self._db.execute("ALTER TABLE orders ADD COLUMN parent_id TEXT")
+        if "amount" in orders or "amount" in await self._columns("fills"):
+            await self._rename_amount_to_quantity()
         managed = await self._columns("managed_orders")
         if managed.get("account_key", {}).get("notnull"):
             # SQLite cannot drop NOT NULL in place: rebuild, copy, swap.
@@ -365,6 +387,29 @@ class Journal:
             except Exception:
                 await self._db.execute("ROLLBACK")
                 raise
+
+    async def _rename_amount_to_quantity(self) -> None:
+        await self._db.execute("BEGIN IMMEDIATE")
+        try:
+            for table in ("orders", "fills"):
+                if "amount" in await self._columns(table):
+                    await self._db.execute(f"ALTER TABLE {table} RENAME COLUMN amount TO quantity")
+            for table, column in (("orders", "payload"), ("fills", "payload"),
+                                  ("intents", "request"), ("managed_orders", "payload")):
+                async with self._db.execute(f"SELECT rowid, {column} FROM {table}") as cursor:
+                    rows = await cursor.fetchall()
+                for row in rows:
+                    try:
+                        before = json.loads(row[column])
+                    except (TypeError, ValueError):
+                        continue
+                    after = _quantity_keys(before)
+                    if after != before:
+                        await self._db.execute(f"UPDATE {table} SET {column}=? WHERE rowid=?", (_dump(after), row["rowid"]))
+            await self._db.execute("COMMIT")
+        except Exception:
+            await self._db.execute("ROLLBACK")
+            raise
 
     async def close(self) -> None:
         if self.lease is not None and self._db is not None:
@@ -526,19 +571,19 @@ class Journal:
             try:
                 await self._db.execute(
                     """INSERT INTO orders(venue, id, client_order_id, account_key, market_id, side,
-                                          status, terminal, book, trader, amount, filled, price, parent_id, payload,
+                                          status, terminal, book, trader, quantity, filled, price, parent_id, payload,
                                           created_ts, updated_ts)
                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                        ON CONFLICT(venue, id) DO UPDATE SET
                           client_order_id=COALESCE(excluded.client_order_id, orders.client_order_id),
                           status=excluded.status, terminal=excluded.terminal, filled=excluded.filled,
-                          price=excluded.price, amount=excluded.amount, payload=excluded.payload,
+                          price=excluded.price, quantity=excluded.quantity, payload=excluded.payload,
                           book=COALESCE(excluded.book, orders.book), trader=COALESCE(excluded.trader, orders.trader),
                           parent_id=COALESCE(excluded.parent_id, orders.parent_id),
                           updated_ts=excluded.updated_ts""",
                     (order.venue, order.id, order.client_order_id, account_key, order.market_id,
                      _word(order.side), _word(order.status), 1 if order.is_terminal else 0, order.book, order.trader,
-                     str(order.amount), str(order.filled), _text(order.price),
+                     str(order.quantity), str(order.filled), _text(order.price),
                      order.parent_id or order.tags.get("parent"), _dump(body),
                      order.created_at or stamp, stamp),
                 )
@@ -567,14 +612,14 @@ class Journal:
                 changed = existing is None or existing["settlement"] != _word(fill.settlement)
                 await self._db.execute(
                     """INSERT INTO fills(venue, id, order_id, client_order_id, account_key, market_id,
-                                         side, price, amount, fee, settlement, book, trader, ts, payload)
+                                         side, price, quantity, fee, settlement, book, trader, ts, payload)
                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                        ON CONFLICT(venue, id) DO UPDATE SET
                           settlement=excluded.settlement, fee=COALESCE(excluded.fee, fills.fee),
                           payload=excluded.payload,
                           book=COALESCE(fills.book, excluded.book), trader=COALESCE(fills.trader, excluded.trader)""",
                     (fill.venue, fill.id, fill.order_id, fill.client_order_id, account_key, fill.market_id,
-                     _word(fill.side), str(fill.price), str(fill.amount), _text(fill.fee),
+                     _word(fill.side), str(fill.price), str(fill.quantity), _text(fill.fee),
                      _word(fill.settlement), book, trader, fill.timestamp or stamp, _dump(body)),
                 )
                 if changed:

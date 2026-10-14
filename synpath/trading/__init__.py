@@ -48,6 +48,7 @@ from .types import (
     SettlementState,
     Side,
     TimeInForce,
+    TriggerSource,
 )
 
 from .kalshi import KalshiTrading
@@ -88,7 +89,7 @@ __all__ = [
     "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
-    "Precision", "Settlement", "SettlementState", "Side", "TimeInForce",
+    "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",
     "CredentialsMissing", "DuplicateClientOrderId", "InsufficientFunds", "InvalidOrder",
     "MarketHalted", "OrderNotFound", "OrderRejected", "PermissionDenied",
     "RateBudgetExceeded", "RiskRejected",

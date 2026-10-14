@@ -80,7 +80,7 @@ from .types import (
     TradesRangeResponse,
 )
 
-__version__ = "0.7.2"
+__version__ = "0.8.0"
 
 exchanges: dict[str, type[Exchange]] = {
     "kalshi": Kalshi,
@@ -114,7 +114,7 @@ from .trading import (
     OpinionTrading, HyperliquidTrading, PredictFunTrading, LimitlessTrading, SxBetTrading,
     Account, Balance, EditRequest, FeeEstimate, Fill, HeldBy, Liquidity,
     Order, OrderRequest, OrderStatus, OrderType, Position, PositionSide,
-    Precision, Settlement, SettlementState, Side, TimeInForce,
+    Precision, Settlement, SettlementState, Side, TimeInForce, TriggerSource,
     CredentialsMissing, DuplicateClientOrderId, InsufficientFunds, InvalidOrder,
     MarketHalted, OrderNotFound, OrderRejected, PermissionDenied,
     RateBudgetExceeded, RiskRejected,
@@ -182,7 +182,7 @@ __all__ = [
     "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
-    "Precision", "Settlement", "SettlementState", "Side", "TimeInForce",
+    "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",
     "CredentialsMissing", "DuplicateClientOrderId", "InsufficientFunds", "InvalidOrder",
     "MarketHalted", "OrderNotFound", "OrderRejected", "PermissionDenied",
     "RateBudgetExceeded", "RiskRejected",

@@ -92,7 +92,7 @@ def test_kalshi_order_events_agree_with_rest():
         stream.start()
         await asyncio.wait_for(stream.connected.wait(), 10)
         await asyncio.sleep(2)
-        order = await rest.create_order(OrderRequest(instrument_id=f"{ticker}:yes", side=Side.BUY, amount=D("1"), price=D("0.02")))
+        order = await rest.create_order(OrderRequest(instrument_id=f"{ticker}:yes", side=Side.BUY, quantity=D("1"), price=D("0.02")))
         await asyncio.sleep(2)
         await rest.cancel_order(order.id, market_id=ticker)
         events = await _collect(stream, lambda es: any(

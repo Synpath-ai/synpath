@@ -75,20 +75,20 @@ class _Taker(ManagedOrder):
         if offered is None:
             return False
         available, bound = offered
-        amount = min(size, available, self.remaining)
-        if amount <= 0:
+        quantity = min(size, available, self.remaining)
+        if quantity <= 0:
             return False
-        request = self.child_request(amount=amount, price=bound, type=OrderType.MARKET,
+        request = self.child_request(quantity=quantity, price=bound, type=OrderType.MARKET,
                                      time_in_force=TimeInForce.IOC)
         order = await ctx.submit_child(request)
-        self.track(order, amount, bound)
+        self.track(order, quantity, bound)
         self.clips += 1
-        await ctx.publish("managed.clip", {"amount": str(amount), "bound": str(bound), "clip": self.clips})
+        await ctx.publish("managed.clip", {"quantity": str(quantity), "bound": str(bound), "clip": self.clips})
         await ctx.save()
         return True
 
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
-        self.paid += fill.price * fill.amount
+        self.paid += fill.price * fill.quantity
         await self.complete_if_done(ctx)
 
     def extra(self) -> dict[str, Any]:
@@ -141,7 +141,7 @@ class SmartTaker(_Taker):
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.clip = D(self.params.get("clip")) or self.amount
+        self.clip = D(self.params.get("clip")) or self.quantity
         self.interval_s = float(self.params.get("interval_s") or 1.0)
         self.expires_s = float(self.params.get("expires_s") or 0)
         self.started_at: float = 0.0
@@ -181,7 +181,7 @@ class SmartTaker(_Taker):
 
     def load_extra(self, extra: dict[str, Any]) -> None:
         super().load_extra(extra)
-        self.clip = D(extra.get("clip"), self.amount)
+        self.clip = D(extra.get("clip"), self.quantity)
         self.interval_s = float(extra.get("interval_s") or 1.0)
         self.expires_s = float(extra.get("expires_s") or 0)
         self.started_at = float(extra.get("started_at") or 0)

@@ -135,17 +135,17 @@ pub(crate) fn router_levels(
 #[pymethods]
 impl RouterLevels {
     /// `_walk`'s loop. Returns `(slots, remaining, reason)`, a slot being
-    /// `(market_id, amount, cost, fee, worst)`, or `None` when the arithmetic
+    /// `(market_id, quantity, cost, fee, worst)`, or `None` when the arithmetic
     /// would not be exact.
     fn walk<'py>(
         &self,
         py: Python<'py>,
         buy: bool,
-        amount: &Bound<'py, PyAny>,
+        quantity: &Bound<'py, PyAny>,
         limit: &Bound<'py, PyAny>,
         excluded: Vec<String>,
     ) -> PyResult<Option<Bound<'py, PyTuple>>> {
-        let (Ok(amount), Ok(limit)) = (from_py(amount), from_py(limit)) else {
+        let (Ok(quantity), Ok(limit)) = (from_py(quantity), from_py(limit)) else {
             return Ok(None);
         };
         let mut skip = vec![false; self.members.len()];
@@ -154,7 +154,7 @@ impl RouterLevels {
             skip[index] = excluded.iter().any(|e| e.as_str() == name.as_ref());
         }
         let Some((slots, remaining, reason)) =
-            router::walk(&self.levels, buy, amount, limit, &skip)
+            router::walk(&self.levels, buy, quantity, limit, &skip)
         else {
             return Ok(None);
         };
@@ -162,7 +162,7 @@ impl RouterLevels {
         for slot in slots {
             rows.append((
                 self.members[slot.member].bind(py),
-                decimal(py, slot.amount)?,
+                decimal(py, slot.quantity)?,
                 decimal(py, slot.cost)?,
                 decimal(py, slot.fee)?,
                 decimal(py, slot.worst)?,

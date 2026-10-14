@@ -422,7 +422,7 @@ def normalize_trade(raw: dict[str, Any], *, market_id: str) -> Trade:
         timestamp=stamp,
         datetime=iso(stamp) or "",
         price=to_float(raw.get("px")) or 0.0,
-        amount=to_float(raw.get("sz")) or 0.0,
+        quantity=to_float(raw.get("sz")) or 0.0,
         side=side,  # type: ignore[arg-type]
         info=raw,
     )

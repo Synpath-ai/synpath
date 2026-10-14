@@ -103,14 +103,14 @@ def run(loop, coro):
     return loop.run_until_complete(coro)
 
 
-def far(market: str, instrument: str, side: Side, amount="1", **kw) -> OrderRequest:
+def far(market: str, instrument: str, side: Side, quantity="1", **kw) -> OrderRequest:
     """A limit that rests: YES bids at 0.02, YES asks at 0.98, and the NO
     equivalents at the same YES prices."""
     outcome = instrument
     yes_side = side if outcome == "yes" else (Side.SELL if side == Side.BUY else Side.BUY)
     yes_price = D("0.02") if yes_side == Side.BUY else D("0.98")
     price = yes_price if outcome == "yes" else D("1") - yes_price
-    return OrderRequest(instrument_id=f"{market}:{outcome}", side=side, amount=D(amount), price=price, **kw)
+    return OrderRequest(instrument_id=f"{market}:{outcome}", side=side, quantity=D(quantity), price=price, **kw)
 
 
 class TestAccount:
@@ -137,8 +137,8 @@ class TestLifecycle:
         assert run(loop, kalshi.fetch_queue_position(placed.id)) >= 0
 
         moved = run(loop, kalshi.edit_order(EditRequest(order_id=placed.id, price=D("0.03")), current=read))
-        assert moved.queue_priority_preserved is False and moved.price == D("0.0300") and moved.amount == D("2.00")
-        smaller = run(loop, kalshi.edit_order(EditRequest(order_id=placed.id, amount=D("1")), current=moved))
+        assert moved.queue_priority_preserved is False and moved.price == D("0.0300") and moved.quantity == D("2.00")
+        smaller = run(loop, kalshi.edit_order(EditRequest(order_id=placed.id, quantity=D("1")), current=moved))
         assert smaller.queue_priority_preserved is True and smaller.remaining == D("1.00")
         time.sleep(LAG)
         read = run(loop, kalshi.fetch_order(placed.id))
@@ -185,7 +185,7 @@ class TestLifecycle:
 
     def test_market_order_is_ioc_at_the_protection_price(self, kalshi, loop, market):
         order = run(loop, kalshi.create_order(OrderRequest(
-            instrument_id=f"{market}:yes", side=Side.BUY, amount=D("1"), type=OrderType.MARKET, price=D("0.02"),
+            instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("1"), type=OrderType.MARKET, price=D("0.02"),
         )))
         assert order.info["request"]["time_in_force"] == "immediate_or_cancel"
         assert order.status == OrderStatus.CANCELED  # nothing at 0.02 to take
@@ -194,7 +194,7 @@ class TestLifecycle:
         results = run(loop, kalshi.create_orders([
             far(market, "yes", Side.BUY),
             far(market, "no", Side.SELL),
-            OrderRequest(instrument_id=f"{market}:yes", side=Side.BUY, amount=D("1"), price=D("0.025")),
+            OrderRequest(instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("1"), price=D("0.025")),
         ]))
         assert isinstance(results[2], InvalidOrder)
         ids = [r.id for r in results[:2]]
@@ -220,7 +220,7 @@ class TestLifecycle:
 
     def test_off_tick_is_refused_locally_and_by_the_venue(self, kalshi, loop, market):
         with pytest.raises(InvalidOrder):
-            run(loop, kalshi.create_order(OrderRequest(instrument_id=f"{market}:yes", side=Side.BUY, amount=D("1"), price=D("0.025"))))
+            run(loop, kalshi.create_order(OrderRequest(instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("1"), price=D("0.025"))))
         with pytest.raises(OrderRejected):
             run(loop, kalshi._call("POST", "/portfolio/events/orders", json={
                 "ticker": market, "client_order_id": str(uuid.uuid4()), "side": "bid", "count": "1.00",

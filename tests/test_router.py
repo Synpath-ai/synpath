@@ -26,8 +26,8 @@ def bucket(flip_p=False):
 
 
 NO_FEE = lambda market_id, price, contracts: D("0")
-PREC = {K: Precision(tick=D("0.01"), min_amount=D("1"), whole_contracts=True),
-        P: Precision(tick=D("0.001"), min_amount=D("5"), amount_step=D("0.01"))}
+PREC = {K: Precision(tick=D("0.01"), min_quantity=D("1"), whole_contracts=True),
+        P: Precision(tick=D("0.001"), min_quantity=D("5"), quantity_step=D("0.01"))}
 
 
 class TestMerge:
@@ -56,54 +56,54 @@ class TestMerge:
 class TestPlan:
     def test_walks_best_net_first_and_never_over_allocates(self):
         books = {K: book(K, asks=[(0.41, 30)]), P: book(P, asks=[(0.42, 100)])}
-        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, amount=D("50"), limit=D("0.45"))
-        assert {(l.market_id, l.amount) for l in out.legs} == {(K, D("30")), (P, D("20"))}
+        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, quantity=D("50"), limit=D("0.45"))
+        assert {(l.market_id, l.quantity) for l in out.legs} == {(K, D("30")), (P, D("20"))}
         assert out.allocated == D("50") and out.unfilled == 0 and out.reason == ""
         assert out.expected_net_price == (D("0.41") * 30 + D("0.42") * 20) / 50
 
     def test_stops_at_the_limit(self):
         books = {K: book(K, asks=[(0.41, 10), (0.50, 100)]), P: book(P, asks=[(0.60, 100)])}
-        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, amount=D("50"), limit=D("0.45"))
-        assert [(l.market_id, l.amount) for l in out.legs] == [(K, D("10"))]
+        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, quantity=D("50"), limit=D("0.45"))
+        assert [(l.market_id, l.quantity) for l in out.legs] == [(K, D("10"))]
         assert out.unfilled == D("40") and out.reason == "worst_price"
 
     def test_limit_is_on_the_net_price(self):
         fee = lambda m, price, n: D("0.05") * n
         books = {K: book(K, asks=[(0.42, 10)])}
-        out = plan(bucket(), books, PREC, fee, side=Side.BUY, amount=D("10"), limit=D("0.45"))
+        out = plan(bucket(), books, PREC, fee, side=Side.BUY, quantity=D("10"), limit=D("0.45"))
         assert out.legs == [] and out.reason == "worst_price"
 
     def test_a_leg_under_the_minimum_is_dropped_and_its_size_moves_on(self):
         # Polymarket minimum is 5; only 3 available there at the best price.
         books = {P: book(P, asks=[(0.40, 3)]), K: book(K, asks=[(0.41, 100)])}
-        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, amount=D("20"), limit=D("0.45"))
-        assert [(l.market_id, l.amount) for l in out.legs] == [(K, D("20"))]
+        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, quantity=D("20"), limit=D("0.45"))
+        assert [(l.market_id, l.quantity) for l in out.legs] == [(K, D("20"))]
         assert out.unfilled == 0
 
     def test_whole_contracts_round_down(self):
         books = {K: book(K, asks=[(0.41, 7.5)])}
-        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, amount=D("7.5"), limit=D("0.45"))
-        assert out.legs[0].amount == D("7") and out.unfilled == D("0.5")
+        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, quantity=D("7.5"), limit=D("0.45"))
+        assert out.legs[0].quantity == D("7") and out.unfilled == D("0.5")
 
     def test_sell_walks_bids_richest_first_and_rounds_price_up(self):
         books = {K: book(K, bids=[(0.60, 10)]), P: book(P, bids=[(0.615, 10)])}
-        out = plan(bucket(), books, PREC, NO_FEE, side=Side.SELL, amount=D("15"), limit=D("0.55"))
-        assert [(l.market_id, l.amount, l.price) for l in out.legs] == [(P, D("10"), D("0.615")), (K, D("5"), D("0.60"))]
+        out = plan(bucket(), books, PREC, NO_FEE, side=Side.SELL, quantity=D("15"), limit=D("0.55"))
+        assert [(l.market_id, l.quantity, l.price) for l in out.legs] == [(P, D("10"), D("0.615")), (K, D("5"), D("0.60"))]
 
     def test_a_flipped_member_gets_the_opposite_side_at_one_minus(self):
         # Bucket buy at 0.30 on the NO book == sell YES at 0.70 on the venue.
         books = {P: book(P, "no", asks=[(0.30, 10)]), K: book(K, asks=[(0.35, 10)])}
-        out = plan(bucket(flip_p=True), books, PREC, NO_FEE, side=Side.BUY, amount=D("10"), limit=D("0.40"))
+        out = plan(bucket(flip_p=True), books, PREC, NO_FEE, side=Side.BUY, quantity=D("10"), limit=D("0.40"))
         leg = out.legs[0]
         assert (leg.market_id, leg.flip, leg.side, leg.price, leg.bucket_price) == (P, True, Side.SELL, D("0.70"), D("0.30"))
 
     def test_buy_price_rounds_down_to_the_tick(self):
         books = {K: book(K, asks=[(0.4149, 10)])}
-        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, amount=D("10"), limit=D("0.45"))
+        out = plan(bucket(), books, PREC, NO_FEE, side=Side.BUY, quantity=D("10"), limit=D("0.45"))
         assert out.legs[0].price == D("0.41")
 
     def test_no_liquidity_says_so(self):
-        out = plan(bucket(), {}, PREC, NO_FEE, side=Side.BUY, amount=D("10"), limit=D("0.45"))
+        out = plan(bucket(), {}, PREC, NO_FEE, side=Side.BUY, quantity=D("10"), limit=D("0.45"))
         assert out.legs == [] and out.unfilled == D("10") and out.reason == "liquidity"
 
 
@@ -136,7 +136,7 @@ class TestBucketModel:
 
 
 O = "opinion:8453"
-OPINION = Precision(tick=D("0.001"), min_amount=D("1"), amount_step=D("0.01"), min_notional=D("5"))
+OPINION = Precision(tick=D("0.001"), min_quantity=D("1"), quantity_step=D("0.01"), min_notional=D("5"))
 
 
 def with_opinion():
@@ -152,38 +152,38 @@ class TestVenueMinimumsAndFloors:
     def test_a_leg_worth_less_than_the_minimum_moves_on(self):
         # 10 contracts at 0.40 is 4 USDT: under Opinion's 5, though over its 1 contract.
         books = {O: book(O, asks=[(0.40, 10)]), K: book(K, asks=[(0.41, 100)])}
-        out = plan(with_opinion(), books, self.PREC, NO_FEE, side=Side.BUY, amount=D("30"), limit=D("0.45"))
-        assert [(l.market_id, l.amount) for l in out.legs] == [(K, D("30"))]
+        out = plan(with_opinion(), books, self.PREC, NO_FEE, side=Side.BUY, quantity=D("30"), limit=D("0.45"))
+        assert [(l.market_id, l.quantity) for l in out.legs] == [(K, D("30"))]
 
     def test_the_minimum_is_on_the_token_bought(self):
         # Selling buys NO: 10 contracts sold at 0.40 buys NO at 0.60, 6 USDT, which is enough.
         books = {O: book(O, bids=[(0.40, 10)]), K: book(K, bids=[(0.39, 100)])}
-        out = plan(with_opinion(), books, self.PREC, NO_FEE, side=Side.SELL, amount=D("10"), limit=D("0.30"))
-        assert [(l.market_id, l.amount) for l in out.legs] == [(O, D("10"))]
+        out = plan(with_opinion(), books, self.PREC, NO_FEE, side=Side.SELL, quantity=D("10"), limit=D("0.30"))
+        assert [(l.market_id, l.quantity) for l in out.legs] == [(O, D("10"))]
 
     def test_a_floor_that_breaks_the_limit_drops_the_leg(self):
         # 20 contracts at 0.40 with a 0.001 curve fee: 0.02 USDT, floored to 0.25,
         # which adds 1.15c a contract and takes the leg past a 0.41 limit.
         fee = lambda m, price, n: D("0.001") * n if m == O else D("0")
         books = {O: book(O, asks=[(0.40, 20)]), K: book(K, asks=[(0.405, 100)])}
-        out = plan(with_opinion(), books, self.PREC, fee, side=Side.BUY, amount=D("20"), limit=D("0.41"),
+        out = plan(with_opinion(), books, self.PREC, fee, side=Side.BUY, quantity=D("20"), limit=D("0.41"),
                    floors={O: D("0.25")})
-        assert [(l.market_id, l.amount) for l in out.legs] == [(K, D("20"))]
+        assert [(l.market_id, l.quantity) for l in out.legs] == [(K, D("20"))]
 
     def test_a_floored_leg_moves_when_the_size_is_cheaper_elsewhere(self):
         # Opinion is a fifth of a cent cheaper per contract, but on 15 contracts
         # its floor costs 0.235 more than the curve: Kalshi is cheaper in total.
         fee = lambda m, price, n: D("0.001") * n if m == O else D("0")
         books = {O: book(O, asks=[(0.400, 15)]), K: book(K, asks=[(0.403, 100)])}
-        out = plan(with_opinion(), books, self.PREC, fee, side=Side.BUY, amount=D("40"), limit=D("0.45"),
+        out = plan(with_opinion(), books, self.PREC, fee, side=Side.BUY, quantity=D("40"), limit=D("0.45"),
                    floors={O: D("0.25")})
-        assert [(l.market_id, l.amount) for l in out.legs] == [(K, D("40"))]
+        assert [(l.market_id, l.quantity) for l in out.legs] == [(K, D("40"))]
 
     def test_a_floor_worth_paying_is_kept_and_counted(self):
         # On 1000 contracts a 1c saving dwarfs the floor.
         fee = lambda m, price, n: D("0.0001") * n if m == O else D("0")
         books = {O: book(O, asks=[(0.39, 1000)]), K: book(K, asks=[(0.40, 1000)])}
-        out = plan(with_opinion(), books, self.PREC, fee, side=Side.BUY, amount=D("1000"), limit=D("0.45"),
+        out = plan(with_opinion(), books, self.PREC, fee, side=Side.BUY, quantity=D("1000"), limit=D("0.45"),
                    floors={O: D("0.25")})
         [leg] = out.legs
         assert leg.market_id == O and leg.fee == D("0.25") and leg.fee_floor == D("0.15")
@@ -191,7 +191,7 @@ class TestVenueMinimumsAndFloors:
 
     def test_a_market_without_a_curve_fee_has_no_floor(self):
         books = {O: book(O, asks=[(0.40, 20)])}
-        out = plan(with_opinion(), books, self.PREC, NO_FEE, side=Side.BUY, amount=D("20"), limit=D("0.41"),
+        out = plan(with_opinion(), books, self.PREC, NO_FEE, side=Side.BUY, quantity=D("20"), limit=D("0.41"),
                    floors={O: D("0.25")})
         [leg] = out.legs
         assert leg.fee == 0 and leg.net_price == D("0.40")

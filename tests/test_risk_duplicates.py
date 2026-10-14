@@ -17,7 +17,7 @@ class Clock:
 
 
 def req(**kw) -> OrderRequest:
-    return OrderRequest(**{"market_id": "kalshi:KX-A", "side": Side.BUY, "amount": D("1"), "type": OrderType.LIMIT,
+    return OrderRequest(**{"market_id": "kalshi:KX-A", "side": Side.BUY, "quantity": D("1"), "type": OrderType.LIMIT,
                            "price": D("0.40"), **kw})
 
 

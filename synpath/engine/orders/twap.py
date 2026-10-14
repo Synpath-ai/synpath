@@ -70,7 +70,7 @@ class TWAP(ManagedOrder):
         return min(self.slices, int(elapsed // self.interval) + 1)
 
     def slice_size(self) -> Decimal:
-        per_slice = self.amount / self.slices
+        per_slice = self.quantity / self.slices
         return min(per_slice, self.remaining)
 
     def ends_at(self) -> float:
@@ -117,7 +117,7 @@ class TWAP(ManagedOrder):
                 price = min(price, self.limit) if self.side == Side.BUY else max(price, self.limit)
             if price is None:
                 return
-            request = self.child_request(amount=size, price=price, type=OrderType.MARKET,
+            request = self.child_request(quantity=size, price=price, type=OrderType.MARKET,
                                          time_in_force=TimeInForce.IOC)
         else:
             near = ctx.book()
@@ -129,11 +129,11 @@ class TWAP(ManagedOrder):
                 return
             if self.limit is not None:
                 price = min(price, self.limit) if self.side == Side.BUY else max(price, self.limit)
-            request = self.child_request(amount=size, price=price, type=OrderType.LIMIT,
+            request = self.child_request(quantity=size, price=price, type=OrderType.LIMIT,
                                          time_in_force=TimeInForce.GTC, post_only=self.request.post_only)
         order = await ctx.submit_child(request)
         self.track(order, size, D(request.price))
-        await ctx.publish("managed.slice", {"amount": str(size), "price": str(request.price),
+        await ctx.publish("managed.slice", {"quantity": str(size), "price": str(request.price),
                                             "slice": self.sent_slices + 1, "of": self.slices, "style": self.style})
 
     async def close_out(self, ctx: Context) -> None:
@@ -146,11 +146,11 @@ class TWAP(ManagedOrder):
             if price is not None:
                 if self.limit is not None:
                     price = min(price, self.limit) if self.side == Side.BUY else max(price, self.limit)
-                request = self.child_request(amount=self.remaining, price=price, type=OrderType.MARKET,
+                request = self.child_request(quantity=self.remaining, price=price, type=OrderType.MARKET,
                                              time_in_force=TimeInForce.IOC)
                 order = await ctx.submit_child(request)
-                self.track(order, request.amount, price)
-                await ctx.publish("managed.close_out", {"amount": str(request.amount), "price": str(price)})
+                self.track(order, request.quantity, price)
+                await ctx.publish("managed.close_out", {"quantity": str(request.quantity), "price": str(price)})
                 await ctx.save()
                 return
         await self.finish_window(ctx)

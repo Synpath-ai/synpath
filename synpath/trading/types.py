@@ -32,6 +32,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .._deprecated import QUANTITY, rename_input, renamed_fields
 from ..types import iso
 
 
@@ -85,6 +86,21 @@ class TimeInForce(str, Enum):
     DAY = "day"
     """Not a venue concept on any of the three; the engine rewrites it to
     `gtd` at the configured session end before it reaches an adapter."""
+
+
+class TriggerSource(str, Enum):
+    """The price an engine-held stop watches.
+
+    `touch` (the default) is the side that would fill the triggered order:
+    the best ask for a buy stop, the best bid for a sell stop. `last` is the
+    last public trade, `mid` the middle of the best bid and ask."""
+
+    TOUCH = "touch"
+    LAST = "last"
+    MID = "mid"
+
+
+STOP_TYPES = frozenset({OrderType.STOP_MARKET, OrderType.STOP_LIMIT, OrderType.TRAILING_STOP})
 
 
 class OrderStatus(str, Enum):
@@ -143,6 +159,12 @@ class PositionSide(str, Enum):
 class _Base(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True, use_enum_values=False)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _renamed(cls, data: Any) -> Any:
+        # TODO(0.9): remove with synpath._deprecated.
+        return rename_input(data, getattr(cls, "__synpath_renamed__", {}))
+
 
 class Account(_Base):
     """One set of credentials at one venue, optionally one subaccount.
@@ -162,13 +184,14 @@ class Account(_Base):
         return f"{self.venue}:{self.name}" + (f":{self.subaccount}" if self.subaccount else "")
 
 
+@renamed_fields({"min_amount": "min_quantity", "amount_step": "quantity_step"})  # TODO(0.9): remove
 class Precision(_Base):
     """What an order for this instrument must satisfy before it is signed."""
 
     tick: Decimal
     """Minimum price increment. Polymarket varies it per market."""
-    min_amount: Decimal = Decimal("1")
-    amount_step: Decimal | None = None
+    min_quantity: Decimal = Decimal("1")
+    quantity_step: Decimal | None = None
     """Contract increment where the venue has one; `None` means any decimal."""
     whole_contracts: bool = False
     """Polymarket US: integers only."""
@@ -179,6 +202,7 @@ class Precision(_Base):
     contracts."""
 
 
+@renamed_fields(QUANTITY)  # TODO(0.9): remove
 class OrderRequest(_Base):
     """What a caller asks for. Validated against the market before signing."""
 
@@ -187,7 +211,7 @@ class OrderRequest(_Base):
     own adapter."""
     side: Side
     """`buy` takes YES, `sell` takes NO. See `Side`."""
-    amount: Decimal
+    quantity: Decimal
     """Contracts."""
     type: OrderType = OrderType.LIMIT
     price: Decimal | None = None
@@ -195,7 +219,14 @@ class OrderRequest(_Base):
     order, the protection price the engine will not cross; refused without
     one on a venue without native market orders."""
     stop_price: Decimal | None = None
+    """The level a stop triggers at: a buy stop when the watched price rises
+    to it, a sell stop when it falls to it."""
+    trigger_source: TriggerSource = TriggerSource.TOUCH
+    """What a stop watches; see `TriggerSource`. Stops only."""
     time_in_force: TimeInForce = TimeInForce.GTC
+    """For a `stop_market`, how long the stop stays armed (`gtc`, `gtd`,
+    `day`); its triggered child is always `ioc`. For a `stop_limit`, what
+    the limit child carries once triggered (`gtc`, `gtd`, `ioc`, `fok`)."""
     expires_at: int | None = None
     """Milliseconds since epoch. Required with `gtd`."""
     post_only: bool = False
@@ -227,21 +258,35 @@ class OrderRequest(_Base):
             raise ValueError(f"{self.type.value} needs a stop_price")
         if self.type == OrderType.STOP_LIMIT and self.price is None:
             raise ValueError("stop_limit needs the limit price to submit once triggered")
+        if self.trigger_source != TriggerSource.TOUCH and self.type not in STOP_TYPES:
+            raise ValueError(f"trigger_source is for stop orders, not {self.type.value}")
+        if self.type == OrderType.STOP_MARKET and self.time_in_force in (TimeInForce.IOC, TimeInForce.FOK):
+            raise ValueError("a stop_market's time_in_force is how long it stays armed: gtc, gtd or day. "
+                             "The order it sends when triggered is always ioc")
+        if self.type == OrderType.STOP_LIMIT:
+            if self.time_in_force == TimeInForce.DAY:
+                raise ValueError("a stop_limit's time_in_force is gtc, gtd, ioc or fok; for the day, use gtd with expires_at")
+            if self.side == Side.SELL and self.price > self.stop_price:  # type: ignore[operator]
+                raise ValueError(f"a sell stop_limit's price {self.price} must be at or below its stop_price {self.stop_price}")
+            if self.side == Side.BUY and self.price < self.stop_price:  # type: ignore[operator]
+                raise ValueError(f"a buy stop_limit's price {self.price} must be at or above its stop_price {self.stop_price}")
         return self
 
 
+@renamed_fields(QUANTITY)  # TODO(0.9): remove
 class EditRequest(_Base):
     """A change to a resting order. Fields left `None` are left alone."""
 
     order_id: str
     price: Decimal | None = None
-    amount: Decimal | None = None
+    quantity: Decimal | None = None
     time_in_force: TimeInForce | None = None
     expires_at: int | None = None
     client_order_id: str | None = None
     """Idempotency key for the *edit*, so a retried edit is not applied twice."""
 
 
+@renamed_fields({**QUANTITY, "last_fill_amount": "last_fill_quantity"})  # TODO(0.9): remove
 class Order(_Base):
     """An order as the venue (or the engine) reports it."""
 
@@ -260,17 +305,17 @@ class Order(_Base):
     held_by: HeldBy = HeldBy.VENUE
     price: Decimal | None = None
     stop_price: Decimal | None = None
-    amount: Decimal
+    quantity: Decimal
     filled: Decimal = Decimal("0")
     remaining: Decimal | None = None
-    """`amount - filled` unless the venue reports otherwise."""
+    """`quantity - filled` unless the venue reports otherwise."""
     average_price: Decimal | None = None
     cost: Decimal | None = None
     """Collateral committed so far."""
     fee: Decimal | None = None
     fee_currency: str | None = None
     last_fill_price: Decimal | None = None
-    last_fill_amount: Decimal | None = None
+    last_fill_quantity: Decimal | None = None
     post_only: bool = False
     reduce_only: bool = False
     expires_at: int | None = None
@@ -290,7 +335,7 @@ class Order(_Base):
     @model_validator(mode="after")
     def _derive(self) -> "Order":
         if self.remaining is None:
-            object.__setattr__(self, "remaining", self.amount - self.filled)
+            object.__setattr__(self, "remaining", self.quantity - self.filled)
         return self
 
     @property
@@ -302,6 +347,7 @@ class Order(_Base):
         return iso(self.created_at)
 
 
+@renamed_fields(QUANTITY)  # TODO(0.9): remove
 class Fill(_Base):
     id: str
     order_id: str
@@ -313,7 +359,7 @@ class Fill(_Base):
     """On the YES leg, like `Order.side`."""
     price: Decimal
     """The YES price."""
-    amount: Decimal
+    quantity: Decimal
     fee: Decimal | None = None
     fee_currency: str | None = None
     liquidity: Liquidity = Liquidity.UNKNOWN
@@ -361,6 +407,7 @@ class Position(_Base):
     info: dict[str, Any] = Field(default_factory=dict)
 
 
+@renamed_fields(QUANTITY)  # TODO(0.9): remove
 class Settlement(_Base):
     venue: str
     account: Account | None = None
@@ -369,7 +416,7 @@ class Settlement(_Base):
     """Which side was held into settlement, when the venue says."""
     result: str | None = None
     won: bool | None = None
-    amount: Decimal | None = None
+    quantity: Decimal | None = None
     cost: Decimal | None = None
     payout: Decimal | None = None
     pnl: Decimal | None = None
@@ -395,6 +442,7 @@ class Balance(_Base):
     info: dict[str, Any] = Field(default_factory=dict)
 
 
+@renamed_fields(QUANTITY)  # TODO(0.9): remove
 class FeeEstimate(_Base):
     """What an order would cost, before it is placed."""
 
@@ -402,7 +450,7 @@ class FeeEstimate(_Base):
     market_id: str
     side: Side
     price: Decimal
-    amount: Decimal
+    quantity: Decimal
     taker_fee: Decimal | None = None
     maker_fee: Decimal | None = None
     """Negative where the venue pays makers."""
@@ -413,7 +461,7 @@ class FeeEstimate(_Base):
     currency: str = "USD"
     info: dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator("price", "amount")
+    @field_validator("price", "quantity")
     @classmethod
     def _positive(cls, value: Decimal) -> Decimal:
         if value <= 0:

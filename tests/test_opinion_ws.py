@@ -213,7 +213,7 @@ class TestTradesAndPrices:
         [trade] = stream.handle({"tokenId": binary.no.venue_token_id, "side": "Buy", "outcomeSide": 2, "price": "0.15",
                                  "shares": "10", "amount": "1.5", "marketId": 8453, "msgType": "market.last.trade"})
         assert isinstance(trade, TradeEvent)
-        assert trade.price == D("0.85") and trade.taker_side == Side.SELL and trade.amount == D("10")
+        assert trade.price == D("0.85") and trade.taker_side == Side.SELL and trade.quantity == D("10")
 
     async def test_a_split_is_not_a_trade(self, catalog, binary):
         stream = market_stream(catalog)
@@ -284,7 +284,7 @@ class TestUser:
         order = event.order
         assert order.market_id == "opinion:2770" and order.side == Side.BUY and order.price == D("0.15")
         assert order.type == OrderType.LIMIT and order.status == OrderStatus.OPEN
-        assert (order.amount, order.filled, order.remaining) == (D("66.66"), D("10"), D("56.66"))
+        assert (order.quantity, order.filled, order.remaining) == (D("66.66"), D("10"), D("56.66"))
         assert order.created_at == 1766735464000 and order.expires_at is None
 
     async def test_a_no_order_is_a_sell_at_the_complement(self, catalog):
@@ -299,7 +299,7 @@ class TestUser:
         fill = event.fill
         assert isinstance(event, FillEvent)
         assert fill.id == TRADE_RECORD["tradeNo"] and fill.order_id == TRADE_RECORD["orderId"]
-        assert fill.side == Side.SELL and fill.price == D("0.9") and fill.amount == D("9.44444")
+        assert fill.side == Side.SELL and fill.price == D("0.9") and fill.quantity == D("9.44444")
         assert fill.settlement == SettlementState.CONFIRMED and fill.fee == 0 and fill.fee_currency == "USDT"
 
     async def test_a_failed_trade_is_reported_failed(self, catalog):

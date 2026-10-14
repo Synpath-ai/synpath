@@ -21,6 +21,7 @@ from __future__ import annotations
 from decimal import ROUND_DOWN, ROUND_HALF_EVEN, ROUND_HALF_UP, ROUND_UP, Decimal, InvalidOperation
 from typing import Any, Literal
 
+from .. import _deprecated
 from .errors import InvalidOrder
 from .types import Precision
 
@@ -94,17 +95,23 @@ def validate_price(price: Decimal, precision: Precision) -> Decimal:
 
 
 def validate_amount(amount: Decimal, precision: Precision) -> Decimal:
-    """`amount`, or `InvalidOrder` naming the rule it breaks."""
-    if amount <= 0:
-        raise InvalidOrder(f"amount must be positive, got {amount}")
-    if precision.whole_contracts and amount % 1 != 0:
-        raise InvalidOrder(f"amount {amount}: this venue trades whole contracts only")
-    if amount < precision.min_amount:
-        raise InvalidOrder(f"amount {amount} is below the minimum {precision.min_amount}")
-    step = precision.amount_step
-    if step and (amount / step) % 1 != 0:
-        raise InvalidOrder(f"amount {amount} is not a multiple of {step}")
-    return amount
+    """Deprecated: use `validate_quantity`. TODO(0.9): remove."""
+    _deprecated.warn("validate_amount", "validate_quantity")
+    return validate_quantity(amount, precision)
+
+
+def validate_quantity(quantity: Decimal, precision: Precision) -> Decimal:
+    """`quantity`, or `InvalidOrder` naming the rule it breaks."""
+    if quantity <= 0:
+        raise InvalidOrder(f"quantity must be positive, got {quantity}")
+    if precision.whole_contracts and quantity % 1 != 0:
+        raise InvalidOrder(f"quantity {quantity}: this venue trades whole contracts only")
+    if quantity < precision.min_quantity:
+        raise InvalidOrder(f"quantity {quantity} is below the minimum {precision.min_quantity}")
+    step = precision.quantity_step
+    if step and (quantity / step) % 1 != 0:
+        raise InvalidOrder(f"quantity {quantity} is not a multiple of {step}")
+    return quantity
 
 
 # -- Kalshi --------------------------------------------------------------------
@@ -118,9 +125,9 @@ def kalshi_dollars(price: Decimal) -> str:
     return str(price.quantize(KALSHI_PRICE_PLACES))
 
 
-def kalshi_count(amount: Decimal) -> str:
+def kalshi_count(quantity: Decimal) -> str:
     """A contract count as Kalshi's `count` string: `Decimal("10")` -> `"10.00"`."""
-    return str(amount.quantize(KALSHI_COUNT_PLACES))
+    return str(quantity.quantize(KALSHI_COUNT_PLACES))
 
 
 def from_kalshi_cents(cents: Any) -> Decimal:

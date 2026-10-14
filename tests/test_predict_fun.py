@@ -121,7 +121,7 @@ class TestBookAndTrades:
             assert trade.price == pytest.approx(1 - price if on_no else price, abs=1e-6)
             bought = (taker["quoteType"] == "Bid") != on_no
             assert trade.side == ("buy" if bought else "sell")
-            assert trade.amount == pytest.approx(int(row["amountFilled"]) / WEI)
+            assert trade.quantity == pytest.approx(int(row["amountFilled"]) / WEI)
 
     def test_the_recorded_taker_fee_is_the_schedule(self):
         """A taker pays `rate * min(p, 1 - p)` a share, as the venue charged."""

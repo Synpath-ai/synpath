@@ -114,7 +114,7 @@ def order_of_row(row: dict[str, Any], *, account: Account | None = None) -> Orde
     outcome_one = bool(row.get("isBettingOutcomeOne"))
     odds = int(D(row.get("percentageOdds")))
     total, remaining = int(D(row.get("totalBetSize"))), int(D(row.get("remainingSize")))
-    amount = sig.contracts_of(total, odds)
+    quantity = sig.contracts_of(total, odds)
     left = sig.contracts_of(remaining, odds)
     native = str(row.get("status") or "")
     reason = str(row.get("inactiveReason") or "")
@@ -124,7 +124,7 @@ def order_of_row(row: dict[str, Any], *, account: Account | None = None) -> Orde
         status = OrderStatus.PENDING
     else:
         status = INACTIVE_STATUS.get(reason, OrderStatus.CANCELED)
-    filled = max(Decimal("0"), amount - left) if status != OrderStatus.CLOSED else amount
+    filled = max(Decimal("0"), quantity - left) if status != OrderStatus.CLOSED else quantity
     return Order(
         id=str(row.get("id") or row.get("orderId") or ""),
         client_order_id=row.get("clientOrderId") or None,
@@ -136,7 +136,7 @@ def order_of_row(row: dict[str, Any], *, account: Account | None = None) -> Orde
         time_in_force=TimeInForce.GTC,
         status=status,
         price=yes_price(odds, outcome_one),
-        amount=amount,
+        quantity=quantity,
         filled=filled,
         remaining=left if status in (OrderStatus.OPEN, OrderStatus.PENDING) else Decimal("0"),
         expires_at=iso_ms(row.get("expiry")),
@@ -161,7 +161,7 @@ def fill_of_row(row: dict[str, Any], *, account: Account | None = None) -> Fill 
         market_id=ids.qualify(VENUE, str(row.get("marketHash") or "").lower()),
         side=side_of(outcome_one),
         price=yes_price(row.get("fillOdds"), outcome_one),
-        amount=D(row.get("returnAmount")) / USDC,
+        quantity=D(row.get("returnAmount")) / USDC,
         fee=None,
         fee_currency="USDC",
         liquidity=Liquidity.MAKER if row.get("isMaker") else Liquidity.TAKER if row.get("isMaker") is False else Liquidity.UNKNOWN,
@@ -256,7 +256,7 @@ def build_signed_order(
     limits = meta.get("limits") or {}
     asset = meta.get("activeAsset") or {}
     odds, stake = sig.bet(
-        outcome_one, D(request.price), D(request.amount),
+        outcome_one, D(request.price), D(request.quantity),
         step_size=int(meta.get("oddsLadderStepSize") or 125),
         min_stake=int(limits.get("orderSizeMinimumBaseUnits") or 1_000_000),
     )
@@ -291,18 +291,18 @@ def order_after_placing(
     outcome = result.get("outcome") or {}
     state = str(outcome.get("state") or "TIMEOUT")
     status = OUTCOME_STATUS.get(state, OrderStatus.PENDING)
-    amount = sig.contracts_of(stake, odds)
+    quantity = sig.contracts_of(stake, odds)
     blended = int(D(outcome.get("blendedOdds")))
     fill_stake = int(D(outcome.get("fillAmount")))
     filled = sig.contracts_of(fill_stake, blended) if blended else Decimal("0")
     outcome_one = request.side == Side.BUY
     if status == OrderStatus.CLOSED:
-        filled = max(filled, amount) if filled else amount
+        filled = max(filled, quantity) if filled else quantity
     remaining = Decimal("0")
     if status == OrderStatus.OPEN:
-        remaining = sig.contracts_of(int(D(outcome.get("remainingAmount"))), odds) if outcome.get("remainingAmount") else amount - filled
+        remaining = sig.contracts_of(int(D(outcome.get("remainingAmount"))), odds) if outcome.get("remainingAmount") else quantity - filled
     elif status == OrderStatus.PENDING:
-        remaining = amount
+        remaining = quantity
     return Order(
         id=order_id,
         client_order_id=request.client_order_id,
@@ -314,7 +314,7 @@ def order_after_placing(
         time_in_force=request.time_in_force,
         status=status,
         price=yes_price(odds, outcome_one),
-        amount=amount,
+        quantity=quantity,
         filled=filled,
         remaining=max(Decimal("0"), remaining),
         average_price=yes_price(blended, outcome_one) if blended else None,
@@ -626,16 +626,16 @@ class SxBetTrading(TradingExchange):
             positions = [p for p in positions if p.market_id == wanted]
         return positions
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
-        """The taker fee on `amount` contracts at the YES `price` if the bet
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
+        """The taker fee on `quantity` contracts at the YES `price` if the bet
         wins: a share of its profit. A `sell` bets outcome two at `1 - price`.
         Makers pay nothing."""
         schedule = await asyncio.to_thread(self.catalog.fetch_fee_schedule, market_id)
         paid = D(price) if side == Side.BUY else Decimal("1") - D(price)
-        taker = schedule.estimate(float(paid), float(amount), taker=True)
+        taker = schedule.estimate(float(paid), float(quantity), taker=True)
         return FeeEstimate(
             venue=VENUE, market_id=ids.qualify(VENUE, ids.native(VENUE, market_id).lower()), side=side,
-            price=D(price), amount=D(amount),
+            price=D(price), quantity=D(quantity),
             taker_fee=D(taker) if taker is not None else None, maker_fee=Decimal("0"),
             currency="USDC", info={"schedule": schedule.model_dump(), "charged": "at settlement, if the bet wins"},
         )

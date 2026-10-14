@@ -4,7 +4,7 @@
 leg sizing, the floors and the re-walks in Python. These tests plan random
 buckets both ways -- random members, flips, venue rules, fee curves and
 floors, books of every kind `plan` takes -- and require the same plan, to
-the last digit of every price and amount.
+the last digit of every price and quantity.
 """
 from __future__ import annotations
 
@@ -35,8 +35,8 @@ def python_plan(monkeypatch, *args, **kwargs):
 
 def as_tuple(plan: router.Plan):
     return (
-        plan.side, plan.amount, plan.limit, plan.unfilled, plan.reason,
-        [(l.market_id, l.flip, l.side, str(l.price), str(l.amount), str(l.bucket_price), str(l.net_price),
+        plan.side, plan.quantity, plan.limit, plan.unfilled, plan.reason,
+        [(l.market_id, l.flip, l.side, str(l.price), str(l.quantity), str(l.bucket_price), str(l.net_price),
           str(l.fee), str(l.fee_floor)) for l in plan.legs],
     )
 
@@ -75,8 +75,8 @@ def random_case(rng: random.Random):
     precision = {}
     for m in members:
         precision[m.market_id] = Precision(
-            tick=rng.choice([D("0.01"), D("0.001")]), min_amount=D(rng.choice([1, 5, 10])),
-            whole_contracts=rng.random() < 0.4, amount_step=rng.choice([None, D("0.01"), D("0.1")]),
+            tick=rng.choice([D("0.01"), D("0.001")]), min_quantity=D(rng.choice([1, 5, 10])),
+            whole_contracts=rng.random() < 0.4, quantity_step=rng.choice([None, D("0.01"), D("0.1")]),
             min_notional=rng.choice([None, D("5")]),
         )
     rates = {m.market_id: rng.choice([D("0"), D("0.07"), D("0.0175"), D("0.02")]) for m in members}
@@ -90,9 +90,9 @@ def random_case(rng: random.Random):
 
     floors = {m.market_id: D("0.25") for m in members if rng.random() < 0.3}
     side = rng.choice([Side.BUY, Side.SELL])
-    amount = D(rng.randint(1, 20000)) / rng.choice([1, 10])
+    quantity = D(rng.randint(1, 20000)) / rng.choice([1, 10])
     limit = D(rng.randint(30, 99)) / 100 if side == Side.BUY else D(rng.randint(1, 70)) / 100
-    return bucket, books, precision, fee, dict(side=side, amount=amount, limit=limit, floors=floors)
+    return bucket, books, precision, fee, dict(side=side, quantity=quantity, limit=limit, floors=floors)
 
 
 @pytest.mark.parametrize("seed", range(300))
@@ -139,6 +139,6 @@ def test_a_rust_book_is_viewed_alike(flip, monkeypatch):
 def test_a_fee_that_is_a_float_is_left_to_python(monkeypatch):
     bucket = Bucket(book="b", name="t", members=[BucketMember(market_id=IDS[0]), BucketMember(market_id=IDS[1])])
     books = {m.market_id: _rust_book([(D("0.4"), D("10"))], [(D("0.6"), D("10"))]) for m in bucket.members}
-    precision = {m.market_id: Precision(tick=D("0.01"), min_amount=D("1")) for m in bucket.members}
+    precision = {m.market_id: Precision(tick=D("0.01"), min_quantity=D("1")) for m in bucket.members}
     with pytest.raises(TypeError):
-        router.plan(bucket, books, precision, lambda m, p, c: 0.01, side=Side.BUY, amount=D(5), limit=D("0.9"))
+        router.plan(bucket, books, precision, lambda m, p, c: 0.01, side=Side.BUY, quantity=D(5), limit=D("0.9"))

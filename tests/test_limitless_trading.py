@@ -40,7 +40,7 @@ PROFILE = {"id": 4242, "account": OWNER.address, "tradeWalletOption": "eoa", "ra
 
 
 def request(**changes) -> OrderRequest:
-    base = {"market_id": MARKET_ID, "side": Side.BUY, "amount": Decimal("10"), "price": Decimal("0.5")}
+    base = {"market_id": MARKET_ID, "side": Side.BUY, "quantity": Decimal("10"), "price": Decimal("0.5")}
     return OrderRequest(**{**base, **changes})
 
 
@@ -138,7 +138,7 @@ class TestRecords:
                "originalSize": "10000000", "remainingSize": "4000000", "createdAt": "2026-10-07T10:00:00.000Z",
                "clientOrderId": "c-1"}
         order = order_of_row(row, INFO)
-        assert (order.side, order.price, order.amount, order.filled, order.remaining) == (
+        assert (order.side, order.price, order.quantity, order.filled, order.remaining) == (
             Side.SELL, Decimal("0.7"), Decimal("10"), Decimal("6"), Decimal("4"))
         assert order.status == OrderStatus.OPEN and order.client_order_id == "c-1"
         assert order_of_row({**row, "status": "UNMATCHED", "type": "FAK"}, INFO).status == OrderStatus.CANCELED
@@ -173,7 +173,7 @@ class TestRecords:
         ("FAILED", False, "0", OrderStatus.REJECTED),
     ])
     def test_status_after_placing(self, settlement, taking, filled, status):
-        assert status_after_placing(settlement, taking=taking, filled=Decimal(filled), amount=Decimal("10")) == status
+        assert status_after_placing(settlement, taking=taking, filled=Decimal(filled), quantity=Decimal("10")) == status
 
 
 class TestCredentials:

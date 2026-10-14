@@ -42,6 +42,7 @@ from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from typing import Any
 
+from .._deprecated import renamed_kwargs
 from ..base import AsyncHttpClient, Capability
 from ..errors import (
     AuthenticationError, BadRequest, ExchangeError, ExchangeNotAvailable, MarketNotFound, NotSupported,
@@ -55,7 +56,7 @@ from .base import TradingExchange
 from .credentials import SYNPATH_BUILDER_CODE, PolymarketCredentials
 from .errors import CredentialsMissing, InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected
 from .limiter import BudgetLimiter, Priority
-from .money import D, from_poly_raw_amount, validate_amount, validate_price
+from .money import D, from_poly_raw_amount, validate_quantity, validate_price
 from .types import (
     Account, Balance, FeeEstimate, Fill, HeldBy, Liquidity, Order, OrderRequest, OrderStatus, OrderType,
     Position, PositionSide, Precision, SettlementState, Side, TimeInForce, VENUE_ORDER_TYPES,
@@ -116,7 +117,7 @@ class TokenInfo:
 
     @property
     def precision(self) -> Precision:
-        return Precision(tick=self.tick, min_amount=self.min_size, amount_step=SIZE_STEP, whole_contracts=False)
+        return Precision(tick=self.tick, min_quantity=self.min_size, quantity_step=SIZE_STEP, whole_contracts=False)
 
     @classmethod
     def from_book(cls, token_id: str, book: dict[str, Any]) -> "TokenInfo":
@@ -240,7 +241,7 @@ def validate_order(request: OrderRequest, info: TokenInfo, *, outcome: str = "ye
     price = validate_price(yes_price if outcome == "yes" else Decimal("1") - yes_price, info.precision)
     if price < info.tick or price > 1 - info.tick:
         raise InvalidOrder(f"polymarket: price {price} is outside [{info.tick}, {1 - info.tick}] for this tick")
-    size = validate_amount(D(request.amount), info.precision)
+    size = validate_quantity(D(request.quantity), info.precision)
     if request.post_only and request.time_in_force not in (TimeInForce.GTC, TimeInForce.GTD):
         raise InvalidOrder("polymarket: post-only orders must be gtc or gtd")
     if request.post_only and request.type == OrderType.MARKET:
@@ -332,11 +333,11 @@ def order_of(
 ) -> Order:
     """A CLOB order row (`GET /data/order`, `/data/orders`, the user stream),
     on the YES leg. `outcome` says which token `raw["asset_id"]` is."""
-    amount = D(raw.get("original_size") or "0")
+    quantity = D(raw.get("original_size") or "0")
     filled = D(raw.get("size_matched") or "0")
     native = str(raw.get("status") or "").lower()
     status = STATUS.get(native, OrderStatus.OPEN)
-    if status == OrderStatus.CLOSED and filled < amount:
+    if status == OrderStatus.CLOSED and filled < quantity:
         # `matched` on a partly filled order still resting is not the end of it.
         status = OrderStatus.OPEN
     expiration = int(raw.get("expiration") or 0)
@@ -351,9 +352,9 @@ def order_of(
         time_in_force=TIF.get(str(raw.get("order_type") or "GTC").upper(), TimeInForce.GTC),
         status=status,
         price=price,
-        amount=amount,
+        quantity=quantity,
         filled=filled,
-        remaining=max(Decimal("0"), amount - filled) if status == OrderStatus.OPEN else Decimal("0"),
+        remaining=max(Decimal("0"), quantity - filled) if status == OrderStatus.OPEN else Decimal("0"),
         expires_at=(expiration - GTD_SAFETY_S) * 1000 if expiration else None,
         created_at=_seconds_to_ms(raw.get("created_at")),
         updated_at=_seconds_to_ms(raw.get("timestamp")) if raw.get("timestamp") else None,
@@ -389,7 +390,7 @@ def order_from_response(
         time_in_force=TIF[entry["orderType"]],
         status=status,
         price=D(request.price) if request.price is not None else None,
-        amount=Decimal(shares_raw) / sig.SCALE,
+        quantity=Decimal(shares_raw) / sig.SCALE,
         filled=Decimal("0"),
         post_only=bool(entry.get("postOnly")),
         expires_at=(expiration - GTD_SAFETY_S) * 1000 if expiration else None,
@@ -426,7 +427,7 @@ def fills_of(
             id=trade_id, order_id=str(raw.get("taker_order_id") or ""), venue=VENUE, account=account,
             market_id=market_id,
             side=side,
-            price=price, amount=D(raw.get("size") or "0"),
+            price=price, quantity=D(raw.get("size") or "0"),
             fee=None, fee_currency="pUSD", liquidity=Liquidity.TAKER,
             settlement=settlement, timestamp=stamp, info=raw,
         ))
@@ -442,7 +443,7 @@ def fills_of(
             id=f"{trade_id}:{leg.get('order_id')}", order_id=str(leg.get("order_id") or ""), venue=VENUE,
             account=account, market_id=market_id,
             side=side,
-            price=price, amount=D(leg.get("matched_amount") or "0"),
+            price=price, quantity=D(leg.get("matched_amount") or "0"),
             fee=Decimal("0"), fee_currency="pUSD", liquidity=Liquidity.MAKER,
             settlement=settlement, timestamp=stamp, info={"trade": raw, "maker_order": leg},
         ))
@@ -900,7 +901,7 @@ class PolymarketTrading(TradingExchange):
                     results[oid] = Order(
                         id=oid, venue=VENUE, account=self.account, market_id=market_id or "",
                         side=Side.BUY, type=OrderType.LIMIT, time_in_force=TimeInForce.GTC,
-                        status=OrderStatus.CANCELED, amount=Decimal("0"), info={"cancel": "canceled"},
+                        status=OrderStatus.CANCELED, quantity=Decimal("0"), info={"cancel": "canceled"},
                     )
                 else:
                     results[oid] = OrderRejected(
@@ -1033,13 +1034,13 @@ class PolymarketTrading(TradingExchange):
                 market_id=tokens.market_id if tokens else ids.qualify(VENUE, str(row.get("condition_id") or "")),
                 held=PositionSide.LONG if held == "yes" else PositionSide.SHORT if held == "no" else None,
                 result=None, won=payout > 0,
-                amount=D(row.get("size") or 0), cost=None, payout=payout, pnl=None,
+                quantity=D(row.get("size") or 0), cost=None, payout=payout, pnl=None,
                 timestamp=int(row["timestamp"]) * 1000 if row.get("timestamp") else None, info=row,
             ))
         return Page(settlements, next_cursor=((raw or {}).get("pagination") or {}).get("next_cursor"))
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
-        """The market's taker fee at the YES `price` for `amount` shares, from
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
+        """The market's taker fee at the YES `price` for `quantity` shares, from
         the CLOB's own market parameters. Makers pay nothing. The fee is
         symmetric in the YES price, so `side` does not change it."""
         tokens = await self.market_tokens(market_id)
@@ -1052,9 +1053,9 @@ class PolymarketTrading(TradingExchange):
             taker_rate=float(rate) if rate is not None else 0.0, maker_rate=0.0,
             exponent=float(fd["e"]) if fd.get("e") is not None else None, info={"fd": fd},
         )
-        taker = schedule.estimate(float(price), float(amount), taker=True)
+        taker = schedule.estimate(float(price), float(quantity), taker=True)
         return FeeEstimate(
-            venue=VENUE, market_id=tokens.market_id, side=side, price=D(price), amount=D(amount),
+            venue=VENUE, market_id=tokens.market_id, side=side, price=D(price), quantity=D(quantity),
             taker_fee=D(str(taker)) if taker is not None else None, maker_fee=Decimal("0"),
             currency="pUSD", info={"schedule": schedule.model_dump()},
         )
@@ -1163,20 +1164,22 @@ class PolymarketTrading(TradingExchange):
         await self.sync_allowances()
         return result
 
-    async def split(self, market_id: str, amount: Decimal, *, neg_risk: bool | None = None) -> dict[str, Any]:
-        """pUSD into a full set: `amount` YES and `amount` NO tokens."""
+    @renamed_kwargs(amount="quantity")  # TODO(0.9): remove
+    async def split(self, market_id: str, quantity: Decimal, *, neg_risk: bool | None = None) -> dict[str, Any]:
+        """pUSD into a full set: `quantity` YES and `quantity` NO tokens."""
         tokens = await self.market_tokens(market_id)
         neg_risk = tokens.neg_risk if neg_risk is None else neg_risk
         call = {"target": sig.collateral_adapter_for(neg_risk), "value": "0",
-                "data": sig.split_calldata(tokens.condition_id, sig.to_raw(D(amount)))}
+                "data": sig.split_calldata(tokens.condition_id, sig.to_raw(D(quantity)))}
         return await self.execute_wallet_calls([call], description="Split position")
 
-    async def merge(self, market_id: str, amount: Decimal, *, neg_risk: bool | None = None) -> dict[str, Any]:
-        """A full set back into pUSD: `amount` of each outcome."""
+    @renamed_kwargs(amount="quantity")  # TODO(0.9): remove
+    async def merge(self, market_id: str, quantity: Decimal, *, neg_risk: bool | None = None) -> dict[str, Any]:
+        """A full set back into pUSD: `quantity` of each outcome."""
         tokens = await self.market_tokens(market_id)
         neg_risk = tokens.neg_risk if neg_risk is None else neg_risk
         call = {"target": sig.collateral_adapter_for(neg_risk), "value": "0",
-                "data": sig.merge_calldata(tokens.condition_id, sig.to_raw(D(amount)))}
+                "data": sig.merge_calldata(tokens.condition_id, sig.to_raw(D(quantity)))}
         return await self.execute_wallet_calls([call], description="Merge positions")
 
     async def redeem(self, market_id: str, *, neg_risk: bool | None = None) -> dict[str, Any]:

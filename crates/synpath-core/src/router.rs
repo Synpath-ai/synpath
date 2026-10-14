@@ -89,7 +89,7 @@ pub fn sort(levels: &mut [Level], buy: bool) {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Slot {
     pub member: usize,
-    pub amount: Decimal,
+    pub quantity: Decimal,
     /// Sum of net price times contracts.
     pub cost: Decimal,
     /// Sum of the per-contract fee times contracts.
@@ -117,17 +117,17 @@ impl Reason {
 }
 
 /// `_walk`'s loop: what each member's levels give, best first, up to
-/// `amount` and no worse than `limit` net. Slots come in the order members
+/// `quantity` and no worse than `limit` net. Slots come in the order members
 /// were first taken from. `None` when the arithmetic would not be exact.
 pub fn walk(
     levels: &[Level],
     buy: bool,
-    amount: Decimal,
+    quantity: Decimal,
     limit: Decimal,
     excluded: &[bool],
 ) -> Option<(Vec<Slot>, Decimal, Reason)> {
     let mut slots: Vec<Slot> = Vec::new();
-    let mut remaining = amount;
+    let mut remaining = quantity;
     let mut reason = Reason::Liquidity;
     let mut stopped = false;
     for level in levels {
@@ -155,7 +155,7 @@ pub fn walk(
             None => {
                 slots.push(Slot {
                     member: level.member,
-                    amount: Decimal::ZERO,
+                    quantity: Decimal::ZERO,
                     cost: Decimal::ZERO,
                     fee: Decimal::ZERO,
                     worst: level.price,
@@ -164,7 +164,7 @@ pub fn walk(
             }
         };
         let slot = &mut slots[index];
-        slot.amount = add(slot.amount, take)?;
+        slot.quantity = add(slot.quantity, take)?;
         slot.cost = add(slot.cost, mul(level.net, take)?)?;
         slot.fee = add(slot.fee, mul(sub(level.net, level.price)?.abs(), take)?)?;
         // `max`/`min` keep the first argument on a tie, as Python's do.
@@ -221,7 +221,7 @@ mod tests {
         assert_eq!(reason, Reason::WorstPrice);
         assert_eq!(remaining, d("15"));
         assert_eq!(slots[0].member, 1);
-        assert_eq!(slots[1].amount, d("10"));
+        assert_eq!(slots[1].quantity, d("10"));
         assert_eq!(slots[1].fee, d("0.10"));
     }
 

@@ -97,7 +97,7 @@ class TestBookTradesCandles:
             on_no = row["tokenId"] == no_token
             assert trade.price == pytest.approx(1 - row["price"] if on_no else row["price"], abs=1e-6)
             assert trade.side == ("buy" if (row["side"] == 0) != on_no else "sell")
-            assert trade.amount == int(row["matchedSize"]) / 1_000_000
+            assert trade.quantity == int(row["matchedSize"]) / 1_000_000
 
     def test_candles_are_price_samples(self):
         points = load("limitless_history.json")["prices"]

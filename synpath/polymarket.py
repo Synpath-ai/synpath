@@ -400,7 +400,7 @@ def normalize_trade(trade: dict[str, Any], *, market_id: str = "", no_token: str
         timestamp=timestamp,
         datetime=iso(timestamp) or "",
         price=price,
-        amount=to_float(trade.get("size")) or 0.0,
+        quantity=to_float(trade.get("size")) or 0.0,
         side=side if side in ("buy", "sell") else "unknown",
         info=trade,
     )

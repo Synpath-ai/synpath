@@ -111,9 +111,9 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order | 
     side, yes_price = to_yes_leg(outcome, venue_side, price)
     word = str(raw.get("status") or "open")
     status = status_of(word)
-    amount = D(order.get("origSz") or order.get("sz"))
+    quantity = D(order.get("origSz") or order.get("sz"))
     left = D(order.get("sz"))
-    filled = amount if status == OrderStatus.CLOSED else max(Decimal("0"), amount - left)
+    filled = quantity if status == OrderStatus.CLOSED else max(Decimal("0"), quantity - left)
     tif = TIME_IN_FORCE.get(str(order.get("tif") or ""), TimeInForce.GTC)
     return Order(
         id=str(order.get("oid") or ""),
@@ -126,7 +126,7 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order | 
         time_in_force=tif,
         status=status,
         price=yes_price,
-        amount=amount,
+        quantity=quantity,
         filled=filled,
         remaining=left if status == OrderStatus.OPEN else Decimal("0"),
         post_only=order.get("tif") == "Alo",
@@ -157,7 +157,7 @@ def fill_of(raw: dict[str, Any], *, account: Account | None = None) -> Fill | No
         market_id=ids.qualify(VENUE, native),
         side=side,
         price=price or Decimal("0"),
-        amount=D(raw.get("sz")),
+        quantity=D(raw.get("sz")),
         fee=D(raw.get("fee")) if raw.get("fee") not in (None, "") else None,
         fee_currency=raw.get("feeToken") or None,
         liquidity=Liquidity.TAKER if crossed is True else Liquidity.MAKER if crossed is False else Liquidity.UNKNOWN,
@@ -247,19 +247,19 @@ def build_order_wire(request: OrderRequest) -> tuple[dict[str, Any], str, str, D
         raise InvalidOrder(f"{VENUE}: price {yes_price} must be strictly between 0 and 1")
     if sig.significant_figures(price) > MAX_SIGNIFICANT:
         raise InvalidOrder(f"{VENUE}: {price} has more than {MAX_SIGNIFICANT} significant figures")
-    amount = Decimal(str(request.amount))
-    if amount <= 0 or amount != amount.to_integral_value():
-        raise InvalidOrder(f"{VENUE}: {amount} contracts -- the venue trades whole contracts")
-    if price * amount < MIN_NOTIONAL:
+    quantity = Decimal(str(request.quantity))
+    if quantity <= 0 or quantity != quantity.to_integral_value():
+        raise InvalidOrder(f"{VENUE}: {quantity} contracts -- the venue trades whole contracts")
+    if price * quantity < MIN_NOTIONAL:
         raise InvalidOrder(
-            f"{VENUE}: {amount} at {price} is {price * amount} {QUOTE}; the venue's minimum order is {MIN_NOTIONAL} {QUOTE}"
+            f"{VENUE}: {quantity} at {price} is {price * quantity} {QUOTE}; the venue's minimum order is {MIN_NOTIONAL} {QUOTE}"
         )
     try:
         wire: dict[str, Any] = {
             "a": asset_of(native, outcome),
             "b": venue_side == "BUY",
             "p": sig.to_wire(price),
-            "s": sig.to_wire(amount),
+            "s": sig.to_wire(quantity),
             "r": False,
             "t": {"limit": {"tif": tif_of(request)}},
         }
@@ -416,10 +416,10 @@ class HyperliquidTrading(TradingExchange):
         resting, filled = status.get("resting"), status.get("filled")
         raw = resting or filled or {}
         oid = str(raw.get("oid") or "")
-        amount = Decimal(str(request.amount))
+        quantity = Decimal(str(request.quantity))
         done = D(filled.get("totalSz")) if filled else Decimal("0")
         immediate = wire["t"]["limit"]["tif"] == "Ioc"
-        if filled and done >= amount:
+        if filled and done >= quantity:
             state = OrderStatus.CLOSED
         elif resting:
             state = OrderStatus.OPEN
@@ -440,9 +440,9 @@ class HyperliquidTrading(TradingExchange):
             time_in_force=request.time_in_force,
             status=state,
             price=Decimal(str(request.price)),
-            amount=amount,
+            quantity=quantity,
             filled=done,
-            remaining=amount - done if state == OrderStatus.OPEN else Decimal("0"),
+            remaining=quantity - done if state == OrderStatus.OPEN else Decimal("0"),
             average_price=(avg if outcome == "yes" else Decimal("1") - avg) if avg is not None else None,
             post_only=request.post_only,
             reduce_only=request.reduce_only,
@@ -650,17 +650,17 @@ class HyperliquidTrading(TradingExchange):
             positions = [p for p in positions if p.market_id in members]
         return positions
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
-        """What a fill of `amount` at the YES `price` is charged *if it closes
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
+        """What a fill of `quantity` at the YES `price` is charged *if it closes
         a position*: the market's rate on the notional of the token traded,
         at the lowest volume tier. A fill that opens a position pays nothing,
         which `info["opening_fee"]` says."""
         schedule = await asyncio.to_thread(self.catalog.fetch_fee_schedule, market_id)
         token_price = Decimal(str(price)) if side == Side.BUY else Decimal("1") - Decimal(str(price))
-        notional = token_price * Decimal(str(amount))
+        notional = token_price * Decimal(str(quantity))
         return FeeEstimate(
             venue=VENUE, market_id=ids.qualify(VENUE, ids.native(VENUE, market_id)), side=side,
-            price=Decimal(str(price)), amount=Decimal(str(amount)),
+            price=Decimal(str(price)), quantity=Decimal(str(quantity)),
             taker_fee=(notional * Decimal(str(schedule.taker_rate or 0))).quantize(Decimal("1e-6")),
             maker_fee=(notional * Decimal(str(schedule.maker_rate or 0))).quantize(Decimal("1e-6")),
             currency=QUOTE,

@@ -144,7 +144,7 @@ from synpath import KalshiTrading, OrderRequest, Side, load_credentials, require
 async with KalshiTrading(require("kalshi", load_credentials())) as kalshi:
     order = await kalshi.create_order(OrderRequest(
         market_id=market.id, side=Side.BUY,          # buy takes YES, sell takes NO
-        amount=Decimal("10"), price=Decimal("0.42"), # always the YES price
+        quantity=Decimal("10"), price=Decimal("0.42"), # always the YES price
     ))
 ```
 
@@ -164,10 +164,11 @@ async with PolymarketMarketStream() as stream:
 
 ```python
 synpath.match_market("kalshi:KXHIGHTATL-26SEP23-B80")   # .matched: the same question on another venue, or None
+synpath.match_market("kalshi:KXMLB-26-LAD", venue="polymarket_us")   # on one venue in particular
 synpath.match_event("kalshi:KXHIGHTATL-26SEP23")        # each venue's events on the same event
 ```
 
-Matching is hosted at `api.synpath.dev` and needs a Synpath API key (`synpath login`, then `synpath keys create`). A match is a deterministic parse both listings land on, not a similarity score, and `side_map` says when one venue asks the question the other way round. Crypto up-or-down markets are never matched, since each venue sets its own price to beat. Browse matched events at [synpath.dev](https://www.synpath.dev); API: [match a market](https://www.synpath.dev/docs/api-reference/matching/market), [match an event](https://www.synpath.dev/docs/api-reference/matching/event).
+Matching covers Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet. It is hosted at `api.synpath.dev` and needs a Synpath API key (`synpath login`, then `synpath keys create`). A match is a deterministic parse both listings land on, not a similarity score, and `side_map` says when one venue asks the question the other way round. Crypto up-or-down markets are never matched, since each venue sets its own price to beat. Browse matched events at [synpath.dev](https://www.synpath.dev); API: [match a market](https://www.synpath.dev/docs/api-reference/matching/market), [match an event](https://www.synpath.dev/docs/api-reference/matching/event).
 
 **Smart order routing: one order across Kalshi and Polymarket**
 
@@ -186,7 +187,7 @@ async with KalshiTrading(require("kalshi", creds)) as kalshi, \
     ]))
     # Both order books combined, each level net of fees, filled from the cheapest price outward
     await engine.submit(OrderRequest(
-        market_id=bucket.market_id, side=Side.BUY, amount=Decimal("500"),
+        market_id=bucket.market_id, side=Side.BUY, quantity=Decimal("500"),
         type=OrderType.MARKET, price=Decimal("0.45"),   # the worst price you accept
         book="alpha",
     ))

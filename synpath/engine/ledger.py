@@ -25,7 +25,7 @@ fair values the engine stores per account and instrument (`fair_values.py`),
 not from a book this module cannot see. Without a mark a position reports
 its cost and no unrealized number, rather than a made-up one.
 
-Settlement closes a position at 1 or 0 and moves the whole remaining amount
+Settlement closes a position at 1 or 0 and moves the whole remaining quantity
 into realized.
 """
 from __future__ import annotations
@@ -99,18 +99,18 @@ class PositionState:
         unreal = self.unrealized(mark) or ZERO
         return self.realized + unreal
 
-    def apply(self, *, side: Side, price: Decimal, amount: Decimal, fee: Decimal | None, ts: int | None) -> Decimal:
+    def apply(self, *, side: Side, price: Decimal, quantity: Decimal, fee: Decimal | None, ts: int | None) -> Decimal:
         """Apply one fill already converted to the YES leg. Returns the profit
         realized by this fill, fee included."""
-        signed = amount if side == Side.BUY else -amount
+        signed = quantity if side == Side.BUY else -quantity
         realized = ZERO
         if self.contracts == 0 or (self.contracts > 0) == (signed > 0):
             # Opening or adding: weighted average of what it cost.
-            total = abs(self.contracts) + amount
-            self.average_cost = ((self.average_cost * abs(self.contracts)) + (price * amount)) / total if total else ZERO
+            total = abs(self.contracts) + quantity
+            self.average_cost = ((self.average_cost * abs(self.contracts)) + (price * quantity)) / total if total else ZERO
             self.contracts += signed
         else:
-            closing = min(amount, abs(self.contracts))
+            closing = min(quantity, abs(self.contracts))
             direction = ONE if self.contracts > 0 else -ONE
             realized += (price - self.average_cost) * closing * direction
             self.contracts += signed
@@ -123,13 +123,13 @@ class PositionState:
             self.fees += fee
             realized -= fee
         self.realized += realized
-        self.volume += amount
+        self.volume += quantity
         if side == Side.BUY:
-            self.bought += amount
+            self.bought += quantity
         else:
-            self.sold += amount
+            self.sold += quantity
         held = "yes" if side == Side.BUY else "no"
-        self.inventory[held] = self.inventory.get(held, ZERO) + amount
+        self.inventory[held] = self.inventory.get(held, ZERO) + quantity
         self.fills += 1
         if ts is not None:
             self.last_ts = max(ts, self.last_ts or 0)
@@ -209,7 +209,7 @@ class Ledger:
             return ZERO
         state = self.state_for(fill, book=book)
         # Fills arrive on the YES leg already: `sell` is the NO side at the YES price.
-        return state.apply(side=fill.side, price=fill.price, amount=fill.amount, fee=fill.fee, ts=fill.timestamp)
+        return state.apply(side=fill.side, price=fill.price, quantity=fill.quantity, fee=fill.fee, ts=fill.timestamp)
 
     def apply_fills(self, fills: Iterable[Fill], *, book: str | None = None) -> Decimal:
         return sum((self.apply_fill(f, book=book) for f in fills), ZERO)
@@ -348,6 +348,6 @@ def _settlement_price(settlement: Settlement, face_value: Decimal) -> Decimal:
         return ZERO
     if settlement.won is not None:
         return face_value if settlement.won else ZERO
-    if settlement.payout is not None and settlement.amount:
-        return Decimal(settlement.payout) / Decimal(settlement.amount)
+    if settlement.payout is not None and settlement.quantity:
+        return Decimal(settlement.payout) / Decimal(settlement.quantity)
     return ZERO

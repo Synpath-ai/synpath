@@ -28,29 +28,29 @@ from .money import D
 from .types import Precision
 
 VENUE_RULES: dict[str, dict[str, Any]] = {
-    "kalshi": {"default_tick": Decimal("0.01"), "min_amount": Decimal("0.01"), "amount_step": Decimal("0.01"), "whole": False},
+    "kalshi": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.01"), "whole": False},
     # Shares carry two decimals; the minimum (usually 5) is per market, read
     # from its book by the trading adapter.
-    "polymarket": {"default_tick": Decimal("0.01"), "min_amount": Decimal("5"), "amount_step": Decimal("0.01"), "whole": False},
+    "polymarket": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("5"), "quantity_step": Decimal("0.01"), "whole": False},
     # Every live market trades whole contracts today, but a market may set a
     # fractional `minimumTradeQty`; the trading adapters read it per market.
-    "polymarket_us": {"default_tick": Decimal("0.001"), "min_amount": Decimal("1"), "amount_step": Decimal("1"), "whole": True},
+    "polymarket_us": {"default_tick": Decimal("0.001"), "min_quantity": Decimal("1"), "quantity_step": Decimal("1"), "whole": True},
     # Prices to a tenth of a cent on every book read, and at least 5 USDT an
     # order, counted on the token actually bought.
-    "opinion": {"default_tick": Decimal("0.001"), "min_amount": Decimal("1"), "amount_step": Decimal("0.01"), "whole": False,
+    "opinion": {"default_tick": Decimal("0.001"), "min_quantity": Decimal("1"), "quantity_step": Decimal("0.01"), "whole": False,
                 "min_notional": Decimal("5")},
     # Prices take at most five significant figures, which a 0.0001 grid
     # always meets inside (0, 1); whole contracts; at least 10 in quote an order.
-    "hyperliquid": {"default_tick": Decimal("0.0001"), "min_amount": Decimal("1"), "amount_step": Decimal("1"), "whole": True,
+    "hyperliquid": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("1"), "quantity_step": Decimal("1"), "whole": True,
                     "min_notional": Decimal("10")},
     # Two or three decimals of price per market (its `decimalPrecision`);
     # sizes to a hundredth of a share at least, as the venue's SDK checks.
-    "predict_fun": {"default_tick": Decimal("0.01"), "min_amount": Decimal("0.01"), "amount_step": Decimal("0.01"), "whole": False},
+    "predict_fun": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.01"), "whole": False},
     # Prices to a tenth of a cent between 1c and 99c; sizes in thousandths of a share.
-    "limitless": {"default_tick": Decimal("0.001"), "min_amount": Decimal("0.001"), "amount_step": Decimal("0.001"), "whole": False},
+    "limitless": {"default_tick": Decimal("0.001"), "min_quantity": Decimal("0.001"), "quantity_step": Decimal("0.001"), "whole": False},
     # Prices on a 0.125% ladder; the stake is what is counted, at least 1 USDC,
     # so contracts take any size to a millionth.
-    "sx_bet": {"default_tick": Decimal("0.00125"), "min_amount": Decimal("0.000001"), "amount_step": Decimal("0.000001"),
+    "sx_bet": {"default_tick": Decimal("0.00125"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
                "whole": False, "min_notional": Decimal("1")},
 }
 
@@ -92,8 +92,8 @@ def precision_for(market: Market) -> Precision:
     tick = D(market.tick_size) if market.tick_size else rules["default_tick"]
     return Precision(
         tick=tick,
-        min_amount=rules["min_amount"],
-        amount_step=rules["amount_step"],
+        min_quantity=rules["min_quantity"],
+        quantity_step=rules["quantity_step"],
         whole_contracts=rules["whole"],
         face_value=D(market.face_value),
         min_notional=rules.get("min_notional"),

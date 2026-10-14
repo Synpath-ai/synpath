@@ -610,7 +610,7 @@ class TestPolymarketUser:
         (confirmed,) = stream.handle({**DOC_USER_TRADE, "status": "CONFIRMED"})
         assert matched.fill.id == confirmed.fill.id == "trade-1:0xorder"
         assert matched.fill.settlement == SettlementState.MATCHED and confirmed.fill.settlement == SettlementState.CONFIRMED
-        assert matched.fill.amount == D("4") and matched.fill.side == Side.SELL
+        assert matched.fill.quantity == D("4") and matched.fill.side == Side.SELL
 
 
 # ---------------------------------------------------------------------------
@@ -673,7 +673,7 @@ class TestPolymarketUS:
         (quote,) = stream.handle({"marketDataLite": {"marketSlug": SLUG, "bestBid": {"value": "0.54"}, "bestAsk": {"value": "0.56"}, "lastTradePx": {"value": "0.55"}}})
         (trade,) = stream.handle({"trade": {"marketSlug": SLUG, "price": {"value": "0.555"}, "quantity": {"value": "0.50"},
                                             "tradeTime": "2026-09-17T12:00:00Z", "maker": {"side": "ORDER_SIDE_BUY"}, "taker": {"side": "ORDER_SIDE_SELL"}}})
-        assert quote.bid == D("0.54") and trade.amount == D("0.50") and trade.taker_side == Side.SELL
+        assert quote.bid == D("0.54") and trade.quantity == D("0.50") and trade.taker_side == Side.SELL
         assert stream.handle({"heartbeat": {}}) == []
         assert stream.handle({"requestId": "md-1", "error": "unknown market"}) == []
         (err,) = of(drain(stream), StreamStatusEvent)

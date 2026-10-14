@@ -20,6 +20,7 @@ from typing import Literal
 from pydantic import Field
 
 from . import ids
+from ._deprecated import QUANTITY, renamed_fields
 from .errors import BadRequest
 from .trading.types import Side
 from .types import BookSide, _Base
@@ -99,6 +100,7 @@ class BucketVenueFill(_Base):
     average_price: Decimal | None = Field(description="In bucket terms")
 
 
+@renamed_fields(QUANTITY)  # TODO(0.9): remove
 class BucketOrderReport(_Base):
     """What an order on a bucket has done, in bucket terms, and where."""
 
@@ -106,14 +108,14 @@ class BucketOrderReport(_Base):
     bucket_id: str
     status: str = Field(description="As on the order: `open`, `closed`, `canceled`, ...")
     side: str
-    amount: Decimal
+    quantity: Decimal
     worst_price: Decimal = Field(description="The worst price the order accepts, in bucket terms")
     filled: Decimal
     unfilled: Decimal
     average_price: Decimal | None = Field(description="Weighted across every venue, in bucket terms")
     fees_paid: Decimal
     rounds: int = Field(description="Re-allocations that moved a leg")
-    stop_reason: str | None = Field(description="`worst_price` (nothing left at or better than it), `liquidity`, `min_amount`, `max_rounds`, `max_age`, "
+    stop_reason: str | None = Field(description="`worst_price` (nothing left at or better than it), `liquidity`, `min_quantity`, `max_rounds`, `max_age`, "
                                                 "or null while working or once filled")
     per_venue: list[BucketVenueFill]
     detail: str | None = Field(default=None, description="Why the order was rejected or stopped, in words; "

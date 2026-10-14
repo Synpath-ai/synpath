@@ -160,6 +160,17 @@ result.event_id   # the canonical event both sides belong to
 result.matched     # MarketLink | None
 ```
 
+Matching covers every venue this library speaks: `kalshi`, `polymarket`,
+`polymarket_us`, `opinion`, `hyperliquid`, `predict_fun`, `limitless` and
+`sx_bet`. `venue=` asks one of them in particular; without it the answer is
+the first venue listing the same question, in the order Polymarket, Kalshi,
+Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Polymarket US.
+
+```python
+synpath.match_market("kalshi:KXMLB-26-LAD", venue="polymarket_us")
+synpath.match_market("polymarket_us:tec-mlb-champ-2026-09-27-lad", venue="kalshi")
+```
+
 Three outcomes, always distinguishable:
 
 | | |

@@ -77,7 +77,7 @@ def token(**kw) -> TokenInfo:
 
 
 def req(**kw) -> OrderRequest:
-    base = dict(market_id=MARKET, side=Side.BUY, amount=D("10"), price=D("0.52"))
+    base = dict(market_id=MARKET, side=Side.BUY, quantity=D("10"), price=D("0.52"))
     base.update(kw)
     return OrderRequest(**base)
 
@@ -140,12 +140,12 @@ class TestWalletCalls:
         assert sig.merge_calldata(CONDITION, 1).startswith("0x9e7212ad")
         assert sig.redeem_calldata(CONDITION).startswith("0x01b7037c")
 
-    def test_split_encodes_pusd_condition_partition_and_amount(self):
+    def test_split_encodes_pusd_condition_partition_and_quantity(self):
         from eth_abi import decode
         data = bytes.fromhex(sig.split_calldata(CONDITION, 5_000_000)[10:])
-        collateral, parent, condition, partition, amount = decode(["address", "bytes32", "bytes32", "uint256[]", "uint256"], data)
+        collateral, parent, condition, partition, quantity = decode(["address", "bytes32", "bytes32", "uint256[]", "uint256"], data)
         assert collateral.lower() == sig.PUSD.lower() and parent == b"\x00" * 32
-        assert "0x" + condition.hex() == CONDITION and list(partition) == [1, 2] and amount == 5_000_000
+        assert "0x" + condition.hex() == CONDITION and list(partition) == [1, 2] and quantity == 5_000_000
 
     def test_bad_condition_id(self):
         with pytest.raises(InvalidOrder, match="condition id"):
@@ -238,9 +238,9 @@ class TestTranslate:
 
     @pytest.mark.parametrize("kw,match", [
         ({"price": D("0.525")}, "tick"),
-        ({"price": D("0.995"), "amount": D("10")}, "tick"),
-        ({"amount": D("4.99")}, "minimum"),
-        ({"amount": D("10.005")}, "multiple"),
+        ({"price": D("0.995"), "quantity": D("10")}, "tick"),
+        ({"quantity": D("4.99")}, "minimum"),
+        ({"quantity": D("10.005")}, "multiple"),
         ({"time_in_force": TimeInForce.DAY}, "engine"),
         ({"type": OrderType.STOP_LIMIT, "stop_price": D("0.4")}, "execution engine"),
         ({"market_id": "kalshi:T"}, "belongs to kalshi"),
@@ -252,7 +252,7 @@ class TestTranslate:
     def test_a_finer_tick_allows_finer_prices(self):
         with pytest.raises(InvalidOrder, match="tick"):
             build(req(price=D("0.001")), info=token(tick=D("0.01")))
-        assert build(req(price=D("0.001"), amount=D("5000")), info=token(tick=D("0.001")))[0]["order"]["makerAmount"] == "5000000"
+        assert build(req(price=D("0.001"), quantity=D("5000")), info=token(tick=D("0.001")))[0]["order"]["makerAmount"] == "5000000"
 
     def test_builder_code_is_signed_into_the_order(self):
         code = "0x" + "ab" * 32
@@ -326,7 +326,7 @@ class TestNormalizers:
         order = order_of(DOC_ORDER, market_id=MARKET, outcome="yes")
         assert order.id == "0xorder" and order.market_id == MARKET
         assert order.status == OrderStatus.OPEN and order.side == Side.BUY and order.price == D("0.52")
-        assert order.amount == D("10") and order.filled == 0 and order.remaining == D("10")
+        assert order.quantity == D("10") and order.filled == 0 and order.remaining == D("10")
         assert order.time_in_force == TimeInForce.GTC and order.expires_at is None
         assert order.created_at == 1748779200000
 
@@ -353,13 +353,13 @@ class TestNormalizers:
     def test_taker_fill(self):
         (fill,) = fills_of(DOC_TRADE_TAKER, api_key="api-key-uuid", wallets={WALLET}, market_id=MARKET, outcome_of=outcome_of)
         assert fill.id == "TRADE_ID" and fill.order_id == "0xorder" and fill.liquidity == Liquidity.TAKER
-        assert fill.side == Side.BUY and fill.amount == D("10") and fill.price == D("0.52")
+        assert fill.side == Side.BUY and fill.quantity == D("10") and fill.price == D("0.52")
         assert fill.settlement == SettlementState.MATCHED and fill.timestamp == 1748779205000
 
     def test_maker_fill_takes_only_our_legs(self):
         (fill,) = fills_of(DOC_TRADE_MAKER, api_key="api-key-uuid", wallets={WALLET}, market_id=MARKET, outcome_of=outcome_of)
         assert fill.order_id == "0xmine" and fill.id == "TRADE_ID:0xmine"
-        assert fill.amount == D("4") and fill.side == Side.SELL and fill.liquidity == Liquidity.MAKER
+        assert fill.quantity == D("4") and fill.side == Side.SELL and fill.liquidity == Liquidity.MAKER
         assert fill.settlement == SettlementState.CONFIRMED and fill.fee == 0
 
     @pytest.mark.parametrize("status,state", [("MINED", SettlementState.MATCHED), ("RETRYING", SettlementState.MATCHED), ("FAILED", SettlementState.FAILED)])
@@ -498,7 +498,7 @@ class TestAdapter:
         body = json.loads(sent.content)
         assert sent.content.decode() == serialize(body)
         assert order.id == sig.order_hash(body["order"], neg_risk=False) == order.info["computed_id"]
-        assert order.status == OrderStatus.OPEN and order.amount == D("10") and order.market_id == MARKET
+        assert order.status == OrderStatus.OPEN and order.quantity == D("10") and order.market_id == MARKET
         assert order.client_order_id == "mine-1" and order.book == "alpha"
         # the signature in the body verifies as a deposit-wallet order from this signer
         assert body["order"]["signature"] == sig.sign_order(sig.WalletSigner(KEY), {k: v for k, v in body["order"].items() if k != "signature"}, neg_risk=False)

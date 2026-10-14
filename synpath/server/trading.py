@@ -36,9 +36,10 @@ from decimal import Decimal
 from typing import Annotated, Any, Iterable, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Path, Query, Request, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .. import ids
+from .._deprecated import QUANTITY, rename_input
 from ..bucket import (
     Bucket, BucketMember, BucketOrderReport, BucketPosition, bucket_id_of, is_bucket_id,
 )
@@ -190,10 +191,16 @@ class EditBody(BaseModel):
     left out are left alone."""
 
     price: Decimal | None = None
-    amount: Decimal | None = None
+    quantity: Decimal | None = None
     time_in_force: TimeInForce | None = None
     expires_at: int | None = None
     client_order_id: str | None = Field(default=None, description="Idempotency key for the edit itself")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _renamed(cls, data: Any) -> Any:
+        # TODO(0.9): remove with synpath._deprecated.
+        return rename_input(data, QUANTITY)
 
 
 class GrantBody(BaseModel):

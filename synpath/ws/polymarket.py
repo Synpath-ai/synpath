@@ -179,7 +179,7 @@ class PolymarketMarketStream(Stream):
                 taker_side = {Side.BUY: Side.SELL, Side.SELL: Side.BUY}.get(taker_side)  # type: ignore[arg-type]
             return [TradeEvent(
                 venue=VENUE, market_id=market_id,
-                id=message.get("transaction_hash") or None, price=price, amount=D(message["size"]),
+                id=message.get("transaction_hash") or None, price=price, quantity=D(message["size"]),
                 taker_side=taker_side, timestamp=_ms(message.get("timestamp")), info=message,
             )]
         if kind == "best_bid_ask":

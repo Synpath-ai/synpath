@@ -73,6 +73,16 @@ your self-hosted server (`synpath serve`), not at a venue. Point
 access token and the three kinds of credentials are on
 [synpath.dev](https://synpath.dev/docs/quickstart/local-server).
 
+## Contracts are `quantity`
+
+A number of contracts is `quantity` everywhere: `OrderRequest.quantity`,
+`Order.quantity` and `last_fill_quantity`, `Fill.quantity`,
+`Trade.quantity`, `Precision.min_quantity` and `quantity_step`, and every
+argument that takes a number of contracts. Before 0.8 it was `amount`. For
+this release the old names still work -- as model input, as a read-only
+attribute and as a keyword argument -- with a `DeprecationWarning`; they are
+removed in the next release. JSON from the server is `quantity` only.
+
 ## Money is `Decimal`
 
 Prices and amounts that will be signed are `Decimal`, checked against the
@@ -151,9 +161,9 @@ async def main():
         print(await kalshi.fetch_balance())
         order = await kalshi.create_order(OrderRequest(
             market_id="kalshi:KXBTCD-26SEP1717-T115000", side=Side.SELL,   # sell takes NO
-            amount=Decimal("5"), price=Decimal("0.70"),                     # at the YES price
+            quantity=Decimal("5"), price=Decimal("0.70"),                     # at the YES price
         ))
-        order = await kalshi.edit_order(EditRequest(order_id=order.id, amount=Decimal("3")), current=order)
+        order = await kalshi.edit_order(EditRequest(order_id=order.id, quantity=Decimal("3")), current=order)
         await kalshi.cancel_order(order.id, market_id=order.market_id)
 
 asyncio.run(main())
@@ -173,7 +183,7 @@ anything is signed. `day` never reaches the adapter -- the engine rewrites
 it to `gtd` at the session end. Stops, icebergs and the rest are the
 engine's.
 
-**Edits.** `edit_order` is a *decrease* when only the amount comes down,
+**Edits.** `edit_order` is a *decrease* when only the quantity comes down,
 which keeps the order's place in the queue, and an *amend* for anything
 else, which does not. `Order.queue_priority_preserved` says which one
 happened. Pass `current=` when you hold the order; otherwise it is read
@@ -235,7 +245,7 @@ async def main():
         poly.start_heartbeat()                       # resting orders die with the process
         order = await poly.create_order(OrderRequest(
             market_id="polymarket:2252244", side=Side.BUY,   # the YES token, at 0.52
-            amount=Decimal("10"), price=Decimal("0.52"),
+            quantity=Decimal("10"), price=Decimal("0.52"),
         ))
         print(order.id)                              # the order hash, known before sending
         await poly.cancel_order(order.id)
@@ -353,7 +363,7 @@ than taking a number of contracts. So `market` and `ioc` are sent as a limit
 at the price given and the unmatched rest is cancelled at once; `fok`, `gtd`
 and `post_only` are refused. The two amounts of an order must state its
 price exactly, which trims the size to four significant digits of its USDT
-value: the order's `amount` is what was actually sent. The minimum order is
+value: the order's `quantity` is what was actually sent. The minimum order is
 5 USDT. Fees are taker only, `rate * notional * p * (1 - p)` with the rate
 read from the venue's fee contract, and at least 0.25 USDT an order.
 
@@ -421,7 +431,7 @@ on request. `market`, `ioc` and `fok` go as the venue's `MARKET` strategy at
 the price given as the worst accepted, so whatever does not match at once is
 dropped; `fok` sets the venue's fill-or-kill flag. Prices keep three
 significant digits and sizes five, as the venue's SDK keeps them: the
-order's `amount` is what was actually sent. Fees are taker only,
+order's `quantity` is what was actually sent. Fees are taker only,
 `rate * min(p, 1 - p)` a share (2% on every market so far); makers pay
 nothing.
 
