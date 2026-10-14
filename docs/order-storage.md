@@ -152,3 +152,19 @@ stop-market fills and reduce-only guarantees remain unverified.
 The [lifecycle documents](../synpath/engine/orders/lifecycle/README.md) describe
 the four types. PostgreSQL must implement and pass this same storage and
 lifecycle contract before it is enabled.
+
+The [crypto fill check](../examples/verify_kalshi_stop_fill.py) arms a buy
+stop above the current real ask on a 15-minute market, waits at most four
+minutes, and submits one IOC limit child capped at 0.75. It permits one
+native reduce-only exit of only the entry’s confirmed filled quantity.
+Mocked cases cover fills, response loss, timeout and definitive refusal.
+Selection checks time, an empty initial position, no existing market orders,
+fees, and the market’s funded exchange shard. It performs no cash transfers;
+funding a shard needs separate operator authorization.
+
+An authorized 2026-10-14 BTC check observed an ask crossing from 0.46 to
+its 0.47 stop, then Kalshi refused the 0.50 child limit for insufficient
+crypto-shard balance. The journal records a rejected parent and failed
+child intent. No child was accepted and no position remained. This provides
+real trigger/refusal evidence, not live fill evidence. Kalshi documents
+shard funding in its [exchange sharding guide](https://docs.kalshi.com/getting_started/exchange_sharding).
