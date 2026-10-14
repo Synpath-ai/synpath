@@ -80,7 +80,7 @@ from .types import (
     TradesRangeResponse,
 )
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 exchanges: dict[str, type[Exchange]] = {
     "kalshi": Kalshi,
