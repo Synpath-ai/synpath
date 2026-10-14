@@ -552,6 +552,9 @@ class KalshiTrading(TradingExchange):
         order = order_from_response(raw, body=body, account=request.account or self.account)
         return order.model_copy(update={"book": request.book, "trader": request.trader, "tags": request.tags})
 
+    async def create_order_with_precision(self, request: OrderRequest, precision: Precision) -> Order:
+        return await self.create_order(request, precision=precision)
+
     async def create_orders(
         self, requests: list[OrderRequest], *, precision: Precision | None = None,
     ) -> list[Order | Exception]:

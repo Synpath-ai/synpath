@@ -14,3 +14,7 @@ For example, a sell for 10 at 0.38 can fill at 0.39; retain the original 0.38
 instruction alongside the reported execution result.
 
 See [shared storage and ownership](../../../../docs/order-storage.md).
+
+A same-key retry returns the original result. Reusing the key for another
+instruction is a conflict. An ambiguous earlier send is reconciled; it is
+never automatically resent.

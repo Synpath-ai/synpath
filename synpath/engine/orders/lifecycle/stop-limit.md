@@ -12,9 +12,11 @@ rejected or expired. Cancel after trigger pulls the resting child; remain
 pending until its outcome is known. GTD applies before trigger and to the
 working child. Children inherit user identity and reduce-only.
 
-`stop_limit_orders` owns the instruction and durable state. Checkpoint 1A
-stores those records and restores existing snapshots. Checkpoint 1B must
-finish atomic transitions, pending dispatch and recovery boundaries.
+`stop_limit_orders` owns the instruction and durable state. The trigger and
+pending child intent commit together. Stable child identity survives restart;
+uncertain submissions are reconciled before any repeat effect. Expiry is
+checked before triggering and before resuming an unsent limit child.
+Cancellation that reports a still-open child remains pending and is retried.
 Example: sell 100 with stop 0.40 and limit 0.38; a bid gap to 0.35 can leave
 the triggered limit unfilled.
 

@@ -96,7 +96,7 @@ class TestStack:
         stack, *_ = await stack_for(tmp_path)
         loops = serve.background(stack)
         try:
-            assert {"lease", "sweep", "poll", "managed", "feeds-sync", "feed-kalshi-kalshi",
+            assert {"lease", "sweep", "poll", "managed", "dispatch", "feeds-sync", "feed-kalshi-kalshi",
                     "reconcile", "control", "eod", "status"} <= set(loops)
         finally:
             for coro in loops.values():

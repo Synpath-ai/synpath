@@ -137,8 +137,8 @@ can trade at. `last` and `mid` are there for callers who disagree.
 
 **A stop market's child is priced by the engine.** No venue here takes a
 market order without a worst price, so at the trigger the engine sends the
-`market` child, `ioc`, with the touch plus 0.05 for a buy (minus 0.05 for a
-sell), on the venue's tick and inside the price range. There is no parameter
+`market` child, `ioc`, at the legal venue bound for the side, on the market's supplied tick
+(or the conservative venue grid when no market precision is registered). There is no parameter
 for it. With no book to price against at that moment, the stop ends
 `rejected` rather than send at any price.
 

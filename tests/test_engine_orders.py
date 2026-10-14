@@ -194,10 +194,10 @@ class TestStops:
         engine, paper, clock = setup
         book(paper, engine, bids=[(D("0.45"), D("500"))], asks=[(D("0.47"), D("500"))])
         parent = await engine.submit(request(side=Side.SELL, type=OrderType.STOP_MARKET, stop_price=D("0.40")))
-        book(paper, engine, bids=[(D("0.39"), D("4")), (D("0.20"), D("500"))], asks=[(D("0.41"), D("500"))])
+        book(paper, engine, bids=[(D("0.39"), D("4"))], asks=[(D("0.41"), D("500"))])
         await feed_book(engine, paper=paper)
         managed = engine.orders.get(parent.id)
-        assert managed.filled == D("4"), "0.20 is past the protection"
+        assert managed.filled == D("4"), "only four contracts were available"
         assert not managed.live and "6 unfilled" in managed.detail
         assert managed.as_order().remaining == D("6")
 

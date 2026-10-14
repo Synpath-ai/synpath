@@ -64,7 +64,7 @@ class TestUpgradeFromTwo:
     async def test_a_fresh_file_is_the_current_version_with_the_new_shape(self, tmp_path: Path):
         path = str(tmp_path / "fresh.db")
         async with Journal(path) as journal:
-            assert await journal.schema_version() == SCHEMA_VERSION == 5
+            assert await journal.schema_version() == SCHEMA_VERSION == 6
         assert "parent_id" in columns(path, "orders")
         assert columns(path, "managed_orders")["account_key"] is False
         assert "bucket_id" in columns(path, "bucket_members")

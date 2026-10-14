@@ -53,6 +53,20 @@ class JournalStore(Protocol):
     async def last_seq(self) -> int:
         ...
 
+    async def submission(self, client_order_id: str) -> dict[str, Any] | None:
+        ...
+
+    async def record_submission(self, original: OrderRequest, effective: OrderRequest,
+                                *, venue: str, account: Account) -> None:
+        ...
+
+    async def reject_submission(self, client_order_id: str, error: dict[str, Any]) -> None:
+        ...
+
+    async def plan_managed_child(self, snapshot: dict[str, Any], request: OrderRequest,
+                                 *, venue: str, account: Account) -> None:
+        ...
+
     async def record_intent(self, request: OrderRequest, *, client_order_id: str, venue: str, account: Account, operation: str='create', target_order_id: str | None=None) -> Intent:
         ...
 

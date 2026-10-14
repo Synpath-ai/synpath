@@ -51,16 +51,92 @@ managed parents use their own parent ID. Historical execution records may
 lack fields not reported by a venue; they carry no invented original request.
 Unknown historical ownership is `legacy:unattributed`.
 
-## Checkpoint limits
+## Dispatch and retry identity
 
-Checkpoint 1A establishes these tables, migrations, ownership and restart
-configuration. Checkpoint 1B must finish submission deduplication, atomic
-trigger plus dispatch planning, stable child retry identity, cancel/expiry
-serialization and synthetic recovery. The existence of type tables alone does
-not establish those execution guarantees. The current stop-market pricing
-still uses its existing protection policy until checkpoint 1B changes and
-verifies it.
+The four supported instruction types use the shared `submissions` table to
+reserve a client key and retain the original request separately from its
+resolved execution request. This keeps DAY's first computed absolute expiry
+on retries. The single-worker journal reserves keys globally: reusing a key
+for a different account, owner or instruction is a conflict. Multi-user
+execution remains outside this checkpoint.
+
+A same-key retry returns the existing parent or venue result, including
+terminal results. A definitive risk or venue refusal is retained and
+returned on retry. A send marked `sending` is reconciled by client key;
+unknown or lost outcomes are never automatically resent. History pagination
+must finish before the engine concludes that no matching order was listed.
+Historical instructions from the earlier checkpoint are migrated into this
+reservation table. Existing records without a verifiable original instruction
+cannot be silently reused for another send. Earlier DAY records preserve their
+stored GTD instruction; callers can retrieve those orders instead of recreating
+an expiry through a retry.
+
+## Stop transition transaction
+
+```text
+waiting + eligible price
+          |
+          v
+ONE TRANSACTION: working parent + stable child request + planned intent
+          |
+          v
+sending intent -> venue call -> accepted child result
+          |                         |
+          +-- ambiguous ----------> reconcile the same client key
+                                    |
+                                    v
+                         attach child + derive parent progress
+```
+
+Stop parents retain a pending child request and precision in their snapshot.
+The trigger and pending intent commit together before any venue request.
+The child key is derived once from the owner, account and parent ID. A restart
+restores that key; a planned action that was never sent may dispatch, while
+an uncertain action must be reconciled first. An accepted child is attached
+before the pending request is cleared. Terminal IOC children close the parent
+immediately, recording remaining quantity. The parent's average price comes
+from venue execution averages, not from the child's worst permissible price.
+
+Price, expiry, cancellation and child notifications serialize per parent.
+`Engine.background()` includes one pending-action dispatcher. Price callbacks
+commit and enqueue stop actions while the dispatcher handles venue latency;
+queue entries are hints, so losing the queue cannot lose durable work.
+Direct hosts that do not run the background loops dispatch synchronously.
+Fixed stops capture the observed price before committing other parents, so a
+slow action cannot erase another stop’s observed threshold crossing.
+Expiry is checked on price observations as well as the timer. Cancellation
+persists its intended end state before acting on children. A planned but
+unsent child is settled without dispatch; an uncertain child must be found
+and canceled before the parent can report cancellation. Acknowledgements
+that still report an open child keep the parent pending. Startup expires
+overdue waiting stops and resumes pending actions after reconciliation.
+
+Stop-market children use legal venue bounds rather than a fixed five-cent
+protection range. Registered `MarketMaster` precision supplies the market
+rule; when absent, the engine uses the venue's documented conservative grid.
+Kalshi's adapter accepts the persisted precision explicitly. Actual venue
+metadata, time-in-force and reduce-only behavior remain venue-verification
+work; the offline paper and scripted venues do not establish live guarantees.
+Risk checks remain active on the submitted worst price and can refuse a child.
+Order value uses the priced outcome: an opening sell buys NO at `1 - YES
+price`, so a 0.01 YES limit is valued at 0.99 per NO contract. Reduce-only
+values the outcome being closed. Fees remain separate from order notional.
+
+Timestamped trades predating worker startup or the armed parent, and trades
+older than the latest accepted print, do not trigger stops. Unready and crossed
+books are ineligible. Untimestamped custom events retain the caller's event
+ordering; hosts must supply timestamps to reject replayed trades reliably.
+
+## Verification
+
+Checkpoint 1B runs entirely offline against paper and scripted venues. A
+file-backed fake venue survives a worker process calling `os._exit`, testing
+crashes before sending, after acceptance, and before recording the response.
+The suite uses fake venues and captured payloads; live and demo exchange
+tests are explicitly excluded.
+Real venue submissions require an operator-approved test with a small,
+bounded size and explicit cleanup; they are separate from the offline suite.
 
 The [lifecycle documents](../synpath/engine/orders/lifecycle/README.md) describe
-the four types. Shared pending actions and recovery will be documented here
-as their implementation lands.
+the four types. PostgreSQL must implement and pass this same storage and
+lifecycle contract before it is enabled.
