@@ -248,6 +248,6 @@ MIT
 
 Experimental execution storage on `codex/order-lifecycle-storage` supports SQLite
 (default) and explicitly configured PostgreSQL, with one active execution worker.
-See [order storage](docs/order-storage.md) for configuration, recovery and test
+See [engine README](synpath/engine/README.md) for configuration, recovery and test
 coverage. Terminal integration and remaining live venue guarantees are tracked
 separately; this experimental branch stays unmerged.

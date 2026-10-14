@@ -186,6 +186,8 @@ class Engine:
             raise ValueError("user_id must not be empty")
         self.journal = journal or create_journal(backend=self.config.storage_backend,
                                                path=self.config.journal_path, user_id=self.config.user_id, schema=self.config.storage_schema)
+        if self.journal.user_id != self.config.user_id:
+            raise ValueError("execution engine and journal must use the same user_id")
         self.bus = EventBus(self.journal)
         self.ledger = Ledger()
         self.fair_values = FairValues(self.journal, stale_after_s=self.config.mark_stale_after_s)

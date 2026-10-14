@@ -24,7 +24,7 @@ children before resuming. Cancellation remains pending until child status
 is known. The parent reports actual execution averages and IOC remainder. Example: sell 100 at stop 0.40 after the
 YES bid falls to 0.39.
 
-See [shared storage and ownership](../../../../docs/order-storage.md).
+See [shared storage and ownership](../../README.md).
 
 Polymarket US clamps children to its absolute 0.01–0.99 YES bounds even
 when the tick is finer. Its create response remains pending until a venue

@@ -64,8 +64,9 @@ def schema() -> str:
 
 
 class OrderRecords:
-    def __init__(self, connection: Any):
+    def __init__(self, connection: Any, *, user_id: str | None = None):
         self.connection = connection
+        self.user_id = user_id
 
     async def write_request(self, request: OrderRequest, *, venue: str, account_key: str,
                             client_order_id: str, user_id: str, stamp: int, state: str = "planned") -> None:
@@ -126,6 +127,14 @@ class OrderRecords:
                       for name in TYPE_COLUMNS[kind])
         values.extend([_dump(request) if request is not None else None, _dump(snapshot), venue_order_id,
                        int(body.get("created_at") or snapshot.get("created_ms") or stamp), stamp])
+        if self.user_id is not None and user_id != self.user_id and request is None:
+            record = {**dict(zip(columns, values)), "payload_version": 1}
+            await self.connection.execute(
+                "INSERT INTO historical_order_records(kind,venue,id,user_id,record) VALUES(?,?,?,?,?) "
+                "ON CONFLICT(kind,venue,id) DO UPDATE SET record=excluded.record",
+                (kind, venue, application_id, user_id, _dump(record)),
+            )
+            return
         # The submitted instruction and owner never change when a venue result
         # arrives. Its mutable execution state is a separate snapshot.
         updates = [f"{name}=excluded.{name}" for name in
@@ -145,7 +154,12 @@ class OrderRecords:
                                            (venue, application_id)) as cursor:
             row = await cursor.fetchone()
         if row is None:
-            return None
+            async with self.connection.execute("SELECT record FROM historical_order_records WHERE kind=? AND venue=? AND id=?",
+                                               (kind, venue, application_id)) as cursor:
+                historical = await cursor.fetchone()
+            if historical is None:
+                return None
+            row = json.loads(historical["record"])
         result = dict(row)
         result["request"] = json.loads(result["request"]) if result["request"] else None
         result["snapshot"] = json.loads(result["snapshot"])

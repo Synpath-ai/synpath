@@ -20,7 +20,7 @@ Cancellation that reports a still-open child remains pending and is retried.
 Example: sell 100 with stop 0.40 and limit 0.38; a bid gap to 0.35 can leave
 the triggered limit unfilled.
 
-See [shared storage and ownership](../../../../docs/order-storage.md).
+See [shared storage and ownership](../../README.md).
 
 A `post_only` stop-limit with GTC or GTD propagates that flag to its child.
 The venue may reject a child that would take liquidity. Post-only with IOC

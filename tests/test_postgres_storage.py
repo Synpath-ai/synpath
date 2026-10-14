@@ -373,11 +373,11 @@ async def test_failed_schema_initialization_rolls_back_then_retries(database, mo
         assert await cursor.fetchone() is None
     monkeypatch.setattr(store, "_apply_schema", original)
     async with store:
-        assert await store.schema_version() == 6
+        assert await store.schema_version() == 7
 
 
 async def test_commit_failure_rolls_back_before_next_writer(journal, monkeypatch):
-    original = journal._db.connection.execute
+    original = journal._db._execute
     failed = False
     async def fail_commit(query, *args, **kwargs):
         nonlocal failed
@@ -385,7 +385,7 @@ async def test_commit_failure_rolls_back_before_next_writer(journal, monkeypatch
             failed = True
             raise RuntimeError("commit refused")
         return await original(query, *args, **kwargs)
-    monkeypatch.setattr(journal._db.connection, "execute", fail_commit)
+    monkeypatch.setattr(journal._db, "_execute", fail_commit)
     with pytest.raises(RuntimeError, match="commit refused"):
         await journal.record_intent(storage_scenarios.request(), client_order_id="request-a", venue="kalshi", account=Account(venue="kalshi"))
     assert await journal.intent("request-a") is None

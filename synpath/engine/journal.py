@@ -41,7 +41,7 @@ from .storage_types import Intent, IntentState, JournalEvent, Lease, LeaseLost
 from .submissions import request_identity
 from .order_storage import OrderRecords, UNATTRIBUTED_USER, schema as order_schema
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS submissions (
@@ -279,41 +279,59 @@ class Journal:
     # -- lifecycle ------------------------------------------------------------
 
     async def open(self) -> "Journal":
+        if self.is_open:
+            return self
+        from .database import connect_sqlite
+        self._db = await connect_sqlite(self.path)
         try:
-            import aiosqlite
-        except ImportError as exc:  # pragma: no cover - depends on the environment
-            raise ImportError("the engine's journal needs aiosqlite: pip install synpath") from exc
-        connection = aiosqlite.connect(self.path, isolation_level=None)
-        # aiosqlite runs each connection on its own thread. Marking it a
-        # daemon means a journal somebody forgot to close cannot keep the
-        # process alive after everything else has finished.
-        connection.daemon = True
-        self._db = await connection
-        try:
-            self._db.row_factory = aiosqlite.Row
             await self._db.execute(f"PRAGMA busy_timeout={self.busy_timeout_ms}")
             await self._db.execute("PRAGMA journal_mode=WAL")
             # An order must be on disk before it is on the wire, so the write that
             # records it cannot be one the operating system is still holding.
             await self._db.execute("PRAGMA synchronous=FULL")
             await self._db.execute("PRAGMA foreign_keys=ON")
+            await self._validate_existing_store()
             await self._db.executescript(SCHEMA)
             await self._upgrade()
             await self._db.executescript(order_schema())
-            self._order_records = OrderRecords(self._db)
+            self._order_records = OrderRecords(self._db, user_id=self.user_id if self._has_owner else None)
             await self._upgrade_order_records()
             await self._upgrade_submissions()
             await self._db.execute("CREATE INDEX IF NOT EXISTS orders_parent ON orders(parent_id)")
             await self._db.execute(
                 "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
-                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-                (str(SCHEMA_VERSION),),
+                "ON CONFLICT(key) DO NOTHING",
+                ("6",),
             )
+            await self._db.execute("BEGIN IMMEDIATE")
+            try:
+                from .migration import upgrade
+                await upgrade(self._db, self.user_id)
+                await self._db.execute("COMMIT")
+                self._order_records.user_id = self.user_id
+            except BaseException:
+                await self._db.execute("ROLLBACK")
+                raise
         except BaseException:
             await self._db.close()
             self._db = None
             raise
         return self
+
+    async def _validate_existing_store(self):
+        async with self._db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('meta','users')") as cursor:
+            names = {row["name"] for row in await cursor.fetchall()}
+        self._has_owner = "users" in names
+        if "meta" in names:
+            async with self._db.execute("SELECT value FROM meta WHERE key='schema_version'") as cursor:
+                version = await cursor.fetchone()
+            if version is not None and int(version["value"]) > SCHEMA_VERSION:
+                raise ValueError("unsupported SQLite journal schema version")
+        if self._has_owner:
+            async with self._db.execute("SELECT user_id FROM users") as cursor:
+                rows = await cursor.fetchall()
+            if len(rows) != 1 or rows[0]["user_id"] != self.user_id:
+                raise ValueError("configured user_id differs from the stored execution owner")
 
     async def _upgrade_submissions(self) -> None:
         """Keep pre-checkpoint client keys reserved without inventing requests."""

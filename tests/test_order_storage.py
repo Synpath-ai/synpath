@@ -80,7 +80,7 @@ async def test_type_record_and_dispatch_intent_rollback_together(journal, monkey
 
 async def test_old_execution_records_keep_unknown_ownership_and_no_invented_request(tmp_path):
     path = str(tmp_path / "old.db")
-    async with Journal(path) as store:
+    async with Journal(path, user_id="new-owner") as store:
         order = Order(id="old", venue="kalshi", market_id="kalshi:KX-A", side="buy", type="limit",
                       quantity=D("1"), price=None, time_in_force="gtc", status="open")
         await store.upsert_order(order)
@@ -133,13 +133,13 @@ async def test_storage_contract_rejects_unknown_backend_and_owner_spoofing(tmp_p
 
 async def test_upgrade_restores_unanswered_intent_as_owned_type_instruction(tmp_path):
     path = str(tmp_path / "pending.db")
-    async with Journal(path) as store:
+    async with Journal(path, user_id="owner-a") as store:
         await store.record_intent(request(), client_order_id="request-a", venue="kalshi", account=Account(venue="kalshi"))
         await store.mark_intent("request-a", "sending")
     with sqlite3.connect(path) as connection:
         connection.execute("DELETE FROM limit_orders")
         connection.execute("DELETE FROM meta WHERE key='order_records_version'")
-    async with Journal(path) as store:
+    async with Journal(path, user_id="owner-a") as store:
         row = await store.typed_order("limit", "kalshi", "request-a")
         assert row["state"] == "sending" and row["user_id"] == "owner-a"
         assert row["request"]["price"] == "0.38" and row["venue_order_id"] is None
@@ -182,18 +182,17 @@ async def test_stop_recovery_uses_type_snapshot_even_if_legacy_projection_is_sta
 
 async def test_legacy_stop_snapshot_does_not_inherit_the_new_workers_identity(tmp_path):
     path = str(tmp_path / "legacy-stop.db")
-    account = Account(venue="kalshi")
     snapshot = dict(id="legacy-parent", kind="stop_market", venue="kalshi", state="waiting",
-                    account=account.model_dump(mode="json"), request=request("stop_market", user_id=None).model_dump(mode="json"),
-                    filled="0", children=[])
+                    account=Account(venue="kalshi").model_dump(mode="json"),
+                    request=request("stop_market", user_id=None).model_dump(mode="json"), filled="0", children=[])
     async with Journal(path) as store:
         await store.save_managed(snapshot)
+    with pytest.raises(ValueError, match="stored execution owner"):
+        async with Journal(path, user_id="new-worker"):
+            pass
     with sqlite3.connect(path) as connection:
-        connection.execute("DELETE FROM stop_market_orders")
-        connection.execute("DELETE FROM meta WHERE key='order_records_version'")
-    async with Journal(path, user_id="new-worker") as store:
-        restored = (await store.managed(states=("waiting",)))[0]
-        assert restored["request"]["user_id"] == "legacy:unattributed"
+        stored = json.loads(connection.execute("SELECT snapshot FROM stop_market_orders WHERE id='legacy-parent'").fetchone()[0])
+    assert stored["request"]["user_id"] is None
 
 
 async def test_canceled_bucket_write_rolls_back_and_allows_next_write(journal, monkeypatch):
