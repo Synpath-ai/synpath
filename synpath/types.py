@@ -372,11 +372,11 @@ class Trade(_Base):
 
 
 # Historical types extend the live market objects without changing their
-# contract. Queries use recorder receive time; Trade.timestamp remains the
-# venue's execution time when available.
+# contract. The response metadata identifies the query clock. Trade.timestamp
+# remains the venue's execution time when available.
 class HistoryMetadata(_Base):
     dataset_version: str
-    time_basis: Literal["recorder_receive"] = "recorder_receive"
+    time_basis: Literal["recorder_receive", "venue"] = "recorder_receive"
     processed_through_ms: int | None = None
 
 

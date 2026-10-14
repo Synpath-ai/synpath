@@ -58,3 +58,22 @@ def test_history_range_contracts():
     assert isinstance(trades.trades[0], HistoricalTrade)
     assert isinstance(trades.trades[0], Trade)
     assert trades.trades[0].timestamp != trades.trades[0].observed_at_ms
+
+
+def test_reconciled_trade_response_keeps_the_hosted_contract():
+    trades = TradesRangeResponse.model_validate({
+        "metadata": {"dataset_version": "reconciled-v4-example", "time_basis": "venue",
+                     "processed_through_ms": 2000},
+        "market_id": "kalshi:TEST", "start_ms": 1000, "end_ms": 2000,
+        "trades": [{"id": "T1", "market_id": "kalshi:TEST", "timestamp": 1029,
+                    "datetime": "1970-01-01T00:00:01.029Z", "price": 0.55,
+                    "amount": 3, "side": "buy", "info": {"trade_id": "T1"},
+                    "observed_at_ms": 1030, "timestamp_source": "venue"}],
+        "coverage": [{"start_ms": 1000, "end_ms": 1500, "status": "available", "reason": None},
+                     {"start_ms": 1500, "end_ms": 2000, "status": "unavailable",
+                      "reason": "recording_gap"}],
+        "next_cursor": None,
+    })
+    assert trades.metadata.time_basis == "venue"
+    assert trades.trades[0].quantity == 3
+    assert trades.coverage[1].status == "unavailable"

@@ -12,7 +12,9 @@ else:
 
 Needs a Synpath API key (`SYNPATH_API_KEY`, or `api_key=`). The service lives at
 `https://api2.synpath.dev` unless `base_url=` or `SYNPATH_HISTORY_URL` says otherwise.
-Times are recorder receive times in Unix milliseconds. Coverage varies by market and
+Book query times use recorder receive time in Unix milliseconds. Trade query
+times use the basis named in the response metadata; venue time is supported.
+Coverage varies by market and
 has gaps, which every answer says explicitly: a missing book comes back with an
 `absence_reason`, never as an empty book. A range too large to return whole raises
 `BadRequest`; narrow it or raise `limit` (`examples/track_historical_book.py`
@@ -64,7 +66,11 @@ def fetch_trades_range(
     market_id: str, start_ms: int, end_ms: int, *, limit: int | None = None,
     api_key: str | None = None, base_url: str | None = None, client: Any = None,
 ) -> TradesRangeResponse:
-    """Trades between `start_ms` and `end_ms`, with the coverage they were recorded under."""
+    """Trades between `start_ms` and `end_ms`, with recording coverage.
+
+    The response metadata names the time basis. Coverage boundaries come from
+    recorder time and cannot be mapped exactly onto venue event time.
+    """
     body = _post("/v1/trades/range", {"market_id": market_id, "start_ms": start_ms, "end_ms": end_ms,
                                       "limit": limit},
                  base_url=base_url, client=client, api_key=api_key)
