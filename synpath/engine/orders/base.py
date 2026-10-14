@@ -382,7 +382,7 @@ class ManagedOrder:
             # through its children: on Polymarket a reduce-only sell sells the
             # YES held instead of buying NO.
             reduce_only=self.request.reduce_only if reduce_only is None else reduce_only,
-            account=self.account, book=self.request.book, trader=self.request.trader,
+            user_id=self.request.user_id, account=self.account, book=self.request.book, trader=self.request.trader,
             tags={**self.request.tags, "parent": self.id}, params=params or {},
         )
 
@@ -437,7 +437,7 @@ class ManagedOrder:
         if self.filled > 0 and spent > 0:
             average = spent / self.filled
         return Order(
-            id=self.id, client_order_id=self.request.client_order_id, venue=self.venue, account=self.account,
+            user_id=self.request.user_id, id=self.id, client_order_id=self.request.client_order_id, venue=self.venue, account=self.account,
             market_id=self.market_id, side=self.side, type=self.order_type,
             time_in_force=self.request.time_in_force, status=STATUS_OF[self.state], held_by=HeldBy.ENGINE,
             price=self.request.price, stop_price=self.request.stop_price, quantity=self.quantity, filled=self.filled,

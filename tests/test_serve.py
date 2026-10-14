@@ -113,13 +113,13 @@ class TestStack:
                 coro.close()
             await serve.shutdown(stack)
 
-    async def test_shutdown_cancels_what_rests_and_releases_the_lease(self, tmp_path):
+    async def test_shutdown_preserves_what_rests_and_releases_the_lease(self, tmp_path):
         stack, kalshi, fake = await stack_for(tmp_path)
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=stack.app), base_url="http://s") as client:
             await client.post("/trading/orders", headers={"Authorization": f"Bearer {stack.owner_key}"},
                               json={"market_id": K, "side": "buy", "quantity": "5", "type": "limit", "price": "0.35"})
         await serve.shutdown(stack)
-        assert all(o.is_terminal for o in kalshi.orders.values()), "the default halt policy cancels"
+        assert all(not o.is_terminal for o in kalshi.orders.values()), "a normal restart preserves orders"
         assert fake.closed
         again, *_ = await stack_for(tmp_path)          # the lease is free: a new process can start
         await serve.shutdown(again)

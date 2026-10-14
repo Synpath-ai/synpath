@@ -22,13 +22,14 @@ from .engine import Engine, EngineConfig, Recovery
 from .events import EngineEvent, EventBus, Subscription
 from .fair_values import FairValue, FairValues
 from .journal import Intent, IntentState, Journal, JournalEvent, LeaseLost
+from .storage import JournalStore, create_journal
 from .ledger import Ledger, PositionState, Rollup
 from .orders import ManagedOrder, ManagedOrders
 from .risk import Decision, KillSwitch, RiskConfig, RiskEngine
 
 __all__ = [
     "Engine", "EngineConfig", "Recovery",
-    "Journal", "JournalEvent", "Intent", "IntentState", "LeaseLost",
+    "JournalStore", "create_journal", "Journal", "JournalEvent", "Intent", "IntentState", "LeaseLost",
     "EventBus", "EngineEvent", "Subscription",
     "Ledger", "PositionState", "Rollup",
     "RiskConfig", "RiskEngine", "Decision", "KillSwitch",

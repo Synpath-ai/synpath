@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -54,7 +55,8 @@ from ..trading.types import (
 )
 from .events import EventBus
 from .fair_values import FairValues
-from .journal import IntentState, Journal, LeaseLost, now_ms
+from .journal import IntentState, LeaseLost, now_ms
+from .storage import JournalStore, create_journal
 from .ledger import Ledger
 from .orders import ManagedOrders, as_gtd
 from .orders.manager import REGISTRY
@@ -70,6 +72,8 @@ class EngineConfig:
     """How this engine runs. The risk rules live in `RiskConfig`."""
 
     journal_path: str = "synpath.db"
+    storage_backend: str = "sqlite"
+    user_id: str = field(default_factory=lambda: os.environ.get("SYNPATH_USER_ID", "local-user"))
     lease_name: str = "engine"
     lease_ttl_ms: int = 30_000
     lease_renew_s: float = 10.0
@@ -90,8 +94,8 @@ class EngineConfig:
     managed_tick_s: float = 1.0
     """How often engine-held orders get their timer. A TWAP slice, an
     iceberg reload and a peg's minimum stay are all measured against it."""
-    session_timezone: str | None = None
-    """Where "today" ends, for Day orders. The machine's zone by default."""
+    session_timezone: str | None = "Europe/London"
+    """Where "today" ends, for Day orders. Europe/London by default, including seasonal clock changes."""
     session_end: str = "23:59:59"
 
 
@@ -168,13 +172,16 @@ class Engine:
         config: EngineConfig | None = None,
         *,
         risk: RiskConfig | None = None,
-        journal: Journal | None = None,
+        journal: JournalStore | None = None,
         accounts: Mapping[str, Account] | None = None,
         clock: Any = time.time,
     ):
         self.config = config or EngineConfig()
         self.adapters: dict[str, TradingExchange] = dict(adapters)
-        self.journal = journal or Journal(self.config.journal_path)
+        if not self.config.user_id.strip():
+            raise ValueError("user_id must not be empty")
+        self.journal = journal or create_journal(backend=self.config.storage_backend,
+                                               path=self.config.journal_path, user_id=self.config.user_id)
         self.bus = EventBus(self.journal)
         self.ledger = Ledger()
         self.fair_values = FairValues(self.journal, stale_after_s=self.config.mark_stale_after_s)
@@ -246,7 +253,7 @@ class Engine:
             except (asyncio.CancelledError, Exception):
                 pass
         self._tasks = []
-        if self.journal._db is not None:
+        if self.journal.is_open:
             await self.bus.publish("engine.stopped", {"owner": self.journal.owner})
         await self.journal.close()
 
@@ -262,6 +269,9 @@ class Engine:
     async def submit(self, request: OrderRequest, *, venue: str | None = None, mark: Decimal | None = None) -> Order:
         """Risk, journal, send, record. Raises `RiskRejected` before anything
         is sent, or the venue's own error after."""
+        if request.user_id not in (None, self.config.user_id):
+            raise BadRequest("user_id is assigned by the execution worker")
+        request = request.model_copy(update={"user_id": self.config.user_id})
         if is_bucket_id(request.market_id):
             return await self._submit_bucket(request, mark=mark)
         venue = venue or self._venue_of(request)
@@ -361,6 +371,8 @@ class Engine:
                 "book": request.book, "type": request.type.value, "config_version": decision.config_version,
             })
             raise RiskRejected(decision.message, rule=decision.rule)
+        request = request.model_copy(update={"user_id": request.user_id or self.config.user_id,
+                                             "client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"})
         parent = await self.orders.create(request, venue=venue, account=account)
         return parent.as_order()
 
@@ -603,6 +615,8 @@ class Engine:
             await self.bus.publish("intent.unresolved", base | {"reason": f"{type(exc).__name__}: {exc}"})
             return base | {"result": "unresolved", "reason": str(exc)}
         if found is not None:
+            if intent.operation == "create":
+                found = self._stamp(found, OrderRequest.model_validate(intent.request))
             await self.journal.upsert_order(found, event="order.adopted")
             self._remember(found)
             await self.journal.mark_intent(intent.client_order_id, IntentState.SENT, order_id=found.id,
@@ -871,6 +885,10 @@ class Engine:
         source = request or template
         updates: dict[str, Any] = {}
         if source is not None:
+            updates["user_id"] = source.user_id
+            updates["type"] = source.type
+            updates["reduce_only"] = source.reduce_only
+            updates["parent_id"] = getattr(source, "parent_id", None) or source.tags.get("parent")
             if order.book is None and source.book:
                 updates["book"] = source.book
             if order.trader is None and source.trader:

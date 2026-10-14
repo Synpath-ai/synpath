@@ -11,8 +11,7 @@ the end of the configured session, in the configured timezone. The venue then
 holds the expiry, and the journal keeps the original `day` alongside the
 computed timestamp, so what the caller asked for is still visible.
 
-The session is the operator's: `session_timezone` (the machine's zone by
-default) and `session_end` (23:59:59). A desk in New York and one in London
+The session is the operator's: `session_timezone` (`Europe/London` by default in the engine) and `session_end` (23:59:59). A desk in New York and one in London
 mean different things by "today", and the engine should not guess.
 """
 from __future__ import annotations

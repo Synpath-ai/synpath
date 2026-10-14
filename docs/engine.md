@@ -23,6 +23,9 @@ async with Engine({"kalshi": KalshiTrading(credentials)},
     ))
 ```
 
+The experimental storage branch adds [per-type order records and a storage contract](order-storage.md).
+Normal shutdown preserves orders by default; an operator halt is explicit.
+
 ## What it promises
 
 **Nothing is sent that was not written down first.** `submit` runs risk,

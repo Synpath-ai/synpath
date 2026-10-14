@@ -32,13 +32,14 @@ import os
 import socket
 import time
 import uuid
-from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, AsyncIterator, Iterable
 
 from ..trading.types import Account, Fill, Order, OrderRequest
+from .storage_types import Intent, IntentState, JournalEvent, Lease, LeaseLost
+from .order_storage import SQLiteOrderRecords, UNATTRIBUTED_USER, schema as order_schema
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -185,6 +186,20 @@ CREATE TABLE IF NOT EXISTS cursors (
 """
 
 
+# Stop tables own their recovery snapshots. The legacy managed table remains
+# the source only for advanced types that have not migrated in this checkpoint.
+MANAGED_SOURCE = """
+    SELECT id, kind, state, market_id, created_ts, payload FROM managed_orders
+        WHERE kind NOT IN ('stop_market', 'stop_limit')
+    UNION ALL
+    SELECT id, 'stop_market', state, market_id, created_ts, snapshot FROM stop_market_orders
+        WHERE json_extract(snapshot, '$.kind') = 'stop_market'
+    UNION ALL
+    SELECT id, 'stop_limit', state, market_id, created_ts, snapshot FROM stop_limit_orders
+        WHERE json_extract(snapshot, '$.kind') = 'stop_limit'
+"""
+
+
 def now_ms() -> int:
     return int(time.time() * 1000)
 
@@ -217,79 +232,26 @@ def _word(value: Any) -> str:
     return str(getattr(value, "value", value))
 
 
-class LeaseLost(RuntimeError):
-    """Another engine holds the journal, or this one's lease expired."""
-
 
 class _Held(Exception):
     """Internal: the lease row belongs to someone else. Becomes `LeaseLost`."""
 
 
-class IntentState:
-    PLANNED = "planned"
-    """Written, risk passed, not yet sent."""
-    SENDING = "sending"
-    """Handed to the venue; the answer has not come back."""
-    SENT = "sent"
-    SETTLED = "settled"
-    """The order reached a terminal status."""
-    REJECTED = "rejected"
-    FAILED = "failed"
-    """The venue refused it, or the call failed in a way that proves nothing left."""
-    LOST = "lost"
-    """In doubt for longer than the sweep allows and not found at the venue."""
-
 
 IN_DOUBT = (IntentState.SENDING,)
 
 
-@dataclass(frozen=True, slots=True)
-class JournalEvent:
-    seq: int
-    ts: int
-    kind: str
-    key: str | None
-    payload: dict[str, Any]
 
 
-@dataclass(slots=True)
-class Intent:
-    client_order_id: str
-    state: str
-    operation: str
-    venue: str
-    account_key: str
-    market_id: str | None
-    order_id: str | None
-    target_order_id: str | None
-    book: str | None
-    trader: str | None
-    attempts: int
-    request: dict[str, Any]
-    detail: str | None
-    created_ts: int
-    updated_ts: int
-
-    @property
-    def age_ms(self) -> int:
-        return now_ms() - self.updated_ts
-
-
-@dataclass(slots=True)
-class Lease:
-    name: str
-    owner: str
-    holder: str
-    acquired_ts: int
-    expires_ts: int
-    ttl_ms: int = 30_000
-    renew_task: Any = field(default=None, repr=False)
 
 
 class Journal:
     """The engine's write-ahead log and its materialized state."""
 
-    def __init__(self, path: str | os.PathLike[str] = "synpath.db", *, owner: str | None = None, busy_timeout_ms: int = 10_000):
+    def __init__(self, path: str | os.PathLike[str] = "synpath.db", *, owner: str | None = None, busy_timeout_ms: int = 10_000, user_id: str = "local-user"):
+        if not user_id.strip():
+            raise ValueError("user_id must not be empty")
+        self.user_id = user_id
         self.path = str(path)
         self.owner = owner or f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}"
         self.busy_timeout_ms = busy_timeout_ms
@@ -310,22 +272,90 @@ class Journal:
         # process alive after everything else has finished.
         connection.daemon = True
         self._db = await connection
-        self._db.row_factory = aiosqlite.Row
-        await self._db.execute(f"PRAGMA busy_timeout={self.busy_timeout_ms}")
-        await self._db.execute("PRAGMA journal_mode=WAL")
-        # An order must be on disk before it is on the wire, so the write that
-        # records it cannot be one the operating system is still holding.
-        await self._db.execute("PRAGMA synchronous=FULL")
-        await self._db.execute("PRAGMA foreign_keys=ON")
-        await self._db.executescript(SCHEMA)
-        await self._upgrade()
-        await self._db.execute("CREATE INDEX IF NOT EXISTS orders_parent ON orders(parent_id)")
-        await self._db.execute(
-            "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
-            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-            (str(SCHEMA_VERSION),),
-        )
+        try:
+            self._db.row_factory = aiosqlite.Row
+            await self._db.execute(f"PRAGMA busy_timeout={self.busy_timeout_ms}")
+            await self._db.execute("PRAGMA journal_mode=WAL")
+            # An order must be on disk before it is on the wire, so the write that
+            # records it cannot be one the operating system is still holding.
+            await self._db.execute("PRAGMA synchronous=FULL")
+            await self._db.execute("PRAGMA foreign_keys=ON")
+            await self._db.executescript(SCHEMA)
+            await self._upgrade()
+            await self._db.executescript(order_schema())
+            self._order_records = SQLiteOrderRecords(self._db)
+            await self._upgrade_order_records()
+            await self._db.execute("CREATE INDEX IF NOT EXISTS orders_parent ON orders(parent_id)")
+            await self._db.execute(
+                "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (str(SCHEMA_VERSION),),
+            )
+        except BaseException:
+            await self._db.close()
+            self._db = None
+            raise
         return self
+
+    @property
+    def is_open(self) -> bool:
+        return self._db is not None
+
+    async def typed_order(self, kind: str, venue: str, application_id: str) -> dict[str, Any] | None:
+        """A type-owned instruction and its latest durable state."""
+        return await self._order_records.get(kind, venue, application_id)
+
+    async def _upgrade_order_records(self) -> None:
+        """Backfill once without inventing ownership or missing instructions.
+
+        Old venue records contain execution results, not necessarily the
+        original user request. Keep that distinction and attribute unknown
+        historical owners to an explicit legacy identity.
+        """
+        async with self._db.execute("SELECT value FROM meta WHERE key='order_records_version'") as cursor:
+            if await cursor.fetchone():
+                return
+        await self._db.execute("BEGIN IMMEDIATE")
+        try:
+            async with self._db.execute("SELECT * FROM intents WHERE operation='create'") as cursor:
+                intents = await cursor.fetchall()
+            for row in intents:
+                try:
+                    request = OrderRequest.model_validate(json.loads(row["request"]))
+                except (ValueError, TypeError):
+                    continue
+                await self._order_records.write_request(
+                    request, venue=row["venue"], account_key=row["account_key"],
+                    client_order_id=row["client_order_id"], user_id=request.user_id or UNATTRIBUTED_USER,
+                    stamp=row["created_ts"], state=row["state"],
+                )
+            async with self._db.execute("SELECT payload FROM orders") as cursor:
+                rows = await cursor.fetchall()
+            for row in rows:
+                try:
+                    order = Order.model_validate(json.loads(row["payload"]))
+                except (ValueError, TypeError):
+                    continue
+                if order.held_by.value == "venue":
+                    await self._order_records.write_order(order, stamp=now_ms())
+            async with self._db.execute("SELECT payload FROM managed_orders") as cursor:
+                rows = await cursor.fetchall()
+            for row in rows:
+                snapshot = json.loads(row["payload"])
+                if snapshot.get("venue") and snapshot.get("request"):
+                    snapshot = {**snapshot, "request": {**snapshot["request"],
+                                "user_id": snapshot["request"].get("user_id") or UNATTRIBUTED_USER}}
+                    await self._order_records.write_managed(snapshot, user_id=UNATTRIBUTED_USER, stamp=now_ms())
+            await self._db.execute("INSERT INTO meta(key,value) VALUES('order_records_version','1')")
+            await self._db.execute("COMMIT")
+        except BaseException:
+            await self._db.execute("ROLLBACK")
+            raise
+
+    async def lease_records(self) -> list[dict[str, Any]]:
+        """Lease inspection without exposing a database connection to callers."""
+        async with self._db.execute("SELECT name, owner, expires_ts FROM leases") as cursor:
+            return [dict(row) async for row in cursor]
 
     async def schema_version(self) -> int:
         async with self._db.execute("SELECT value FROM meta WHERE key='schema_version'") as cursor:
@@ -483,6 +513,11 @@ class Journal:
                     (client_order_id, IntentState.PLANNED, operation, venue, account.key, request.market_id,
                      target_order_id, request.book, request.trader, _dump(body), stamp, stamp),
                 )
+                if operation == "create":
+                    await self._order_records.write_request(
+                        request, venue=venue, account_key=account.key, client_order_id=client_order_id,
+                        user_id=request.user_id or self.user_id, stamp=stamp,
+                    )
                 await self._db.execute(
                     "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
                     (stamp, "intent.planned", client_order_id,
@@ -587,6 +622,8 @@ class Journal:
                      order.parent_id or order.tags.get("parent"), _dump(body),
                      order.created_at or stamp, stamp),
                 )
+                if order.held_by.value == "venue":
+                    await self._order_records.write_order(order, stamp=stamp)
                 await self._db.execute(
                     "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
                     (stamp, event, f"{order.venue}:{order.id}", _dump(body)),
@@ -790,6 +827,7 @@ class Journal:
                      _dump(snapshot), children[-1]["order_id"] if children else None,
                      int(snapshot.get("created_ms") or stamp), stamp),
                 )
+                await self._order_records.write_managed(snapshot, user_id=self.user_id, stamp=stamp)
                 await self._db.execute(
                     "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
                     (stamp, f"managed.{snapshot.get('state', 'updated')}", snapshot["id"], _dump(snapshot)),
@@ -800,7 +838,7 @@ class Journal:
                 raise
 
     async def managed(self, *, states: Iterable[str] | None = None) -> list[dict[str, Any]]:
-        sql = "SELECT payload FROM managed_orders"
+        sql = f"SELECT payload FROM ({MANAGED_SOURCE})"
         args: list[Any] = []
         names = list(states or [])
         if names:
@@ -814,12 +852,12 @@ class Journal:
         `(kind, snapshot)`, oldest first. A bucket's orders are found by
         `bucket:<id>`."""
         async with self._db.execute(
-            "SELECT kind, payload FROM managed_orders WHERE market_id=? ORDER BY created_ts", (market_id,)
+            f"SELECT kind, payload FROM ({MANAGED_SOURCE}) WHERE market_id=? ORDER BY created_ts", (market_id,)
         ) as cursor:
             return [(row["kind"], json.loads(row["payload"])) async for row in cursor]
 
     async def managed_one(self, parent_id: str) -> tuple[str, dict[str, Any]] | None:
-        async with self._db.execute("SELECT kind, payload FROM managed_orders WHERE id=?", (parent_id,)) as cursor:
+        async with self._db.execute(f"SELECT kind, payload FROM ({MANAGED_SOURCE}) WHERE id=?", (parent_id,)) as cursor:
             row = await cursor.fetchone()
         return (row["kind"], json.loads(row["payload"])) if row else None
 
