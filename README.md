@@ -164,10 +164,11 @@ async with PolymarketMarketStream() as stream:
 
 ```python
 synpath.match_market("kalshi:KXHIGHTATL-26SEP23-B80")   # .matched: the same question on another venue, or None
+synpath.match_market("kalshi:KXMLB-26-LAD", venue="polymarket_us")   # on one venue in particular
 synpath.match_event("kalshi:KXHIGHTATL-26SEP23")        # each venue's events on the same event
 ```
 
-Matching is hosted at `api.synpath.dev` and needs a Synpath API key (`synpath login`, then `synpath keys create`). A match is a deterministic parse both listings land on, not a similarity score, and `side_map` says when one venue asks the question the other way round. Crypto up-or-down markets are never matched, since each venue sets its own price to beat. Browse matched events at [synpath.dev](https://www.synpath.dev); API: [match a market](https://www.synpath.dev/docs/api-reference/matching/market), [match an event](https://www.synpath.dev/docs/api-reference/matching/event).
+Matching covers Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet. It is hosted at `api.synpath.dev` and needs a Synpath API key (`synpath login`, then `synpath keys create`). A match is a deterministic parse both listings land on, not a similarity score, and `side_map` says when one venue asks the question the other way round. Crypto up-or-down markets are never matched, since each venue sets its own price to beat. Browse matched events at [synpath.dev](https://www.synpath.dev); API: [match a market](https://www.synpath.dev/docs/api-reference/matching/market), [match an event](https://www.synpath.dev/docs/api-reference/matching/event).
 
 **Smart order routing: one order across Kalshi and Polymarket**
 
