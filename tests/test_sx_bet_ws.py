@@ -91,7 +91,7 @@ class TestRecords:
         event = trade_event(TRADE)
         assert event.market_id == f"sx_bet:{TRADE['marketHash'].lower()}"
         assert event.taker_side == (Side.BUY if TRADE["isBettingOutcomeOne"] else Side.SELL)
-        assert event.amount == Decimal(TRADE["totalReturn"]) / 1_000_000 and 0 < event.price < 1
+        assert event.quantity == Decimal(TRADE["totalReturn"]) / 1_000_000 and 0 < event.price < 1
         assert trade_event({**TRADE, "isParlay": True}) is None
 
     def test_a_settlement(self):

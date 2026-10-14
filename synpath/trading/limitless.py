@@ -110,7 +110,7 @@ def order_of_event(
 
     `outcome` is which token the order is on ("yes" or "no"); the venue names
     the token by its id, which the caller resolves. A lifecycle frame carries
-    what is left of the order, not what it started as, so `amount` is that
+    what is left of the order, not what it started as, so `quantity` is that
     remainder; the terminal frame of an immediate order carries what was left
     unfilled, in 6-decimal units."""
     kind = str(event.get("type") or "")
@@ -136,7 +136,7 @@ def order_of_event(
         time_in_force=tif,
         status=status,
         price=yes_price,
-        amount=remaining,
+        quantity=remaining,
         filled=Decimal("0"),
         remaining=remaining if status == OrderStatus.OPEN else Decimal("0"),
         updated_at=stamp,
@@ -175,7 +175,7 @@ def fill_of_event(
         market_id=ids.qualify(VENUE, ids.native(VENUE, market_id)),
         side=side,
         price=price or Decimal("0"),
-        amount=D(event.get("amountContracts")),
+        quantity=D(event.get("amountContracts")),
         fee=fee,
         fee_currency=currency,
         liquidity=Liquidity.TAKER if taker else Liquidity.MAKER,
@@ -230,7 +230,7 @@ def order_of_row(row: dict[str, Any], info: MarketInfo, *, account: Account | No
     price = D(row.get("price")) if row.get("price") not in (None, "") else None
     side, yes_price = to_yes_leg(outcome, str(row.get("side") or "BUY"), price)
     status = ROW_STATUS.get(str(row.get("status") or "").upper(), OrderStatus.OPEN)
-    amount, remaining = D(row.get("originalSize")) / SCALE, D(row.get("remainingSize")) / SCALE
+    quantity, remaining = D(row.get("originalSize")) / SCALE, D(row.get("remainingSize")) / SCALE
     kind = str(row.get("type") or "GTC").upper()
     return Order(
         id=str(row.get("id") or ""),
@@ -243,8 +243,8 @@ def order_of_row(row: dict[str, Any], info: MarketInfo, *, account: Account | No
         time_in_force=TimeInForce.GTC if kind == "GTC" else TimeInForce.IOC,
         status=status,
         price=yes_price,
-        amount=amount,
-        filled=max(Decimal("0"), amount - remaining),
+        quantity=quantity,
+        filled=max(Decimal("0"), quantity - remaining),
         remaining=remaining if status == OrderStatus.OPEN else Decimal("0"),
         created_at=iso_ms(row.get("createdAt")),
         info=row,
@@ -269,7 +269,7 @@ def fill_of_history(row: dict[str, Any], *, account: Account | None = None) -> F
         market_id=ids.qualify(VENUE, str(market.get("slug") or "")),
         side=side,
         price=price or Decimal("0"),
-        amount=D(row.get("outcomeTokenAmount")),
+        quantity=D(row.get("outcomeTokenAmount")),
         fee=None,
         fee_currency=None,
         liquidity=Liquidity.UNKNOWN,
@@ -381,7 +381,7 @@ def build_signed_order(
     outcome, venue_side = wire_leg(request)
     yes_price = D(request.price)
     price = yes_price if outcome == "yes" else Decimal("1") - yes_price
-    maker_amount, taker_amount, units = sig.limit_amounts(venue_side, price, D(request.amount))  # type: ignore[arg-type]
+    maker_amount, taker_amount, units = sig.limit_amounts(venue_side, price, D(request.quantity))  # type: ignore[arg-type]
     order = sig.build_order(
         maker=signer.address, token_id=info.token(outcome), maker_amount=maker_amount, taker_amount=taker_amount,
         side=venue_side, fee_rate_bps=fee_rate_bps if info.fee else 0,  # type: ignore[arg-type]
@@ -401,14 +401,14 @@ def build_signed_order(
     return body, Decimal(units) / SCALE
 
 
-def status_after_placing(settlement: str, *, taking: bool, filled: Decimal, amount: Decimal) -> OrderStatus:
+def status_after_placing(settlement: str, *, taking: bool, filled: Decimal, quantity: Decimal) -> OrderStatus:
     """An order's state from the placement's settlement status."""
     if settlement in ("CANCELED", "FAILED"):
         return OrderStatus.REJECTED if settlement == "FAILED" and filled == 0 else OrderStatus.CANCELED
-    if amount > 0 and filled >= amount:
+    if quantity > 0 and filled >= quantity:
         return OrderStatus.CLOSED
     if taking and settlement not in ("DELAYED",):
-        return OrderStatus.CANCELED if filled < amount else OrderStatus.CLOSED
+        return OrderStatus.CANCELED if filled < quantity else OrderStatus.CLOSED
     return OrderStatus.OPEN
 
 
@@ -570,7 +570,7 @@ class LimitlessTrading(TradingExchange):
         filled = D(totals.get("contractsGross")) / SCALE
         taking = immediate(request)
         settlement = str(execution.get("settlementStatus") or "")
-        status = status_after_placing(settlement, taking=taking, filled=filled, amount=contracts)
+        status = status_after_placing(settlement, taking=taking, filled=filled, quantity=contracts)
         return Order(
             id=str(placed.get("id") or ""),
             client_order_id=request.client_order_id,
@@ -582,7 +582,7 @@ class LimitlessTrading(TradingExchange):
             time_in_force=request.time_in_force,
             status=status,
             price=D(request.price),
-            amount=contracts,
+            quantity=contracts,
             filled=filled,
             remaining=max(Decimal("0"), contracts - filled) if status == OrderStatus.OPEN else Decimal("0"),
             reduce_only=request.reduce_only,
@@ -735,15 +735,15 @@ class LimitlessTrading(TradingExchange):
             positions = [p for p in positions if p.market_id == ids.qualify(VENUE, ids.native(VENUE, market_id))]
         return [p for p in positions if p.inventory_yes or p.inventory_no]
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
-        """The taker fee for `amount` contracts at the YES `price`, on the
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
+        """The taker fee for `quantity` contracts at the YES `price`, on the
         token actually bought (`1 - price` for a `sell`). Makers pay nothing."""
         schedule = await asyncio.to_thread(self.catalog.fetch_fee_schedule, market_id)
         token_price = D(price) if side == Side.BUY else Decimal("1") - D(price)
-        taker = schedule.estimate(float(token_price), float(amount), taker=True)
+        taker = schedule.estimate(float(token_price), float(quantity), taker=True)
         return FeeEstimate(
             venue=VENUE, market_id=ids.qualify(VENUE, ids.native(VENUE, market_id)), side=side,
-            price=D(price), amount=D(amount),
+            price=D(price), quantity=D(quantity),
             taker_fee=D(taker) if taker is not None else None, maker_fee=Decimal("0"),
             currency="USDC", info={"schedule": schedule.model_dump()},
         )

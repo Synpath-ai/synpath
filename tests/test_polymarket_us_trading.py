@@ -66,7 +66,7 @@ def rules(**kw) -> retail.MarketRules:
 
 
 def req(**kw) -> OrderRequest:
-    base = dict(market_id=f"polymarket_us:{SLUG}", side=Side.BUY, amount=D("10"), price=D("0.107"))
+    base = dict(market_id=f"polymarket_us:{SLUG}", side=Side.BUY, quantity=D("10"), price=D("0.107"))
     base.update(kw)
     return OrderRequest(**base)
 
@@ -136,19 +136,19 @@ class TestRetailTranslate:
         assert "mine" not in json.dumps(body)
 
     def test_fractional_contract_market(self):
-        body = retail.translate_order(req(amount=D("0.5")), rules(minimumTradeQty=0.01))
+        body = retail.translate_order(req(quantity=D("0.5")), rules(minimumTradeQty=0.01))
         assert body["quantity"] == 0.5
         with pytest.raises(InvalidOrder, match="multiple"):
-            retail.translate_order(req(amount=D("0.505")), rules(minimumTradeQty=0.01))
+            retail.translate_order(req(quantity=D("0.505")), rules(minimumTradeQty=0.01))
 
     @pytest.mark.parametrize("kw,match", [
-        ({"amount": D("1.5")}, "whole contracts"),
+        ({"quantity": D("1.5")}, "whole contracts"),
         ({"price": D("0.1075")}, "tick"),
         ({"price": D("0.995")}, "outside"),
         ({"side": Side.SELL, "price": D("0.995")}, "outside"),
         ({"reduce_only": True}, "close_position"),
         ({"time_in_force": TimeInForce.DAY}, "session roll"),
-        ({"type": OrderType.STOP_LIMIT, "stop_price": D("0.2")}, "execution engine"),
+        ({"type": OrderType.STOP_LIMIT, "stop_price": D("0.1")}, "execution engine"),
         ({"type": OrderType.MARKET, "price": None}, "protection price"),
         ({"market_id": "kalshi:T"}, "belongs to kalshi"),
         ({"post_only": True, "time_in_force": TimeInForce.IOC}, "gtc or gtd"),
@@ -206,7 +206,7 @@ class TestRetailNormalizers:
                "beforePosition": {"netPositionDecimal": "10", "cost": {"value": "1.07"}, "realized": {"value": "0"}},
                "afterPosition": {"netPositionDecimal": "0", "realized": {"value": "8.93"}}}
         s = retail.settlement_of(row)
-        assert s.result == "yes" and s.won is True and s.amount == D("10") and s.pnl == D("8.93")
+        assert s.result == "yes" and s.won is True and s.quantity == D("10") and s.pnl == D("8.93")
 
     def test_errors(self):
         from synpath.errors import BadRequest, MarketNotFound
@@ -310,7 +310,7 @@ class TestRetailAdapter:
         current = retail.order_of({**RETAIL_ORDER, "state": "ORDER_STATE_NEW", "cumQuantity": 0, "leavesQuantity": 10})
         venue.on("POST", "/v1/order/ord-1/modify", body={})
         venue.on("GET", "/v1/order/ord-1", body={"order": {**RETAIL_ORDER, "price": {"value": "0.15"}}})
-        order = await adapter.edit_order(EditRequest(order_id="ord-1", price=D("0.15"), amount=D("12")), current=current)
+        order = await adapter.edit_order(EditRequest(order_id="ord-1", price=D("0.15"), quantity=D("12")), current=current)
         body = json.loads(venue.sent("POST", "/v1/order/ord-1/modify")[0].content)
         assert body == {"marketSlug": SLUG, "price": {"value": "0.15", "currency": "USD"}, "quantity": 12, "tif": "TIME_IN_FORCE_GOOD_TILL_CANCEL"}
         assert order.price == D("0.15") and order.queue_priority_preserved is None
@@ -436,7 +436,7 @@ class TestExchangeTranslate:
         ({"type": OrderType.MARKET, "price": None}, "protection price"),
         ({"time_in_force": TimeInForce.DAY}, "roll"),
         ({"reduce_only": True}, "reduce-only"),
-        ({"amount": D("0.5")}, "whole contracts"),
+        ({"quantity": D("0.5")}, "whole contracts"),
     ])
     def test_refused(self, kw, match):
         with pytest.raises(InvalidOrder, match=match):
@@ -464,7 +464,7 @@ class TestExchangeNormalizers:
     def test_fill_and_position(self):
         fill = exchange.fill_of({"id": "e1", "tradeId": "t1", "order": EXCHANGE_ORDER, "lastShares": "4", "lastPx": "168",
                                  "aggressor": False, "transactTime": "2026-09-17T12:00:02Z", "commissionNotionalCollected": "12"}, scale())
-        assert fill.id == "t1" and fill.order_id == "x-1" and fill.price == D("0.168") and fill.amount == D("4")
+        assert fill.id == "t1" and fill.order_id == "x-1" and fill.price == D("0.168") and fill.quantity == D("4")
         # Commission is notional units: price scale 1000 times quantity scale 1.
         assert fill.liquidity == Liquidity.MAKER and fill.fee == D("0.012") and fill.info["commissionNotionalCollected"] == "12"
         pos = exchange.position_of({"symbol": SLUG, "netPosition": "-3"}, scale())
@@ -478,11 +478,11 @@ class TestExchangeNormalizers:
                  "commissionNotionalTotalCollected": "100", "priceScale": "100", "fractionalQuantityScale": "100"}
         fill = exchange.fill_of({"id": "BW9QY8RWN52Z", "order": order, "lastShares": "312", "lastPx": "97",
                                  "type": "EXECUTION_TYPE_FILL", "aggressor": True, "commissionNotionalCollected": "100"}, scale())
-        assert fill.amount == D("3.12") and fill.price == D("0.97") and fill.fee == D("0.01")
+        assert fill.quantity == D("3.12") and fill.price == D("0.97") and fill.fee == D("0.01")
         assert fill.liquidity == Liquidity.TAKER
         rebate = exchange.fill_of({"order": {**order, "fractionalQuantityScale": "0"}, "lastShares": "100", "lastPx": "97",
                                    "commissionNotionalCollected": "-20"}, scale())
-        assert rebate.amount == D("100") and rebate.fee == D("-0.2")
+        assert rebate.quantity == D("100") and rebate.fee == D("-0.2")
 
     def test_errors(self):
         from synpath.errors import AuthenticationError, BadRequest
@@ -570,7 +570,7 @@ class TestExchangeAdapter:
         adapter, venue = pmx
         venue.on("POST", "/v1/trading/orders/replace", body={})
         current = exchange.order_of(EXCHANGE_ORDER, scale())
-        order = await adapter.edit_order(EditRequest(order_id="x-1", amount=D("8")), current=current)
+        order = await adapter.edit_order(EditRequest(order_id="x-1", quantity=D("8")), current=current)
         body = json.loads(venue.sent("POST", "/v1/trading/orders/replace")[0].content)
         assert body["orderQty"] == "8" and body["price"] == "170" and body["symbol"] == SLUG and body["clordId"]
         assert order.status == OrderStatus.PENDING_REPLACE and order.queue_priority_preserved is None
@@ -600,7 +600,7 @@ class TestExchangeAdapter:
         (fill,) = await adapter.fetch_my_trades(market_id=SLUG)
         body = json.loads(venue.sent("POST", "/v1/report/executions/search")[0].content)
         assert body["types"] == ["EXECUTION_TYPE_FILL", "EXECUTION_TYPE_PARTIAL_FILL"] and body["symbol"] == SLUG
-        assert fill.liquidity == Liquidity.TAKER and fill.amount == D("4")
+        assert fill.liquidity == Liquidity.TAKER and fill.quantity == D("4")
 
     async def test_balance(self, pmx):
         adapter, venue = pmx

@@ -302,7 +302,7 @@ def normalize_trade(row: dict[str, Any], *, market_id: str, no_token: str | None
         timestamp=stamp,
         datetime=iso(stamp) or "",
         price=round(price, 6),
-        amount=scaled(row.get("matchedSize")) or 0.0,
+        quantity=scaled(row.get("matchedSize")) or 0.0,
         side="buy" if buying else "sell",
         info={k: v for k, v in row.items() if k != "profile"},
     )

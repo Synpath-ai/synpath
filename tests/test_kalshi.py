@@ -199,10 +199,10 @@ class TestTrade:
         assert trade.price == float(raw["yes_price_dollars"])
         assert trade.side == "buy"
 
-    def test_amount_and_time(self, kalshi_trades):
+    def test_quantity_and_time(self, kalshi_trades):
         raw = kalshi_trades["trades"][0]
         trade = normalize_trade(raw)
-        assert trade.amount == float(raw["count_fp"])
+        assert trade.quantity == float(raw["count_fp"])
         assert trade.timestamp > 10**12
         assert trade.datetime.endswith("Z")
 

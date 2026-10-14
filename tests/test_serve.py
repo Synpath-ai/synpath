@@ -64,11 +64,11 @@ class TestStack:
             async with httpx.AsyncClient(transport=transport, base_url="http://synpath") as client:
                 placed = await client.post(
                     "/trading/orders", headers={"Authorization": f"Bearer {stack.owner_key}"},
-                    json={"market_id": K, "side": "buy", "amount": "5", "type": "limit", "price": "0.35", "book": "alpha"})
+                    json={"market_id": K, "side": "buy", "quantity": "5", "type": "limit", "price": "0.35", "book": "alpha"})
                 assert placed.status_code == 201, placed.text
                 assert placed.json()["venue"] == "kalshi"
                 assert (await client.post("/trading/orders", json={"market_id": K})).status_code == 401
-            assert [o.amount for o in kalshi.orders.values()] == [D("5")]
+            assert [o.quantity for o in kalshi.orders.values()] == [D("5")]
         finally:
             await serve.shutdown(stack)
 
@@ -117,7 +117,7 @@ class TestStack:
         stack, kalshi, fake = await stack_for(tmp_path)
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=stack.app), base_url="http://s") as client:
             await client.post("/trading/orders", headers={"Authorization": f"Bearer {stack.owner_key}"},
-                              json={"market_id": K, "side": "buy", "amount": "5", "type": "limit", "price": "0.35"})
+                              json={"market_id": K, "side": "buy", "quantity": "5", "type": "limit", "price": "0.35"})
         await serve.shutdown(stack)
         assert all(o.is_terminal for o in kalshi.orders.values()), "the default halt policy cancels"
         assert fake.closed

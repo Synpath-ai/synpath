@@ -107,8 +107,8 @@ async def setup(tmp_path: Path):
 
 
 def stop_request(**kw) -> OrderRequest:
-    base = dict(market_id=K, side=Side.SELL, amount=D("10"), type=OrderType.STOP_MARKET, stop_price=D("0.40"),
-                book="alpha", params={"max_slippage": "0.05"})
+    base = dict(market_id=K, side=Side.SELL, quantity=D("10"), type=OrderType.STOP_MARKET, stop_price=D("0.40"),
+                book="alpha")
     return OrderRequest(**{**base, **kw})
 
 
@@ -132,7 +132,7 @@ class TestSubscribing:
         engine, feeds, kalshi, poly, k_stream, p_market, p_user = setup
         bucket = await engine.save_bucket(Bucket(book="alpha", name="b", members=[
             BucketMember(market_id=K), BucketMember(market_id=P)]))
-        await engine.submit(OrderRequest(market_id=bucket.market_id, side=Side.BUY, amount=D("10"), type="market",
+        await engine.submit(OrderRequest(market_id=bucket.market_id, side=Side.BUY, quantity=D("10"), type="market",
                                          price=D("0.45"), book="alpha", params={"min_stay_s": 0}))
         await feeds.sync()
         assert k_stream.watched == [[K]] and p_market.watched == [[P]]
@@ -198,7 +198,7 @@ class TestAccountStreams:
         child = managed.children[0]
         before = managed.filled
         fill = Fill(id="f-1", order_id=child.order_id, venue="kalshi", account=ACCOUNTS["kalshi"], market_id=K,
-                    side=Side.SELL, price=D("0.39"), amount=D("4"), timestamp=1)
+                    side=Side.SELL, price=D("0.39"), quantity=D("4"), timestamp=1)
         await feeds.dispatch("kalshi", k_stream, FillEvent(venue="kalshi", fill=fill))
         assert managed.filled == before, "fill events do not reach parents"
         assert any(p.contracts == D("-4") for p in engine.ledger.positions.values())

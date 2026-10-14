@@ -59,20 +59,20 @@ class LegState:
     price: Decimal
     """The member's own YES price, as sent."""
     bucket_price: Decimal
-    amount: Decimal
+    quantity: Decimal
     placed_at: float
     round: int
 
     def to_dict(self) -> dict[str, Any]:
         return {"order_id": self.order_id, "venue": self.venue, "side": self.side, "price": str(self.price),
-                "bucket_price": str(self.bucket_price), "amount": str(self.amount),
+                "bucket_price": str(self.bucket_price), "quantity": str(self.quantity),
                 "placed_at": self.placed_at, "round": self.round}
 
     @classmethod
     def of(cls, row: dict[str, Any]) -> "LegState":
         return cls(order_id=row["order_id"], venue=row.get("venue") or "", side=row["side"], price=D(row["price"]),
                    bucket_price=D(row["bucket_price"]),
-                   amount=D(row["amount"]), placed_at=float(row.get("placed_at") or 0), round=int(row.get("round") or 0))
+                   quantity=D(row["quantity"]), placed_at=float(row.get("placed_at") or 0), round=int(row.get("round") or 0))
 
 
 @register
@@ -148,8 +148,8 @@ class RoutedLimit(ManagedOrder):
     def budget(self) -> Decimal:
         """Size new legs may add: what is left after every live leg's whole
         size is reserved and every closed leg's fill is counted."""
-        reserved = sum((c.amount if c.live else self.known(c) for c in self.children), ZERO)
-        return max(ZERO, self.amount - reserved)
+        reserved = sum((c.quantity if c.live else self.known(c) for c in self.children), ZERO)
+        return max(ZERO, self.quantity - reserved)
 
     # -- running --------------------------------------------------------------
 
@@ -186,13 +186,13 @@ class RoutedLimit(ManagedOrder):
                 continue
             member = self.bucket.member(order.market_id)
             _, bucket_price = member.to_bucket(order.side, order.price or ZERO)
-            child = self.track(order, order.amount, bucket_price)
+            child = self.track(order, order.quantity, bucket_price)
             child.fee = order.fee or ZERO
             ctx.engine.orders.adopt_child(self.id, order.id, order.venue)
             if child.live and order.market_id not in self.legs:
                 self.legs[order.market_id] = LegState(order_id=order.id, venue=order.venue, side=order.side.value,
                                                       price=order.price or ZERO, bucket_price=bucket_price,
-                                                      amount=order.amount, placed_at=ctx.now, round=self.rounds)
+                                                      quantity=order.quantity, placed_at=ctx.now, round=self.rounds)
         self._forget_dead_legs()
         await ctx.publish("managed.resynced", {"children": len(self.children), "filled": str(self.known_filled)})
         if self.state == "working":
@@ -301,7 +301,7 @@ class RoutedLimit(ManagedOrder):
             return
         await self._price_fees(ctx, books)
         plan = router.plan(self.bucket, books, self.precision, self._fee,
-                           side=self.side, amount=self.known_remaining, limit=self.limit, floors=self.fee_floors)
+                           side=self.side, quantity=self.known_remaining, limit=self.limit, floors=self.fee_floors)
         wanted = {leg.market_id: leg for leg in plan.legs}
 
         # Keep a leg that is still at a price the plan wants, as long as what
@@ -317,7 +317,7 @@ class RoutedLimit(ManagedOrder):
                 self.legs.pop(market_id, None)
                 continue
             want = wanted.get(market_id)
-            resting = child.amount - self.known(child)
+            resting = child.quantity - self.known(child)
             if market_id not in books:
                 # No view of this member's book: nothing says the leg is wrong.
                 kept_resting += resting
@@ -340,19 +340,19 @@ class RoutedLimit(ManagedOrder):
         budget = self.budget()
         placed = 0
         for market_id, want in wanted.items():
-            size = min(want.amount, budget)
+            size = min(want.quantity, budget)
             spec = self.precision[market_id]
-            if size <= 0 or size < spec.min_amount:
+            if size <= 0 or size < spec.min_quantity:
                 continue
-            if spec.min_notional is not None and want.notional() * size / want.amount < spec.min_notional:
+            if spec.min_notional is not None and want.notional() * size / want.quantity < spec.min_notional:
                 continue
-            request = self.child_request(market_id=market_id, side=want.side, price=want.price, amount=size,
+            request = self.child_request(market_id=market_id, side=want.side, price=want.price, quantity=size,
                                          type=OrderType.LIMIT, time_in_force=TimeInForce.GTC)
             order = await ctx.submit_child(request)
             child = self.track(order, size, want.bucket_price)   # the child's price in bucket terms
             child.fee = order.fee or ZERO
             self.legs[market_id] = LegState(order_id=order.id, venue=order.venue, side=want.side.value, price=want.price,
-                                            bucket_price=want.bucket_price, amount=size, placed_at=ctx.now,
+                                            bucket_price=want.bucket_price, quantity=size, placed_at=ctx.now,
                                             round=self.rounds)
             budget -= size
             placed += 1
@@ -380,7 +380,7 @@ class RoutedLimit(ManagedOrder):
         restart (an intent whose answer was lost) can put the total over."""
         by_key = {f"{leg.venue}:{leg.order_id}": (market_id, leg) for market_id, leg in self.legs.items()}
         live = [(by_key.get(self.key(child)), child) for child in self.live_children]
-        excess = sum((child.amount - self.known(child) for _, child in live), ZERO) - self.known_remaining
+        excess = sum((child.quantity - self.known(child) for _, child in live), ZERO) - self.known_remaining
         pulled = 0
 
         def newest_first(item: Any) -> tuple[int, int, float]:
@@ -393,7 +393,7 @@ class RoutedLimit(ManagedOrder):
         for found, child in sorted(live, key=newest_first, reverse=True):
             if excess <= 0:
                 break
-            excess -= child.amount - self.known(child)
+            excess -= child.quantity - self.known(child)
             if found is not None:
                 self.legs.pop(found[0], None)
             await ctx.cancel_child(child.order_id, child.venue)
@@ -470,7 +470,7 @@ class RoutedLimit(ManagedOrder):
         in bucket terms."""
         order = super().as_order()
         filled = self.known_filled
-        return order.model_copy(update={"filled": filled, "remaining": max(ZERO, self.amount - filled),
+        return order.model_copy(update={"filled": filled, "remaining": max(ZERO, self.quantity - filled),
                                         "average_price": self.average_price()})
 
     def report(self) -> dict[str, Any]:
@@ -485,7 +485,7 @@ class RoutedLimit(ManagedOrder):
             breakdown.append({"venue": venue, "filled": str(slot["filled"]),
                               "average_price": str(slot["cost"] / slot["filled"]) if slot["filled"] > 0 else None})
         return {
-            "order_id": self.id, "bucket_id": self.bucket.id, "side": self.side.value, "amount": str(self.amount), "worst_price": str(self.limit),
+            "order_id": self.id, "bucket_id": self.bucket.id, "side": self.side.value, "quantity": str(self.quantity), "worst_price": str(self.limit),
             "filled": str(self.known_filled), "unfilled": str(self.known_remaining),
             "average_price": str(self.average_price()) if self.average_price() is not None else None,
             "fees_paid": str(self.fees_paid), "rounds": self.rounds, "state": self.state,

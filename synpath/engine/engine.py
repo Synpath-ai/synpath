@@ -126,6 +126,9 @@ POST_ONLY_KINDS = ("iceberg", "peg", "twap")
 something. A TWAP only in its `limit` style."""
 
 
+STOP_KINDS = frozenset({"stop_market", "stop_limit", "trailing_stop"})
+
+
 def check_managed_fields(request: OrderRequest, *, now_ms: int) -> None:
     """Refuse the order fields an engine-held type cannot honour, rather than
     ignore them. `reduce_only` always passes to the children; `expires_at` is
@@ -140,6 +143,12 @@ def check_managed_fields(request: OrderRequest, *, now_ms: int) -> None:
                              f"a {kind} order takes liquidity")
     if request.expires_at is not None and request.expires_at <= now_ms:
         raise BadRequest("expires_at is in the past")
+    if kind in STOP_KINDS:
+        if "trigger_source" in request.params:
+            raise BadRequest("trigger_source is a field of the order, not a param")
+        for key in ("max_slippage", "protection"):
+            if key in request.params:
+                raise BadRequest(f"a {kind} takes no {key}: the engine sets the market child's worst price itself")
 
 
 class Engine:
@@ -149,7 +158,7 @@ class Engine:
     engine = Engine({"kalshi": kalshi_adapter}, EngineConfig(journal_path="trading.db"))
     async with engine:
         await engine.submit(OrderRequest(market_id="kalshi:KXX", side=Side.BUY,
-                                         amount=Decimal("10"), price=Decimal("0.42"), book="alpha"))
+                                         quantity=Decimal("10"), price=Decimal("0.42"), book="alpha"))
     ```
     """
 
@@ -417,7 +426,7 @@ class Engine:
         adapter = self._adapter(venue)
         key = f"cancel:{venue}:{order_id}"
         request = OrderRequest(
-            market_id=order.market_id, side=order.side, amount=order.remaining or order.amount,
+            market_id=order.market_id, side=order.side, quantity=order.remaining or order.quantity,
             price=order.price, book=order.book, trader=order.trader, client_order_id=key,
         )
         account = order.account or self.accounts.get(venue) or Account(venue=venue)
@@ -453,7 +462,7 @@ class Engine:
         key = request.client_order_id or f"edit:{venue}:{request.order_id}:{uuid.uuid4().hex[:8]}"
         request = request.model_copy(update={"client_order_id": key})
         intent_request = OrderRequest(
-            market_id=order.market_id, side=order.side, amount=request.amount or order.amount,
+            market_id=order.market_id, side=order.side, quantity=request.quantity or order.quantity,
             price=request.price if request.price is not None else order.price, book=order.book, trader=order.trader,
             client_order_id=key,
         )
@@ -686,9 +695,9 @@ class Engine:
         """A public print."""
         market_id = getattr(event, "market_id", None) or event["market_id"]
         price = getattr(event, "price", None) or event["price"]
-        amount = getattr(event, "amount", None) or event.get("amount", ZERO)
+        quantity = getattr(event, "quantity", None) or event.get("quantity", ZERO)
         self.last_trade[market_id] = Decimal(str(price))
-        await self.orders.on_trade(market_id, Decimal(str(price)), Decimal(str(amount)))
+        await self.orders.on_trade(market_id, Decimal(str(price)), Decimal(str(quantity)))
 
     async def on_settlement(self, settlement: Settlement) -> None:
         realized = self.ledger.apply_settlement(settlement)

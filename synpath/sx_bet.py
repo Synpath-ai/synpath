@@ -312,7 +312,7 @@ def normalize_trade(row: dict[str, Any], *, market_id: str) -> Trade:
         timestamp=stamp,
         datetime=iso(stamp) or "",
         price=round(price, 6),
-        amount=usdc(row.get("totalReturn")) or 0.0,
+        quantity=usdc(row.get("totalReturn")) or 0.0,
         side="buy" if buying else "sell",
         info={k: v for k, v in row.items() if k not in ("userAddress", "username")},
     )
@@ -331,7 +331,7 @@ def candles_from_trades(trades: list[Trade], *, interval_seconds: int) -> list[C
         candles.append(Candle(
             timestamp=start * 1000, datetime=iso(start * 1000) or "",
             open=prices[0], high=max(prices), low=min(prices), close=prices[-1],
-            volume=round(sum(t.amount for t in rows), 6), trade_count=len(rows), price_source="trade",
+            volume=round(sum(t.quantity for t in rows), 6), trade_count=len(rows), price_source="trade",
             info={},
         ))
     return candles

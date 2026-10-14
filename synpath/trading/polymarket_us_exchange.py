@@ -53,7 +53,7 @@ from .errors import (
     OrderRejected, PermissionDenied,
 )
 from .limiter import BudgetLimiter, Priority
-from .money import D, validate_amount, validate_price
+from .money import D, validate_quantity, validate_price
 from .types import (
     Account, Balance, EditRequest, FeeEstimate, Fill, Liquidity, Order, OrderRequest, OrderStatus, OrderType,
     Position, PositionSide, Precision, Side, TimeInForce,
@@ -128,7 +128,7 @@ class InstrumentScale:
     @property
     def precision(self) -> Precision:
         whole = self.min_quantity >= 1 and self.min_quantity % 1 == 0
-        return Precision(tick=self.tick, min_amount=self.min_quantity, amount_step=self.min_quantity, whole_contracts=whole)
+        return Precision(tick=self.tick, min_quantity=self.min_quantity, quantity_step=self.min_quantity, whole_contracts=whole)
 
     @classmethod
     def from_instrument(cls, raw: dict[str, Any]) -> "InstrumentScale":
@@ -211,7 +211,7 @@ def translate_order(request: OrderRequest, scale: InstrumentScale, *, account: s
         raise InvalidOrder("polymarket_us: a stop order needs stop_price")
     price = validate_price(D(request.price), precision) if needs_price else None
     stop = validate_price(D(request.stop_price), precision) if request.stop_price is not None else None
-    quantity = validate_amount(D(request.amount), precision)
+    quantity = validate_quantity(D(request.quantity), precision)
     side, yes_price, yes_stop = wire_side(request.side), price, stop
     tif = request.time_in_force
     if request.type == OrderType.MARKET:
@@ -251,7 +251,7 @@ def translate_order(request: OrderRequest, scale: InstrumentScale, *, account: s
 def order_of(raw: dict[str, Any], scale: InstrumentScale, *, account: Account | None = None) -> Order:
     """An exchange order, on the YES leg."""
     symbol = str(raw.get("symbol") or scale.symbol)
-    amount = scale.qty_from_wire(raw.get("orderQty"))
+    quantity = scale.qty_from_wire(raw.get("orderQty"))
     filled = scale.qty_from_wire(raw.get("cumQty"))
     leaves = raw.get("leavesQty")
     return Order(
@@ -266,7 +266,7 @@ def order_of(raw: dict[str, Any], scale: InstrumentScale, *, account: Account | 
         status=STATE.get(str(raw.get("state") or ""), OrderStatus.PENDING),
         price=scale.price_from_wire(raw.get("price")),
         stop_price=scale.price_from_wire(raw.get("stopPrice")),
-        amount=amount,
+        quantity=quantity,
         filled=filled,
         remaining=scale.qty_from_wire(leaves) if leaves is not None else None,
         average_price=scale.price_from_wire(raw.get("avgPx")) if filled > 0 else None,
@@ -316,7 +316,7 @@ def fill_of(raw: dict[str, Any], scale: InstrumentScale, *, account: Account | N
         market_id=ids.qualify(VENUE, symbol),
         side=Side.BUY if order.get("side") == "SIDE_BUY" else Side.SELL,
         price=scale.price_from_wire(raw.get("lastPx")) or Decimal("0"),
-        amount=scale.qty_from_wire(raw.get("lastShares")),
+        quantity=scale.qty_from_wire(raw.get("lastShares")),
         fee=commission_of(raw.get("commissionNotionalCollected"), scale),
         fee_currency="USD",
         liquidity=Liquidity.TAKER if raw.get("aggressor") else Liquidity.MAKER,
@@ -680,7 +680,7 @@ class PolymarketUSExchangeTrading(TradingExchange):
             body["price"] = scale.price_to_wire(validate_price(price, scale.precision))
         if current.stop_price is not None:
             body["stopPrice"] = scale.price_to_wire(current.stop_price)
-        quantity = validate_amount(D(request.amount), scale.precision) if request.amount is not None else current.amount
+        quantity = validate_quantity(D(request.quantity), scale.precision) if request.quantity is not None else current.quantity
         body["orderQty"] = scale.qty_to_wire(quantity)
         tif = request.time_in_force or current.time_in_force
         if tif == TimeInForce.DAY:
@@ -797,7 +797,7 @@ class PolymarketUSExchangeTrading(TradingExchange):
             buying_power=buying_power, timestamp=parse_ts(raw.get("updateTime")), info=raw,
         )
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
         """From the public gateway's market (same symbols): the taker theta and
         the venue's maker rebate, at the YES price."""
         symbol = symbol_of(market_id)
@@ -812,10 +812,10 @@ class PolymarketUSExchangeTrading(TradingExchange):
         if schedule is None:
             raise NotSupported(f"polymarket_us: market {symbol} publishes no fee coefficient")
         wire = float(D(price))
-        taker = schedule.estimate(wire, float(amount), taker=True)
-        maker = schedule.estimate(wire, float(amount), taker=False)
+        taker = schedule.estimate(wire, float(quantity), taker=True)
+        maker = schedule.estimate(wire, float(quantity), taker=False)
         return FeeEstimate(
-            venue=VENUE, market_id=ids.qualify(VENUE, symbol), side=side, price=D(price), amount=D(amount),
+            venue=VENUE, market_id=ids.qualify(VENUE, symbol), side=side, price=D(price), quantity=D(quantity),
             taker_fee=D(str(taker)) if taker is not None else None,
             maker_fee=D(str(maker)) if maker is not None else None,
             currency="USD", info={"schedule": schedule.model_dump()},

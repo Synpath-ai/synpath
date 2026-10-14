@@ -77,7 +77,7 @@ def trade_event(row: dict[str, Any]) -> TradeEvent | None:
         return None
     try:
         price = Decimal(int(row["weightedAverageOdds"])) / ODDS_SCALE
-        amount = Decimal(int(row["totalReturn"])) / USDC
+        quantity = Decimal(int(row["totalReturn"])) / USDC
     except (KeyError, TypeError, ValueError):
         return None
     buying = bool(row.get("isBettingOutcomeOne"))
@@ -85,7 +85,7 @@ def trade_event(row: dict[str, Any]) -> TradeEvent | None:
 
     return TradeEvent(
         venue=VENUE, market_id=ids.qualify(VENUE, str(row["marketHash"]).lower()), id=row.get("tradeId"),
-        price=price if buying else 1 - price, amount=amount, taker_side=Side.BUY if buying else Side.SELL,
+        price=price if buying else 1 - price, quantity=quantity, taker_side=Side.BUY if buying else Side.SELL,
         timestamp=iso_ms(row.get("betTime")), info={k: v for k, v in row.items() if k not in ("userAddress", "username")},
     )
 

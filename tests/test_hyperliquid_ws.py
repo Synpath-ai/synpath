@@ -76,8 +76,8 @@ class TestRecords:
 
     def test_order_states(self):
         open_, filled, canceled, rejected, no_side = (order_of(row) for row in ORDERS)
-        assert open_.status == OrderStatus.OPEN and open_.remaining == open_.amount and open_.filled == 0
-        assert filled.status == OrderStatus.CLOSED and filled.filled == filled.amount and filled.remaining == 0
+        assert open_.status == OrderStatus.OPEN and open_.remaining == open_.quantity and open_.filled == 0
+        assert filled.status == OrderStatus.CLOSED and filled.filled == filled.quantity and filled.remaining == 0
         assert canceled.status == OrderStatus.CANCELED and canceled.remaining == 0
         assert rejected.status == OrderStatus.REJECTED
         assert rejected.info["native_status"] == "insufficientSpotBalanceRejected"

@@ -45,7 +45,7 @@ from .base import TradingExchange
 from .credentials import PolymarketUSCredentials
 from .errors import InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected
 from .limiter import BudgetLimiter, Priority
-from .money import D, complement, validate_amount, validate_price
+from .money import D, complement, validate_quantity, validate_price
 from .types import (
     Account, Balance, EditRequest, FeeEstimate, Order, OrderRequest, OrderStatus, OrderType, Position,
     PositionSide, Precision, Settlement, Side, TimeInForce, VENUE_ORDER_TYPES,
@@ -82,7 +82,7 @@ class MarketRules:
     def precision(self) -> Precision:
         whole = self.min_quantity >= 1 and self.min_quantity % 1 == 0
         return Precision(
-            tick=self.tick, min_amount=self.min_quantity, amount_step=self.min_quantity, whole_contracts=whole,
+            tick=self.tick, min_quantity=self.min_quantity, quantity_step=self.min_quantity, whole_contracts=whole,
         )
 
     @classmethod
@@ -162,7 +162,7 @@ def translate_order(request: OrderRequest, rules: MarketRules) -> dict[str, Any]
         raise InvalidOrder("polymarket_us: the venue has no reduce-only flag; use close_position")
     slug = slug_of(request.market_id)
     wire_price = check_prices(D(request.price), rules)
-    quantity = validate_amount(D(request.amount), rules.precision)
+    quantity = validate_quantity(D(request.quantity), rules.precision)
     if request.type == OrderType.MARKET:
         tif = TimeInForce.FOK if request.time_in_force == TimeInForce.FOK else TimeInForce.IOC
     else:
@@ -256,7 +256,7 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
     side = yes_leg(outcome, venue_side)
     price = _amount(raw.get("price"))
     average = _amount(raw.get("avgPx"))
-    amount = D(str(raw.get("quantity") or 0))
+    quantity = D(str(raw.get("quantity") or 0))
     filled = D(str(raw.get("cumQuantity") or 0))
     leaves = raw.get("leavesQuantity")
     status = STATE.get(str(raw.get("state") or ""), OrderStatus.PENDING)
@@ -270,7 +270,7 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
         time_in_force=TIF_FROM_WIRE.get(str(raw.get("tif") or ""), TimeInForce.GTC),
         status=status,
         price=price,  # the venue already quotes the YES price
-        amount=amount,
+        quantity=quantity,
         filled=filled,
         remaining=D(str(leaves)) if leaves is not None else None,
         average_price=average if average is not None and filled > 0 else None,
@@ -289,7 +289,7 @@ def pending_order(order_id: str, request: OrderRequest, body: dict[str, Any], ac
         id=order_id, client_order_id=request.client_order_id, venue=VENUE, account=account,
         market_id=ids.qualify(VENUE, body["marketSlug"]), side=request.side,
         type=request.type, time_in_force=TIF_FROM_WIRE[body["tif"]], status=OrderStatus.PENDING,
-        price=D(request.price) if request.price is not None else None, amount=D(request.amount),
+        price=D(request.price) if request.price is not None else None, quantity=D(request.quantity),
         post_only=bool(body.get("participateDontInitiate")), expires_at=request.expires_at,
         created_at=int(time.time() * 1000), book=request.book, trader=request.trader, tags=request.tags,
         info={"request": body},
@@ -336,7 +336,7 @@ def settlement_of(raw: dict[str, Any], *, account: Account | None = None) -> Set
         held=PositionSide.LONG if held == "yes" else PositionSide.SHORT if held == "no" else None,
         result=result,
         won=(held == result) if held and result else None,
-        amount=abs(net) if held else None,
+        quantity=abs(net) if held else None,
         cost=_amount(before.get("cost")),
         payout=None,
         pnl=(realized_after - realized_before) if realized_after is not None and realized_before is not None else None,
@@ -583,7 +583,7 @@ class PolymarketUSTrading(TradingExchange):
         price = D(request.price) if request.price is not None else current.price
         if price is None:
             raise InvalidOrder("polymarket_us: the order has no price to keep")
-        quantity = validate_amount(D(request.amount), rules.precision) if request.amount is not None else current.amount
+        quantity = validate_quantity(D(request.quantity), rules.precision) if request.quantity is not None else current.quantity
         tif = request.time_in_force or current.time_in_force
         if tif == TimeInForce.DAY:
             raise InvalidOrder("polymarket_us: 'day' is rewritten to 'gtd' by the engine")
@@ -637,7 +637,7 @@ class PolymarketUSTrading(TradingExchange):
         return Order(
             id=str((raw or {}).get("id") or ""), venue=VENUE, account=self.account,
             market_id=ids.qualify(VENUE, slug), side=Side.SELL, type=OrderType.MARKET,
-            time_in_force=TimeInForce.IOC, status=OrderStatus.PENDING, amount=Decimal("0"),
+            time_in_force=TimeInForce.IOC, status=OrderStatus.PENDING, quantity=Decimal("0"),
             info={"request": body, "close_position": True},
         )
 
@@ -683,19 +683,19 @@ class PolymarketUSTrading(TradingExchange):
             rows = [r for r in rows if (r.timestamp or 0) >= since]
         return Page(rows, next_cursor=page.next_cursor)
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
         """The market's published taker theta and the venue's maker rebate at
-        the YES `price` for `amount` contracts. A negative maker fee is a rebate."""
+        the YES `price` for `quantity` contracts. A negative maker fee is a rebate."""
         slug = slug_of(market_id)
         rules = await self.market_rules(slug)
         schedule = fee_schedule_of(rules.raw)
         if schedule is None:
             raise NotSupported(f"polymarket_us: market {slug} publishes no fee coefficient")
         wire = float(D(price))
-        taker = schedule.estimate(wire, float(amount), taker=True)
-        maker = schedule.estimate(wire, float(amount), taker=False)
+        taker = schedule.estimate(wire, float(quantity), taker=True)
+        maker = schedule.estimate(wire, float(quantity), taker=False)
         return FeeEstimate(
-            venue=VENUE, market_id=ids.qualify(VENUE, slug), side=side, price=D(price), amount=D(amount),
+            venue=VENUE, market_id=ids.qualify(VENUE, slug), side=side, price=D(price), quantity=D(quantity),
             taker_fee=D(str(taker)) if taker is not None else None,
             maker_fee=D(str(maker)) if maker is not None else None,
             currency="USD", info={"schedule": schedule.model_dump()},

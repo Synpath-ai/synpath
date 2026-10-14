@@ -19,7 +19,7 @@ async with Engine({"kalshi": KalshiTrading(credentials)},
                                   daily_loss_limit=Decimal("500"))) as engine:
     order = await engine.submit(OrderRequest(
         market_id="kalshi:KXBTCD-25SEP18-B95000", side=Side.BUY,
-        amount=Decimal("10"), price=Decimal("0.42"), book="alpha",
+        quantity=Decimal("10"), price=Decimal("0.42"), book="alpha",
     ))
 ```
 
@@ -80,9 +80,9 @@ Policies are `cancel`, `hold` (leave them resting, refuse new ones) and
 from synpath import OrderRequest, OrderType, Side
 
 await engine.submit(OrderRequest(
-    market_id="kalshi:KXX", side=Side.SELL, amount=Decimal("20"),
+    market_id="kalshi:KXX", side=Side.SELL, quantity=Decimal("20"),
     type=OrderType.TRAILING_STOP, stop_price=Decimal("0.40"),
-    params={"trail": "0.03", "trigger_source": "touch"},
+    trigger_source="touch", params={"trail": "0.03"},
 ))
 ```
 
@@ -91,13 +91,14 @@ until its condition fires, then `triggered` while its children work. The
 children are ordinary venue orders, so the risk rules, the ledger and
 reconciliation treat them like anything else, and reconciliation knows to
 skip the parent because the venue was never told about it. A parent's
-filled amount is the sum of its children's, as the venues' order records
+filled quantity is the sum of its children's, as the venues' order records
 last reported them; see the note under buckets on why fill events are the
 ledger's alone.
 
 | Type | `params` | What it does |
 |---|---|---|
-| `stop_market`, `stop_limit` | `trigger_source`, `protection`, `max_slippage` | fires once at the level; the child is an immediate limit at the protection price, or the limit you named |
+| `stop_market` | none | fires once at `stop_price`; the child is a `market` order, `ioc`, priced by the engine |
+| `stop_limit` | none | fires once at `stop_price`; the child is a `limit` at `price` with the order's time in force |
 | `trailing_stop` | `trail` or `trail_percent` | the stop follows the market one way and never back |
 | `iceberg` | `display`, `reload_delay_s`, `jitter_s`, `follow` | shows one slice; reloads after the delay, at the back of the queue |
 | `oco` | `legs` (two specifications) | one cancels the other, and a partial fill resizes the other |
@@ -107,11 +108,45 @@ ledger's alone.
 | `smart_taker` | `clip`, `interval_s`, `limit`, `max_slippage`, `expires_s` | takes in clips over time, inside a price bound |
 | `market` with `params={"walk": True}` | `max_slippage`, `limit` | walks the book now, level by level, inside the bound |
 
-**A stop watches the price that would fill it.** A sell stop watches the best
-bid, a buy stop the best ask. Not the last trade, which on a prediction
-market can be hours stale, and not the mid, which between a 0.30 bid and a
-0.70 ask is a number nobody can trade at. `trigger_source` takes `last` or
-`mid` for callers who disagree.
+### Stops
+
+Both stop types are held by the engine: nothing reaches the venue until the
+stop triggers. A buy stop triggers when the watched price rises to
+`stop_price`, a sell stop when it falls to it. Triggering is one-way; the
+child goes out for the remaining quantity and names the parent in
+`parent_id`.
+
+| Field | Stop market | Stop limit |
+|---|---|---|
+| `market_id`, `side`, `quantity`, `client_order_id`, `reduce_only` | as on any order (`buy` is YES, `sell` is NO) | the same |
+| `type` | `stop_market` | `stop_limit` |
+| `stop_price` | the trigger level | the trigger level |
+| `price` | not used | the child's limit: at or below `stop_price` for a sell, at or above it for a buy |
+| `trigger_source` | `touch` (default), `last` or `mid` | the same |
+| `time_in_force` | how long the stop stays armed: `gtc` (default), `gtd`, `day`. `ioc` and `fok` are refused | what the limit child carries once triggered: `gtc` (default), `gtd`, `ioc`, `fok` |
+| `expires_at` | with `gtd` only | with `gtd` only |
+
+**A stop watches the price that would fill it.** `trigger_source="touch"`,
+the default, watches the best ask for a buy stop and the best bid for a sell
+stop. Not the last trade, which on a prediction market can be hours stale,
+and not the mid, which between a 0.30 bid and a 0.70 ask is a number nobody
+can trade at. `last` and `mid` are there for callers who disagree.
+
+**A stop market's child is priced by the engine.** No venue here takes a
+market order without a worst price, so at the trigger the engine sends the
+`market` child, `ioc`, with the touch plus 0.05 for a buy (minus 0.05 for a
+sell), on the venue's tick and inside the price range. There is no parameter
+for it. With no book to price against at that moment, the stop ends
+`rejected` rather than send at any price.
+
+**How a stop ends.** The parent reports `waiting`, then `triggered`, then one
+of: `closed` (filled; for a stop market, also when the IOC child's remainder
+did not fill, with the unfilled quantity on the order and in its detail),
+`canceled` (cancelled while waiting, or for a stop limit after the trigger
+too, which pulls the resting child), `expired` (a `gtd` or `day` stop whose
+time ran out before it triggered, or a stop limit whose child was still
+resting), or `rejected` (no book for a stop market's child, or the venue
+refused the child).
 
 **Day is not one of these.** All three venues run nearly around the clock, so
 Day has no venue meaning, and an engine-held timer would die with the
@@ -120,7 +155,8 @@ session (`session_timezone`, `session_end`) before it reaches the adapter, so
 the venue holds the expiry; the journal keeps `day` alongside it.
 
 **The order's own fields still apply.** `reduce_only` passes to every child.
-`expires_at` expires the whole order, children included. `post_only` is
+`expires_at` expires the whole order, children included, and the parent
+ends `expired`. `post_only` is
 accepted only by types that rest on the book (`iceberg`, `peg`, a `twap` with
 `style="limit"`); an `oco` or `bracket` takes it on its legs, and a type that
 takes liquidity refuses it rather than ignoring it.
@@ -146,7 +182,7 @@ bucket = await engine.save_bucket(Bucket(book="alpha", name="Falcons -7.5 2H", m
     BucketMember(market_id="polymarket:4851855"),
 ]))
 parent = await engine.submit(OrderRequest(
-    market_id=bucket.market_id, side=Side.BUY, amount=Decimal("500"), type="market", price=Decimal("0.42"),
+    market_id=bucket.market_id, side=Side.BUY, quantity=Decimal("500"), type="market", price=Decimal("0.42"),
     book="alpha", params={"min_stay_s": 5, "max_rounds": 20},
 ))
 engine.orders.get(parent.id).report()          # filled, average, per venue, why it stopped
@@ -185,7 +221,7 @@ at `max_rounds` or `max_age_s`. A stop with a partial fill finishes
 | `min_stay_s` | seconds a leg rests before it may be moved |
 | `max_rounds` | re-allocations that changed a leg, after which it stops |
 | `max_age_s` | seconds from acceptance, after which it stops |
-| `precision` | per-market `tick`, `min_amount`, `amount_step`, `whole_contracts`, overriding the venue's published rules |
+| `precision` | per-market `tick`, `min_quantity`, `quantity_step`, `whole_contracts`, overriding the venue's published rules |
 
 **One channel for what has filled.** A parent learns its children's fills
 from the venue's order record only: the placement's answer, then every

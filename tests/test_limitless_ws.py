@@ -86,13 +86,13 @@ class TestRecords:
         assert order_of_event({**ORDER, "type": "CANCELLATION"}, market_id=MARKET, outcome="yes").status == OrderStatus.CANCELED
         killed = order_of_event({**ORDER, "type": "EXECUTION", "status": "KILLED", "remainingSize": "50000000"},
                                 market_id=MARKET, outcome="no")
-        assert killed.status == OrderStatus.CANCELED and killed.amount == Decimal("50") and killed.side == Side.SELL
+        assert killed.status == OrderStatus.CANCELED and killed.quantity == Decimal("50") and killed.side == Side.SELL
         filled = order_of_event({**ORDER, "type": "EXECUTION", "status": "FILLED", "remainingSize": "0"}, market_id=MARKET, outcome="yes")
         assert filled.status == OrderStatus.CLOSED and filled.type == OrderType.MARKET
 
     def test_a_taker_fill_on_no_reads_on_yes(self):
         fill = fill_of_event(MINED, market_id=MARKET, outcome="no")
-        assert fill.side == Side.SELL and fill.price == Decimal("0.53") and fill.amount == Decimal("25")
+        assert fill.side == Side.SELL and fill.price == Decimal("0.53") and fill.quantity == Decimal("25")
         assert fill.settlement == SettlementState.CONFIRMED and fill.liquidity == Liquidity.TAKER
         assert fill.fee == Decimal("0.75") and fill.fee_currency == "shares" and fill.id == "1b3a:550e8400"
 

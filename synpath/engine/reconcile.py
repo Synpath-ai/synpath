@@ -10,7 +10,7 @@ every difference:
 |---|---|
 | `orphan` | resting at the venue, unknown to the journal |
 | `ghost` | open in the journal, gone at the venue |
-| `drift` | known to both, different status, filled amount or price |
+| `drift` | known to both, different status, filled quantity or price |
 | `position` | the ledger and the venue disagree about a position |
 | `fill` | a fill the venue has and the journal does not |
 | `balance` | cash moved without a fill explaining it |
@@ -140,7 +140,7 @@ class Reconciler:
                 # trading this account. Reporting is the only safe default.
                 difference = Difference("orphan", venue, order_id, {
                     "market_id": order.market_id, "side": order.side.value,
-                    "amount": str(order.amount), "price": str(order.price) if order.price else None,
+                    "quantity": str(order.quantity), "price": str(order.price) if order.price else None,
                     "client_order_id": order.client_order_id,
                 })
                 if self.orphan_policy == "adopt":
@@ -200,7 +200,7 @@ class Reconciler:
             report.new_fills += 1
             report.fills.append(Difference("fill", venue, fill.id, {
                 "order_id": fill.order_id, "market_id": fill.market_id,
-                "amount": str(fill.amount), "price": str(fill.price),
+                "quantity": str(fill.quantity), "price": str(fill.price),
             }, action="booked"))
         if newest > since:
             await self.engine.journal.set_cursor(f"reconcile_fills:{venue}", newest)
@@ -264,7 +264,7 @@ class Reconciler:
         for fill in await self.engine.journal.fills(since_ts=since, venue=venue):
             newest = max(newest, fill.timestamp or 0)
             signed = -1 if fill.side.value == "buy" else 1
-            total += Decimal(signed) * fill.price * fill.amount - (fill.fee or ZERO)
+            total += Decimal(signed) * fill.price * fill.quantity - (fill.fee or ZERO)
         if newest > since:
             await self.engine.journal.set_cursor(key, newest)
         return total

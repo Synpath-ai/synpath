@@ -35,6 +35,7 @@ from decimal import Decimal
 from typing import Any, AsyncIterator, Awaitable, Callable, Literal
 
 from .. import _native
+from .._deprecated import deprecated_property
 from ..base import Capability, complete_capabilities
 from ..trading.types import Balance, Fill, Order, Position, Side
 
@@ -112,10 +113,12 @@ class TradeEvent(Event):
     market_id: str
     id: str | None
     price: Decimal
-    amount: Decimal
+    quantity: Decimal
     taker_side: Side | None = None
     timestamp: int | None = None
     info: dict[str, Any] = field(default_factory=dict)
+
+    amount = deprecated_property("amount", "quantity")  # TODO(0.9): remove
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

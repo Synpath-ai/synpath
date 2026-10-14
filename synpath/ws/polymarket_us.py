@@ -183,7 +183,7 @@ class PolymarketUSMarketStream(_SignedStream):
             taker = (trade.get("taker") or {}).get("side")
             return [TradeEvent(
                 venue=VENUE, market_id=ids.qualify(VENUE, slug), id=trade.get("tradeId") or trade.get("id"),
-                price=D(trade["price"]), amount=D(trade.get("quantity") or trade.get("qty")),
+                price=D(trade["price"]), quantity=D(trade.get("quantity") or trade.get("qty")),
                 taker_side=Side.BUY if taker == "ORDER_SIDE_BUY" else Side.SELL if taker == "ORDER_SIDE_SELL" else None,
                 timestamp=parse_ts(trade.get("tradeTime")), info=trade,
             )]
@@ -285,7 +285,7 @@ class PolymarketUSPrivateStream(_SignedStream):
                 id=str(execution.get("tradeId") or execution.get("id") or ""), order_id=order.id, venue=VENUE,
                 account=self.account, market_id=order.market_id, side=order.side,
                 price=wire_price if wire_price is not None else Decimal("0"),
-                amount=D(execution["lastShares"]),
+                quantity=D(execution["lastShares"]),
                 fee=maybe_D(execution.get("commissionNotionalCollected")), fee_currency="USD",
                 liquidity=Liquidity.TAKER if aggressor is True else Liquidity.MAKER if aggressor is False else Liquidity.UNKNOWN,
                 timestamp=parse_ts(execution.get("transactTime")) or 0, info=execution,

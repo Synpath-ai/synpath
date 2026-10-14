@@ -38,7 +38,7 @@ MARKET_ID = f"predict_fun:{NATIVE}"
 
 
 def request(**changes) -> OrderRequest:
-    base = {"market_id": MARKET_ID, "side": Side.BUY, "amount": Decimal("10"), "price": Decimal("0.4")}
+    base = {"market_id": MARKET_ID, "side": Side.BUY, "quantity": Decimal("10"), "price": Decimal("0.4")}
     return OrderRequest(**{**base, **changes})
 
 
@@ -192,7 +192,7 @@ class TestRecords:
     def test_an_order_row_on_no_reads_on_yes(self):
         order = order_of_row(order_row(), INFO)
         assert (order.id, order.side, order.price) == ("0xaa", Side.SELL, Decimal("0.7"))
-        assert order.amount == Decimal("10") and order.filled == Decimal("4") and order.remaining == Decimal("6")
+        assert order.quantity == Decimal("10") and order.filled == Decimal("4") and order.remaining == Decimal("6")
         assert order.status == OrderStatus.OPEN and order.time_in_force == TimeInForce.GTC
 
     @pytest.mark.parametrize("status, expected", [
@@ -208,10 +208,10 @@ class TestRecords:
         maker = match["makers"][0]
         [fill] = fills_of_match(match, maker["signer"].lower())
         assert fill.liquidity == Liquidity.MAKER and fill.order_id == maker["hash"]
-        assert fill.amount == Decimal(maker["amount"]) / 10**18 and fill.id == match["settlementId"]
+        assert fill.quantity == Decimal(maker["amount"]) / 10**18 and fill.id == match["settlementId"]
         taker = fills_of_match(match, match["taker"]["signer"])
         assert [f.liquidity for f in taker] == [Liquidity.TAKER]
-        assert taker[0].amount == Decimal(match["amountFilled"]) / 10**18
+        assert taker[0].quantity == Decimal(match["amountFilled"]) / 10**18
         assert fills_of_match(match, "0x" + "00" * 20) == []
 
     def test_positions_net_on_yes(self):
@@ -314,7 +314,7 @@ class TestAdapter:
         body = json.loads(sent.content)["data"]
         assert sent.headers["authorization"] == "Bearer jwt-1" and sent.headers["x-api-key"] == "test-key"
         assert order.id == body["order"]["hash"] and order.info["venue_order_id"] == "991"
-        assert order.status == OrderStatus.OPEN and order.amount == Decimal("10")
+        assert order.status == OrderStatus.OPEN and order.quantity == Decimal("10")
         assert "signature" not in order.info["request"]["order"]
 
     def test_a_refused_token_is_renewed_once(self):

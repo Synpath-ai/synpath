@@ -82,7 +82,7 @@ def auth(key: str) -> dict[str, str]:
 
 def order_body(**kw) -> dict:
     body = {
-        "market_id": SYM, "side": "buy", "amount": "5", "type": "limit", "price": "0.35",
+        "market_id": SYM, "side": "buy", "quantity": "5", "type": "limit", "price": "0.35",
         "book": "alpha", "account": ACCOUNT.model_dump(mode="json"),
     }
     return {**body, **kw}
@@ -116,7 +116,7 @@ class TestPermissions:
         client, store, engine = server["client"], server["store"], server["engine"]
         # An order on another desk: the viewer's grant does not reach it.
         other = await engine.submit(OrderRequest(
-            market_id=SYM, side=Side.BUY, amount=D("1"), price=D("0.30"), account=OTHER, book="beta",
+            market_id=SYM, side=Side.BUY, quantity=D("1"), price=D("0.30"), account=OTHER, book="beta",
         ), venue="kalshi")
         response = client.get("/orders", headers=auth(server["viewer_key"]))
         ids = [o["id"] for o in response.json()["data"]]
@@ -210,12 +210,12 @@ class TestTradingRoutes:
         created = client.post("/orders", json=order_body(), headers=auth(server["trader_key"])).json()
         order_id = created["id"]
 
-        amended = client.patch(f"/orders/{order_id}", json={"amount": "3"}, headers=auth(server["trader_key"]))
+        amended = client.patch(f"/orders/{order_id}", json={"quantity": "3"}, headers=auth(server["trader_key"]))
         assert amended.status_code == 200, amended.text
-        assert amended.json()["amount"] == "3", "the order is the one in the path"
-        again = client.patch(f"/orders/{order_id}", json={"order_id": "ignored", "amount": "4"},
+        assert amended.json()["quantity"] == "3", "the order is the one in the path"
+        again = client.patch(f"/orders/{order_id}", json={"order_id": "ignored", "quantity": "4"},
                              headers=auth(server["trader_key"]))
-        assert again.status_code == 200 and again.json()["amount"] == "4", "an id in the body is ignored"
+        assert again.status_code == 200 and again.json()["quantity"] == "4", "an id in the body is ignored"
 
         fetched = client.get(f"/orders/{order_id}", headers=auth(server["viewer_key"]))
         assert fetched.status_code == 200 and fetched.json()["id"] == order_id
@@ -227,7 +227,7 @@ class TestTradingRoutes:
     async def test_a_risk_rule_answers_409_with_its_name(self, server):
         client, engine = server["client"], server["engine"]
         engine.risk.config = engine.risk.config.model_copy(update={"max_order_contracts": D("1")})
-        response = client.post("/orders", json=order_body(amount="5"), headers=auth(server["trader_key"]))
+        response = client.post("/orders", json=order_body(quantity="5"), headers=auth(server["trader_key"]))
         error = response.json()["error"]
         assert response.status_code == 409 and error["code"] == "risk_rejected"
         assert error["details"]["rule"] == "max_order_contracts"
@@ -235,7 +235,7 @@ class TestTradingRoutes:
     async def test_an_engine_held_order_is_one_order_over_http(self, server):
         client = server["client"]
         created = client.post("/orders", json=order_body(
-            type="iceberg", amount="10", price="0.35", params={"display": "2"},
+            type="iceberg", quantity="10", price="0.35", params={"display": "2"},
         ), headers=auth(server["trader_key"]))
         assert created.status_code == 201
         body = created.json()
@@ -247,7 +247,7 @@ class TestTradingRoutes:
 
     async def test_portfolio_routes(self, server):
         client, engine, paper = server["client"], server["engine"], server["paper"]
-        client.post("/orders", json=order_body(price="0.60", amount="4"), headers=auth(server["trader_key"]))
+        client.post("/orders", json=order_body(price="0.60", quantity="4"), headers=auth(server["trader_key"]))
         for fill in await paper.deliver() or []:
             pass
         assert client.get("/positions", headers=auth(server["trader_key"])).status_code == 200
@@ -341,7 +341,7 @@ class TestOpenAPI:
         client = server["client"]
         document = client.get("/openapi.json").json()
         order = document["components"]["schemas"]["Order"]
-        assert {"id", "venue", "market_id", "side", "status", "amount"} <= set(order["properties"])
+        assert {"id", "venue", "market_id", "side", "status", "quantity"} <= set(order["properties"])
         create = document["paths"]["/orders"]["post"]
         assert create["responses"]["201"]["content"]["application/json"]["schema"]["$ref"].endswith("/Order")
 
@@ -385,7 +385,7 @@ async def two_venues(tmp_path: Path):
 
 
 def plain(**kw) -> dict:
-    return {"side": "buy", "amount": "5", "type": "limit", "price": "0.35", "book": "alpha", **kw}
+    return {"side": "buy", "quantity": "5", "type": "limit", "price": "0.35", "book": "alpha", **kw}
 
 
 class TestRouting:
@@ -505,7 +505,7 @@ class TestBucketRoutes:
         one = client.get(f"/buckets/{bucket.id}/orders/{placed['id']}", headers=auth(key))
         assert one.status_code == 200, one.text
         report = one.json()
-        assert report["bucket_id"] == bucket.id and report["amount"] == "5" and report["worst_price"] == "0.45"
+        assert report["bucket_id"] == bucket.id and report["quantity"] == "5" and report["worst_price"] == "0.45"
         assert report["filled"] == "0" and report["stop_reason"] is None and report["detail"] is None
         canceled = client.delete(f"/orders/{placed['id']}", headers=auth(key))
         assert canceled.status_code == 200 and canceled.json()["status"] == "canceled"

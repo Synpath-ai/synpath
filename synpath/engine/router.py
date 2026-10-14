@@ -36,6 +36,7 @@ from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from typing import Any, Callable, Literal, Mapping
 
 from .. import _native
+from .._deprecated import deprecated_property, renamed_kwargs
 from ..bucket import Bucket, BucketMember
 from ..trading.instruments import VENUE_RULES
 from ..trading.types import Precision, Side
@@ -46,7 +47,7 @@ FeeFn = Callable[[str, Decimal, Decimal], Decimal]
 """`fee(market_id, price, contracts)` -> the taker fee for that many contracts
 at that price, in the venue's currency. The plan asks per level."""
 
-Reason = Literal["", "worst_price", "liquidity", "min_amount"]
+Reason = Literal["", "worst_price", "liquidity", "min_quantity"]
 
 FeeFloors = Mapping[str, Decimal]
 """Per market id, the least one taker order pays. Absent means no floor."""
@@ -108,8 +109,8 @@ def default_precision(market_id: str) -> Precision:
     """The venue's published rules, for a member whose market has not been read."""
     venue = market_id.split(":", 1)[0]
     rules = VENUE_RULES.get(venue, VENUE_RULES["polymarket"])
-    return Precision(tick=rules["default_tick"], min_amount=rules["min_amount"],
-                     amount_step=rules["amount_step"], whole_contracts=rules["whole"],
+    return Precision(tick=rules["default_tick"], min_quantity=rules["min_quantity"],
+                     quantity_step=rules["quantity_step"], whole_contracts=rules["whole"],
                      min_notional=rules.get("min_notional"))
 
 
@@ -131,7 +132,7 @@ class Leg:
     """The member's own side, after `flip`."""
     price: Decimal
     """The member's own YES price, after `flip` and tick rounding. What the venue receives."""
-    amount: Decimal
+    quantity: Decimal
     bucket_price: Decimal
     """The worst bucket-terms price this leg reaches, before fees."""
     net_price: Decimal
@@ -145,27 +146,31 @@ class Leg:
     def notional(self) -> Decimal:
         """What the token this leg buys costs: YES at `price` on a buy, NO at
         `1 - price` on a sell (a sell buys NO on a token venue)."""
-        return self.amount * (self.price if self.side == Side.BUY else Decimal("1") - self.price)
+        return self.quantity * (self.price if self.side == Side.BUY else Decimal("1") - self.price)
+
+    amount = deprecated_property("amount", "quantity")  # TODO(0.9): remove
 
 
 @dataclass
 class Plan:
     side: Side
-    amount: Decimal
+    quantity: Decimal
     limit: Decimal
     legs: list[Leg] = field(default_factory=list)
     unfilled: Decimal = ZERO
     reason: Reason = ""
 
+    amount = deprecated_property("amount", "quantity")  # TODO(0.9): remove
+
     @property
     def allocated(self) -> Decimal:
-        return sum((leg.amount for leg in self.legs), ZERO)
+        return sum((leg.quantity for leg in self.legs), ZERO)
 
     @property
     def expected_net_price(self) -> Decimal | None:
         if not self.legs:
             return None
-        return sum((leg.net_price * leg.amount for leg in self.legs), ZERO) / self.allocated
+        return sum((leg.net_price * leg.quantity for leg in self.legs), ZERO) / self.allocated
 
 
 def merge(bucket: Bucket, books: Mapping[str, Any], fee: FeeFn) -> tuple[list[Level], list[Level]]:
@@ -201,6 +206,7 @@ Taken = dict[str, dict[str, Decimal]]
 Walk = Callable[[set[str]], tuple[Taken, Decimal, Reason]]
 
 
+@renamed_kwargs(amount="quantity")  # TODO(0.9): remove
 def plan(
     bucket: Bucket,
     books: Mapping[str, Any],
@@ -208,11 +214,11 @@ def plan(
     fee: FeeFn,
     *,
     side: Side,
-    amount: Decimal,
+    quantity: Decimal,
     limit: Decimal,
     floors: FeeFloors | None = None,
 ) -> Plan:
-    """How to take `amount` of the bucket at no worse than `limit` net, given
+    """How to take `quantity` of the bucket at no worse than `limit` net, given
     what the books show now.
 
     Walks the merged book best-net first and stops at the limit. A leg under
@@ -223,20 +229,20 @@ def plan(
     walk without it fills as much for less."""
     floors = floors or {}
     if _native.core is not None:
-        walk = _native_walk(bucket, books, fee, side, amount, limit)
+        walk = _native_walk(bucket, books, fee, side, quantity, limit)
         if walk is not None:
             try:
-                return _plan(bucket, precision, side, amount, limit, floors, walk)
+                return _plan(bucket, precision, side, quantity, limit, floors, walk)
             except _Inexact:
                 pass
     asks, bids = merge(bucket, books, fee)
     levels = asks if side == Side.BUY else bids
-    return _plan(bucket, precision, side, amount, limit, floors,
-                 lambda excluded: _walk_levels(levels, side, amount, limit, excluded))
+    return _plan(bucket, precision, side, quantity, limit, floors,
+                 lambda excluded: _walk_levels(levels, side, quantity, limit, excluded))
 
 
 def _native_walk(
-    bucket: Bucket, books: Mapping[str, Any], fee: FeeFn, side: Side, amount: Decimal, limit: Decimal,
+    bucket: Bucket, books: Mapping[str, Any], fee: FeeFn, side: Side, quantity: Decimal, limit: Decimal,
 ) -> Walk | None:
     """The walk on the Rust core: the side being planned merged there once,
     then walked once per call. `None` to plan in Python."""
@@ -253,18 +259,18 @@ def _native_walk(
         return None
 
     def walk(excluded: set[str]) -> tuple[Taken, Decimal, Reason]:
-        done = levels.walk(buy, amount, limit, sorted(excluded))
+        done = levels.walk(buy, quantity, limit, sorted(excluded))
         if done is None:
             raise _Inexact
         slots, remaining, reason = done
-        taken = {m: {"amount": a, "cost": c, "fee": f, "worst": w} for m, a, c, f, w in slots}
+        taken = {m: {"quantity": a, "cost": c, "fee": f, "worst": w} for m, a, c, f, w in slots}
         return taken, remaining, reason
 
     return walk
 
 
 def _plan(
-    bucket: Bucket, precision: Mapping[str, Precision], side: Side, amount: Decimal, limit: Decimal,
+    bucket: Bucket, precision: Mapping[str, Precision], side: Side, quantity: Decimal, limit: Decimal,
     floors: FeeFloors, walk: Walk,
 ) -> Plan:
     def settle(excluded: set[str]) -> tuple[list[Leg], Decimal, Reason, set[str]]:
@@ -276,7 +282,7 @@ def _plan(
             if not bad:
                 return legs, remaining, reason, excluded
             excluded.update(leg.market_id for leg in bad)
-        return [], amount, "min_amount", excluded
+        return [], quantity, "min_quantity", excluded
 
     best = settle(set())
     for _ in range(len(bucket.members)):
@@ -290,14 +296,14 @@ def _plan(
             break
 
     legs, remaining, reason, _ = best
-    out = Plan(side=side, amount=amount, limit=limit, legs=legs, unfilled=remaining, reason=reason)
+    out = Plan(side=side, quantity=quantity, limit=limit, legs=legs, unfilled=remaining, reason=reason)
     if remaining > 0 and reason == "":
-        out.reason = "min_amount"
+        out.reason = "min_quantity"
     return out
 
 
 def _too_small(leg: Leg, spec: Precision) -> bool:
-    if leg.amount < spec.min_amount:
+    if leg.quantity < spec.min_quantity:
         return True
     return spec.min_notional is not None and leg.notional() < spec.min_notional
 
@@ -319,19 +325,19 @@ def _better(a: tuple, b: tuple, side: Side) -> bool:
         return False
     if remaining_a < remaining_b:
         return True
-    total_a = sum((l.net_price * l.amount for l in legs_a), ZERO)
-    total_b = sum((l.net_price * l.amount for l in legs_b), ZERO)
+    total_a = sum((l.net_price * l.quantity for l in legs_a), ZERO)
+    total_b = sum((l.net_price * l.quantity for l in legs_b), ZERO)
     return total_a < total_b if side == Side.BUY else total_a > total_b
 
 
 def _walk_levels(
-    levels: list[Level], side: Side, amount: Decimal, limit: Decimal, excluded: set[str],
+    levels: list[Level], side: Side, quantity: Decimal, limit: Decimal, excluded: set[str],
 ) -> tuple[Taken, Decimal, Reason]:
-    """What each member's levels give, best first, up to `amount` and no
+    """What each member's levels give, best first, up to `quantity` and no
     worse than `limit` net: per member the contracts, their net cost, their
     fees and the worst price reached, in the order members were first taken."""
     taken: Taken = {}
-    remaining = amount
+    remaining = quantity
     reason: Reason = "liquidity"
     for lvl in levels:
         if remaining <= 0:
@@ -343,8 +349,8 @@ def _walk_levels(
             reason = "worst_price"
             break
         take = min(lvl.size, remaining)
-        slot = taken.setdefault(lvl.market_id, {"amount": ZERO, "cost": ZERO, "fee": ZERO, "worst": lvl.price})
-        slot["amount"] += take
+        slot = taken.setdefault(lvl.market_id, {"quantity": ZERO, "cost": ZERO, "fee": ZERO, "worst": lvl.price})
+        slot["quantity"] += take
         slot["cost"] += lvl.net_price * take
         slot["fee"] += abs(lvl.net_price - lvl.price) * take
         slot["worst"] = max(slot["worst"], lvl.price) if side == Side.BUY else min(slot["worst"], lvl.price)
@@ -366,33 +372,33 @@ def _legs(
     for market_id, slot in taken.items():
         member = bucket.member(market_id)
         spec = precision[market_id]
-        qty = _round_amount(slot["amount"], spec)
+        qty = _round_quantity(slot["quantity"], spec)
         if qty <= 0:
-            remaining += slot["amount"]
+            remaining += slot["quantity"]
             continue
-        remaining += slot["amount"] - qty
+        remaining += slot["quantity"] - qty
         member_side, member_price = member.to_member(side, slot["worst"])
         member_price = _round_price(member_price, spec.tick, member_side)
-        share = qty / slot["amount"]
+        share = qty / slot["quantity"]
         curve = slot["fee"] * share
         floor = floors.get(market_id)
         extra = max(ZERO, floor - curve) if floor is not None and curve > 0 else ZERO
-        net = slot["cost"] / slot["amount"] + (extra / qty if side == Side.BUY else -extra / qty)
+        net = slot["cost"] / slot["quantity"] + (extra / qty if side == Side.BUY else -extra / qty)
         legs.append(Leg(
-            market_id=market_id, flip=member.flip, side=member_side, price=member_price, amount=qty,
+            market_id=market_id, flip=member.flip, side=member_side, price=member_price, quantity=qty,
             bucket_price=slot["worst"], net_price=net, fee=curve + extra, fee_floor=extra,
         ))
     return legs, remaining
 
 
-def _round_amount(amount: Decimal, spec: Precision) -> Decimal:
+def _round_quantity(quantity: Decimal, spec: Precision) -> Decimal:
     """Down, never up: a leg may fall short of what the level offered but must
     not exceed it."""
     if spec.whole_contracts:
-        return Decimal(int(amount))
-    if spec.amount_step:
-        return (amount / spec.amount_step).to_integral_value(rounding=ROUND_FLOOR) * spec.amount_step
-    return amount
+        return Decimal(int(quantity))
+    if spec.quantity_step:
+        return (quantity / spec.quantity_step).to_integral_value(rounding=ROUND_FLOOR) * spec.quantity_step
+    return quantity
 
 
 def _round_price(price: Decimal, tick: Decimal, side: Side) -> Decimal:

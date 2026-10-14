@@ -31,7 +31,7 @@ def test_the_venue_recovers_the_signing_wallet():
     async def run():
         async with HyperliquidTrading(HyperliquidCredentials(private_key="0x" + secrets.token_hex(32), testnet=True)) as venue:
             with pytest.raises(PermissionDenied) as refused:
-                await venue.create_order(OrderRequest(market_id=market.id, side=Side.BUY, amount=Decimal("30"),
+                await venue.create_order(OrderRequest(market_id=market.id, side=Side.BUY, quantity=Decimal("30"),
                                                       price=Decimal("0.5")))
             return venue.signer.address.lower(), str(refused.value)
 

@@ -58,7 +58,7 @@ POSITION_ROW = {
 
 
 def request(**changes) -> OrderRequest:
-    base = {"market_id": MARKET_ID, "side": Side.BUY, "amount": Decimal("10"), "price": Decimal("0.4")}
+    base = {"market_id": MARKET_ID, "side": Side.BUY, "quantity": Decimal("10"), "price": Decimal("0.4")}
     return OrderRequest(**{**base, **changes})
 
 
@@ -175,7 +175,7 @@ class TestOrders:
 class TestRecords:
     def test_an_order_row(self):
         order = order_of_row(ORDER_ROW)
-        assert (order.side, order.price, order.amount, order.filled, order.remaining, order.status) == \
+        assert (order.side, order.price, order.quantity, order.filled, order.remaining, order.status) == \
             (Side.BUY, Decimal("0.4"), Decimal("5"), Decimal("2.5"), Decimal("2.5"), OrderStatus.OPEN)
 
     @pytest.mark.parametrize("reason, status", [
@@ -192,7 +192,7 @@ class TestRecords:
 
     def test_a_fill(self):
         fill = fill_of_row(FILL_ROW)
-        assert (fill.side, fill.price, fill.amount, fill.liquidity) == (Side.SELL, Decimal("0.6"), Decimal("0.833335"), Liquidity.TAKER)
+        assert (fill.side, fill.price, fill.quantity, fill.liquidity) == (Side.SELL, Decimal("0.6"), Decimal("0.833335"), Liquidity.TAKER)
         assert fill.settlement == SettlementState.CONFIRMED
         assert fill_of_row({**FILL_ROW, "status": "MATCHED"}).settlement == SettlementState.MATCHED
         assert fill_of_row({**FILL_ROW, "isParlay": True}) is None
@@ -286,7 +286,7 @@ class TestAdapter:
 
         async def go():
             async with adapter(venue) as sx:
-                return await sx.create_orders([request(), request(amount=Decimal("1")), request(side=Side.SELL)])
+                return await sx.create_orders([request(), request(quantity=Decimal("1")), request(side=Side.SELL)])
 
         good, bad, sell = run(go())
         assert good.status == OrderStatus.OPEN and isinstance(bad, InvalidOrder) and sell.side == Side.SELL

@@ -183,7 +183,7 @@ class TestTrades:
         trades = [normalize_trade(row, market_id="hyperliquid:7544") for row in rows]
         for row, trade in zip(rows, trades):
             assert trade.side == {"B": "buy", "A": "sell"}[row["side"]]
-            assert trade.price == float(row["px"]) and trade.amount == float(row["sz"])
+            assert trade.price == float(row["px"]) and trade.quantity == float(row["sz"])
             assert trade.id == str(row["tid"])
 
 

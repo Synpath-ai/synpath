@@ -136,7 +136,7 @@ async def no_orders_left(kalshi, market) -> bool:
 class TestOnDemo:
     async def test_an_iceberg_shows_only_its_slice(self, engine, kalshi, market):
         parent = await engine.submit(OrderRequest(
-            instrument_id=f"{market}:yes", side=Side.BUY, amount=D("4"), price=D("0.02"),
+            instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("4"), price=D("0.02"),
             type=OrderType.ICEBERG, params={"display": "1", "reload_delay_s": 0}, book="demo-iceberg",
         ))
         assert parent.status == OrderStatus.TRIGGERED and parent.held_by.value == "engine"
@@ -148,7 +148,7 @@ class TestOnDemo:
         async def the_slice_is_resting() -> bool:
             resting = {o.id: o for o in await kalshi.fetch_open_orders() if o.market_id == market}
             ours = [resting[i] for i in mine if i in resting]
-            return len(ours) == 1 and ours[0].amount == D("1")
+            return len(ours) == 1 and ours[0].quantity == D("1")
 
         # The demo lists a new order a few hundred milliseconds after taking it.
         assert await wait_for(the_slice_is_resting), "three of the four contracts are not at the venue"
@@ -166,8 +166,8 @@ class TestOnDemo:
         if bid <= D("0.02"):
             pytest.skip(f"the bid is {bid}: there is no room below it for a stop")
         parent = await engine.submit(OrderRequest(
-            instrument_id=f"{market}:yes", side=Side.SELL, amount=D("1"), type=OrderType.STOP_MARKET,
-            stop_price=(bid / 2).quantize(D("0.01")), params={"protection": "0.01"}, book="demo-stop",
+            instrument_id=f"{market}:yes", side=Side.SELL, quantity=D("1"), type=OrderType.STOP_MARKET,
+            stop_price=(bid / 2).quantize(D("0.01")), book="demo-stop",
         ))
         await engine.on_book({"instrument_id": f"{market}:yes"})
         managed = engine.orders.get(parent.id)
@@ -186,7 +186,7 @@ class TestOnDemo:
 
     async def test_a_twap_sends_its_slices_to_the_venue(self, engine, kalshi, market):
         parent = await engine.submit(OrderRequest(
-            instrument_id=f"{market}:yes", side=Side.BUY, amount=D("2"), price=D("0.02"), type=OrderType.TWAP,
+            instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("2"), price=D("0.02"), type=OrderType.TWAP,
             params={"window_s": 4, "slices": 2, "style": "limit", "limit": "0.02"}, book="demo-twap",
         ))
         managed = engine.orders.get(parent.id)
@@ -211,7 +211,7 @@ class TestOnDemo:
                        accounts={"kalshi": ACCOUNT})
         await first.start()
         parent = await first.submit(OrderRequest(
-            instrument_id=f"{market}:yes", side=Side.BUY, amount=D("2"), price=D("0.02"), type=OrderType.ICEBERG,
+            instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("2"), price=D("0.02"), type=OrderType.ICEBERG,
             params={"display": "1"}, book="demo-restart",
         ))
         child_ids = [c.order_id for c in first.orders.get(parent.id).children]
@@ -238,7 +238,7 @@ class TestOnDemo:
 
     async def test_a_halt_stands_parents_and_children_down(self, engine, kalshi, market):
         await engine.submit(OrderRequest(
-            instrument_id=f"{market}:yes", side=Side.BUY, amount=D("2"), price=D("0.02"), type=OrderType.ICEBERG,
+            instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("2"), price=D("0.02"), type=OrderType.ICEBERG,
             params={"display": "1"}, book="demo-halt",
         ))
         result = await engine.halt("demo drill", policy="cancel")
@@ -248,7 +248,7 @@ class TestOnDemo:
 
     async def test_a_day_order_carries_a_venue_expiry(self, engine, kalshi, market):
         order = await engine.submit(OrderRequest(
-            instrument_id=f"{market}:yes", side=Side.BUY, amount=D("1"), price=D("0.02"),
+            instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("1"), price=D("0.02"),
             time_in_force=TimeInForce.DAY, book="demo-day",
         ))
         assert order.time_in_force == TimeInForce.GTD and order.expires_at

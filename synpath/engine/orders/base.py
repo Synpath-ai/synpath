@@ -49,7 +49,7 @@ log = logging.getLogger("synpath.engine.orders")
 ZERO = Decimal("0")
 ONE = Decimal("1")
 
-State = Literal["waiting", "working", "cancelling", "done", "canceled", "rejected"]
+State = Literal["waiting", "working", "cancelling", "done", "canceled", "rejected", "expired"]
 LIVE_STATES: frozenset[str] = frozenset({"waiting", "working", "cancelling"})
 
 STATUS_OF: dict[str, OrderStatus] = {
@@ -59,6 +59,7 @@ STATUS_OF: dict[str, OrderStatus] = {
     "done": OrderStatus.CLOSED,
     "canceled": OrderStatus.CANCELED,
     "rejected": OrderStatus.REJECTED,
+    "expired": OrderStatus.EXPIRED,
 }
 
 
@@ -83,7 +84,7 @@ class Child:
 
     order_id: str
     venue: str
-    amount: Decimal
+    quantity: Decimal
     price: Decimal | None = None
     filled: Decimal = ZERO
     fee: Decimal = ZERO
@@ -96,7 +97,7 @@ class Child:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "order_id": self.order_id, "venue": self.venue, "amount": str(self.amount),
+            "order_id": self.order_id, "venue": self.venue, "quantity": str(self.quantity),
             "price": str(self.price) if self.price is not None else None, "filled": str(self.filled),
             "fee": str(self.fee),
             "status": self.status, "created_ms": self.created_ms,
@@ -105,7 +106,7 @@ class Child:
     @classmethod
     def of(cls, row: Mapping[str, Any]) -> "Child":
         return cls(
-            order_id=row["order_id"], venue=row["venue"], amount=D(row["amount"]), price=D(row.get("price")),
+            order_id=row["order_id"], venue=row["venue"], quantity=D(row["quantity"]), price=D(row.get("price")),
             filled=D(row.get("filled"), ZERO), fee=D(row.get("fee"), ZERO), status=row.get("status", "open"),
             created_ms=int(row.get("created_ms") or now_ms()),
         )
@@ -223,8 +224,8 @@ class ManagedOrder:
         return self.request.side
 
     @property
-    def amount(self) -> Decimal:
-        return self.request.amount
+    def quantity(self) -> Decimal:
+        return self.request.quantity
 
     @property
     def filled(self) -> Decimal:
@@ -234,7 +235,7 @@ class ManagedOrder:
 
     @property
     def remaining(self) -> Decimal:
-        return max(ZERO, self.amount - self.filled)
+        return max(ZERO, self.quantity - self.filled)
 
     @property
     def live(self) -> bool:
@@ -268,7 +269,7 @@ class ManagedOrder:
     async def on_book(self, ctx: Context, market_id: str) -> None:
         """The book for one of this parent's instruments changed."""
 
-    async def on_trade(self, ctx: Context, market_id: str, price: Decimal, amount: Decimal) -> None:
+    async def on_trade(self, ctx: Context, market_id: str, price: Decimal, quantity: Decimal) -> None:
         """A public print."""
 
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
@@ -286,16 +287,25 @@ class ManagedOrder:
 
     # -- lifecycle ------------------------------------------------------------
 
-    async def cancel(self, ctx: Context, reason: str = "cancelled") -> None:
+    async def cancel(self, ctx: Context, reason: str = "cancelled", *, end: State = "canceled") -> None:
+        """Pull every live child, then end as `end`: `canceled`, or `expired`
+        when it is the order's own expiry doing it."""
         self.detail = reason
         if not self.live:
             return
         self.state = "cancelling"
         await self.pull_children(ctx)
         if not self.live_children:
-            await self.finish(ctx, "canceled", reason)
+            await self.finish(ctx, end, reason)
         else:
             await ctx.save()
+
+    async def expire(self, ctx: Context) -> None:
+        """The order's own `expires_at` passed: the whole order ends
+        `expired`, every live child pulled first. Called about once a second
+        until the parent is no longer live, so a child that would not cancel
+        is tried again."""
+        await self.cancel(ctx, "expired", end="expired")
 
     async def pull_children(self, ctx: Context) -> None:
         """Cancel every live child.
@@ -336,7 +346,7 @@ class ManagedOrder:
         return Fill(
             id=f"{order.venue}:{order.id}:{child.filled}", order_id=order.id, client_order_id=order.client_order_id,
             venue=order.venue, account=order.account, market_id=order.market_id, side=order.side,
-            price=order.last_fill_price or order.average_price or order.price or ZERO, amount=delta,
+            price=order.last_fill_price or order.average_price or order.price or ZERO, quantity=delta,
             fee=max(ZERO, child.fee - fee_before), fee_currency=order.fee_currency,
             timestamp=order.updated_at or now_ms(),
         )
@@ -353,7 +363,7 @@ class ManagedOrder:
     def child_request(
         self,
         *,
-        amount: Decimal,
+        quantity: Decimal,
         price: Decimal | None,
         type: OrderType = OrderType.LIMIT,
         time_in_force: TimeInForce | None = None,
@@ -366,7 +376,7 @@ class ManagedOrder:
     ) -> OrderRequest:
         """A venue order in this parent's name, carrying its book and trader."""
         return OrderRequest(
-            market_id=market_id or self.market_id, side=side or self.side, amount=amount, type=type,
+            market_id=market_id or self.market_id, side=side or self.side, quantity=quantity, type=type,
             price=price, time_in_force=time_in_force or TimeInForce.GTC, post_only=post_only, expires_at=expires_at,
             # A parent that may only reduce a position must not open one
             # through its children: on Polymarket a reduce-only sell sells the
@@ -376,11 +386,11 @@ class ManagedOrder:
             tags={**self.request.tags, "parent": self.id}, params=params or {},
         )
 
-    def track(self, order: Order, amount: Decimal, price: Decimal | None) -> Child:
+    def track(self, order: Order, quantity: Decimal, price: Decimal | None) -> Child:
         """Record a child, with the status the venue already gave it: an
         order that crossed on the way in comes back closed, and a parent that
         recorded it as resting would wait for a fill that has happened."""
-        child = Child(order_id=order.id, venue=order.venue, amount=amount, price=price,
+        child = Child(order_id=order.id, venue=order.venue, quantity=quantity, price=price,
                       filled=order.filled, status=order.status.value)
         self.children.append(child)
         self.updated_ms = now_ms()
@@ -430,7 +440,7 @@ class ManagedOrder:
             id=self.id, client_order_id=self.request.client_order_id, venue=self.venue, account=self.account,
             market_id=self.market_id, side=self.side, type=self.order_type,
             time_in_force=self.request.time_in_force, status=STATUS_OF[self.state], held_by=HeldBy.ENGINE,
-            price=self.request.price, stop_price=self.request.stop_price, amount=self.amount, filled=self.filled,
+            price=self.request.price, stop_price=self.request.stop_price, quantity=self.quantity, filled=self.filled,
             remaining=self.remaining, average_price=average, book=self.request.book, trader=self.request.trader,
             tags=dict(self.request.tags), created_at=self.created_ms, updated_at=self.updated_ms,
             info={"kind": self.kind, "state": self.state, "detail": self.detail,
@@ -438,4 +448,4 @@ class ManagedOrder:
         )
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
-        return f"<{type(self).__name__} {self.id} {self.state} {self.filled}/{self.amount} {self.market_id}>"
+        return f"<{type(self).__name__} {self.id} {self.state} {self.filled}/{self.quantity} {self.market_id}>"

@@ -42,7 +42,7 @@ from .errors import (
     DuplicateClientOrderId, InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected,
 )
 from .limiter import BudgetLimiter, Priority
-from .money import D, kalshi_count, kalshi_dollars, validate_amount, validate_price
+from .money import D, kalshi_count, kalshi_dollars, validate_quantity, validate_price
 from .types import (
     Account, Balance, EditRequest, FeeEstimate, Fill, HeldBy, Liquidity, Order, OrderRequest,
     OrderStatus, OrderType, Position, PositionSide, Precision, Settlement, SettlementState, Side,
@@ -86,7 +86,7 @@ KNOWN_COSTS: dict[tuple[str, str], int] = {
 own patterns: `:name` matches one segment, `*name` the rest."""
 
 DEFAULT_PRECISION = Precision(
-    tick=Decimal("0.01"), min_amount=Decimal("0.01"), amount_step=Decimal("0.01"), whole_contracts=False,
+    tick=Decimal("0.01"), min_quantity=Decimal("0.01"), quantity_step=Decimal("0.01"), whole_contracts=False,
 )
 """What an order is checked against when the caller gives no instrument
 spec: the coarse tick every market accepts, and the venue's two-decimal
@@ -161,7 +161,7 @@ def translate_order(request: OrderRequest, *, precision: Precision | None = None
     """An `OrderRequest` as the V2 create body, on the YES leg.
 
     Validation happens here, before anything is signed: price on the tick and
-    inside (0, 1), amount on the venue's two-decimal grid, an order type the
+    inside (0, 1), quantity on the venue's two-decimal grid, an order type the
     venue holds, a time in force it understands, a protection price for a
     market order.
     """
@@ -180,7 +180,7 @@ def translate_order(request: OrderRequest, *, precision: Precision | None = None
     ticker = ticker_of(request.market_id)
     spec = precision or DEFAULT_PRECISION
     price = validate_price(D(request.price), spec)
-    amount = validate_amount(D(request.amount), spec)
+    quantity = validate_quantity(D(request.quantity), spec)
 
     # The venue quotes the YES leg and so does this library: `buy` is a YES bid
     # at the price given, `sell` is a YES ask at the same price, which is what
@@ -197,7 +197,7 @@ def translate_order(request: OrderRequest, *, precision: Precision | None = None
         "ticker": ticker,
         "client_order_id": request.client_order_id or str(uuid.uuid4()),
         "side": book_side,
-        "count": kalshi_count(amount),
+        "count": kalshi_count(quantity),
         "price": kalshi_dollars(yes_price),
         "time_in_force": tif,
         "self_trade_prevention_type": params.pop("self_trade_prevention_type", "taker_at_cross"),
@@ -246,7 +246,7 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
     filled = D(raw.get("fill_count_fp") or raw.get("fill_count") or "0")
     remaining = D(raw.get("remaining_count_fp") or raw.get("remaining_count") or "0")
     initial = raw.get("initial_count_fp")
-    amount = D(initial) if initial is not None else filled + remaining
+    quantity = D(initial) if initial is not None else filled + remaining
     taker_cost = D(raw.get("taker_fill_cost_dollars") or "0")
     maker_cost = D(raw.get("maker_fill_cost_dollars") or "0")
     fee = D(raw.get("taker_fees_dollars") or "0") + D(raw.get("maker_fees_dollars") or "0")
@@ -264,7 +264,7 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
         status=_status_of(raw, filled=filled, remaining=remaining),
         held_by=HeldBy.VENUE,
         price=D(raw["yes_price_dollars"]) if raw.get("yes_price_dollars") is not None else None,
-        amount=amount,
+        quantity=quantity,
         filled=filled,
         remaining=remaining,
         average_price=(cost / filled).quantize(Decimal("0.0001")) if filled > 0 and cost > 0 else None,
@@ -307,7 +307,7 @@ def order_from_response(
         ),
         status=_status_of(raw, filled=filled, remaining=remaining),
         price=D(body["price"]) if body.get("price") is not None else None,
-        amount=filled + remaining,
+        quantity=filled + remaining,
         filled=filled,
         remaining=remaining,
         average_price=D(average) if average not in (None, "") else None,
@@ -333,7 +333,7 @@ def fill_of(raw: dict[str, Any], *, account: Account | None = None) -> Fill:
         market_id=ids.qualify(VENUE, ticker),
         side=_side_of(raw),
         price=D(raw["yes_price_dollars"]),
-        amount=D(raw.get("count_fp") or raw.get("count") or "0"),
+        quantity=D(raw.get("count_fp") or raw.get("count") or "0"),
         fee=D(raw["fee_cost"]) if raw.get("fee_cost") not in (None, "") else None,
         fee_currency="USD",
         liquidity=Liquidity.TAKER if raw.get("is_taker") else Liquidity.MAKER,
@@ -383,7 +383,7 @@ def settlement_of(raw: dict[str, Any], *, account: Account | None = None) -> Set
         held=PositionSide.LONG if held == "yes" else PositionSide.SHORT if held == "no" else None,
         result=result,
         won=won,
-        amount=max(yes_count, no_count) if held else None,
+        quantity=max(yes_count, no_count) if held else None,
         cost=cost,
         payout=payout,
         pnl=(payout - cost - fee) if payout is not None else None,
@@ -607,9 +607,9 @@ class KalshiTrading(TradingExchange):
             return Order(
                 id=order_id, venue=VENUE, account=self.account, market_id="",
                 side=Side.BUY, type=OrderType.LIMIT, time_in_force=TimeInForce.GTC,
-                status=OrderStatus.CANCELED, amount=reduced, info=raw,
+                status=OrderStatus.CANCELED, quantity=reduced, info=raw,
             )
-        remaining = order.remaining if order.remaining is not None else order.amount - order.filled
+        remaining = order.remaining if order.remaining is not None else order.quantity - order.filled
         if order.status == OrderStatus.OPEN:
             remaining = max(Decimal("0"), remaining - reduced)
         status = OrderStatus.CLOSED if order.status == OrderStatus.CLOSED else OrderStatus.CANCELED
@@ -655,7 +655,7 @@ class KalshiTrading(TradingExchange):
     async def edit_order(self, request: EditRequest, *, current: Order | None = None) -> Order:
         """Change a resting order in place.
 
-        Only the amount coming down is a *decrease*, which keeps the order's
+        Only the quantity coming down is a *decrease*, which keeps the order's
         place in the queue. Anything else -- a new price, or more contracts --
         is an *amend*, which the venue treats as a new order at the back of
         the queue. `queue_priority_preserved` says which one this was.
@@ -664,32 +664,32 @@ class KalshiTrading(TradingExchange):
         if request.time_in_force is not None or request.expires_at is not None:
             raise InvalidOrder("kalshi: time in force cannot be edited; cancel and replace")
         price_changed = request.price is not None and D(request.price) != current.price
-        new_amount = D(request.amount) if request.amount is not None else None
+        new_quantity = D(request.quantity) if request.quantity is not None else None
         as_sent = {
             **(current.info.get("request") or {}), "ticker": ticker_of(current.market_id),
             "side": "bid" if current.side == Side.BUY else "ask",
             "price": kalshi_dollars(current.price) if current.price is not None else None,
             "client_order_id": current.client_order_id,
         }
-        if not price_changed and new_amount is not None and new_amount < current.amount:
+        if not price_changed and new_quantity is not None and new_quantity < current.quantity:
             raw = await self._call(
                 "POST", f"/portfolio/events/orders/{request.order_id}/decrease",
-                json={"reduce_to": kalshi_count(new_amount - current.filled), "market_ticker": ticker_of(current.market_id)},
+                json={"reduce_to": kalshi_count(new_quantity - current.filled), "market_ticker": ticker_of(current.market_id)},
                 kind="write", priority=Priority.HIGH,
             )
             order = self._edited(raw, body=as_sent, current=current)
             return order.model_copy(update={"queue_priority_preserved": True})
-        if request.price is None and new_amount is None:
+        if request.price is None and new_quantity is None:
             return current
         price = D(request.price) if request.price is not None else current.price
-        amount = new_amount if new_amount is not None else current.amount
+        quantity = new_quantity if new_quantity is not None else current.quantity
         if price is None:
             raise InvalidOrder("kalshi: the order has no price to amend")
         body = {
             "ticker": ticker_of(current.market_id),
             "side": "bid" if current.side == Side.BUY else "ask",
             "price": kalshi_dollars(validate_price(price, DEFAULT_PRECISION)),
-            "count": kalshi_count(validate_amount(amount, DEFAULT_PRECISION)),
+            "count": kalshi_count(validate_quantity(quantity, DEFAULT_PRECISION)),
             "client_order_id": current.client_order_id,
             "updated_client_order_id": request.client_order_id or str(uuid.uuid4()),
         }
@@ -811,9 +811,9 @@ class KalshiTrading(TradingExchange):
         rows = (raw or {}).get("settlements") or []
         return Page([settlement_of(r, account=self.account) for r in rows], next_cursor=(raw or {}).get("cursor") or None)
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
         """The venue's published fee for the market's series, evaluated at
-        `price` and `amount` -- the same formula the read API's
+        `price` and `quantity` -- the same formula the read API's
         `FeeSchedule.estimate` uses. The fee is symmetric in the YES price,
         so `side` does not change it."""
         ticker = ticker_of(market_id)
@@ -826,10 +826,10 @@ class KalshiTrading(TradingExchange):
             venue=VENUE, scope="series", scope_id=series_id, fee_type=str(series["fee_type"]),
             multiplier=to_float(series.get("fee_multiplier")), rounding="up_to_cent", info=series,
         )
-        taker = schedule.estimate(float(price), float(amount), taker=True)
-        maker = schedule.estimate(float(price), float(amount), taker=False)
+        taker = schedule.estimate(float(price), float(quantity), taker=True)
+        maker = schedule.estimate(float(price), float(quantity), taker=False)
         return FeeEstimate(
-            venue=VENUE, market_id=ids.qualify(VENUE, ticker), side=side, price=D(price), amount=D(amount),
+            venue=VENUE, market_id=ids.qualify(VENUE, ticker), side=side, price=D(price), quantity=D(quantity),
             taker_fee=D(str(taker)) if taker is not None else None,
             maker_fee=D(str(maker)) if maker is not None else None,
             currency="USD",

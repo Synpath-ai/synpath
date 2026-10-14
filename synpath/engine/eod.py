@@ -81,7 +81,7 @@ class EndOfDay:
         since = engine.risk.day_start_ms
         for fill in await engine.journal.fills(since_ts=since):
             report.fills += 1
-            report.volume += fill.amount
+            report.volume += fill.quantity
             report.fees += fill.fee or ZERO
 
         marks = engine.fair_values.marks()

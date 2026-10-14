@@ -319,7 +319,7 @@ def normalize_trade(match: dict[str, Any], *, market_id: str) -> Trade:
         timestamp=stamp,
         datetime=iso(stamp) or "",
         price=round(price, 6),
-        amount=(to_float(match.get("amountFilled")) or 0) / WEI,
+        quantity=(to_float(match.get("amountFilled")) or 0) / WEI,
         side="buy" if buying else "sell",
         info={k: v for k, v in match.items() if k != "market"},
     )

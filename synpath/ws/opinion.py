@@ -419,7 +419,7 @@ class OpinionMarketStream(_OpinionStream):
             price, buying = ONE - price, not buying
         return [TradeEvent(
             venue=VENUE, market_id=watched.market_id, id=None, price=price,
-            amount=Decimal(str(message.get("shares") or "0")),
+            quantity=Decimal(str(message.get("shares") or "0")),
             taker_side=Side.BUY if buying else Side.SELL, info=message,
         )]
 

@@ -53,7 +53,7 @@ def journal_path(tmp_path: Path) -> str:
 
 
 def request(**kw) -> OrderRequest:
-    base = dict(market_id="kalshi:KX-A", side=Side.BUY, amount=D("5"), price=D("0.40"), book="alpha",
+    base = dict(market_id="kalshi:KX-A", side=Side.BUY, quantity=D("5"), price=D("0.40"), book="alpha",
                 trader="tester", account=ACCOUNT)
     return OrderRequest(**{**base, **kw})
 
@@ -97,7 +97,7 @@ class ScriptedVenue(TradingExchange):
             id=f"V{self.n}", client_order_id=request.client_order_id, venue="kalshi", account=request.account,
             market_id=request.market_id, side=request.side,
             type=OrderType.LIMIT, time_in_force=TimeInForce.GTC, status=OrderStatus.OPEN, price=request.price,
-            amount=request.amount, book=request.book, trader=request.trader,
+            quantity=request.quantity, book=request.book, trader=request.trader,
         )
         self.orders[order.id] = order
         return order
@@ -120,7 +120,7 @@ class ScriptedVenue(TradingExchange):
         order = self.orders[request.order_id]
         updated = order.model_copy(update={
             "price": request.price if request.price is not None else order.price,
-            "amount": request.amount if request.amount is not None else order.amount,
+            "quantity": request.quantity if request.quantity is not None else order.quantity,
             "queue_priority_preserved": request.price is None,
         })
         self.orders[request.order_id] = updated
@@ -179,7 +179,7 @@ class TestJournal:
             assert intents[0].request["price"] == "0.40" and intents[0].book == "alpha"
 
     async def test_a_fill_is_recorded_once(self, journal_path):
-        fill = Fill(id="F1", order_id="V1", venue="kalshi", account=ACCOUNT, market_id="kalshi:KX-A", side=Side.BUY, price=D("0.4"), amount=D("5"), timestamp=1)
+        fill = Fill(id="F1", order_id="V1", venue="kalshi", account=ACCOUNT, market_id="kalshi:KX-A", side=Side.BUY, price=D("0.4"), quantity=D("5"), timestamp=1)
         async with Journal(journal_path) as journal:
             assert await journal.record_fill(fill) is True
             assert await journal.record_fill(fill) is False
@@ -283,7 +283,7 @@ class TestRecovery:
         order = await engine.submit(request())
         await engine.on_fill(Fill(id="F1", order_id=order.id, venue="kalshi", account=ACCOUNT,
                                   market_id="kalshi:KX-A", side=Side.BUY, price=D("0.40"),
-                                  amount=D("5"), fee=D("0.02"), timestamp=1))
+                                  quantity=D("5"), fee=D("0.02"), timestamp=1))
         await engine.journal.close()
 
         restarted = await engine_for(journal_path, venue)
@@ -336,8 +336,8 @@ class TestSubmit:
         order = await engine.submit(request())
         from synpath.trading.types import EditRequest
 
-        edited = await engine.edit(EditRequest(order_id=order.id, amount=D("3")))
-        assert edited.amount == D("3") and edited.queue_priority_preserved is True
+        edited = await engine.edit(EditRequest(order_id=order.id, quantity=D("3")))
+        assert edited.quantity == D("3") and edited.queue_priority_preserved is True
         canceled = await engine.cancel(order.id)
         assert canceled.status == OrderStatus.CANCELED
         keys = {i.client_order_id: i for i in await engine.journal.intents()}
@@ -423,7 +423,7 @@ class TestRisk:
         second = await engine.set_risk(RiskConfig(max_order_contracts=D("2"), price_collar=None, duplicate_window_ms=0))
         assert second > first
         with pytest.raises(RiskRejected):
-            await engine.submit(request(amount=D("5")))
+            await engine.submit(request(quantity=D("5")))
         stored = await engine.journal.config("risk", second)
         assert stored[1]["max_order_contracts"] == "2"
         await engine.stop()
@@ -487,7 +487,7 @@ class TestReconcile:
     async def test_a_fill_the_engine_missed_is_booked(self, journal_path):
         venue = ScriptedVenue()
         engine = await engine_for(journal_path, venue)
-        venue.fills = [Fill(id="F9", order_id="V1", venue="kalshi", account=ACCOUNT, market_id="kalshi:KX-A", side=Side.BUY, price=D("0.4"), amount=D("5"), timestamp=5)]
+        venue.fills = [Fill(id="F9", order_id="V1", venue="kalshi", account=ACCOUNT, market_id="kalshi:KX-A", side=Side.BUY, price=D("0.4"), quantity=D("5"), timestamp=5)]
         report = (await Reconciler(engine).run())[0]
         assert report.new_fills == 1
         assert engine.ledger.total().realized == D("0")
@@ -513,9 +513,9 @@ class TestLedger:
     def test_average_cost_realized_and_crossing_through_zero(self):
         ledger = Ledger()
 
-        def fill(i, side, price, amount, market="kalshi:KX-A", fee="0"):
+        def fill(i, side, price, quantity, market="kalshi:KX-A", fee="0"):
             return Fill(id=f"F{i}", order_id="V1", venue="kalshi", account=ACCOUNT,
-                        market_id=market, side=side, price=D(price), amount=D(amount), fee=D(fee), timestamp=i)
+                        market_id=market, side=side, price=D(price), quantity=D(quantity), fee=D(fee), timestamp=i)
 
         ledger.apply_fill(fill(1, Side.BUY, "0.40", "10", fee="0.05"))
         ledger.apply_fill(fill(2, Side.BUY, "0.50", "10"))
@@ -531,7 +531,7 @@ class TestLedger:
 
     def test_settlement_closes_the_position(self):
         ledger = Ledger()
-        ledger.apply_fill(Fill(id="F1", order_id="V1", venue="kalshi", account=ACCOUNT, market_id="kalshi:KX-A", side=Side.BUY, price=D("0.40"), amount=D("10"), timestamp=1))
+        ledger.apply_fill(Fill(id="F1", order_id="V1", venue="kalshi", account=ACCOUNT, market_id="kalshi:KX-A", side=Side.BUY, price=D("0.40"), quantity=D("10"), timestamp=1))
         realized = ledger.apply_settlement(Settlement(venue="kalshi", market_id="kalshi:KX-A", result="yes"))
         assert realized == D("6.0")
         assert ledger.open_positions() == []
@@ -541,7 +541,7 @@ class TestLedger:
         for i, (book, market) in enumerate([("alpha", "kalshi:KX-A"), ("beta", "kalshi:KX-A"), ("alpha", "kalshi:KX-B")]):
             ledger.apply_fill(Fill(id=f"F{i}", order_id="V1", venue="kalshi", account=ACCOUNT,
                                    market_id=market, side=Side.BUY,
-                                   price=D("0.50"), amount=D("10"), fee=D("0.10"), timestamp=i), book=book)
+                                   price=D("0.50"), quantity=D("10"), fee=D("0.10"), timestamp=i), book=book)
         marks = {("kalshi:default", "kalshi:KX-A"): D("0.55"), ("kalshi:default", "kalshi:KX-B"): D("0.45")}
         assert set(ledger.rollup("market", marks)) == {"kalshi:KX-A", "kalshi:KX-B"}
         assert set(ledger.rollup("book", marks)) == {"alpha", "beta"}
@@ -551,7 +551,7 @@ class TestLedger:
 
     def test_a_position_without_a_mark_reports_no_unrealized(self):
         ledger = Ledger()
-        ledger.apply_fill(Fill(id="F1", order_id="V1", venue="kalshi", account=ACCOUNT, market_id="kalshi:KX-A", side=Side.BUY, price=D("0.40"), amount=D("10"), timestamp=1))
+        ledger.apply_fill(Fill(id="F1", order_id="V1", venue="kalshi", account=ACCOUNT, market_id="kalshi:KX-A", side=Side.BUY, price=D("0.40"), quantity=D("10"), timestamp=1))
         row = ledger.rollup("book", {})["default"]
         assert row.unrealized is None and row.cost == D("4.0") and row.marked == 0
 
@@ -564,17 +564,17 @@ class TestPaper:
     async def test_a_resting_order_waits_its_turn_in_the_queue(self):
         paper = PaperVenue(venue="kalshi", fees=quadratic_fee())
         paper.set_book("kalshi:KX-A", bids=[(D("0.41"), D("500"))], asks=[(D("0.43"), D("300"))])
-        order = await paper.create_order(request(price=D("0.41"), amount=D("100")))
+        order = await paper.create_order(request(price=D("0.41"), quantity=D("100")))
         assert await paper.fetch_queue_position(order.id) == D("500")
-        assert paper.on_trade("kalshi:KX-A", price=D("0.41"), amount=D("450"), taker_side=Side.SELL) == []
+        assert paper.on_trade("kalshi:KX-A", price=D("0.41"), quantity=D("450"), taker_side=Side.SELL) == []
         assert await paper.fetch_queue_position(order.id) == D("50")
-        fills = paper.on_trade("kalshi:KX-A", price=D("0.41"), amount=D("120"), taker_side=Side.SELL)
-        assert [f.amount for f in fills] == [D("70")] and fills[0].liquidity == Liquidity.MAKER
+        fills = paper.on_trade("kalshi:KX-A", price=D("0.41"), quantity=D("120"), taker_side=Side.SELL)
+        assert [f.quantity for f in fills] == [D("70")] and fills[0].liquidity == Liquidity.MAKER
 
     async def test_taking_walks_the_book_and_pays_the_fee(self):
         paper = PaperVenue(venue="kalshi", fees=quadratic_fee(D("0.07")))
         paper.set_book("kalshi:KX-A", bids=[], asks=[(D("0.43"), D("300")), (D("0.45"), D("400"))])
-        order = await paper.create_order(request(price=D("0.46"), amount=D("500")))
+        order = await paper.create_order(request(price=D("0.46"), quantity=D("500")))
         assert order.filled == D("500") and order.average_price == D("0.438")
         assert order.fee > 0 and order.status == OrderStatus.CLOSED
         assert paper.positions_held["kalshi:KX-A"] == D("500")
@@ -582,14 +582,14 @@ class TestPaper:
     async def test_fill_or_kill_leaves_nothing_behind(self):
         paper = PaperVenue(venue="kalshi")
         paper.set_book("kalshi:KX-A", asks=[(D("0.43"), D("100"))])
-        order = await paper.create_order(request(price=D("0.50"), amount=D("500"), time_in_force=TimeInForce.FOK))
+        order = await paper.create_order(request(price=D("0.50"), quantity=D("500"), time_in_force=TimeInForce.FOK))
         assert order.status == OrderStatus.CANCELED and order.filled == D("0")
         assert paper.positions_held.get("kalshi:KX-A", D("0")) == D("0") and paper.fills == []
 
     async def test_post_only_does_not_cross(self):
         paper = PaperVenue(venue="kalshi")
         paper.set_book("kalshi:KX-A", bids=[(D("0.41"), D("10"))], asks=[(D("0.43"), D("100"))])
-        order = await paper.create_order(request(price=D("0.44"), amount=D("10"), post_only=True))
+        order = await paper.create_order(request(price=D("0.44"), quantity=D("10"), post_only=True))
         assert order.filled == D("0") and order.status == OrderStatus.CANCELED
 
     async def test_a_week_of_paper_trading_on_an_accelerated_clock(self, journal_path):
@@ -622,13 +622,13 @@ class TestPaper:
                 side = Side.BUY if price < D("0.50") else Side.SELL
                 limit = (price - D("0.01")) if side == Side.BUY else (price + D("0.01"))
                 order = await engine.submit(OrderRequest(
-                    market_id="kalshi:KX-A", side=side, amount=D("10"), price=limit, book="mean-reversion",
+                    market_id="kalshi:KX-A", side=side, quantity=D("10"), price=limit, book="mean-reversion",
                     account=Account(venue="kalshi", name="paper"),
                 ))
                 submitted += 1
                 if minute % 120 == 0:
                     # The tape trades through our price: the order fills.
-                    for fill in paper.on_trade("kalshi:KX-A", price=limit, amount=D("400"),
+                    for fill in paper.on_trade("kalshi:KX-A", price=limit, quantity=D("400"),
                                                taker_side=Side.SELL if side == Side.BUY else Side.BUY):
                         await engine.on_fill(fill)
         assert submitted == 7 * 24

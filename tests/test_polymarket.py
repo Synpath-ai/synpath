@@ -132,7 +132,7 @@ class TestTrade:
         raw = poly_trades[0]
         trade = normalize_trade(raw, market_id="polymarket:1", no_token="other")
         assert trade.price == raw["price"]
-        assert trade.amount == raw["size"]
+        assert trade.quantity == raw["size"]
         assert trade.side == "buy"
         assert trade.market_id == "polymarket:1"
 

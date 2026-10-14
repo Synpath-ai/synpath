@@ -1,6 +1,8 @@
-"""Journal schema 3: the upgrade from 2, the parent column, and bucket storage."""
+"""Journal schemas 3 and 4: the upgrade from 2, the parent column, bucket storage,
+and `amount` renamed to `quantity`."""
 from __future__ import annotations
 
+import json
 import sqlite3
 from decimal import Decimal
 from pathlib import Path
@@ -59,10 +61,10 @@ def columns(path: str, table: str) -> dict[str, bool]:
 
 
 class TestUpgradeFromTwo:
-    async def test_a_fresh_file_is_version_three_with_the_new_shape(self, tmp_path: Path):
+    async def test_a_fresh_file_is_the_current_version_with_the_new_shape(self, tmp_path: Path):
         path = str(tmp_path / "fresh.db")
         async with Journal(path) as journal:
-            assert await journal.schema_version() == SCHEMA_VERSION == 3
+            assert await journal.schema_version() == SCHEMA_VERSION == 4
         assert "parent_id" in columns(path, "orders")
         assert columns(path, "managed_orders")["account_key"] is False
         assert "bucket_id" in columns(path, "bucket_members")
@@ -74,11 +76,12 @@ class TestUpgradeFromTwo:
         assert columns(path, "managed_orders")["account_key"] is True
 
         async with Journal(path) as journal:
-            assert await journal.schema_version() == 3
+            assert await journal.schema_version() == 4
             parents = await journal.managed(states=("working",))
             assert [p["id"] for p in parents] == ["mo-1"]
         assert "parent_id" in columns(path, "orders")
         assert columns(path, "managed_orders")["account_key"] is False
+        assert "quantity" in columns(path, "orders") and "amount" not in columns(path, "orders")
         # The old order row survived the column add, with the new column empty.
         db = sqlite3.connect(path)
         assert db.execute("SELECT count(*), max(parent_id) FROM orders").fetchone() == (1, None)
@@ -91,13 +94,38 @@ class TestUpgradeFromTwo:
         async with Journal(path):
             pass
         async with Journal(path) as journal:
-            assert await journal.schema_version() == 3
+            assert await journal.schema_version() == 4
             assert len(await journal.managed(states=("working",))) == 1
+
+
+class TestUpgradeToFour:
+    async def test_amount_columns_and_payload_keys_become_quantity(self, tmp_path: Path):
+        path = str(tmp_path / "v3.db")
+        write_v2_file(path)
+        db = sqlite3.connect(path)
+        legacy_order = {"id": "K-1", "venue": "kalshi", "market_id": "kalshi:KX-A", "side": "buy", "type": "limit",
+                        "time_in_force": "gtc", "status": "open", "amount": "5", "last_fill_amount": "1",
+                        "filled": "1", "info": {"amount": "venue's own"}}
+        db.execute("UPDATE orders SET payload=?", (json.dumps(legacy_order),))
+        snapshot = {"id": "mo-1", "request": {"market_id": "kalshi:KX-A", "side": "buy", "amount": "5"},
+                    "children": [{"order_id": "K-1", "venue": "kalshi", "amount": "5"}]}
+        db.execute("UPDATE managed_orders SET payload=?", (json.dumps(snapshot),))
+        db.commit()
+        db.close()
+
+        async with Journal(path) as journal:
+            restored = await journal.order("kalshi", "K-1")
+            assert restored is not None and restored.quantity == Decimal("5")
+            assert restored.last_fill_quantity == Decimal("1")
+            assert restored.info == {"amount": "venue's own"}, "a venue's raw record is left alone"
+            [parent] = await journal.managed(states=("working",))
+            assert parent["request"]["quantity"] == "5" and parent["children"][0]["quantity"] == "5"
+        assert "amount" not in columns(path, "fills") and "quantity" in columns(path, "fills")
 
 
 def order(**kw) -> Order:
     base = dict(id="K-9", venue="kalshi", market_id="kalshi:KX-A", side=Side.BUY, type=OrderType.LIMIT,
-                time_in_force=TimeInForce.GTC, status=OrderStatus.OPEN, amount=Decimal("5"),
+                time_in_force=TimeInForce.GTC, status=OrderStatus.OPEN, quantity=Decimal("5"),
                 account=Account(venue="kalshi"), book="alpha")
     return Order(**{**base, **kw})
 

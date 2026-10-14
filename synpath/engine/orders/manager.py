@@ -96,7 +96,7 @@ class ManagedOrders:
         await self.save(parent)
         await self.engine.bus.publish("managed.created", {
             "parent_id": parent.id, "kind": parent.kind, "market_id": parent.market_id,
-            "side": parent.side.value, "amount": str(parent.amount), "book": request.book,
+            "side": parent.side.value, "quantity": str(parent.quantity), "book": request.book,
         }, key=parent.id)
         await self.run(parent, lambda ctx: parent.start(ctx))
         return parent
@@ -149,9 +149,9 @@ class ManagedOrders:
         for parent in self.watching(market_id):
             await self.run(parent, lambda ctx, p=parent: p.on_book(ctx, market_id))
 
-    async def on_trade(self, market_id: str, price: Decimal, amount: Decimal) -> None:
+    async def on_trade(self, market_id: str, price: Decimal, quantity: Decimal) -> None:
         for parent in self.watching(market_id):
-            await self.run(parent, lambda ctx, p=parent: p.on_trade(ctx, market_id, price, amount))
+            await self.run(parent, lambda ctx, p=parent: p.on_trade(ctx, market_id, price, quantity))
 
     async def on_order(self, order: Order) -> None:
         """The venue's record of a child changed. This is the one channel a
@@ -174,10 +174,11 @@ class ManagedOrders:
         for parent in self.live():
             expires_at = parent.request.expires_at
             if expires_at is not None and now_ms >= expires_at:
-                # The parent's own expiry: the whole order ends, every live
-                # child pulled, whatever its type does on a timer.
-                await self.cancel(parent.id, reason="expired")
-                continue
+                # The parent's own expiry. Its type decides what that ends:
+                # by default the whole order, every live child pulled.
+                await self.run(parent, lambda ctx, p=parent: p.expire(ctx))
+                if not parent.live or parent.state == "cancelling":
+                    continue
             await self.run(parent, lambda ctx, p=parent: p.on_timer(ctx))
 
     async def on_halt(self, reason: str, *, scope: str = "*") -> int:

@@ -132,7 +132,7 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
     price = Decimal(str(raw["price"])) if raw.get("price") not in (None, "") else None
     side, yes_price = to_yes_leg(outcome_of(raw), venue_side, price)
     status = ORDER_STATUS.get(raw.get("status"), OrderStatus.OPEN)
-    amount = D(raw.get("shares") or raw.get("orderShares"))
+    quantity = D(raw.get("shares") or raw.get("orderShares"))
     filled = D(raw.get("filledShares"))
     expires = _ms(raw.get("expiresAt"))
     return Order(
@@ -145,9 +145,9 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
         time_in_force=TimeInForce.GTD if expires else TimeInForce.GTC,
         status=status,
         price=yes_price,
-        amount=amount,
+        quantity=quantity,
         filled=filled,
-        remaining=max(Decimal("0"), amount - filled) if status == OrderStatus.OPEN else Decimal("0"),
+        remaining=max(Decimal("0"), quantity - filled) if status == OrderStatus.OPEN else Decimal("0"),
         cost=D(raw.get("filledAmount")) if raw.get("filledAmount") not in (None, "") else None,
         expires_at=expires,
         created_at=_ms(raw.get("createdAt")),
@@ -174,7 +174,7 @@ def fill_of(raw: dict[str, Any], *, account: Account | None = None) -> Fill | No
         market_id=ids.qualify(VENUE, str(raw.get("marketId") or "")),
         side=side,
         price=price or Decimal("0"),
-        amount=D(raw.get("shares")),
+        quantity=D(raw.get("shares")),
         fee=D(fee) if fee not in (None, "") else None,
         fee_currency="USDT",
         liquidity=Liquidity.UNKNOWN,
@@ -286,7 +286,7 @@ def build_signed_order(
     salt: int | None = None,
 ) -> tuple[dict[str, Any], Decimal]:
     """The `POST /order` body and the contracts it is for, before anything is
-    sent. The contracts can differ slightly from `request.amount`: the venue
+    sent. The contracts can differ slightly from `request.quantity`: the venue
     needs the amounts to state the price exactly, which trims the size to
     four significant digits of its USDT value."""
     try:
@@ -297,12 +297,12 @@ def build_signed_order(
     outcome, venue_side = wire_leg(request)
     yes_price = D(request.price)
     price = sig.check_price(yes_price if outcome == "yes" else Decimal("1") - yes_price)
-    amount = D(request.amount)
-    if amount * price < MIN_ORDER_USDT:
+    quantity = D(request.quantity)
+    if quantity * price < MIN_ORDER_USDT:
         raise InvalidOrder(
-            f"{VENUE}: {amount} at {price} is {amount * price} USDT; the venue's minimum order is {MIN_ORDER_USDT} USDT"
+            f"{VENUE}: {quantity} at {price} is {quantity * price} USDT; the venue's minimum order is {MIN_ORDER_USDT} USDT"
         )
-    maker_wei = sig.to_wei(amount * price if venue_side == "BUY" else amount)
+    maker_wei = sig.to_wei(quantity * price if venue_side == "BUY" else quantity)
     maker_amount, taker_amount = sig.limit_amounts(venue_side, price, maker_wei)  # type: ignore[arg-type]
     order = sig.build_order(
         maker=maker, signer=signer.address, token_id=info.token(outcome),
@@ -504,7 +504,7 @@ class OpinionTrading(TradingExchange):
             time_in_force=request.time_in_force,
             status=ORDER_STATUS.get(data.get("status"), OrderStatus.OPEN),
             price=D(request.price),
-            amount=contracts,
+            quantity=contracts,
             filled=Decimal("0"),
             reduce_only=request.reduce_only,
             created_at=int(time.time() * 1000),
@@ -657,18 +657,18 @@ class OpinionTrading(TradingExchange):
         ]
         return [p for p in positions if p.inventory_yes or p.inventory_no]
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
-        """The taker fee for `amount` contracts at the YES `price`, from the
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
+        """The taker fee for `quantity` contracts at the YES `price`, from the
         market's rate on chain, with the venue's 0.25 USDT minimum. The fee
         is charged on the token actually bought, so a `sell` (buying NO) is
         priced at `1 - price`. Makers pay nothing."""
         schedule = await asyncio.to_thread(self.catalog.fetch_fee_schedule, market_id)
         token_price = D(price) if side == Side.BUY else Decimal("1") - D(price)
-        taker = schedule.estimate(float(token_price), float(amount), taker=True)
+        taker = schedule.estimate(float(token_price), float(quantity), taker=True)
         floor = schedule.min_fee if (schedule.taker_rate or 0) > 0 else None
         return FeeEstimate(
             venue=VENUE, market_id=ids.qualify(VENUE, ids.native(VENUE, market_id)), side=side,
-            price=D(price), amount=D(amount),
+            price=D(price), quantity=D(quantity),
             taker_fee=D(taker) if taker is not None else None, maker_fee=Decimal("0"),
             min_fee=D(floor) if floor is not None else None,
             currency="USDT", info={"schedule": schedule.model_dump()},

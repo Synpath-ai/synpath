@@ -79,7 +79,7 @@ class StubExchange(Exchange):
         self._check("fetch_trades", market_id=market_id, since=since, limit=limit, cursor=cursor)
         return Page(
             [Trade(id="t1", market_id=market_id, timestamp=1, datetime="1970-01-01T00:00:00Z",
-                   price=0.4, amount=3)],
+                   price=0.4, quantity=3)],
             next_cursor="100",
         )
 

@@ -97,7 +97,7 @@ class TestRecords:
         assert submitted.id == success.id == failed.id == "s1"
         assert (submitted.settlement, success.settlement, failed.settlement) == (
             SettlementState.MATCHED, SettlementState.CONFIRMED, SettlementState.FAILED)
-        assert success.amount == Decimal("40") and success.price == Decimal("0.62")
+        assert success.quantity == Decimal("40") and success.price == Decimal("0.62")
         assert success.fee == Decimal("0.0076") and success.fee_currency == "USDT" and success.liquidity == Liquidity.TAKER
 
     def test_an_order_event_is_not_a_fill(self):
@@ -191,7 +191,7 @@ class TestUserStream:
                                      "data": event("orderTransactionSuccess", settlementId="s", fill=fill)}))
         events = drain(stream)
         assert [type(e) for e in events] == [OrderEvent, FillEvent]
-        assert events[1].fill.amount == Decimal("10")
+        assert events[1].fill.quantity == Decimal("10")
 
     def test_an_expired_jwt_is_renewed_from_its_source(self):
         tokens = iter(["old", "new"])

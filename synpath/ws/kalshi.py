@@ -430,7 +430,7 @@ class KalshiStream(Stream):
         book_side = body.get("taker_book_side")
         return TradeEvent(
             venue=VENUE, market_id=ids.qualify(VENUE, ticker), id=body.get("trade_id"),
-            price=D(body["yes_price_dollars"]), amount=D(body["count_fp"]),
+            price=D(body["yes_price_dollars"]), quantity=D(body["count_fp"]),
             taker_side=Side.BUY if book_side == "bid" else Side.SELL if book_side == "ask" else None,
             timestamp=body.get("ts_ms"), info={**body, "seq": message.get("seq")},
         )

@@ -59,7 +59,7 @@ def client_for(stack, **kw) -> synpath.Client:
 
 
 def order(**kw) -> OrderRequest:
-    base = dict(market_id=K, side=Side.BUY, amount=D("5"), type=OrderType.LIMIT, price=D("0.35"), book="alpha")
+    base = dict(market_id=K, side=Side.BUY, quantity=D("5"), type=OrderType.LIMIT, price=D("0.35"), book="alpha")
     return OrderRequest(**{**base, **kw})
 
 
@@ -68,13 +68,13 @@ class TestOrders:
         async with client_for(stack) as client:
             placed = await client.create_order(order())
             assert placed.venue == "kalshi" and placed.status == OrderStatus.OPEN
-            assert [o.amount for o in stack.kalshi.orders.values()] == [D("5")]
+            assert [o.quantity for o in stack.kalshi.orders.values()] == [D("5")]
             assert repr(client).endswith(f"server={SERVER}>")
 
     async def test_an_engine_held_order_is_reachable_from_python(self, stack):
         async with client_for(stack) as client:
             stop = await client.create_order(order(side=Side.SELL, type=OrderType.STOP_MARKET, stop_price=D("0.25"),
-                                                   price=None, params={"max_slippage": "0.05"}))
+                                                   price=None))
             assert stop.held_by.value == "engine" and stop.status == OrderStatus.WAITING
             assert stack.kalshi.orders == {}, "held by the engine, not at the venue"
 
@@ -92,7 +92,7 @@ class TestOrders:
 
     async def test_cancel_all_and_create_orders(self, stack):
         async with client_for(stack) as client:
-            results = await client.create_orders([order(), order(price=D("0.34")), order(amount=D("500"))])
+            results = await client.create_orders([order(), order(price=D("0.34")), order(quantity=D("500"))])
             assert [type(r).__name__ for r in results] == ["Order", "Order", "RiskRejected"]
             assert await client.cancel_all_orders() == 2
             assert await client.fetch_open_orders() == []
@@ -114,7 +114,7 @@ class TestPortfolio:
             assert [(p.market_id, p.contracts) for p in positions] == [(K, D("5"))]
             assert await client.fetch_positions(market_id=P) == []
             fills = await client.fetch_my_trades(venue="kalshi", limit=10)
-            assert len(fills) == 1 and fills[0].amount == D("5")
+            assert len(fills) == 1 and fills[0].quantity == D("5")
             balance = await client.fetch_balance("kalshi")
             assert balance.venue == "kalshi"
             with pytest.raises(NotSupported):
@@ -158,7 +158,7 @@ class TestErrors:
     async def test_server_answers_map_to_the_library_s_errors(self, stack):
         async with client_for(stack) as client:
             with pytest.raises(RiskRejected) as risk:
-                await client.create_order(order(amount=D("500")))
+                await client.create_order(order(quantity=D("500")))
             assert risk.value.rule == "max_order_contracts"
             with pytest.raises(OrderNotFound):
                 await client.fetch_order("nope")
@@ -212,7 +212,7 @@ class TestBucketReads:
             reports = await client.fetch_bucket_orders(bucket.id)
             assert [r.order_id for r in reports] == [placed.id]
             one = await client.fetch_bucket_order(bucket.id, placed.id)
-            assert isinstance(one, synpath.BucketOrderReport) and one.amount == D("5")
+            assert isinstance(one, synpath.BucketOrderReport) and one.quantity == D("5")
             position = await client.fetch_bucket_position(bucket.id)
             assert position.side == "flat"
             await client.cancel_order(placed.id)

@@ -109,7 +109,7 @@ class TestSigner:
 # ---------------------------------------------------------------------------
 
 def req(**kw) -> OrderRequest:
-    base = dict(market_id="kalshi:T-1", side=Side.BUY, amount=D("2"), price=D("0.30"))
+    base = dict(market_id="kalshi:T-1", side=Side.BUY, quantity=D("2"), price=D("0.30"))
     base.update(kw)
     return OrderRequest(**base)
 
@@ -166,15 +166,15 @@ class TestTranslate:
 
     def test_engine_order_types_are_refused(self):
         with pytest.raises(InvalidOrder, match="execution engine"):
-            translate_order(req(type=OrderType.STOP_LIMIT, stop_price=D("0.40")))
+            translate_order(req(type=OrderType.STOP_LIMIT, stop_price=D("0.25")))
 
     def test_off_tick_price_is_refused(self):
         with pytest.raises(InvalidOrder, match="tick"):
             translate_order(req(price=D("0.305")))
 
-    def test_amount_below_the_grid_is_refused(self):
+    def test_quantity_below_the_grid_is_refused(self):
         with pytest.raises(InvalidOrder):
-            translate_order(req(amount=D("0.001")))
+            translate_order(req(quantity=D("0.001")))
 
     def test_another_venues_market_is_refused(self):
         with pytest.raises(InvalidOrder, match="belongs to polymarket"):
@@ -202,7 +202,7 @@ class TestNormalizers:
         assert order.market_id == "kalshi:KXGOLDH-26SEP1712-T4407.99"
         assert order.side == Side.BUY and order.type == OrderType.LIMIT
         assert order.status == OrderStatus.OPEN and not order.is_terminal
-        assert order.price == D("0.0200") and order.amount == D("2.00")
+        assert order.price == D("0.0200") and order.quantity == D("2.00")
         assert order.filled == 0 and order.remaining == D("2.00")
         assert order.time_in_force == TimeInForce.GTC and order.expires_at is None
         assert order.cost is None and order.fee is None
@@ -220,7 +220,7 @@ class TestNormalizers:
                 "client_order_id": raw["client_order_id"]}
         order = order_from_response(raw, body=body)
         assert order.id == raw["order_id"] and order.client_order_id == raw["client_order_id"]
-        assert order.status == OrderStatus.OPEN and order.amount == D("2.00") and order.remaining == D("2.00")
+        assert order.status == OrderStatus.OPEN and order.quantity == D("2.00") and order.remaining == D("2.00")
         assert order.price == D("0.0200") and order.side == Side.BUY
         assert order.created_at == raw["ts_ms"]
 
@@ -248,7 +248,7 @@ class TestNormalizers:
         fill = fill_of(sample("get_fills")["fills"][0])
         assert fill.id == "072210b7-9701-9f67-dbeb-8607028b7a25"
         assert fill.market_id == "kalshi:KXGOLDH-26SEP1712-T4407.99"
-        assert fill.side == Side.BUY and fill.price == D("0.9800") and fill.amount == D("1.00")
+        assert fill.side == Side.BUY and fill.price == D("0.9800") and fill.quantity == D("1.00")
         assert fill.fee == D("0.001400") and fill.fee_currency == "USD"
         assert fill.liquidity == Liquidity.TAKER
         assert fill.timestamp == 1789655011496  # ms, from created_time
@@ -278,7 +278,7 @@ class TestNormalizers:
                "settled_time": "2026-09-17T16:00:00Z"}
         s = settlement_of(row)
         assert s.market_id == "kalshi:T-1" and s.held == PositionSide.LONG and s.result == "yes" and s.won is True
-        assert s.amount == D("3.00") and s.cost == D("1.50") and s.payout == D("3.00")
+        assert s.quantity == D("3.00") and s.cost == D("1.50") and s.payout == D("3.00")
         assert s.pnl == D("1.48") and s.timestamp == 1789660800000
         lost = settlement_of({**row, "market_result": "no"})
         assert lost.won is False
@@ -434,7 +434,7 @@ class TestAdapter:
     async def test_decrease_keeps_priority_and_amend_does_not(self, adapter, venue):
         current = order_of(sample("get_orders_id")["order"])  # buy 2 @ 0.02, none filled
         venue.push(200, sample("post_events_orders_id_decrease"))
-        smaller = await adapter.edit_order(EditRequest(order_id=current.id, amount=D("1")), current=current)
+        smaller = await adapter.edit_order(EditRequest(order_id=current.id, quantity=D("1")), current=current)
         sent = json.loads(venue.requests[0].content)
         assert venue.requests[0].url.path.endswith("/decrease") and sent["reduce_to"] == "1.00"
         assert smaller.queue_priority_preserved is True and smaller.remaining == D("1.00") and smaller.price == D("0.0200")
@@ -447,15 +447,15 @@ class TestAdapter:
         assert sent["price"] == "0.0300" and sent["count"] == "2.00" and sent["side"] == "bid"
         assert sent["client_order_id"] == current.client_order_id and len(sent["updated_client_order_id"]) == 36
         assert moved.queue_priority_preserved is False
-        assert moved.price == D("0.0300") and moved.amount == D("2.00") and moved.remaining == D("2.00")
+        assert moved.price == D("0.0300") and moved.quantity == D("2.00") and moved.remaining == D("2.00")
         assert moved.client_order_id == sample("post_events_orders_id_amend")["client_order_id"]
 
     async def test_growing_the_order_is_an_amend(self, adapter, venue):
         current = order_of(sample("get_orders_id")["order"])
         venue.push(200, sample("post_events_orders_id_amend"))
-        bigger = await adapter.edit_order(EditRequest(order_id=current.id, amount=D("5")), current=current)
+        bigger = await adapter.edit_order(EditRequest(order_id=current.id, quantity=D("5")), current=current)
         assert venue.requests[0].url.path.endswith("/amend") and bigger.queue_priority_preserved is False
-        assert bigger.amount == D("5.00")
+        assert bigger.quantity == D("5.00")
 
     async def test_edit_time_in_force_is_refused(self, adapter):
         current = order_of(sample("get_orders_id")["order"])

@@ -57,7 +57,7 @@ class Iceberg(ManagedOrder):
 
     def working(self) -> Decimal:
         """Contracts currently resting in slices."""
-        return sum((c.amount - c.filled for c in self.live_children), ZERO)
+        return sum((c.quantity - c.filled for c in self.live_children), ZERO)
 
     def slice_price(self, ctx: Context) -> Decimal | None:
         if not self.follow:
@@ -74,18 +74,18 @@ class Iceberg(ManagedOrder):
         if size <= 0:
             return
         price = self.slice_price(ctx)
-        request = self.child_request(amount=size, price=price, type=OrderType.LIMIT,
+        request = self.child_request(quantity=size, price=price, type=OrderType.LIMIT,
                                      time_in_force=self.request.time_in_force or TimeInForce.GTC,
                                      post_only=self.request.post_only, expires_at=self.request.expires_at)
         order = await ctx.submit_child(request)
         self.track(order, size, price)
-        await ctx.publish("managed.slice", {"amount": str(size), "price": str(price), "reloads": self.reloads})
+        await ctx.publish("managed.slice", {"quantity": str(size), "price": str(price), "reloads": self.reloads})
         await ctx.save()
 
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         if await self.complete_if_done(ctx):
             return
-        if child.filled >= child.amount:
+        if child.filled >= child.quantity:
             self.schedule_reload(ctx)
         await ctx.save()
 

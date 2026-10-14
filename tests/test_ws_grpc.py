@@ -182,7 +182,7 @@ class TestNormalizers:
         events = pmx.execution_events(execution(), None, account=None)
         assert len(events) == 1 and isinstance(events[0], OrderEvent)
         o = events[0].order
-        assert o.status == OrderStatus.OPEN and o.price == D("0.42") and o.amount == D("10") and events[0].native == "new"
+        assert o.status == OrderStatus.OPEN and o.price == D("0.42") and o.quantity == D("10") and events[0].native == "new"
         # Default enum values that mean nothing here are not carried along.
         assert o.info["execution"] == {"id": "E1", "type": "EXECUTION_TYPE_NEW", "transactTime": "2026-09-17T12:00:00.123456789Z"}
 
@@ -193,7 +193,7 @@ class TestNormalizers:
                                                 tradeId="T1", aggressor=True, commissionNotionalCollected="100"), None, account=None)
         o, f = events[0].order, events[1].fill
         assert o.status == OrderStatus.CLOSED and o.filled == D("3.12") and o.average_price == D("0.97")
-        assert f.id == "T1" and f.amount == D("3.12") and f.price == D("0.97") and f.fee == D("0.01")
+        assert f.id == "T1" and f.quantity == D("3.12") and f.price == D("0.97") and f.fee == D("0.01")
         assert f.liquidity == Liquidity.TAKER and f.settlement == SettlementState.CONFIRMED
 
     def test_reject_keeps_its_reason(self):
@@ -279,7 +279,7 @@ class TestOrderStream:
         # Two snapshots; the executions only once, although sent twice.
         assert [e.native for e in orders] == ["snapshot", "new", "partial_fill", "snapshot"]
         [fill] = of(events, FillEvent)
-        assert fill.fill.amount == D("4") and fill.fill.fee == D("0.007") and fill.fill.account == trading.account
+        assert fill.fill.quantity == D("4") and fill.fill.fee == D("0.007") and fill.fill.account == trading.account
         assert orders[2].order.status == OrderStatus.OPEN and orders[2].order.filled == D("4")
         [rejected] = of(events, VenueEvent)
         assert rejected.name == "cancel_rejected" and rejected.payload["order_id"] == "O1" and not rejected.payload["is_replace"]
@@ -383,7 +383,7 @@ class TestDropCopy:
         assert [e.order.id for e in of(events, OrderEvent)] == ["O1", "O1"]
         assert [e.order.info["execution"]["id"] for e in of(events, OrderEvent)] == ["E4", "E5"]
         [f] = of(events, FillEvent)
-        assert f.fill.account.name == "firms/F/accounts/other" and f.fill.amount == D("10")
+        assert f.fill.account.name == "firms/F/accounts/other" and f.fill.quantity == D("10")
         checkpoints = [e.payload["resume_token"] for e in of(events, VenueEvent)]
         assert checkpoints == [token1, token2] and stream.resume_token == token2
         # The checkpoint follows the events it covers.
@@ -622,7 +622,7 @@ class TestRealServer:
         assert [e.native for e in of(events, OrderEvent)] == ["snapshot", "fill", "snapshot"]
         assert of(events, OrderEvent)[0].order.status == OrderStatus.OPEN
         [f] = of(events, FillEvent)
-        assert f.fill.amount == D("3.12") and f.fill.price == D("0.97") and f.fill.fee == D("0.01")
+        assert f.fill.quantity == D("3.12") and f.fill.price == D("0.97") and f.fill.fee == D("0.01")
         connected = [e for e in of(events, StreamStatusEvent) if e.state == "connected"]
         assert [e.reconcile_required for e in connected] == [False, True]
 

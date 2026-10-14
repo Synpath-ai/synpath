@@ -144,7 +144,7 @@ from synpath import KalshiTrading, OrderRequest, Side, load_credentials, require
 async with KalshiTrading(require("kalshi", load_credentials())) as kalshi:
     order = await kalshi.create_order(OrderRequest(
         market_id=market.id, side=Side.BUY,          # buy takes YES, sell takes NO
-        amount=Decimal("10"), price=Decimal("0.42"), # always the YES price
+        quantity=Decimal("10"), price=Decimal("0.42"), # always the YES price
     ))
 ```
 
@@ -187,7 +187,7 @@ async with KalshiTrading(require("kalshi", creds)) as kalshi, \
     ]))
     # Both order books combined, each level net of fees, filled from the cheapest price outward
     await engine.submit(OrderRequest(
-        market_id=bucket.market_id, side=Side.BUY, amount=Decimal("500"),
+        market_id=bucket.market_id, side=Side.BUY, quantity=Decimal("500"),
         type=OrderType.MARKET, price=Decimal("0.45"),   # the worst price you accept
         book="alpha",
     ))

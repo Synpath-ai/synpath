@@ -135,11 +135,11 @@ def order_of_event(event: dict[str, Any], *, account: Account | None = None) -> 
     id is its hash, which the venue's order lookups and cancels take."""
     details = event.get("details") or {}
     side, price = _leg(details, D(details.get("price")) if details.get("price") not in (None, "") else None)
-    amount, filled = D(details.get("quantity")), D(details.get("quantityFilled"))
+    quantity, filled = D(details.get("quantity")), D(details.get("quantityFilled"))
     kind = str(event.get("type") or "")
     status = ORDER_EVENT_STATUS.get(kind)
     if status is None:
-        status = OrderStatus.CLOSED if amount > 0 and filled >= amount else OrderStatus.OPEN
+        status = OrderStatus.CLOSED if quantity > 0 and filled >= quantity else OrderStatus.OPEN
     market = OrderType.MARKET if str(details.get("strategyType") or "").upper() == "MARKET" else OrderType.LIMIT
     return Order(
         id=str(event.get("orderHash") or event.get("orderId") or ""),
@@ -151,9 +151,9 @@ def order_of_event(event: dict[str, Any], *, account: Account | None = None) -> 
         time_in_force=TimeInForce.IOC if market == OrderType.MARKET else TimeInForce.GTC,
         status=status,
         price=price,
-        amount=amount,
+        quantity=quantity,
         filled=filled,
-        remaining=max(Decimal("0"), amount - filled) if status == OrderStatus.OPEN else Decimal("0"),
+        remaining=max(Decimal("0"), quantity - filled) if status == OrderStatus.OPEN else Decimal("0"),
         updated_at=int(event["timestamp"]) if event.get("timestamp") else None,
         info={**event, "native": kind},
     )
@@ -182,7 +182,7 @@ def fill_of_event(event: dict[str, Any], *, account: Account | None = None) -> F
         market_id=ids.qualify(VENUE, str(details.get("marketId") or "")),
         side=side,
         price=yes_price or Decimal("0"),
-        amount=size,
+        quantity=size,
         fee=D(fee.get("amountWei")) / WEI if fee.get("amountWei") not in (None, "") else None,
         fee_currency="USDT" if fee.get("type") == "COLLATERAL" else ("shares" if fee else None),
         liquidity=Liquidity.MAKER if is_maker is True else Liquidity.TAKER if is_maker is False else Liquidity.UNKNOWN,
@@ -243,7 +243,7 @@ def order_of_row(row: dict[str, Any], info: MarketInfo | None, *, account: Accou
     outcome = info.outcome_of(str(signed.get("tokenId") or "")) if info else "yes"
     side, yes_price = to_yes_leg(outcome, venue_side, price)
     status = ROW_STATUS.get(str(row.get("status") or "").upper(), OrderStatus.OPEN)
-    amount, filled = shares(row.get("amount")), shares(row.get("amountFilled"))
+    quantity, filled = shares(row.get("amount")), shares(row.get("amountFilled"))
     market = str(row.get("strategy") or "").upper() == "MARKET"
     expiration = int(signed.get("expiration") or 0)
     return Order(
@@ -257,9 +257,9 @@ def order_of_row(row: dict[str, Any], info: MarketInfo | None, *, account: Accou
             TimeInForce.GTD if expiration and expiration < sig.NO_EXPIRY else TimeInForce.GTC),
         status=status,
         price=yes_price,
-        amount=amount,
+        quantity=quantity,
         filled=filled,
-        remaining=max(Decimal("0"), amount - filled) if status == OrderStatus.OPEN else Decimal("0"),
+        remaining=max(Decimal("0"), quantity - filled) if status == OrderStatus.OPEN else Decimal("0"),
         expires_at=expiration * 1000 if expiration and expiration < sig.NO_EXPIRY else None,
         info={**row, "venue_order_id": row.get("id")},
     )
@@ -285,7 +285,7 @@ def fills_of_match(match: dict[str, Any], address: str, *, account: Account | No
         outcome = "no" if (leg.get("outcome") or {}).get("indexSet") == 2 else "yes"
         venue_side = "BUY" if str(leg.get("quoteType") or "").lower() == "bid" else "SELL"
         side, price = to_yes_leg(outcome, venue_side, shares(leg.get("price")))
-        amount = shares(match.get("amountFilled") if liquidity == Liquidity.TAKER else leg.get("amount"))
+        quantity = shares(match.get("amountFilled") if liquidity == Liquidity.TAKER else leg.get("amount"))
         fee = leg.get("fee") or {}
         fills.append(Fill(
             id=settlement if n == 0 else f"{settlement}:{leg.get('hash')}",
@@ -295,7 +295,7 @@ def fills_of_match(match: dict[str, Any], address: str, *, account: Account | No
             market_id=market_id,
             side=side,
             price=price or Decimal("0"),
-            amount=amount,
+            quantity=quantity,
             fee=shares(fee.get("amount")) if fee.get("amount") not in (None, "") else None,
             fee_currency="USDT" if fee.get("type") == "COLLATERAL" else ("shares" if fee else None),
             liquidity=liquidity,
@@ -404,13 +404,13 @@ def build_signed_order(
     """The `POST /orders` body and the contracts it is for, before anything
     is sent. The size is kept to five significant digits and the token price
     to three, as the venue's SDK keeps them, so the contracts can differ
-    slightly from `request.amount`."""
+    slightly from `request.quantity`."""
     check_request(request)
     outcome, venue_side = wire_leg(request)
     yes_price = D(request.price)
     price = yes_price if outcome == "yes" else Decimal("1") - yes_price
     maker_amount, taker_amount, price_wei, shares_wei = sig.limit_amounts(
-        venue_side, price, D(request.amount))  # type: ignore[arg-type]
+        venue_side, price, D(request.quantity))  # type: ignore[arg-type]
     taking = immediate(request)
     if taking:
         expiration = now_s + MARKET_EXPIRY_S
@@ -633,7 +633,7 @@ class PredictFunTrading(TradingExchange):
             time_in_force=request.time_in_force,
             status=OrderStatus.OPEN,
             price=D(request.price),
-            amount=contracts,
+            quantity=contracts,
             filled=Decimal("0"),
             remaining=contracts,
             reduce_only=request.reduce_only,
@@ -808,15 +808,15 @@ class PredictFunTrading(TradingExchange):
         ]
         return [p for p in positions if p.inventory_yes or p.inventory_no]
 
-    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, amount: Decimal) -> FeeEstimate:
-        """The taker fee for `amount` contracts at the YES `price`: the
+    async def fetch_fee_estimate(self, market_id: str, side: Side, price: Decimal, quantity: Decimal) -> FeeEstimate:
+        """The taker fee for `quantity` contracts at the YES `price`: the
         market's rate on `min(p, 1 - p)` a share, the same for YES and NO.
         Makers pay nothing."""
         schedule = await asyncio.to_thread(self.catalog.fetch_fee_schedule, market_id)
-        taker = schedule.estimate(float(price), float(amount), taker=True)
+        taker = schedule.estimate(float(price), float(quantity), taker=True)
         return FeeEstimate(
             venue=VENUE, market_id=ids.qualify(VENUE, ids.native(VENUE, market_id)), side=side,
-            price=D(price), amount=D(amount),
+            price=D(price), quantity=D(quantity),
             taker_fee=D(taker) if taker is not None else None, maker_fee=Decimal("0"),
             currency="USDT", info={"schedule": schedule.model_dump()},
         )
