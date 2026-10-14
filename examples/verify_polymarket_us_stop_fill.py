@@ -160,11 +160,12 @@ async def terminal_order(adapter, oid, guard):
     raise RuntimeError("test order still unresolved after targeted cancellation")
 
 
-async def verify(adapter, guard, directory, rules, initial, trigger, *, wait_s=240, poll_s=0.5):
+async def verify(adapter, guard, directory, rules, initial, trigger, *, wait_s=240, poll_s=0.5, initially_eligible=False):
     market_id = f"polymarket_us:{guard.slug}"
     report = {"market_id": market_id, "quantity": str(QUANTITY), "initial_bid": str(initial.best_bid),
               "initial_ask": str(initial.best_ask), "stop_price": str(trigger), "child_price_bound": str(BOUND),
-              "maximum_entry_value_usd": str(BOUND * QUANTITY)}
+              "maximum_entry_value_usd": str(BOUND * QUANTITY),
+              "trigger_mode": "initially eligible" if initially_eligible else "future crossing"}
     request = OrderRequest(market_id=market_id, side="buy", quantity=QUANTITY, type="stop_market", stop_price=trigger,
                            time_in_force="gtd", expires_at=int((time.time() + wait_s) * 1000), client_order_id=f"us-stop-{uuid.uuid4().hex}")
     engine = engine_for(adapter, directory)
@@ -179,7 +180,10 @@ async def verify(adapter, guard, directory, rules, initial, trigger, *, wait_s=2
         parent = await engine.submit(request)
         parent_id = parent.id
         engine.set_book(market_id, initial)
-        await engine.on_book({"market_id": market_id})
+        # An execution check may arm an already eligible stop. It still
+        # persists waiting before the next actual venue book observation.
+        if not initially_eligible:
+            await engine.on_book({"market_id": market_id})
         assert engine.orders.get(parent_id).state == "waiting" and not guard.sent
         guard.stage = "entry"
         deadline = time.monotonic() + wait_s

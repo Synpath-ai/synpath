@@ -431,3 +431,24 @@ async def test_missing_driver_is_explicit_and_does_not_fall_back(monkeypatch):
     with pytest.raises(ImportError, match="synpath\\[postgres\\]"):
         await store.open()
     assert not store.is_open
+
+
+import test_kalshi_stop_fill as kalshi_fill_scenarios
+import examples.verify_kalshi_stop_fill as kalshi_fill_example
+
+@pytest.fixture
+def postgres_kalshi_fill_config(postgres_engine_config, monkeypatch):
+    monkeypatch.setattr(kalshi_fill_example, "EngineConfig", postgres_engine_config)
+
+@pytest.mark.usefixtures("postgres_kalshi_fill_config")
+@functools.wraps(kalshi_fill_scenarios.test_real_price_crossing_fills_once_then_closes_only_test_quantity)
+async def test_pg_kalshi_stop_fill(*args, **kwargs):
+    await kalshi_fill_scenarios.test_real_price_crossing_fills_once_then_closes_only_test_quantity(*args, **kwargs)
+
+
+test_pg_us_already_eligible = postgres_adapter_scenario(us_scenarios.test_already_eligible_stop_uses_next_real_observation)
+
+@pytest.mark.usefixtures("postgres_kalshi_fill_config")
+@functools.wraps(kalshi_fill_scenarios.test_price_wait_renews_lease_before_sending)
+async def test_pg_kalshi_fill_lease(*args, **kwargs):
+    await kalshi_fill_scenarios.test_price_wait_renews_lease_before_sending(*args, **kwargs)

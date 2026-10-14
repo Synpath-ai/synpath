@@ -46,7 +46,8 @@ class FillVenue:
             self.orders[oid] = {"order_id": oid, "client_order_id": body["client_order_id"], "ticker": TICKER,
                                 "book_side": body["side"], "status": "executed", "initial_count_fp": "1",
                                 "fill_count_fp": "1", "remaining_count_fp": "0", "yes_price_dollars": body["price"],
-                                "taker_fill_cost_dollars": str(price), "taker_fees_dollars": "0.02"}
+                                "outcome_side": "yes" if entry else "no",
+                                "taker_fill_cost_dollars": str(price if entry else 1 - price), "taker_fees_dollars": "0.02"}
             if entry and self.lose_response:
                 raise httpx.ReadError("accepted; response lost", request=request)
             return httpx.Response(201, json={"order_id": oid, "client_order_id": body["client_order_id"],
@@ -76,6 +77,7 @@ async def test_real_price_crossing_fills_once_then_closes_only_test_quantity(cre
     assert report["initial_ask"] == "0.40" and report["observed_trigger_ask"] == "0.42"
     assert report["entry_filled"] == "1" and report["entry_average_price"] == "0.4200"
     assert report["exit_filled"] == "1" and report["remaining_position_contracts"] == "0"
+    assert report["exit_average_price"] == "0.3900"
     assert len(venue.posts) == 2 and venue.posts[1]["reduce_only"] is True
     assert venue.posts[1]["count"] == "1.00" and venue.position == 0
 
@@ -125,3 +127,40 @@ async def test_definitive_shard_refusal_is_not_reported_as_lost_acceptance(creds
                                   D("0.41"), D("0.44"), wait_s=2, poll_s=0)
     assert report["outcome"] == "venue rejected the entry; no fill" and report["cleanup_verified"]
     assert len(venue.posts) == 1 and venue.orders == {} and venue.position == 0
+
+
+async def test_price_wait_renews_lease_before_sending(creds, tmp_path, monkeypatch):
+    import asyncio
+    import examples.verify_kalshi_stop_fill as check
+    venue, guard = FillVenue(), FillGuard(TICKER, D("0.44"))
+    original_engine = check.engine_for
+    def brief_lease(adapter, path):
+        engine = original_engine(adapter, path)
+        engine.config.lease_ttl_ms = 150
+        engine.config.lease_renew_s = 0.02
+        return engine
+    original_book = check.book_for
+    async def slow_book(adapter, ticker):
+        await asyncio.sleep(0.25)
+        return await original_book(adapter, ticker)
+    monkeypatch.setattr(check, "engine_for", brief_lease)
+    monkeypatch.setattr(check, "book_for", slow_book)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(venue.handle),
+                                event_hooks={"request": [guard.check], "response": [guard.observe]}) as client:
+        async with KalshiTrading(creds, base_url="https://external-api.kalshi.com/trade-api/v2", client=client) as adapter:
+            report = await check.verify(adapter, guard, tmp_path, {"ticker": TICKER}, await original_book(adapter, TICKER),
+                                        D("0.41"), D("0.44"), wait_s=2, poll_s=0)
+    assert report["outcome"] == "filled and closed" and len(venue.posts) == 2
+    assert venue.posts[1]["price"] == "0.0100", "exit price is legal on a cent-grid market"
+
+
+def test_kalshi_file_credentials_override_process_environment(pem, tmp_path, monkeypatch):
+    from examples.verify_kalshi_stop_limit import credentials_from
+    (tmp_path / "key.pem").write_bytes(pem)
+    (tmp_path / ".env").write_text("KALSHI_KEY_ID=file-key\nKALSHI_PRIVATE_KEY_PATH=key.pem\nKALSHI_ENV=prod\n")
+    monkeypatch.setenv("KALSHI_KEY_ID", "system-key")
+    monkeypatch.setenv("KALSHI_PRIVATE_KEY_PATH", "/missing/system.pem")
+    monkeypatch.setenv("KALSHI_ENV", "demo")
+    credential = credentials_from(tmp_path)
+    assert credential.key_id == "file-key" and credential.env == "prod"
+    assert credential.private_key_pem == pem

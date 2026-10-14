@@ -27,7 +27,7 @@ from synpath.ws.base import LocalBook
 
 CENT = D("0.01")
 MAX_LIMIT = D("0.75")
-EXIT_LIMIT = D("0.001")
+EXIT_LIMIT = CENT
 
 
 class FillGuard:
@@ -160,7 +160,7 @@ async def close_entry(engine, adapter, guard, entry):
         await engine.submit(OrderRequest(market_id=entry.market_id, side="sell", quantity=entry.filled,
                                          type="market", price=EXIT_LIMIT, time_in_force="ioc", reduce_only=True,
                                          client_order_id=f"close-{uuid.uuid4().hex}", book="bounded-fill-check"),
-                            precision=Precision(tick=EXIT_LIMIT, min_quantity=D("0.01"), quantity_step=D("0.01")))
+                            precision=Precision(tick=CENT, min_quantity=D("0.01"), quantity_step=D("0.01")))
     finally:
         guard.stage = "blocked"
     return await cancel_remainder(adapter, guard, "exit")
@@ -188,6 +188,7 @@ async def verify(adapter, guard, directory, market, initial_book, trigger, limit
         engine = engine_for(adapter, directory / "orders.db")
         await engine.start()
         assert (await engine.submit(request)).id == parent_id
+        engine._tasks.append(asyncio.create_task(engine._lease_loop()))
         report["waiting_restart_verified"] = True
         guard.stage = "entry"
         deadline = time.monotonic() + wait_s

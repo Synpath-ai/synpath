@@ -272,3 +272,52 @@ passed 2,372 tests (3 skipped, 137 live/demo deselected). The final storage subs
 passed 89 tests, including 74 PostgreSQL cases. A dedicated PostgreSQL service
 job in `.github/workflows/tests.yml` repeats those database and mocked-adapter
 contracts on main, pull requests and the experimental branch.
+
+
+## Bounded PostgreSQL live checks — 14 October 2026
+
+Explicitly authorized production checks used only an operator-selected credential
+file, never process/global credentials. Regression tests verify that file keys
+and private-key paths win even when conflicting process values are present.
+
+Kalshi's funded default shard supported a one-contract stop-limit on Montreal
+winning its NHL game (`KXNHLGAME-26OCT14MTLWSH-MTL`). The stop armed at 0.49
+above the initial 0.48 ask, survived a restart, and triggered on a real 0.49 ask.
+Its IOC child had a 0.52 bound and filled one contract at 0.49. One reduce-only
+exit sold that contract at 0.47 YES. Fees were 0.0175 USD on each leg, for a
+0.055 USD round-trip cost. Venue reads confirmed no position or open market
+orders, and the same closed parent replayed after restart. No shard transfer
+was performed. The harness now renews its lease during the wait and uses a
+legal cent-grid exit price.
+
+The check exposed a read-projection bug: the create response already reported
+the correct YES average, while later order reads included native NO outcome
+costs. `outcome_side=no` can coexist with `side=yes`. The adapter now derives
+its YES average from the cost's actual outcome, preferring `outcome_side` over
+legacy `side`; create averages remain unchanged. Native `Order.cost` remains
+the venue's priced-outcome notional, not necessarily YES sale proceeds. Native
+fills and the cash change established the exit at 0.47, and the private test
+journal was corrected without placing another order. Captured-shape tests
+cover the native close, legacy formats and partial maker/taker executions.
+
+On Polymarket US, a 0.01-contract future-crossing stop on the live BTC 15-minute
+market expired without crossing and sent no venue order. A subsequent execution
+check armed an already-eligible 0.01 buy trigger before the next real book
+observation (ask 0.04); its stop-market IOC child retained the 0.99 legal bound
+and filled 0.01 at 0.03. Native close-position then closed exactly that quantity
+at 0.02. Both legs reported zero fees, so the cost was 0.0001 USD. This checks
+execution for an eligible trigger, not a new future crossing. Native reads
+confirmed no remaining position/open market orders; PostgreSQL replay returned
+the same filled closed parent after restart, with no repeated entry.
+
+These bounded runs extend the PostgreSQL checkpoint's live evidence. They do
+not resolve native identity adoption after a lost US response, generic US
+reduce-only behavior, international eligibility, or concurrent workers.
+Private receipts and journal exports stay outside the repositories.
+
+
+Final regression after the live-discovered fixes: 2,388 compiled offline SDK
+tests passed, 3 skipped, and 137 live/demo tests deselected. A dispatcher race
+test stalled once during suite cleanup; its three cases passed in isolation
+and the full final rerun passed. The related Kalshi adapter/storage subset
+passed 160 tests. The terminal backend retained 43 passing tests and 5 subtests.

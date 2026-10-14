@@ -144,3 +144,26 @@ async def test_receipt_hook_reads_a_streamed_response_before_decoding(tmp_path):
     await guard.observe(response)
     assert response.is_stream_consumed and guard.ids["entry"] == "streamed-entry"
     assert json.loads((tmp_path / "receipts.json").read_text())["entry"] == "streamed-entry"
+
+
+def test_us_file_credentials_override_process_environment(ed_secret, tmp_path, monkeypatch):
+    from examples.verify_polymarket_us_stop_fill import credentials_from
+    (tmp_path / ".env").write_text(f"POLYMARKET_US_KEY_ID=file-key\nPOLYMARKET_US_SECRET_KEY={ed_secret}\n")
+    monkeypatch.setenv("POLYMARKET_US_KEY_ID", "system-key")
+    monkeypatch.setenv("POLYMARKET_US_SECRET_KEY", "invalid-system-secret")
+    credential = credentials_from(tmp_path)
+    assert credential.key_id == "file-key"
+
+
+async def test_already_eligible_stop_uses_next_real_observation(ed_secret, tmp_path):
+    venue, guard = Venue(), Guard(SLUG, tmp_path)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(venue.handle),
+                                event_hooks={"request": [guard.check], "response": [guard.observe]}) as client:
+        async with PolymarketUSTrading(PolymarketUSCredentials("mock-key", ed_secret), client=client) as adapter:
+            rules = MarketRules(SLUG, D("0.01"), QUANTITY)
+            adapter.remember_market(rules)
+            initial = await book_for(adapter, SLUG)
+            assert venue.posts == []
+            report = await verify(adapter, guard, tmp_path, rules, initial, D("0.01"), initially_eligible=True, wait_s=2, poll_s=0)
+    assert report["outcome"] == "filled and closed" and report["trigger_mode"] == "initially eligible"
+    assert len(venue.posts) == 2 and report["remaining_position_contracts"] == "0"
