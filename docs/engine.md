@@ -161,7 +161,7 @@ the venue holds the expiry; the journal keeps `day` alongside it.
 `expires_at` expires the whole order, children included, and the parent
 ends `expired`. `post_only` is
 accepted only by types that rest on the book (`iceberg`, `peg`, a `twap` with
-`style="limit"`); an `oco` or `bracket` takes it on its legs, and a type that
+`style="limit"`, and a GTC/GTD `stop_limit`); an `oco` or `bracket` takes it on its legs, and a type that
 takes liquidity refuses it rather than ignoring it.
 
 **Everything survives a restart.** Each parent's whole state is written on

@@ -137,6 +137,18 @@ tests are explicitly excluded.
 Real venue submissions require an operator-approved test with a small,
 bounded size and explicit cleanup; they are separate from the offline suite.
 
+The bounded [Kalshi stop-limit check](../examples/verify_kalshi_stop_limit.py)
+is covered end to end by a mocked HTTP adapter, including delayed single-order
+reads and a lost create response. Its wire guard permits at most one create:
+one YES contract at 0.01, post-only, with an expiry within 90 seconds. It
+forbids broader writes and cancels only a child matched to the test client key.
+Without `--execute`, the script performs public market/fee reads only. Execution
+requires separate operator authorization; credentials and the journal stay
+outside the repository. A 2026-10-14 authorized production check accepted and
+canceled that child with zero fills, preserving the parent across waiting and
+terminal restarts. This establishes that bounded stop-limit path; live
+stop-market fills and reduce-only guarantees remain unverified.
+
 The [lifecycle documents](../synpath/engine/orders/lifecycle/README.md) describe
 the four types. PostgreSQL must implement and pass this same storage and
 lifecycle contract before it is enabled.

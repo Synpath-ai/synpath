@@ -316,7 +316,7 @@ class StopLimit(_Stop):
         price = D(self.request.price)
         request = self.child_request(quantity=self.remaining, price=price, type=OrderType.LIMIT,
                                      time_in_force=self.request.time_in_force or TimeInForce.GTC,
-                                     expires_at=self.request.expires_at)
+                                     expires_at=self.request.expires_at, post_only=self.request.post_only)
         await self.submit_planned_child(ctx, request)
 
 

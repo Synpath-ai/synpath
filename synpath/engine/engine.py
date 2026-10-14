@@ -127,7 +127,7 @@ class Recovery:
         }
 
 
-POST_ONLY_KINDS = ("iceberg", "peg", "twap")
+POST_ONLY_KINDS = ("iceberg", "peg", "twap", "stop_limit")
 """Engine types whose children rest on the book, where `post_only` means
 something. A TWAP only in its `limit` style."""
 
@@ -144,8 +144,9 @@ def check_managed_fields(request: OrderRequest, *, now_ms: int) -> None:
         if kind in ("oco", "bracket"):
             raise BadRequest(f"post_only goes on the {kind}'s legs, not on the order itself")
         style = str(request.params.get("style") or "limit")
-        if kind not in POST_ONLY_KINDS or (kind == "twap" and style != "limit"):
-            raise BadRequest(f"post_only is for types that rest on the book (iceberg, peg, a limit-style twap); "
+        if (kind not in POST_ONLY_KINDS or (kind == "twap" and style != "limit")
+                or (kind == "stop_limit" and request.time_in_force.value in ("ioc", "fok"))):
+            raise BadRequest(f"post_only is for types that rest on the book (iceberg, peg, limit-style twap, gtc/gtd stop_limit); "
                              f"a {kind} order takes liquidity")
     if request.expires_at is not None and request.expires_at <= now_ms:
         raise BadRequest("expires_at is in the past")
