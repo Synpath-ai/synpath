@@ -25,3 +25,9 @@ is known. The parent reports actual execution averages and IOC remainder. Exampl
 YES bid falls to 0.39.
 
 See [shared storage and ownership](../../../../docs/order-storage.md).
+
+Polymarket US clamps children to its absolute 0.01–0.99 YES bounds even
+when the tick is finer. Its create response remains pending until a venue
+order update confirms execution. A decoder exception after sending preserves
+the pending dispatch; it does not establish rejection. See shared verification
+limits for venues without native client-key recovery.

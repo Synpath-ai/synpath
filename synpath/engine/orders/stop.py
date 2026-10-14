@@ -142,10 +142,12 @@ class _Stop(ManagedOrder):
         tick = precision.tick
         if self.kind == "stop_market":
             self.pending_precision = precision
+            rules = VENUE_RULES.get(self.venue, {})
             if self.side == Side.SELL:
-                return tick
+                return round_to(max(tick, rules.get("min_price", tick)), tick, "up")
             ceiling = round_to(precision.face_value, tick, "down")
-            return ceiling - tick if ceiling == precision.face_value else ceiling
+            ceiling = ceiling - tick if ceiling == precision.face_value else ceiling
+            return round_to(min(ceiling, rules.get("max_price", ceiling)), tick, "down")
         if self.side == Side.BUY:
             return min(round_to(touch + TRAILING_PROTECTION, tick, "down"), 1 - tick)
         return max(round_to(touch - TRAILING_PROTECTION, tick, "up"), tick)

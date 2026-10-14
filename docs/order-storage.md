@@ -168,3 +168,38 @@ crypto-shard balance. The journal records a rejected parent and failed
 child intent. No child was accepted and no position remained. This provides
 real trigger/refusal evidence, not live fill evidence. Kalshi documents
 shard funding in its [exchange sharding guide](https://docs.kalshi.com/getting_started/exchange_sharding).
+
+## Polymarket verification limits
+
+Mocked HTTP tests now exercise Polymarket stop-limit YES/NO direction,
+post-only, waiting/terminal restart, targeted cancellation, stop-market FAK
+children, and asynchronous fill read-back. Native order rows do not echo the
+engine's client key. A create response that is lost stays unresolved and is
+never resent; automatic adoption requires a persisted signed order identity.
+This gap must be addressed before enabling unattended execution on that venue.
+No international Polymarket trade was attempted: the venue's eligibility
+endpoint reported this host blocked in GB.
+
+The [Polymarket US check](../examples/verify_polymarket_us_stop_fill.py) uses
+one 0.01-contract stop-market entry, a 0.99 YES price bound and native
+close-position only after verifying the initially flat market holds exactly
+the test fill. Its host renews its execution lease while watching the real
+book. US absolute YES bounds are 0.01–0.99 even on a sub-cent tick grid.
+US receipts are asynchronous; a pending response is not evidence of a fill.
+
+A 2026-10-14 authorized US BTC 15-minute test observed an ask jump from 0.43
+to 0.76 across its 0.44 buy stop. The IOC child filled 0.01 at 0.75, costing
+0.0075 USD, then native close-position filled the same quantity at 0.99.
+Venue reads confirmed zero position and zero open market orders; both legs
+reported zero fees. The harness initially failed to read a streamed receipt;
+its native identity was recovered manually from own trade activity, with no
+second entry. The parent was audited, reconciled to closed and retained that
+state after restart. Streaming receipt handling and lease renewal now have
+regression coverage.
+
+An unexpected decoder/host exception after a stop intent is marked sending
+must remain unresolved rather than falsely reject an order that may exist.
+The supervisor now preserves the pending dispatch for sending/sent intents.
+US lacks native client keys and reduce-only on ordinary orders. Automatic
+response-lost adoption and general reduce-only stop support remain separate
+architecture work; this bounded manually recovered test does not prove them.

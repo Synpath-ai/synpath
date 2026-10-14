@@ -546,3 +546,29 @@ async def test_sell_stop_market_notional_limit_counts_the_no_price(tmp_path):
         assert venue.sent == [], 'buying NO at a 0.01 YES limit can cost 0.99 per contract'
     finally:
         await engine.stop()
+
+
+async def test_unexpected_decoder_error_after_send_preserves_uncertain_stop(tmp_path):
+    path = tmp_path / "orders.db"
+    engine, venue = await scripted_engine(path)
+    parent = await engine.submit(stop_request())
+    original = venue.create_order
+    async def accepted_then_decoder_failed(request):
+        await original(request)
+        raise RuntimeError("response decoder failed after acceptance")
+    venue.create_order = accepted_then_decoder_failed
+    try:
+        await engine.on_book({"market_id": "kalshi:KX-A"})
+        managed = engine.orders.get(parent.id)
+        assert managed.state == "working" and managed.pending_child is not None
+        assert "unresolved" in managed.detail and len(venue.sent) == 1
+    finally:
+        await engine.stop()
+    venue.create_order = original
+    engine, _ = await scripted_engine(path, venue)
+    try:
+        managed = engine.orders.get(parent.id)
+        assert len(managed.children) == 1 and managed.pending_child is None
+        assert len(venue.sent) == 1
+    finally:
+        await engine.stop()

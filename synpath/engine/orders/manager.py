@@ -25,6 +25,7 @@ from decimal import Decimal
 from typing import Any, Iterable, Mapping, Type
 
 from ...errors import NetworkError
+from ..storage_types import IntentState
 from ...trading.types import Fill, Order, OrderRequest, OrderType
 from .base import Child, Context, ManagedOrder, State, now_ms
 
@@ -140,7 +141,10 @@ class ManagedOrders:
             log.exception("synpath.engine.orders: %s %s failed", parent.kind, parent.id)
             parent.detail = f"{type(exc).__name__}: {exc}"
             try:
-                await parent.finish(ctx, "rejected", parent.detail)
+                if await self._dispatch_is_uncertain(parent):
+                    parent.detail += "; venue dispatch is unresolved; refusing to reject or resend"
+                else:
+                    await parent.finish(ctx, "rejected", parent.detail)
             except Exception:  # pragma: no cover - the journal is the only thing left
                 log.exception("synpath.engine.orders: could not record the failure of %s", parent.id)
         finally:
@@ -149,6 +153,14 @@ class ManagedOrders:
             await self.save(parent)
             if not parent.live and parent.owner_id:
                 await self.tell_owner(parent)
+
+    async def _dispatch_is_uncertain(self, parent: ManagedOrder) -> bool:
+        """A decoder/host failure after sending cannot prove venue rejection."""
+        pending = getattr(parent, "pending_child", None)
+        if pending is None or not pending.client_order_id:
+            return False
+        intent = await self.engine.journal.intent(pending.client_order_id)
+        return intent is not None and intent.state in (IntentState.SENDING, IntentState.SENT)
 
     async def tell_owner(self, leg: ManagedOrder) -> None:
         """A leg of a bracket or an OCO ended: its owner decides what that means."""
