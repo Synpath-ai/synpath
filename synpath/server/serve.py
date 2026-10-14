@@ -100,6 +100,7 @@ async def build(
     engine_config = EngineConfig(
         journal_path=config.get("journal", journal),
         storage_backend=config.get("storage_backend", "sqlite"),
+        storage_schema=config.get("storage_schema", "public"),
         session_timezone=config.get("session_timezone", "Europe/London"),
         session_end=config.get("session_end", "23:59:59"),
         poll_interval_s=float(config.get("poll_interval_s", 5)),
@@ -123,7 +124,7 @@ async def build(
         owner_key = issued.secret
     # Leave the token where clients on this machine find it (synpath.server.local).
     stack_key = local.remember(host, port, control=config.get("control", control),
-                               journal=engine_config.journal_path, key=owner_key, home_dir=home_dir)
+                               journal=engine.journal.path, key=owner_key, home_dir=home_dir)
     if feeds is not None:
         await feeds.start()
 
@@ -210,7 +211,7 @@ async def serve(args: argparse.Namespace) -> int:
 
     engine = stack.engine
     print(f"synpath serving on http://{args.host}:{args.port} (trading at /trading), "
-          f"venues: {', '.join(sorted(engine.adapters)) or 'none'}, journal: {engine.config.journal_path}")
+          f"venues: {', '.join(sorted(engine.adapters)) or 'none'}, journal: {engine.journal.path}")
     try:
         await server.serve()
     finally:

@@ -120,7 +120,7 @@ async def test_storage_contract_rejects_unknown_backend_and_owner_spoofing(tmp_p
     store = create_journal(path=str(tmp_path / "contract.db"))
     assert isinstance(store, JournalStore)
     with pytest.raises(ValueError, match="not available"):
-        create_journal(backend="postgresql")
+        create_journal(backend="unknown")
     with pytest.raises(ValueError, match="empty"):
         create_journal(user_id=" ")
     venue = PaperVenue(venue="kalshi")
@@ -194,3 +194,26 @@ async def test_legacy_stop_snapshot_does_not_inherit_the_new_workers_identity(tm
     async with Journal(path, user_id="new-worker") as store:
         restored = (await store.managed(states=("waiting",)))[0]
         assert restored["request"]["user_id"] == "legacy:unattributed"
+
+
+async def test_canceled_bucket_write_rolls_back_and_allows_next_write(journal, monkeypatch):
+    import asyncio
+    entered = asyncio.Event()
+    original = journal._db.execute
+    async def pause_member(query, args):
+        await original(query, args)
+        entered.set()
+        await asyncio.Event().wait()
+    def execute(query, args=None):
+        if query.startswith("INSERT INTO bucket_members"):
+            return pause_member(query, args)
+        return original(query, args)
+    monkeypatch.setattr(journal._db, "execute", execute)
+    task = asyncio.create_task(journal.save_bucket({"id": "cancel-bucket", "book": "a", "name": "test",
+                                                   "members": [{"market_id": "kalshi:KX-A"}]}))
+    await asyncio.wait_for(entered.wait(), 2)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert await journal.bucket("cancel-bucket") is None
+    assert await asyncio.wait_for(journal.append("after-cancellation"), 2) > 0

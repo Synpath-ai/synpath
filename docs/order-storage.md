@@ -1,9 +1,10 @@
 # Order storage and execution ownership
 
 The experimental `codex/order-lifecycle-storage` branch introduces a storage
-contract for the execution engine. SQLite is the implemented backend;
-PostgreSQL will use the same logical schema and contract at a later checkpoint.
-Selecting an unavailable backend raises an error rather than silently using SQLite.
+contract for the execution engine. SQLite is the default; PostgreSQL is an
+explicitly selected backend using the same logical schema and durable workflows.
+Unsupported configuration or a missing PostgreSQL driver raises an error; there
+is no fallback to SQLite.
 
 ## Configuration
 
@@ -15,6 +16,28 @@ session_end = "23:59:59"
 # Normal shutdown preserves orders. Operator halt is a separate operation.
 halt_on_exit = false
 ```
+
+For PostgreSQL, install `synpath[engine,postgres]` (`synpath[server,postgres]`
+for the sidecar) and configure a connection string and schema explicitly:
+
+```toml
+storage_backend = "postgresql"
+journal = "postgresql://synpath@localhost/synpath_orders"
+storage_schema = "execution"
+halt_on_exit = false
+```
+
+The same selection is available through
+`EngineConfig(storage_backend="postgresql", journal_path=dsn, storage_schema="execution")`.
+Use libpq's password file or another deployment secret mechanism for credentials;
+do not commit a credentialed connection string. The sidecar's display and local
+registry use `postgresql:<schema>` instead of the DSN. Its control/authentication
+store remains separate SQLite storage.
+
+A deployment selects one store. This checkpoint creates a fresh PostgreSQL
+journal; it does not copy an existing SQLite journal or run two authoritative
+stores. Stop the old execution worker before selecting another backend.
+Moving existing armed orders requires an explicit, separately verified import.
 
 Set `SYNPATH_USER_ID` to the single execution worker's stable owner identity.
 It defaults to `local-user`. This is attribution, not customer authentication
@@ -150,8 +173,7 @@ terminal restarts. This establishes that bounded stop-limit path; live
 stop-market fills and reduce-only guarantees remain unverified.
 
 The [lifecycle documents](../synpath/engine/orders/lifecycle/README.md) describe
-the four types. PostgreSQL must implement and pass this same storage and
-lifecycle contract before it is enabled.
+the four types. Both storage backends use those workflows.
 
 The [crypto fill check](../examples/verify_kalshi_stop_fill.py) arms a buy
 stop above the current real ask on a 15-minute market, waits at most four
@@ -203,3 +225,50 @@ The supervisor now preserves the pending dispatch for sending/sent intents.
 US lacks native client keys and reduce-only on ordinary orders. Automatic
 response-lost adoption and general reduce-only stop support remain separate
 architecture work; this bounded manually recovered test does not prove them.
+
+
+## PostgreSQL implementation and verification
+
+`PostgresJournal` reuses the shared journal transactions and type records. Its
+connection translates fixed journal SQL and bound parameters, serializes entire
+transactions against other tasks on the session, and rolls back canceled writes.
+Schema setup is transactional and guarded by a database advisory lock. The first
+PostgreSQL baseline is logical schema version 6; reopen is idempotent, and an
+unknown version fails without modifying it. SQLite's historical file migrations
+remain SQLite-only. New PostgreSQL migrations must extend this explicit baseline.
+
+PostgreSQL uses 64-bit timestamps, server-generated event/configuration sequence
+IDs, and the same exact decimal and versioned JSON text representation as SQLite.
+Sequences can have gaps after rollback; event consumers use ordering, not
+contiguous IDs. `synchronous_commit=on` requests durable commit acknowledgement;
+operators must retain PostgreSQL's normal WAL/fsync durability settings.
+
+One execution worker owns a database/schema through an atomic lease upsert.
+Expiry and renewal use the database clock, not the application's simulated clock.
+An expired owner cannot renew itself, and releasing a stale owner cannot remove
+the replacement worker's lease. PostgreSQL does not enable concurrent execution
+workers or multi-user authorization.
+
+The opt-in test suite uses a real disposable PostgreSQL database and unique test
+schemas, plus paper/scripted venues and mocked Kalshi, Polymarket and Polymarket
+US HTTP adapters. It covers type ownership, immutable requests, atomic audit and
+child planning, cancellation, expiry, IOC remainders, lost responses, concurrent
+initialization/reservations, lease loss/takeover, transaction cancellation, failed
+initialization/commit, and hard process crashes at all three dispatch boundaries.
+It uses no real credentials or exchange connections:
+
+```sh
+# This must be a disposable test database: each test creates and drops its schema.
+SYNPATH_TEST_POSTGRES_DSN=postgresql://localhost/synpath_test \
+  python -m pytest tests/test_postgres_storage.py
+```
+
+Live PostgreSQL-backed exchange verification remains pending. The venue-specific
+identity and reduce-only limitations above apply equally to both backends.
+
+
+Local checkpoint evidence on PostgreSQL 18.6: the full compiled offline SDK suite
+passed 2,372 tests (3 skipped, 137 live/demo deselected). The final storage subset
+passed 89 tests, including 74 PostgreSQL cases. A dedicated PostgreSQL service
+job in `.github/workflows/tests.yml` repeats those database and mocked-adapter
+contracts on main, pull requests and the experimental branch.

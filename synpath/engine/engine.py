@@ -75,6 +75,7 @@ class EngineConfig:
 
     journal_path: str = "synpath.db"
     storage_backend: str = "sqlite"
+    storage_schema: str = "public"
     user_id: str = field(default_factory=lambda: os.environ.get("SYNPATH_USER_ID", "local-user"))
     lease_name: str = "engine"
     lease_ttl_ms: int = 30_000
@@ -184,7 +185,7 @@ class Engine:
         if not self.config.user_id.strip():
             raise ValueError("user_id must not be empty")
         self.journal = journal or create_journal(backend=self.config.storage_backend,
-                                               path=self.config.journal_path, user_id=self.config.user_id)
+                                               path=self.config.journal_path, user_id=self.config.user_id, schema=self.config.storage_schema)
         self.bus = EventBus(self.journal)
         self.ledger = Ledger()
         self.fair_values = FairValues(self.journal, stale_after_s=self.config.mark_stale_after_s)

@@ -39,7 +39,7 @@ from ..errors import BadRequest
 from ..trading.types import Account, Fill, Order, OrderRequest
 from .storage_types import Intent, IntentState, JournalEvent, Lease, LeaseLost
 from .submissions import request_identity
-from .order_storage import SQLiteOrderRecords, UNATTRIBUTED_USER, schema as order_schema
+from .order_storage import OrderRecords, UNATTRIBUTED_USER, schema as order_schema
 
 SCHEMA_VERSION = 6
 
@@ -300,7 +300,7 @@ class Journal:
             await self._db.executescript(SCHEMA)
             await self._upgrade()
             await self._db.executescript(order_schema())
-            self._order_records = SQLiteOrderRecords(self._db)
+            self._order_records = OrderRecords(self._db)
             await self._upgrade_order_records()
             await self._upgrade_submissions()
             await self._db.execute("CREATE INDEX IF NOT EXISTS orders_parent ON orders(parent_id)")
@@ -875,7 +875,7 @@ class Journal:
                     (stamp, "bucket.saved", bucket["id"], _dump(bucket)),
                 )
                 await self._db.execute("COMMIT")
-            except Exception:
+            except BaseException:
                 await self._db.execute("ROLLBACK")
                 raise
 
@@ -980,7 +980,7 @@ class Journal:
         )
 
     async def managed(self, *, states: Iterable[str] | None = None) -> list[dict[str, Any]]:
-        sql = f"SELECT payload FROM ({MANAGED_SOURCE})"
+        sql = f"SELECT payload FROM ({MANAGED_SOURCE}) AS managed_source"
         args: list[Any] = []
         names = list(states or [])
         if names:
@@ -994,12 +994,12 @@ class Journal:
         `(kind, snapshot)`, oldest first. A bucket's orders are found by
         `bucket:<id>`."""
         async with self._db.execute(
-            f"SELECT kind, payload FROM ({MANAGED_SOURCE}) WHERE market_id=? ORDER BY created_ts", (market_id,)
+            f"SELECT kind, payload FROM ({MANAGED_SOURCE}) AS managed_source WHERE market_id=? ORDER BY created_ts", (market_id,)
         ) as cursor:
             return [(row["kind"], json.loads(row["payload"])) async for row in cursor]
 
     async def managed_one(self, parent_id: str) -> tuple[str, dict[str, Any]] | None:
-        async with self._db.execute(f"SELECT kind, payload FROM ({MANAGED_SOURCE}) WHERE id=?", (parent_id,)) as cursor:
+        async with self._db.execute(f"SELECT kind, payload FROM ({MANAGED_SOURCE}) AS managed_source WHERE id=?", (parent_id,)) as cursor:
             row = await cursor.fetchone()
         return (row["kind"], json.loads(row["payload"])) if row else None
 

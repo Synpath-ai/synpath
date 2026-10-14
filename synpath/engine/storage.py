@@ -1,8 +1,8 @@
 """Storage boundary for execution, independent of database SQL.
 
-SQLite is the first implementation. PostgreSQL must implement this same
-contract and pass the same transaction, lease, migration, and recovery
-suite before it can be selected. A deployment selects exactly one store.
+SQLite and PostgreSQL implement the same transaction and recovery contract.
+Each backend owns its connection, schema initialization and execution lease.
+A deployment selects exactly one store.
 """
 from __future__ import annotations
 
@@ -162,9 +162,12 @@ class JournalStore(Protocol):
 
 
 def create_journal(*, backend: str = "sqlite", path: str = "synpath.db",
-                   user_id: str = "local-user") -> JournalStore:
+                   user_id: str = "local-user", schema: str = "public") -> JournalStore:
     """Reject unsupported backends instead of silently using a local file."""
+    if backend == "postgresql":
+        from .postgres import PostgresJournal
+        return PostgresJournal(path, user_id=user_id, schema=schema)
     if backend != "sqlite":
-        raise ValueError(f"storage backend {backend!r} is not available; SQLite is the implemented checkpoint")
+        raise ValueError(f"storage backend {backend!r} is not available; choose sqlite or postgresql")
     from .journal import Journal
     return Journal(path, user_id=user_id)

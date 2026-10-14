@@ -1,4 +1,4 @@
-"""SQLite order-type records, written inside the journal's transaction.
+"""Shared order-type records, written inside the journal's transaction.
 
 The four instruction tables own their type's request and durable state.
 `orders` remains the shared execution projection used by the existing
@@ -63,7 +63,7 @@ def schema() -> str:
     return "\n".join(statements)
 
 
-class SQLiteOrderRecords:
+class OrderRecords:
     def __init__(self, connection: Any):
         self.connection = connection
 

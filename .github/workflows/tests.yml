@@ -2,7 +2,7 @@ name: tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/order-lifecycle-storage]
   pull_request:
 
 jobs:
@@ -49,3 +49,32 @@ jobs:
           out=$(env -i HOME=/tmp/norust-home PATH=/usr/bin:/bin /tmp/norust/bin/python -m pip install --no-deps dist/*.tar.gz 2>&1 || true)
           echo "$out" | tail -20
           echo "$out" | grep -q "sh.rustup.rs" || { echo "the install-Rust message did not appear"; exit 1; }
+
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: synpath_test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synpath_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: pip install -e ".[dev,postgres]"
+      - name: PostgreSQL journal, recovery and mocked venue contracts
+        run: pytest -q tests/test_postgres_storage.py
+        env:
+          SYNPATH_TEST_POSTGRES_DSN: postgresql://postgres:postgres@localhost:5432/synpath_test
