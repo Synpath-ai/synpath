@@ -3,12 +3,14 @@
 Run from the synpath_public directory after `pip install -e .`:
 
     python examples/track_historical_book.py \
-      --base-url http://127.0.0.1:8787 --market-id kalshi:YOUR-TICKER \
-      --start 2026-09-23T14:00:00Z --end 2026-09-26T14:00:00Z \
+      --market-id kalshi:KXQUANTUM-30 \
+      --start 2026-10-15T12:00:00Z --end 2026-10-15T13:00:00Z \
       --output book-timeline.jsonl
 
 Omit --output for a compact summary. JSONL output contains a complete book
 after each recorded change, so it can be large for a busy market.
+Start/end and output at_ms use the response clock (venue time on the current
+service). observed_at_ms is recorder receive time, separate from venue time.
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ from typing import Iterator, Literal
 import httpx
 
 from synpath import HistoricalOrderBook, OrderBookRangeResponse
-from synpath.types import iso
+from synpath.types import HistoricalBookChange, HistoryMetadata, iso
 
 HOUR_MS = 60 * 60 * 1000
 
@@ -113,6 +115,14 @@ def _fetch_ranges(
     yield parsed
 
 
+def _change_timestamp(change: HistoricalBookChange, metadata: HistoryMetadata) -> int:
+    if metadata.time_basis == "venue":
+        if change.venue_timestamp_ms is None:
+            raise ValueError("Venue-time book change has no venue timestamp")
+        return change.venue_timestamp_ms
+    return change.observed_at_ms
+
+
 def iter_book_timeline(
     client: httpx.Client, base_url: str, market_id: str, start_ms: int, end_ms: int,
     *, side: Literal["yes", "no"] = "yes", chunk_ms: int = HOUR_MS, limit: int = 10_000,
@@ -149,7 +159,8 @@ def iter_book_timeline(
                 replay = _ReplayBook(segment.initial_book)
                 yield BookState(segment.start_ms, segment.initial_book, "initial")
                 for change in segment.changes:
-                    if not segment.start_ms <= change.observed_at_ms < segment.end_ms:
+                    change_timestamp_ms = _change_timestamp(change, result.metadata)
+                    if not segment.start_ms <= change_timestamp_ms < segment.end_ms:
                         raise ValueError("Book change is outside its data segment")
                     if change.kind == "snapshot":
                         if change.book is None:
@@ -157,8 +168,8 @@ def iter_book_timeline(
                         replay.replace(change.book)
                     else:
                         replay.delta(change.book_side, change.price_exact, change.quantity_delta_exact)
-                    yield BookState(change.observed_at_ms,
-                                    replay.materialize(change.observed_at_ms, change.venue_timestamp_ms),
+                    yield BookState(change_timestamp_ms,
+                                    replay.materialize(change_timestamp_ms, change.venue_timestamp_ms),
                                     change.kind)
             if position != result.end_ms:
                 raise ValueError("API response does not cover its requested end")
