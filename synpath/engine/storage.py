@@ -97,6 +97,11 @@ class JournalStore(Protocol):
     async def open_orders(self, *, venue: str | None=None, account_key: str | None=None, book: str | None=None) -> list[Order]:
         ...
 
+    async def orders_page(self, *, venue: str | None=None, book: str | None=None, market_id: str | None=None,
+                          since_ts: int | None=None, before: tuple[int, str, str] | None=None,
+                          open_only: bool=False, limit: int | None=100) -> list[tuple[Order, tuple[int, str, str]]]:
+        ...
+
     async def fills(self, *, since_ts: int | None=None, venue: str | None=None, book: str | None=None) -> list[Fill]:
         ...
 

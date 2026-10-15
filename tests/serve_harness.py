@@ -73,12 +73,74 @@ def kalshi_credentials() -> KalshiCredentials:
 
 
 class MockKalshi:
-    """Kalshi's REST API, enough for the read routes and an empty account.
-    Every request is recorded; anything unexpected answers 404."""
+    """Kalshi's REST API, enough for the read routes and a small order store.
+    Every request is recorded; anything unexpected answers 404.
 
-    def __init__(self, *, book: dict[str, list[list[str]]] | None = None):
+    The order store models what the engine depends on: a create rests unless
+    `fill_on_create` is set (or the order is immediate-or-cancel, which
+    fills); `fill(order_id)` executes a resting order at the venue without
+    telling the engine; a cancel of an order that is no longer resting
+    answers 404 `not_found`, as Kalshi does, while a read of it still works;
+    `lose_create_response` accepts the order and then drops the response."""
+
+    def __init__(self, *, book: dict[str, list[list[str]]] | None = None, fill_on_create: bool = False,
+                 lose_create_response: bool = False):
         self.requests: list[httpx.Request] = []
         self.book = book or {"yes_dollars": [["0.40", "10"]], "no_dollars": [["0.55", "7"]]}
+        self.fill_on_create = fill_on_create
+        self.lose_create_response = lose_create_response
+        self.orders: dict[str, dict[str, Any]] = {}
+        """Venue order records by order id, in Kalshi's own shape."""
+        self.creates: list[dict[str, Any]] = []
+        self.cancels: list[str] = []
+        self.forgotten: set[str] = set()
+        """Order ids the venue answers 404 for on every route: no record at all."""
+
+    def fill(self, order_id: str) -> None:
+        """Execute a resting order at the venue, wholly, without a stream update."""
+        record = self.orders[order_id]
+        quantity = record["initial_count_fp"]
+        record.update(status="executed", fill_count_fp=quantity, remaining_count_fp="0",
+                      taker_fill_cost_dollars=str(D(quantity) * D(record["yes_price_dollars"])),
+                      taker_fees_dollars="0.01")
+
+    def _create(self, request: httpx.Request) -> httpx.Response:
+        import json
+
+        body = json.loads(request.content)
+        self.creates.append(body)
+        order_id = f"kx-{len(self.creates)}"
+        immediate = body.get("time_in_force") in ("immediate_or_cancel", "fill_or_kill")
+        filled = self.fill_on_create or immediate
+        count = body["count"]
+        self.orders[order_id] = {
+            "order_id": order_id, "client_order_id": body["client_order_id"], "ticker": body["ticker"],
+            "book_side": body["side"], "type": "limit", "status": "resting", "initial_count_fp": count,
+            "fill_count_fp": "0", "remaining_count_fp": count, "yes_price_dollars": body["price"],
+        }
+        if filled:
+            self.fill(order_id)
+        if self.lose_create_response:
+            raise httpx.ReadError("accepted; the response was lost", request=request)
+        return httpx.Response(201, json={"order_id": order_id, "client_order_id": body["client_order_id"],
+                                         "fill_count": count if filled else "0",
+                                         "remaining_count": "0" if filled else count,
+                                         "average_fill_price": body["price"] if filled else None})
+
+    def _cancel(self, order_id: str) -> httpx.Response:
+        self.cancels.append(order_id)
+        record = self.orders.get(order_id)
+        if record is None or order_id in self.forgotten or record["status"] != "resting":
+            return httpx.Response(404, json={"error": {"code": "not_found", "message": "order not found"}})
+        reduced = record["remaining_count_fp"]
+        record.update(status="canceled", remaining_count_fp="0")
+        return httpx.Response(200, json={"order_id": order_id, "reduced_by": reduced})
+
+    def _orders(self, request: httpx.Request) -> httpx.Response:
+        wanted = request.url.params.get("status")
+        rows = [r for oid, r in self.orders.items()
+                if oid not in self.forgotten and (wanted is None or r["status"] == wanted)]
+        return httpx.Response(200, json={"orders": rows, "cursor": ""})
 
     @staticmethod
     def market(ticker: str) -> dict[str, Any]:
@@ -101,8 +163,15 @@ class MockKalshi:
         if request.method == "GET" and parts[:1] == ["series"]:
             return httpx.Response(200, json={"series": {"ticker": parts[-1], "fee_type": "quadratic",
                                                         "fee_multiplier": 1}})
+        if request.method == "POST" and path == "/portfolio/events/orders":
+            return self._create(request)
+        if request.method == "DELETE" and parts[:3] == ["portfolio", "events", "orders"] and len(parts) == 4:
+            return self._cancel(parts[3])
+        if request.method == "GET" and parts[:2] == ["portfolio", "orders"] and len(parts) == 3 \
+                and parts[2] in self.orders and parts[2] not in self.forgotten:
+            return httpx.Response(200, json={"order": self.orders[parts[2]]})
         if request.method == "GET" and path == "/portfolio/orders":
-            return httpx.Response(200, json={"orders": [], "cursor": ""})
+            return self._orders(request)
         if request.method == "GET" and path == "/portfolio/balance":
             return httpx.Response(200, json={"balance": 1_000_000, "portfolio_value": 0})
         if request.method == "GET" and path in ("/portfolio/positions", "/portfolio/fills", "/portfolio/settlements"):

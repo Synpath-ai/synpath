@@ -30,6 +30,7 @@ away. Events are the engine's own, filtered to the accounts the key may see.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 from decimal import Decimal
@@ -49,7 +50,8 @@ from ..errors import (
 )
 from ..engine.risk import RiskConfig
 from ..trading.errors import (
-    InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected, RateBudgetExceeded, RiskRejected,
+    CancelUnconfirmed, InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected,
+    RateBudgetExceeded, RiskRejected, SubmissionInDoubt, SubmissionPending,
 )
 from .errors import install_error_handlers
 from ..trading.types import (
@@ -61,6 +63,9 @@ from .store import ALL_ACCOUNTS, ControlStore, Grant, Permission, Principal
 log = logging.getLogger("synpath.server")
 
 TRADING_STATUS: dict[type[Exception], int] = {
+    SubmissionInDoubt: 202,
+    SubmissionPending: 202,
+    CancelUnconfirmed: 409,
     OrderNotFound: 404,
     InsufficientFunds: 400,
     OrderRejected: 400,
@@ -75,9 +80,44 @@ TRADING_STATUS: dict[type[Exception], int] = {
     AuthenticationError: 502,
     ExchangeError: 502,
 }
-"""Library exception to status code on the trading routes. A venue refusing
-our own credentials is 502: the caller's token was fine, the server's venue
-key was not."""
+"""Library exception to status code on the trading routes, most specific
+class first. A venue refusing our own credentials is 502: the caller's token
+was fine, the server's venue key was not.
+
+An order whose outcome is not known yet is 202, not a 5xx: the instruction
+is recorded and the send may have happened, so it has not failed. The body
+is the usual error envelope (`submission_in_doubt` for this send,
+`submission_pending` for a retry while the first send is still being
+reconciled), with `retryable: true` and the `client_order_id` to retry
+under; the same id never sends twice. A cancel the venue neither performed
+nor recognises is 409 `cancel_unconfirmed`: the order exists here, and its
+last observed status stands."""
+
+
+DEFAULT_ORDERS_PAGE = 100
+MAX_ORDERS_PAGE = 1000
+
+
+def orders_cursor(key: tuple[int, str, str]) -> str:
+    """The paging key of a page's last order, `(created_ts, venue, id)`, as an opaque token."""
+    return base64.urlsafe_b64encode(json.dumps(list(key)).encode()).decode().rstrip("=")
+
+
+def orders_cursor_key(cursor: str | None) -> tuple[int, str, str] | None:
+    if not cursor:
+        return None
+    try:
+        created_ts, venue, order_id = json.loads(base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
+        return int(created_ts), str(venue), str(order_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="cursor is not one this server gave out") from None
+
+
+def current_view(engine: Engine, order: Order) -> Order:
+    """An engine-held parent this process runs is read from memory, which is
+    what its journal row was last written from; anything else is the row."""
+    parent = engine.orders.get(order.id) if order.held_by.value == "engine" else None
+    return parent.as_order() if parent is not None else order
 
 
 def _tag_venue(exc: Exception, venue: str | None) -> None:
@@ -500,7 +540,11 @@ def create_trading_router() -> APIRouter:
 
     # -- orders ---------------------------------------------------------------
 
-    @router.post("/orders", tags=["orders"], summary="Place an order", responses=RESPONSES, status_code=201)
+    @router.post("/orders", tags=["orders"], summary="Place an order", responses={
+        **RESPONSES, 202: {"model": ErrorBody, "description": "Outcome not known yet (`submission_in_doubt` or "
+                                                              "`submission_pending`): retry with the same "
+                                                              "client_order_id, which never sends twice"}},
+        status_code=201)
     async def create_order(principal: Caller, engine: EngineDep, body: OrderRequest) -> Order:
         if is_bucket_id(body.market_id):
             # A bucket order puts legs on every member venue: the caller must
@@ -640,16 +684,37 @@ def create_trading_router() -> APIRouter:
             raise HTTPException(status_code=404, detail=f"no order {order_id} on bucket {bucket_id}")
         return bucket_report(parent)
 
-    @router.get("/orders", tags=["orders"], summary="Open orders", responses=RESPONSES)
+    @router.get("/orders", tags=["orders"], summary="Orders: open ones, or every state", responses=RESPONSES)
     async def list_orders(
         principal: Caller,
         engine: EngineDep,
         venue: Annotated[str | None, Query(description="Only this venue")] = None,
         book: Annotated[str | None, Query(description="Only this strategy")] = None,
+        scope: Annotated[Literal["open", "all"], Query(
+            description="`open` (the default): resting venue orders and live engine-held parents "
+                        "(`waiting`, `triggered`, `pending_cancel`). `all`: every state, finished ones too")] = "open",
+        market_id: Annotated[str | None, Query(description="Only this market (`venue:native`)")] = None,
+        since: Annotated[int | None, Query(description="Only orders created at or after this time, "
+                                                       "milliseconds since the epoch")] = None,
+        limit: Annotated[int | None, Query(ge=1, le=MAX_ORDERS_PAGE, description=(
+            f"Rows per page, at most {MAX_ORDERS_PAGE}. Default: every open order for `open`, "
+            f"{DEFAULT_ORDERS_PAGE} for `all`"))] = None,
+        cursor: Annotated[str | None, Query(description="`next_cursor` from the previous page")] = None,
     ) -> PageResponse[Order]:
-        orders = [o for o in engine.open_orders(venue=venue, book=book)
-                  if visible(principal, (o.account.key if o.account else f"{o.venue}:default"))]
-        return PageResponse[Order](data=orders, next_cursor=None, count=len(orders))
+        """Newest first by creation. A child carries its parent's id in
+        `parent_id`, so children group under their engine-held parent. A page
+        may hold fewer rows than `limit` when some are on accounts this key may
+        not view: follow `next_cursor` until it is null."""
+        if limit is None and scope == "all":
+            limit = DEFAULT_ORDERS_PAGE
+        rows = await engine.journal.orders_page(
+            venue=venue, book=book, market_id=market_id, since_ts=since, before=orders_cursor_key(cursor),
+            open_only=scope == "open", limit=limit)
+        orders = [current_view(engine, order) for order, _ in rows
+                  if order.user_id in (None, engine.config.user_id)
+                  and visible(principal, (order.account.key if order.account else f"{order.venue}:default"))]
+        next_cursor = orders_cursor(rows[-1][1]) if limit is not None and len(rows) == limit else None
+        return PageResponse[Order](data=orders, next_cursor=next_cursor, count=len(orders))
 
     @router.get("/orders/{order_id}", tags=["orders"], summary="One order", responses=RESPONSES)
     async def get_order(principal: Caller, engine: EngineDep, order_id: Annotated[str, Path()]) -> Order:

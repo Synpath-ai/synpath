@@ -194,7 +194,7 @@ async def crash():
             if order.held_by.value == 'venue': os._exit(77)
             return await original(order, **kwargs)
         engine.journal.upsert_order = exit_after_response
-    await engine.on_book({'market_id': 'kalshi:KX-A'})
+    await scenarios.cross(engine)
 asyncio.run(crash())
 '''
     environment = {**os.environ, "PYTHONPATH": str(Path(__file__).parent) + os.pathsep + os.environ.get("PYTHONPATH", "")}
@@ -375,7 +375,7 @@ async def test_failed_schema_initialization_rolls_back_then_retries(database, mo
         assert await cursor.fetchone() is None
     monkeypatch.setattr(store, "_apply_schema", original)
     async with store:
-        assert await store.schema_version() == 8
+        assert await store.schema_version() == 9
 
 
 async def test_commit_failure_rolls_back_before_next_writer(journal, monkeypatch):

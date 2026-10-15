@@ -326,17 +326,25 @@ class ManagedOrder:
 
     async def cancel(self, ctx: Context, reason: str = "cancelled", *, end: State = "canceled") -> None:
         """Pull every live child, then end as `end`: `canceled`, or `expired`
-        when it is the order's own expiry doing it."""
+        when it is the order's own expiry doing it. A parent whose children
+        turn out to have filled everything ends `done` (`closed`) instead:
+        a cancel never relabels a fill."""
         self.detail = reason
         if not self.live:
             return
         self.state = "cancelling"
         await ctx.save()
         await self.pull_children(ctx)
-        if not self.live_children:
-            await self.finish(ctx, end, reason)
-        else:
+        if not self.live:
+            # A child's final venue record, read while pulling it, ended the
+            # parent already (a fill that won the race closes it).
+            return
+        if self.live_children:
             await ctx.save()
+        elif self.remaining <= 0:
+            await self.finish(ctx, "done", "filled before cancellation completed")
+        else:
+            await self.finish(ctx, end, reason)
 
     async def expire(self, ctx: Context) -> None:
         """The order's own `expires_at` passed: the whole order ends
@@ -461,7 +469,7 @@ class ManagedOrder:
 
     @classmethod
     def from_snapshot(cls, snapshot: Mapping[str, Any]) -> "ManagedOrder":
-        request = OrderRequest.model_validate(snapshot["request"])
+        request = OrderRequest.stored(snapshot["request"])
         parent = cls(request, id=snapshot["id"], venue=snapshot["venue"],
                      account=Account.model_validate(snapshot["account"]), state=snapshot["state"])
         parent.children = [Child.of(row) for row in snapshot.get("children") or []]

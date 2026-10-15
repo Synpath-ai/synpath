@@ -117,7 +117,7 @@ from .trading import (
     Precision, Settlement, SettlementState, Side, TimeInForce, TriggerSource,
     CredentialsMissing, DuplicateClientOrderId, InsufficientFunds, InvalidOrder,
     MarketHalted, OrderNotFound, OrderRejected, PermissionDenied,
-    RateBudgetExceeded, RiskRejected,
+    RateBudgetExceeded, RiskRejected, CancelUnconfirmed, SubmissionInDoubt, SubmissionPending,
 )
 from .trading.credentials import load_credentials, require
 from .client import Client
@@ -185,7 +185,7 @@ __all__ = [
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",
     "CredentialsMissing", "DuplicateClientOrderId", "InsufficientFunds", "InvalidOrder",
     "MarketHalted", "OrderNotFound", "OrderRejected", "PermissionDenied",
-    "RateBudgetExceeded", "RiskRejected",
+    "RateBudgetExceeded", "RiskRejected", "CancelUnconfirmed", "SubmissionInDoubt", "SubmissionPending",
     "load_credentials", "require", "Client",
     # live streams
     "Stream", "StreamStats", "StreamEvent", "BookEvent", "BookLevel", "QuoteEvent", "TradeEvent", "OrderEvent",

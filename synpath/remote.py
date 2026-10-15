@@ -17,7 +17,9 @@ import httpx
 from ._deprecated import renamed_kwargs
 from .errors import AuthenticationError, BadRequest, ExchangeError, NetworkError, NotSupported
 from .server.local import resolve_key
-from .trading.errors import InsufficientFunds, OrderNotFound, RiskRejected
+from .trading.errors import (
+    CancelUnconfirmed, InsufficientFunds, OrderNotFound, RiskRejected, SubmissionInDoubt, SubmissionPending,
+)
 from .bucket import BUCKET_PREFIX, Bucket, BucketMember, BucketOrderReport, BucketPosition
 from .trading.types import Balance, EditRequest, FeeEstimate, Fill, Order, OrderRequest, Position, Settlement, Side
 from .types import Page
@@ -57,9 +59,21 @@ class RemoteTrading:
             response = await self._http.request(method, self.base + path, params=clean, json=json, headers=self._headers())
         except httpx.HTTPError as exc:
             raise NetworkError(f"{method} {path}: {exc}") from exc
-        if response.status_code >= 400:
+        if response.status_code >= 400 or self._is_unresolved(response):
             raise self._error(response, method, path)
         return response.json() if response.content else None
+
+    @staticmethod
+    def _is_unresolved(response: httpx.Response) -> bool:
+        """A 202 carrying the error envelope: the order's outcome is not known
+        yet (`submission_in_doubt` / `submission_pending`). Not a result."""
+        if response.status_code != 202 or not response.content:
+            return False
+        try:
+            body = response.json()
+        except ValueError:
+            return False
+        return isinstance(body, dict) and isinstance(body.get("error"), dict)
 
     @staticmethod
     def _error(response: httpx.Response, method: str, path: str) -> Exception:
@@ -73,6 +87,13 @@ class RemoteTrading:
         message = str(error.get("message") or response.text or response.reason_phrase)
         details = error.get("details") or {}
         status = response.status_code
+        client_order_id = details.get("client_order_id")
+        if code == "submission_in_doubt":
+            return SubmissionInDoubt(message, client_order_id=client_order_id)
+        if code == "submission_pending":
+            return SubmissionPending(message, client_order_id=client_order_id)
+        if code == "cancel_unconfirmed":
+            return CancelUnconfirmed(message)
         if status in (401, 403):
             return AuthenticationError(message)
         if status == 404:
@@ -145,9 +166,23 @@ class RemoteTrading:
         return Order.model_validate(await self._call("GET", f"/orders/{order_id}"))
 
     async def fetch_open_orders(self, *, market_id: str | None = None, venue: str | None = None) -> list[Order]:
-        page = await self._call("GET", "/orders", params={"venue": venue})
-        orders = [Order.model_validate(row) for row in page.get("data", [])]
-        return [o for o in orders if market_id is None or o.market_id == market_id]
+        orders: list[Order] = []
+        cursor: str | None = None
+        while True:
+            page = await self.fetch_orders(scope="open", market_id=market_id, venue=venue, cursor=cursor)
+            orders.extend(page)
+            cursor = page.next_cursor
+            if not cursor:
+                return orders
+
+    async def fetch_orders(self, *, scope: str = "all", market_id: str | None = None, venue: str | None = None,
+                           since: int | None = None, limit: int | None = None,
+                           cursor: str | None = None) -> Page[Order]:
+        """One page of the server's orders, newest first: `all` states (the
+        default) or only `open` ones, engine-held parents included."""
+        page = await self._call("GET", "/orders", params={
+            "scope": scope, "market_id": market_id, "venue": venue, "since": since, "limit": limit, "cursor": cursor})
+        return Page([Order.model_validate(row) for row in page.get("data", [])], next_cursor=page.get("next_cursor"))
 
     # -- portfolio ------------------------------------------------------------
 

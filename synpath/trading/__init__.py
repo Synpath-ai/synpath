@@ -28,6 +28,9 @@ from .errors import (
     PermissionDenied,
     RateBudgetExceeded,
     RiskRejected,
+    CancelUnconfirmed,
+    SubmissionInDoubt,
+    SubmissionPending,
 )
 from .types import (
     Account,
@@ -92,5 +95,5 @@ __all__ = [
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",
     "CredentialsMissing", "DuplicateClientOrderId", "InsufficientFunds", "InvalidOrder",
     "MarketHalted", "OrderNotFound", "OrderRejected", "PermissionDenied",
-    "RateBudgetExceeded", "RiskRejected",
+    "RateBudgetExceeded", "RiskRejected", "CancelUnconfirmed", "SubmissionInDoubt", "SubmissionPending",
 ]

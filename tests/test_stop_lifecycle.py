@@ -40,8 +40,16 @@ async def scripted_engine(path, venue=None, **config):
     engine = Engine({"kalshi": venue}, EngineConfig(journal_path=str(path), **config),
                     risk=RiskConfig(price_collar=None, duplicate_window_ms=0, closing_soon_s=None))
     await engine.start()
-    engine.set_book("kalshi:KX-A", SimpleNamespace(ready=True, best_bid=D("0.39"), best_ask=D("0.41")))
+    # Above the sell stops at 0.40: a stop reads the book it is handed at
+    # once, so a test triggers it deliberately, with `cross`.
+    engine.set_book("kalshi:KX-A", SimpleNamespace(ready=True, best_bid=D("0.45"), best_ask=D("0.47")))
     return engine, venue
+
+
+async def cross(engine, market_id="kalshi:KX-A"):
+    """The bid falls through the sell stops at 0.40, and the engine hears of it."""
+    engine.set_book(market_id, SimpleNamespace(ready=True, best_bid=D("0.39"), best_ask=D("0.41")))
+    await engine.on_book({"market_id": market_id})
 
 
 def stop_request(**changes):
@@ -146,7 +154,7 @@ async def test_trigger_and_child_plan_are_committed_before_adapter_call(tmp_path
         return await original(request)
     venue.create_order = inspect
     try:
-        await engine.on_book({"market_id": "kalshi:KX-A"})
+        await cross(engine)
         assert len(venue.sent) == 1
     finally:
         await engine.stop()
@@ -177,7 +185,7 @@ async def test_lost_child_response_stays_triggered_and_is_adopted_after_restart(
     engine, venue = await scripted_engine(path)
     parent = await engine.submit(stop_request())
     venue.fail_next = "arrived"
-    await engine.on_book({"market_id": "kalshi:KX-A"})
+    await cross(engine)
     assert engine.orders.get(parent.id).state == "working" and len(venue.sent) == 1
     await engine.stop()
     restarted, _ = await scripted_engine(path, venue)
@@ -186,7 +194,7 @@ async def test_lost_child_response_stays_triggered_and_is_adopted_after_restart(
         assert len(restored.children) == 1 and restored.pending_child is None
         for _ in range(3):
             await restarted.orders.on_timer()
-            await restarted.on_book({"market_id": "kalshi:KX-A"})
+            await cross(restarted)
         assert len(venue.sent) == 1
         assert restored.children[0].order_id == "V1"
     finally:
@@ -220,7 +228,7 @@ async def test_cancel_and_trigger_race_leaves_no_working_child(tmp_path):
     engine, venue = await scripted_engine(tmp_path / "engine.db")
     parent = await engine.submit(stop_request(type="stop_limit", price="0.38"))
     try:
-        await asyncio.wait_for(asyncio.gather(engine.on_book({"market_id": "kalshi:KX-A"}), engine.cancel(parent.id)), 2)
+        await asyncio.wait_for(asyncio.gather(cross(engine), engine.cancel(parent.id)), 2)
         assert engine.orders.get(parent.id).state == "canceled"
         assert await venue.fetch_open_orders() == []
         assert len(venue.sent) <= 1
@@ -231,7 +239,7 @@ async def test_cancel_and_trigger_race_leaves_no_working_child(tmp_path):
 async def test_cancel_acknowledgement_with_nonterminal_result_stays_pending(tmp_path):
     engine, venue = await scripted_engine(tmp_path / "engine.db")
     parent = await engine.submit(stop_request(type="stop_limit", price="0.38"))
-    await engine.on_book({"market_id": "kalshi:KX-A"})
+    await cross(engine)
     original = venue.cancel_order
     async def acknowledge(order_id, **kwargs):
         return venue.orders[order_id]
@@ -250,7 +258,7 @@ async def test_order_history_pages_are_exhausted_before_adoption(tmp_path):
     engine, venue = await scripted_engine(tmp_path / "engine.db")
     parent = await engine.submit(stop_request())
     venue.fail_next = "arrived"
-    await engine.on_book({"market_id": "kalshi:KX-A"})
+    await cross(engine)
     child = venue.orders["V1"].model_copy(update={"status": OrderStatus.CLOSED, "filled": D("10"), "average_price": D("0.39")})
     venue.orders["V1"] = child
     cursors = []
@@ -302,7 +310,7 @@ async def test_hard_crash_restores_one_child_at_each_network_boundary(tmp_path, 
     venue_path = tmp_path / "fake-venue.json"
     script = '''
 import asyncio, os
-from test_stop_lifecycle import scripted_engine, stop_request, DurableFakeVenue
+from test_stop_lifecycle import scripted_engine, stop_request, DurableFakeVenue, cross
 async def crash():
     engine, venue = await scripted_engine(JOURNAL, DurableFakeVenue(VENUE))
     await engine.submit(stop_request())
@@ -326,7 +334,7 @@ async def crash():
                 os._exit(77)
             return await original(order, **kwargs)
         engine.journal.upsert_order = stop_before_record
-    await engine.on_book({'market_id': 'kalshi:KX-A'})
+    await cross(engine)
 asyncio.run(crash())
 '''
     script = f'JOURNAL={str(journal)!r}\nVENUE={str(venue_path)!r}\nBOUNDARY={boundary!r}\n' + script
@@ -411,7 +419,7 @@ async def test_cancellation_of_uncertain_child_survives_restart(tmp_path):
     engine, venue = await scripted_engine(path)
     parent = await engine.submit(stop_request(type="stop_limit", price="0.38"))
     venue.fail_next = "arrived"
-    await engine.on_book({"market_id": "kalshi:KX-A"})
+    await cross(engine)
     original = venue.fetch_open_orders
     async def unavailable(**kwargs):
         raise NetworkError("fake venue unavailable")
@@ -431,7 +439,7 @@ async def test_cancellation_of_uncertain_child_survives_restart(tmp_path):
 async def test_a_fill_that_wins_the_cancel_race_closes_the_parent(tmp_path):
     engine, venue = await scripted_engine(tmp_path / "engine.db")
     parent = await engine.submit(stop_request(type="stop_limit", price="0.38"))
-    await engine.on_book({"market_id": "kalshi:KX-A"})
+    await cross(engine)
     async def already_filled(order_id, **kwargs):
         done = venue.orders[order_id].model_copy(update={"filled": D("10"), "status": OrderStatus.CLOSED, "average_price": D("0.39")})
         venue.orders[order_id] = done
@@ -509,7 +517,7 @@ async def test_slow_venue_does_not_block_another_markets_stop_observation(tmp_pa
     dispatcher = asyncio.create_task(engine._dispatch_loop())
     await asyncio.sleep(0)
     try:
-        await asyncio.wait_for(engine.on_book({'market_id': 'kalshi:KX-A'}), 1)
+        await asyncio.wait_for(cross(engine), 1)
         await asyncio.wait_for(entered.wait(), 1)
         await asyncio.wait_for(engine.on_book({'market_id': 'kalshi:KX-B'}), 1)
         managed = engine.orders.get(second.id)
@@ -540,7 +548,7 @@ async def test_sell_stop_market_notional_limit_counts_the_no_price(tmp_path):
     try:
         await engine.set_risk(RiskConfig(price_collar=None, duplicate_window_ms=0, closing_soon_s=None,
                                         max_order_notional=D('5')))
-        await engine.on_book({'market_id': 'kalshi:KX-A'})
+        await cross(engine)
         assert engine.orders.get(parent.id).state == 'rejected'
         assert '9.90' in engine.orders.get(parent.id).detail
         assert venue.sent == [], 'buying NO at a 0.01 YES limit can cost 0.99 per contract'
@@ -558,7 +566,7 @@ async def test_unexpected_decoder_error_after_send_preserves_uncertain_stop(tmp_
         raise RuntimeError("response decoder failed after acceptance")
     venue.create_order = accepted_then_decoder_failed
     try:
-        await engine.on_book({"market_id": "kalshi:KX-A"})
+        await cross(engine)
         managed = engine.orders.get(parent.id)
         assert managed.state == "working" and managed.pending_child is not None
         assert "unresolved" in managed.detail and len(venue.sent) == 1
@@ -594,7 +602,7 @@ async def test_canceled_commit_keeps_triggered_stop_recoverable(tmp_path, monkey
             return getattr(connection, name)
         exec_driver_sql = staticmethod(pause_commit)
     monkeypatch.setattr(engine.journal._db, "connection", DelayedConnection())
-    triggering = asyncio.create_task(engine.on_book({"market_id": "kalshi:KX-A"}))
+    triggering = asyncio.create_task(cross(engine))
     try:
         await asyncio.wait_for(entered.wait(), 5)
         triggering.cancel()
