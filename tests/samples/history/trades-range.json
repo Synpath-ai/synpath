@@ -1,1 +1,0 @@
-{"metadata": {"dataset_version": "reconciled-v4-e40970d930feb523", "time_basis": "venue", "processed_through_ms": 1792069200000}, "market_id": "kalshi:KXQUANTUM-30", "start_ms": 1792065600000, "end_ms": 1792069200000, "coverage": [{"start_ms": 1792065600000, "end_ms": 1792069200000, "status": "available", "reason": null}], "trades": [], "next_cursor": null}

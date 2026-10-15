@@ -10,23 +10,15 @@ Historical HTTP requests use Synpath IDs and snake-case JSON fields:
 | `POST /v1/order-book/range` | `market_id`, `start_ms`, `end_ms`, optional `side`, `limit` | `OrderBookRangeResponse` |
 | `POST /v1/trades/range` | `market_id`, `start_ms`, `end_ms`, optional `limit` | `TradesRangeResponse` |
 
-Request times `as_of_ms`, `start_ms`, and `end_ms` are **Kalshi venue time in Unix milliseconds**. Range windows are half-open: `[start_ms, end_ms)`. Current responses identify this clock with `metadata.time_basis = "venue"`; `"recorder_receive"` is supported for older deployments.
+Historical objects extend the existing market-data types: `HistoricalTrade(Trade)` and `HistoricalOrderBook(OrderBook)`. A trade appears directly in `TradesRangeResponse.trades` (for example, `response.trades[0].price`), with `observed_at_ms` and `timestamp_source` added. `Trade.timestamp` remains venue execution time when supplied. Historical books add `as_of_ms` (the time the state was requested/valued for) and optional `venue_timestamp_ms`; their inherited `timestamp` is the recorder time of the last incorporated book update. Thus an unchanged but valid book may have `timestamp < as_of_ms`. Book queries use recorder receive time. Trade queries may use recorder or venue time; inspect `response.metadata.time_basis`. Trade coverage boundaries come from recorder time and cannot be mapped exactly onto venue event time. A book range starts with a full-depth historical book and view-relative changes; an unavailable interval is explicit rather than an empty book. The server reads published processed hours from one or more non-overlapping runs and includes their dataset version and watermark. A new run starts with unavailable coverage until fresh book snapshots and a trade subscription acknowledgment. The server caps ranges and returns `result_too_large` instead of a cursor when a response exceeds `limit`.
 
-Historical objects extend the existing market-data types: `HistoricalTrade(Trade)` and `HistoricalOrderBook(OrderBook)`:
-
-- A trade appears directly in `TradesRangeResponse.trades` (for example, `response.trades[0].price`). `timestamp` is venue execution time when supplied; `timestamp_source` identifies venue time or a recorder fallback. `observed_at_ms` is when the recorder received it, which can differ from execution time and fall outside the requested venue-time window.
-- A historical book adds `as_of_ms` (the requested valuation time) and optional `venue_timestamp_ms` (the original exchange time). Its inherited `timestamp` is the last incorporated update on the response's clock: venue time on the current service, recorder time on older deployments. An unchanged valid book can have `timestamp < as_of_ms`.
-- A book range starts with a full-depth historical book and view-relative changes. Each change retains recorder receive time in `observed_at_ms` and exchange time in `venue_timestamp_ms`. Use venue time to place changes in the current request window; do not filter them by recorder arrival time.
-
-Coverage varies by market; unavailable intervals are explicit rather than empty books. Recording-health evidence is observed on the recorder clock and does not establish exact venue-event loss boundaries. The server reads published reconciled hours and includes an opaque `dataset_version` and `processed_through_ms` watermark. A published hour alone does not guarantee continuous coverage. The server caps ranges and returns `result_too_large` instead of a cursor when a response exceeds `limit`.
-
-For a multi-hour or multi-day book walk, use [`examples/track_historical_book.py`](../examples/track_historical_book.py). It requests at most one hour at a time, splits HTTP 413 responses into smaller ranges, replays each full starting book and its exact delta strings into successive `HistoricalOrderBook` objects, and emits `BookGap` intervals instead of carrying stale state through an absence. It follows the response time basis and aborts if the dataset version changes mid-walk. For example:
+For a multi-hour or multi-day book walk, use [`examples/track_historical_book.py`](../examples/track_historical_book.py). It requests at most one hour at a time, splits HTTP 413 responses into smaller ranges, replays each full starting book and its exact delta strings into successive `HistoricalOrderBook` objects, and emits `BookGap` intervals instead of carrying stale state through an absence. It aborts if the dataset version changes mid-walk. For example:
 
 ```bash
 # the history service needs a Synpath API key: synpath login, then synpath keys create
 python examples/track_historical_book.py \
   --market-id kalshi:YOUR-TICKER \
-  --start 2026-10-15T12:00:00Z --end 2026-10-15T13:00:00Z \
+  --start 2026-09-23T00:00:00Z --end 2026-09-26T00:00:00Z \
   --output book-timeline.jsonl
 ```
 
@@ -50,14 +42,13 @@ synpath logout
 ```python
 import synpath
 
-history = synpath.fetch_order_book_at("kalshi:KXQUANTUM-30", as_of_ms=1792069199000)
+history = synpath.fetch_order_book_at("kalshi:KXQUANTUM-30", as_of_ms=1789509599000)
 if history.book is None:
-    print("No book:", history.absence_reason)       # e.g. outside_published_data
+    print("No book:", history.absence_reason)       # e.g. outside_loaded_data
 else:
     print("Dataset:", history.metadata.dataset_version)
     print("Best bid/ask:", history.book.best_bid, history.book.best_ask)
 
-start_ms, end_ms = 1792065600000, 1792069200000  # 2026-10-15 12:00–13:00 UTC, venue time
 trades = synpath.fetch_trades_range("kalshi:KXQUANTUM-30", start_ms, end_ms, limit=1000)
 changes = synpath.fetch_order_book_range("kalshi:KXQUANTUM-30", start_ms, end_ms, side="no")
 ```
