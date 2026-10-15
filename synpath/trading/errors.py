@@ -8,12 +8,17 @@ pre-trade checks refused it, and retrying unchanged will be refused again.
 ahead of the request was already too long for it to be honoured in time --
 which is deliberately not `RateLimitExceeded`: nothing was sent, and waiting
 longer is the wrong answer for an order that had a deadline.
+
+The engine adds three that say an outcome is not yet known, rather than
+that something failed: `SubmissionInDoubt` (this send got no verdict),
+`SubmissionPending` (a retry of a send still being reconciled) and
+`CancelUnconfirmed` (the venue neither cancelled the order nor knows it).
 """
 from __future__ import annotations
 
 from typing import Any
 
-from ..errors import AuthenticationError, BadRequest, ExchangeError, SynpathError
+from ..errors import AuthenticationError, BadRequest, ExchangeError, NetworkError, SynpathError
 
 
 class InvalidOrder(BadRequest):
@@ -92,3 +97,33 @@ class RateBudgetExceeded(SynpathError):
     def __init__(self, message: str, *, wait_s: float):
         super().__init__(message)
         self.wait_s = wait_s
+
+
+class SubmissionPending(NetworkError):
+    """An earlier send has no definitive answer. Retrying must not resend it.
+
+    Raised to a retry of a `client_order_id` whose first send is still being
+    reconciled; the same retry later returns the order or its refusal."""
+
+    def __init__(self, message: str, *, client_order_id: str | None = None):
+        super().__init__(message)
+        self.client_order_id = client_order_id
+
+
+class SubmissionInDoubt(NetworkError):
+    """This send reached the venue, or may have, and no answer came back.
+
+    The intent stays `sending` and is reconciled with the venue by its client
+    order id; retrying with the same `client_order_id` returns the order once
+    it is found and never sends a second one."""
+
+    def __init__(self, message: str, *, client_order_id: str | None = None):
+        super().__init__(message)
+        self.client_order_id = client_order_id
+
+
+class CancelUnconfirmed(OrderNotFound):
+    """The venue would not cancel the order and has no record of it either.
+
+    Not found is not cancelled: the order may have filled or expired. Its last
+    observed status stands until the venue reports otherwise."""

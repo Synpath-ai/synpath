@@ -58,7 +58,7 @@ from .events import EventBus
 from .fair_values import FairValues
 from .journal import IntentState, LeaseLost, now_ms
 from .storage import JournalStore, create_journal
-from .submissions import SubmissionPending, request_identity
+from .submissions import CancelUnconfirmed, SubmissionInDoubt, SubmissionPending, request_identity
 from .ledger import Ledger
 from .orders import ManagedOrders, as_gtd
 from .orders.manager import REGISTRY
@@ -145,9 +145,8 @@ def check_managed_fields(request: OrderRequest, *, now_ms: int) -> None:
         if kind in ("oco", "bracket"):
             raise BadRequest(f"post_only goes on the {kind}'s legs, not on the order itself")
         style = str(request.params.get("style") or "limit")
-        if (kind not in POST_ONLY_KINDS or (kind == "twap" and style != "limit")
-                or (kind == "stop_limit" and request.time_in_force.value in ("ioc", "fok"))):
-            raise BadRequest(f"post_only is for types that rest on the book (iceberg, peg, limit-style twap, gtc/gtd stop_limit); "
+        if kind not in POST_ONLY_KINDS or (kind == "twap" and style != "limit"):
+            raise BadRequest(f"post_only is for types that rest on the book (iceberg, peg, limit-style twap, stop_limit); "
                              f"a {kind} order takes liquidity")
     if request.expires_at is not None and request.expires_at <= now_ms:
         raise BadRequest("expires_at is in the past")
@@ -342,7 +341,8 @@ class Engine:
                 return parent.as_order()
             result = await self.journal.order(submission["venue"], submission["result_id"])
             if result is None:
-                raise SubmissionPending("the accepted submission has no readable result; refusing to repeat it")
+                raise SubmissionPending("the accepted submission has no readable result; refusing to repeat it",
+                                        client_order_id=submission["client_order_id"])
             return result
         if submission["state"] == "rejected":
             error = submission["error"]
@@ -361,7 +361,8 @@ class Engine:
             return result
         if intent.state in (IntentState.REJECTED, IntentState.FAILED, IntentState.SETTLED):
             raise OrderRejected(intent.detail or "the earlier submission ended without an accepted order")
-        raise SubmissionPending("the earlier venue send is unresolved; refusing to send it again")
+        raise SubmissionPending("the earlier venue send is unresolved; refusing to send it again",
+                                client_order_id=submission["client_order_id"])
 
     async def _submit_once(self, request: OrderRequest, *, venue: str | None = None,
                            mark: Decimal | None = None, deliberate: bool | None = None,
@@ -412,11 +413,15 @@ class Engine:
                 raise
             except (NetworkError, asyncio.TimeoutError) as exc:
                 # In doubt on purpose: the intent stays `sending` so the sweep
-                # asks the venue rather than this process guessing.
+                # asks the venue rather than this process guessing. The caller
+                # gets the in-doubt error with the id to retry under.
                 await self.bus.publish("order.in_doubt", {
                     "client_order_id": client_order_id, "venue": venue, "error": f"{type(exc).__name__}: {exc}",
                 }, key=client_order_id)
-                raise
+                raise SubmissionInDoubt(
+                    f"{venue}: no answer to the order send ({type(exc).__name__}: {exc}); it may have been "
+                    f"accepted. Retry with client_order_id {client_order_id!r}: the venue is checked first "
+                    "and the order is never sent twice", client_order_id=client_order_id) from exc
             except ExchangeError as exc:
                 await self.journal.mark_intent(client_order_id, IntentState.FAILED, detail=str(exc))
                 await self.bus.publish("order.failed", {"client_order_id": client_order_id, "error": str(exc)}, key=client_order_id)
@@ -514,6 +519,10 @@ class Engine:
         venue = venue or (child.venue if child is not None else parent.venue)
         try:
             return await self.cancel(order_id, venue=venue)
+        except CancelUnconfirmed:
+            # The venue knows nothing of it: the child stays live and the
+            # parent pending, retried by its timer, never assumed cancelled.
+            raise
         except OrderNotFound:
             return None
 
@@ -532,11 +541,21 @@ class Engine:
 
     async def cancel(self, order_id: str, *, venue: str | None = None, market_id: str | None = None) -> Order:
         """Cancel, journaled with its own idempotency key. An engine-held order
-        pulls its children first."""
+        pulls its children first.
+
+        Only the venue confirms a cancellation. An order already finished is
+        returned as it is, without a venue call; a venue that answers "not
+        found" is asked for the order itself, so a fill that won the race is
+        recorded as `closed` rather than overwritten as `canceled`."""
         if order_id in self.orders.parents:
             parent = await self.orders.cancel(order_id)
             return parent.as_order()
         order = await self._known(order_id, venue)
+        if order.is_terminal or order.held_by == HeldBy.ENGINE:
+            # Nothing at a venue to cancel: a finished venue order, or an
+            # engine-held parent this process no longer runs because it
+            # finished before a restart (live parents are always restored).
+            return order
         venue = venue or order.venue
         adapter = self._adapter(venue)
         key = f"cancel:{venue}:{order_id}"
@@ -552,12 +571,7 @@ class Engine:
             try:
                 result = await adapter.cancel_order(order_id, market_id=market_id or order.market_id)
             except OrderNotFound:
-                # Already gone: the cancel achieved what it asked for.
-                await self.journal.mark_intent(key, IntentState.SETTLED, detail="already gone")
-                closed = order.model_copy(update={"status": OrderStatus.CANCELED})
-                await self.journal.upsert_order(closed, event="order.canceled")
-                self._remember(closed)
-                return closed
+                return await self._record_order_the_venue_would_not_cancel(adapter, order, key)
             except (NetworkError, asyncio.TimeoutError):
                 raise
         result = self._stamp(result, None, template=order)
@@ -567,6 +581,33 @@ class Engine:
         await self.orders.on_order(result)
         await self.bus.publish("order.canceled", result.model_dump(mode="json"), key=f"{venue}:{order_id}", persist=False)
         return result
+
+    async def _record_order_the_venue_would_not_cancel(self, adapter: TradingExchange, order: Order,
+                                                       cancel_key: str) -> Order:
+        """The venue has no resting order to cancel. That is not a
+        cancellation: the order may have filled, expired, or been cancelled
+        elsewhere. Read the order itself and record the venue's verdict, with
+        whatever filled, through the same path as any order update, so an
+        engine-held parent hears about its child. A venue with no record at
+        all confirms nothing: the last observed status stands."""
+        try:
+            observed = await adapter.fetch_order(order.id)
+        except OrderNotFound:
+            detail = "the venue has no record of the order; cancellation unconfirmed"
+            await self.journal.mark_intent(cancel_key, IntentState.FAILED, detail=detail)
+            raise CancelUnconfirmed(
+                f"{order.venue} has no record of order {order.id}: cancellation unconfirmed; "
+                f"its last observed status ({order.status.value}) stands") from None
+        observed = self._stamp(observed, None, template=order)
+        if observed.is_terminal:
+            await self.journal.mark_intent(cancel_key, IntentState.SETTLED, order_id=order.id,
+                                           detail=f"already {observed.status.value} at the venue")
+        else:
+            await self.journal.mark_intent(cancel_key, IntentState.FAILED,
+                                           detail=f"the venue refused the cancel and reports the order "
+                                                  f"{observed.status.value}")
+        await self.on_order(observed)
+        return await self.journal.order(order.venue, order.id) or observed
 
     async def edit(self, request: EditRequest, *, venue: str | None = None) -> Order:
         """Amend a resting order. The edit carries its own idempotency key, so

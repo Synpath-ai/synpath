@@ -1,15 +1,14 @@
-"""Retry identity and unresolved submission errors, independent of storage."""
+"""Retry identity, independent of storage. The unresolved-action errors live
+with the other trading errors and are re-exported here."""
 from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any
 
-from ..errors import NetworkError
+from ..trading.errors import CancelUnconfirmed, SubmissionInDoubt, SubmissionPending
 from ..trading.types import OrderRequest
 
-
-class SubmissionPending(NetworkError):
-    """An earlier send has no definitive answer. Retrying must not resend it."""
+__all__ = ["CancelUnconfirmed", "SubmissionInDoubt", "SubmissionPending", "request_identity"]
 
 
 def request_identity(request: OrderRequest) -> dict[str, Any]:

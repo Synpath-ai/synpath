@@ -38,7 +38,15 @@ SQLite's `synchronous=FULL`, so this survives a power cut, not only a crash.
 **An order is never declared lost early.** Venues do not list an order the
 instant they accept it: Kalshi's demo takes a few hundred milliseconds. An
 intent the venue cannot account for stays in doubt until `lost_after_s`
-(default a minute) has passed, and only then is swept.
+(default a minute) has passed, and only then is swept. The caller of a send
+with no verdict gets `SubmissionInDoubt` with the `client_order_id`; a retry
+under it reconciles first and gets the order, or `SubmissionPending` while the
+venue cannot say yet, never a second order.
+
+**A cancel never relabels a fill.** A venue's "not found" to a cancel is not
+a cancellation: the engine reads the order back and records what the venue
+says, `closed` with its fills if it filled first. A venue with no record of
+it at all raises `CancelUnconfirmed` and changes nothing.
 
 **One engine per journal.** Starting takes a lease. A second engine on the
 same file refuses to trade and says who holds it. The lease is renewed while
@@ -101,7 +109,7 @@ ledger's alone.
 | Type | `params` | What it does |
 |---|---|---|
 | `stop_market` | none | fires once at `stop_price`; the child is a `market` order, `ioc`, priced by the engine |
-| `stop_limit` | none | fires once at `stop_price`; the child is a `limit` at `price` with the order's time in force |
+| `stop_limit` | none | fires once at `stop_price`; the child is a `limit` at `price` that inherits the order's time in force and expiry |
 | `trailing_stop` | `trail` or `trail_percent` | the stop follows the market one way and never back |
 | `iceberg` | `display`, `reload_delay_s`, `jitter_s`, `follow` | shows one slice; reloads after the delay, at the back of the queue |
 | `oco` | `legs` (two specifications) | one cancels the other, and a partial fill resizes the other |
@@ -126,7 +134,7 @@ child goes out for the remaining quantity and names the parent in
 | `stop_price` | the trigger level | the trigger level |
 | `price` | not used | the child's limit: at or below `stop_price` for a sell, at or above it for a buy |
 | `trigger_source` | `touch` (default), `last` or `mid` | the same |
-| `time_in_force` | how long the stop stays armed: `gtc` (default), `gtd`, `day`. `ioc` and `fok` are refused | what the limit child carries once triggered: `gtc` (default), `gtd`, `ioc`, `fok` |
+| `time_in_force` | how long the whole order lives: `gtc` (default), `gtd`, `day`. `ioc` and `fok` are refused. It bounds the armed period; the child is `ioc` | the same, and the limit child inherits it: `gtc` stays `gtc`, `gtd` and `day` go as `gtd` at the order's `expires_at` |
 | `expires_at` | with `gtd` only | with `gtd` only |
 
 **A stop watches the price that would fill it.** `trigger_source="touch"`,
@@ -134,6 +142,19 @@ the default, watches the best ask for a buy stop and the best bid for a sell
 stop. Not the last trade, which on a prediction market can be hours stale,
 and not the mid, which between a 0.30 bid and a 0.70 ask is a number nobody
 can trade at. `last` and `mid` are there for callers who disagree.
+
+**A stop reads the book it is handed.** A new stop is checked against the
+book the engine already holds, and again when its market is subscribed: a
+venue sends no fresh snapshot for a market its connection already carries (a
+screen's `/ws/market`, say), so a quiet market whose ask already meets the
+stop triggers it at once rather than at the next change. A `last` stop waits
+for a print made after it.
+
+**One time in force for the whole order**, as IBKR and FIX use it: a stop's
+`time_in_force` is how long the order lives, armed and after it triggers.
+A stop limit's child carries the same expiry, so a `day` stop limit whose
+child still rests at the session end has the child canceled and ends
+`expired`.
 
 **A stop market's child is priced by the engine.** No venue here takes a
 market order without a worst price, so at the trigger the engine sends the
@@ -147,8 +168,8 @@ of: `closed` (filled; for a stop market, also when the IOC child's remainder
 did not fill, with the unfilled quantity on the order and in its detail),
 `canceled` (cancelled while waiting, or for a stop limit after the trigger
 too, which pulls the resting child), `expired` (a `gtd` or `day` stop whose
-time ran out before it triggered, or a stop limit whose child was still
-resting), or `rejected` (no book for a stop market's child, or the venue
+time ran out before it triggered, or a `gtd` or `day` stop limit whose child
+was still resting), or `rejected` (no book for a stop market's child, or the venue
 refused the child).
 
 **Day is not one of these.** All three venues run nearly around the clock, so
@@ -161,7 +182,7 @@ the venue holds the expiry; the journal keeps `day` alongside it.
 `expires_at` expires the whole order, children included, and the parent
 ends `expired`. `post_only` is
 accepted only by types that rest on the book (`iceberg`, `peg`, a `twap` with
-`style="limit"`, and a GTC/GTD `stop_limit`); an `oco` or `bracket` takes it on its legs, and a type that
+`style="limit"`, and a `stop_limit`); an `oco` or `bracket` takes it on its legs, and a type that
 takes liquidity refuses it rather than ignoring it.
 
 **Everything survives a restart.** Each parent's whole state is written on

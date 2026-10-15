@@ -247,6 +247,26 @@ class Client:
             return await self._remote.fetch_order(order_id, market_id=market_id, venue=venue)
         return await self.trading(_venue_of(market_id, venue)).fetch_order(order_id)
 
+    async def fetch_orders(self, *, scope: str = "all", market_id: str | None = None, venue: str | None = None,
+                           since: int | None = None, limit: int | None = None,
+                           cursor: str | None = None) -> Page[Order]:
+        """Orders in every state, newest first, one page at a time.
+
+        Through a server (`server=`) this is the engine's own record: venue
+        orders and engine-held parents (stops waiting, triggered, finished),
+        each child carrying its parent's id in `parent_id`; `scope="open"`
+        keeps the live ones. Directly against a venue it is that venue's
+        order history, and needs `market_id` or `venue`."""
+        if scope not in ("all", "open"):
+            raise BadRequest("scope is 'all' or 'open'")
+        if self._remote:
+            return await self._remote.fetch_orders(scope=scope, market_id=market_id, venue=venue, since=since,
+                                                   limit=limit, cursor=cursor)
+        adapter = self.trading(_venue_of(market_id, venue))
+        if scope == "open":
+            return Page(await adapter.fetch_open_orders(market_id=market_id), next_cursor=None)
+        return await adapter.fetch_orders(market_id=market_id, since=since, limit=limit, cursor=cursor)
+
     async def fetch_open_orders(self, *, market_id: str | None = None, venue: str | None = None) -> list[Order]:
         """One market's, one venue's, or every connected venue's open orders."""
         if self._remote:

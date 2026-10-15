@@ -15,10 +15,14 @@ a number nobody can trade at. The touch is where the triggered order could
 actually execute. `last` (the last public trade) and `mid` are there for
 callers who disagree, and the journal records which was used.
 
-**Stop market** (`type="stop_market"`). `time_in_force` is how long the stop
-stays armed: `gtc` (the default), `gtd` until `expires_at`, or `day` until
-the engine's session end; `ioc` and `fok` are refused. A stop whose time
-runs out before it triggers ends `expired`. The child is a `market` order,
+**Time in force** is one for the whole order, as IBKR and FIX use it: how
+long the stop lives, armed and after it triggers. `gtc` (the default), `gtd`
+until `expires_at`, or `day` until the engine's session end (held as `gtd`
+with that absolute expiry, so it outlives a restart); `ioc` and `fok` are
+refused on a stop.
+
+**Stop market** (`type="stop_market"`). A stop whose time runs out before it
+triggers ends `expired`. The child is a `market` order,
 `ioc`. No venue here takes a market order without a worst price, so the
 engine sets the legal venue price bound for the side, using the cached
 market precision when supplied and the venue grid otherwise. The caller
@@ -29,11 +33,13 @@ child that fills ends the stop `closed`; an IOC remainder that does not
 fill ends it with the unfilled quantity recorded.
 
 **Stop limit** (`type="stop_limit"`). The child is a `limit` at `price`
-(at or below `stop_price` for a sell, at or above it for a buy) with the
-order's own `time_in_force` (`gtc`, `gtd`, `ioc`, `fok`) and `expires_at`,
-and it may rest. A `gtd` stop that expires before it triggers, or with its
-child still resting, ends `expired`; a cancel ends it `canceled` before or
-after the trigger; a child the venue refuses ends it `rejected`.
+(at or below `stop_price` for a sell, at or above it for a buy) that
+inherits the order's time in force and expiry (`gtc`, or `gtd` at the same
+`expires_at`, which is where a `day` stop's session end lives), and it may
+rest. A stop whose time runs out before it triggers, or with its child still
+resting, ends `expired`, the child canceled first; a cancel ends it
+`canceled` before or after the trigger; a child the venue refuses ends it
+`rejected`.
 
 **Trailing** ratchets: a sell stop follows the highest bid seen, a buy stop
 the lowest ask, never the other way. The distance is `trail` in price units
@@ -91,6 +97,12 @@ class _Stop(ManagedOrder):
     def reached(self, price: Decimal) -> bool:
         """A buy stop fires when the price rises to it, a sell stop when it falls."""
         return price >= self.stop_price if self.side == Side.BUY else price <= self.stop_price
+
+    async def start(self, ctx: Context) -> None:
+        """A book the engine already holds may meet the stop now, and a quiet
+        market sends no change to say so. A past print does not: `last`
+        waits for one made after the stop."""
+        await self.on_book(ctx, self.market_id)
 
     async def on_book(self, ctx: Context, market_id: str) -> None:
         if self.trigger_source in ("touch", "mid"):
@@ -227,8 +239,6 @@ class _Stop(ManagedOrder):
             await self.resume_pending(ctx, allow_send=False)
             return
         await super().cancel(ctx, reason, end=end)
-        if self.remaining <= 0 and not self.live_children:
-            await self.finish(ctx, "done", "filled before cancellation completed")
 
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         await self.complete_if_done(ctx)
@@ -316,6 +326,8 @@ class StopLimit(_Stop):
 
     async def send_child(self, ctx: Context, watched: Decimal) -> None:
         price = D(self.request.price)
+        # One time in force for the whole order: the child lives exactly as
+        # long as the stop does (a `day` stop is already `gtd` here).
         request = self.child_request(quantity=self.remaining, price=price, type=OrderType.LIMIT,
                                      time_in_force=self.request.time_in_force or TimeInForce.GTC,
                                      expires_at=self.request.expires_at, post_only=self.request.post_only)

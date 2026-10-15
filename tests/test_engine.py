@@ -346,13 +346,17 @@ class TestSubmit:
         assert engine.open_orders() == []
         await engine.stop()
 
-    async def test_cancelling_something_already_gone_is_not_an_error(self, journal_path):
+    async def test_cancelling_something_the_venue_no_longer_knows_is_not_confirmed(self, journal_path):
+        """Not found is not cancelled: the order may have filled. With no
+        record at the venue either, the last observed status stands."""
+        from synpath.engine.submissions import CancelUnconfirmed
         venue = ScriptedVenue()
         engine = await engine_for(journal_path, venue)
         order = await engine.submit(request())
         venue.orders.pop(order.id)
-        canceled = await engine.cancel(order.id)
-        assert canceled.status == OrderStatus.CANCELED
+        with pytest.raises(CancelUnconfirmed):
+            await engine.cancel(order.id)
+        assert (await engine.journal.order(order.venue, order.id)).status == OrderStatus.OPEN
         await engine.stop()
 
 

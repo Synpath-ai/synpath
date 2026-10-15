@@ -10,7 +10,10 @@ Two kinds of stream per venue, and where each one goes:
   order watches is subscribed on its venue's market stream. The stream keeps a
   `LocalBook` up to date in place; the engine is handed that same object once
   (`Engine.set_book`) and told about every change (`Engine.on_book`), so a
-  parent always reads the book as the stream last left it. A book the stream
+  parent always reads the book as the stream last left it. Subscribing also
+  counts as a change: a market the shared connection already carried gets no
+  fresh snapshot from the venue, so its parents read the book they are handed
+  straight away rather than at the next tick. A book the stream
   has not snapshotted yet, or lost confidence in after a gap, is not `ready`,
   and parents read it as no book at all.
 * **This account's orders and fills.** Order updates go to `Engine.on_order`,
@@ -215,6 +218,10 @@ class Feeds:
             self.watching[venue].update(new)
             for market_id in new:
                 self.register(stream, market_id)
+                # The venue sends no fresh snapshot for a market the
+                # connection already carried (the screen's, say): the
+                # parents read the book they were just handed, now.
+                await self.engine.orders.on_book(market_id)
             added += len(new)
         return added
 

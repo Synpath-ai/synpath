@@ -41,7 +41,7 @@ from .storage_types import Intent, IntentState, JournalEvent, Lease, LeaseLost
 from .submissions import request_identity
 from .order_storage import OrderRecords, UNATTRIBUTED_USER, schema as order_schema
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS submissions (
@@ -830,6 +830,35 @@ class Journal:
                 args.append(value)
         async with self._db.execute(sql + " ORDER BY updated_ts", args) as cursor:
             return [Order.model_validate(json.loads(row["payload"])) async for row in cursor]
+
+    async def orders_page(self, *, venue: str | None = None, book: str | None = None, market_id: str | None = None,
+                          since_ts: int | None = None, before: tuple[int, str, str] | None = None,
+                          open_only: bool = False, limit: int | None = 100) -> list[tuple[Order, tuple[int, str, str]]]:
+        """Orders in any state, venue orders and engine-held parents alike,
+        newest first by creation, each with its paging key `(created_ts, venue,
+        id)`. `before` is the key of the last row of the previous page; the key
+        is unique, so paging never repeats or skips a row. `open_only` keeps
+        the non-terminal ones; `limit=None` returns every match. Served by the
+        `orders_recent` and `orders_market_recent` indexes."""
+        sql = "SELECT payload, created_ts, venue, id FROM orders WHERE " + ("terminal=0" if open_only else "1=1")
+        args: list[Any] = []
+        for column, value in (("venue", venue), ("book", book), ("market_id", market_id)):
+            if value is not None:
+                sql += f" AND {column}=?"
+                args.append(value)
+        if since_ts is not None:
+            sql += " AND created_ts >= ?"
+            args.append(since_ts)
+        if before is not None:
+            sql += " AND (created_ts, venue, id) < (?, ?, ?)"
+            args.extend(before)
+        sql += " ORDER BY created_ts DESC, venue DESC, id DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            args.append(limit)
+        async with self._db.execute(sql, args) as cursor:
+            return [(Order.model_validate(json.loads(row["payload"])), (int(row["created_ts"]), row["venue"], row["id"]))
+                    async for row in cursor]
 
     async def fills(self, *, since_ts: int | None = None, venue: str | None = None, book: str | None = None) -> list[Fill]:
         """Fills as recorded. The strategy that placed the order is carried in

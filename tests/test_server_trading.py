@@ -535,14 +535,20 @@ class TestErrorsAndAnswers:
         after = server["client"].get("/orders", headers=auth(server["trader_key"]))
         assert after.status_code == 200, "the server keeps answering"
 
-    async def test_an_unreachable_venue_is_a_retryable_502(self, server, monkeypatch):
+    async def test_an_unreachable_venue_leaves_the_order_in_doubt_202(self, server, monkeypatch):
+        """No verdict from the venue is not a failure: the send may have
+        landed. 202 with its own code, retryable under the same id."""
         from synpath.errors import ExchangeNotAvailable
 
         async def down(request):
             raise ExchangeNotAvailable("kalshi: 503 from the venue")
         monkeypatch.setattr(server["paper"], "create_order", down)
-        failed = server["client"].post("/orders", json=order_body(), headers=auth(server["trader_key"]))
-        assert failed.status_code == 502 and failed.json()["error"]["details"]["retryable"] is True
+        failed = server["client"].post("/orders", json=order_body(client_order_id="down-1"),
+                                       headers=auth(server["trader_key"]))
+        assert failed.status_code == 202, failed.text
+        error = failed.json()["error"]
+        assert error["code"] == "submission_in_doubt" and error["details"]["retryable"] is True
+        assert error["details"]["client_order_id"] == "down-1" and error["details"]["venue"] == "kalshi"
 
     async def test_accounts_lists_a_configured_venue_without_a_named_account(self, tmp_path):
         from fastapi.testclient import TestClient

@@ -8,5 +8,8 @@ behavior and identify what the current checkpoint implements.
 - [Stop market](stop-market.md)
 - [Stop limit](stop-limit.md)
 
+A stop's time in force is one for the whole order (armed, and after trigger
+its child), as in IBKR and FIX: GTC, GTD or DAY; IOC and FOK are refused.
+
 [Shared storage and execution ownership](../../README.md)
 owns identity, dispatch persistence, transaction boundaries, and recovery.
