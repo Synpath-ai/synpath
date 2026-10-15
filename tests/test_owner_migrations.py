@@ -33,9 +33,9 @@ async def test_singleton_and_all_instruction_foreign_keys(config):
     async with create_journal(**config, user_id="owner-a") as store:
         async with store._db.execute("SELECT user_id FROM users") as cursor:
             assert [row["user_id"] for row in await cursor.fetchall()] == ["owner-a"]
-        assert await store.schema_version() == 7
+        assert await store.schema_version() == 8
         async with store._db.execute("SELECT version_num FROM alembic_version") as cursor:
-            assert (await cursor.fetchone())["version_num"] == "0002_single_user"
+            assert (await cursor.fetchone())["version_num"] == "0003_bucket_member_enabled"
         for kind in ("market", "limit", "stop_market", "stop_limit"):
             req = request(kind, client_order_id="key-" + kind)
             await store.record_intent(req, client_order_id=req.client_order_id, venue="kalshi", account=Account(venue="kalshi"))
@@ -95,7 +95,24 @@ async def test_baseline_adoption_preserves_or_refuses_without_relabeling(config,
             row = await store.typed_order("limit", "kalshi", "old")
             assert row["user_id"] == owner
             assert row["request"] == (body if has_instruction else None)
-            assert await store.schema_version() == 7
+            assert await store.schema_version() == 8
+
+
+async def test_buckets_stored_before_enabled_existed_load_with_every_member_on(config):
+    connection = await legacy_connection(config)
+    await connection.execute("INSERT INTO buckets(id,book,name,status,created_ts,updated_ts) VALUES('b','a','old','active',1,1)")
+    for position, (market_id, flip) in enumerate((("kalshi:KX-A", 0), ("polymarket:1", 1))):
+        await connection.execute("INSERT INTO bucket_members(bucket_id,market_id,flip,position) VALUES(?,?,?,?)",
+                                 ("b", market_id, flip, position))
+    await connection.close()
+    async with create_journal(**config, user_id="owner-a") as store:
+        assert await store.schema_version() == 8
+        members = (await store.bucket("b"))["members"]
+        assert [(m["market_id"], m["flip"], m["enabled"]) for m in members] == [
+            ("kalshi:KX-A", False, True), ("polymarket:1", True, True)]
+        await store.save_bucket({**(await store.bucket("b")), "members": [
+            {"market_id": "kalshi:KX-A"}, {"market_id": "polymarket:1", "flip": True, "enabled": False}]})
+        assert [m["enabled"] for m in (await store.bucket("b"))["members"]] == [True, False]
 
 
 async def test_injected_journal_and_engine_must_share_owner(config):
@@ -126,7 +143,7 @@ async def test_canceled_migration_rolls_back_then_reopens(config, monkeypatch):
     assert not store.is_open
     monkeypatch.setattr(migration, "upgrade", original)
     async with create_journal(**config, user_id="owner-a") as restarted:
-        assert await restarted.schema_version() == 7
+        assert await restarted.schema_version() == 8
         async with restarted._db.execute("SELECT user_id FROM users") as cursor:
             assert (await cursor.fetchone())["user_id"] == "owner-a"
 

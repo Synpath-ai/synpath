@@ -95,7 +95,8 @@ class PostgresJournal(Journal):
         async with self._db.execute("SELECT key,value FROM meta WHERE key IN ('schema_version','order_records_version','submissions_version')") as cursor:
             versions = await cursor.fetchall()
         for version in versions:
-            if (version["key"] == "schema_version" and version["value"] not in ("6", str(SCHEMA_VERSION))) or (version["key"] != "schema_version" and version["value"] != expected_versions[version["key"]]):
+            if (version["key"] == "schema_version"
+                    and version["value"] not in {str(v) for v in range(6, SCHEMA_VERSION + 1)}) or (version["key"] != "schema_version" and version["value"] != expected_versions[version["key"]]):
                 label = version["key"].replace("_", " ")
                 raise ValueError(f"unsupported PostgreSQL journal {label}")
 

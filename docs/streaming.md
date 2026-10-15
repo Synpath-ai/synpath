@@ -81,6 +81,15 @@ parsed and applied there, and the events come out as the same Python objects.
 `SYNPATH_PURE_PYTHON=1` to run everything on the pure-Python twins instead;
 the test suite runs both and requires them to agree frame by frame.
 
+## Over HTTP: `synpath serve`
+
+`synpath serve` publishes these same streams on one authenticated WebSocket,
+`/ws/market`: each market's maintained book, its public trades and quotes,
+for every venue whose stream the server's credentials open. It keeps one
+connection per venue, shared by every client and by the engine's stops, and
+reference-counts markets on it. The wire format is in
+[docs/server.md](server.md#live-market-data-wsmarket).
+
 ## What the streams promise
 
 **Subscriptions survive reconnects.** `watch_*` records what you asked for;

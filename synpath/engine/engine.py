@@ -445,6 +445,9 @@ class Engine:
         bucket = Bucket.model_validate(row)
         if bucket.status != "active":
             raise BadRequest(f"{request.market_id}: the bucket is {bucket.status}")
+        # Only enabled members are routed to: the parent carries the bucket as
+        # it routes, so a member switched off is not a leg, a market or a venue of it.
+        bucket = bucket.routable()
         missing = bucket.venues() - set(self.adapters)
         if missing:
             raise BadRequest(f"{request.market_id}: no adapter configured for {', '.join(sorted(missing))}")

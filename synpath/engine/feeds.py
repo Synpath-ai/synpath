@@ -24,6 +24,11 @@ subscribed. A stream that reports `reconcile_required` (a reconnect with
 private channels, a gap it cannot replay) makes the engine poll that venue's
 REST state straight away, rather than waiting for the next poll.
 
+`synpath serve` shares these market streams with its `/ws/market` socket
+(`synpath.server.market_stream`) through `Feeds.listeners`, so the screen and
+the stops read one connection per venue. A book is handed to the engine only
+for markets the engine itself watches.
+
 Venues without a stream here are still traded: orders reach the engine
 through its poll loop, only more slowly. That covers the paper venue, which
 delivers its own events, and the Polymarket US exchange API, whose streams are
@@ -34,7 +39,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any, Coroutine, Mapping
+from typing import Any, Callable, Coroutine, Mapping
 
 from .. import ids
 from ..ws.base import BookEvent, FillEvent, OrderEvent, StreamStatusEvent, TradeEvent
@@ -57,63 +62,82 @@ def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any])
     books are public and its user stream authenticates through the adapter."""
     out: dict[str, VenueStreams] = {}
     for venue, adapter in adapters.items():
-        creds = credentials.get(venue)
-        if venue == "kalshi" and creds is not None:
-            from ..ws.kalshi import KalshiStream
-            stream = KalshiStream(creds)
-            out[venue] = VenueStreams(market=stream, private=stream)
-        elif venue == "polymarket":
-            from ..ws.polymarket import PolymarketMarketStream, PolymarketUserStream
-            out[venue] = VenueStreams(
-                market=PolymarketMarketStream(),
-                private=PolymarketUserStream(trading=adapter) if creds is not None else None,
-            )
-        elif venue == "polymarket_us" and creds is not None:
-            from ..ws.polymarket_us import PolymarketUSMarketStream, PolymarketUSPrivateStream
-            out[venue] = VenueStreams(market=PolymarketUSMarketStream(creds), private=PolymarketUSPrivateStream(creds))
-        elif venue == "opinion" and creds is not None:
-            from ..ws.opinion import OpinionMarketStream, OpinionUserStream
-            catalog = getattr(adapter, "catalog", None)
-            out[venue] = VenueStreams(
-                market=OpinionMarketStream(api_key=creds.api_key, catalog=catalog),
-                private=OpinionUserStream(api_key=creds.api_key, catalog=catalog),
-            )
-        elif venue == "hyperliquid":
-            from ..ws.hyperliquid import HyperliquidMarketStream, HyperliquidUserStream
-            address = getattr(creds, "address", None)
-            testnet = getattr(creds, "testnet", False)
-            out[venue] = VenueStreams(
-                market=HyperliquidMarketStream(testnet=testnet),
-                private=HyperliquidUserStream(address=address, testnet=testnet) if address else None,
-            )
-        elif venue == "predict_fun" and creds is not None and not getattr(creds, "testnet", False):
-            # Mainnet only: the venue documents no test-network WebSocket.
-            from ..ws.predict_fun import PredictFunMarketStream, PredictFunUserStream
-            jwt = getattr(adapter, "jwt", None)
-            out[venue] = VenueStreams(
-                market=PredictFunMarketStream(api_key=creds.api_key),
-                private=PredictFunUserStream(api_key=creds.api_key, jwt=jwt) if jwt else None,
-            )
-        elif venue == "limitless":
-            from ..ws.limitless import LimitlessMarketStream, LimitlessUserStream
-            token_id, secret = getattr(creds, "token_id", None), getattr(creds, "secret", None)
-            catalog = getattr(adapter, "catalog", None)
-            out[venue] = VenueStreams(
-                market=LimitlessMarketStream(),
-                private=LimitlessUserStream(token_id=token_id, secret=secret, catalog=catalog) if token_id and secret else None,
-            )
-        elif venue == "sx_bet" and creds is not None:
-            # Every SX Bet channel, public ones included, needs the API key.
-            from ..ws.sx_bet import SxBetMarketStream, SxBetUserStream
-            testnet = bool(getattr(creds, "testnet", False))
-            catalog = getattr(adapter, "catalog", None)
-            out[venue] = VenueStreams(
-                market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
-                private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=creds.address),
-            )
-        else:
+        streams = venue_streams(venue, credentials.get(venue), adapter)
+        if streams is None:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
+            continue
+        out[venue] = streams
     return out
+
+
+def market_stream(venue: str, creds: Any) -> Any | None:
+    """One venue's market-data stream alone, for a reader with no adapter
+    (the server's market socket); `None` where the venue streams nothing
+    without credentials it does not have."""
+    streams = venue_streams(venue, creds, None, private=False)
+    return streams.market if streams is not None else None
+
+
+def venue_streams(venue: str, creds: Any, adapter: Any | None, *, private: bool = True) -> VenueStreams | None:
+    """One venue's streams from its credentials (and adapter, which some
+    private streams authenticate through). `private=False` builds the market
+    stream only. `None` where the venue has no stream these credentials open."""
+    if venue == "kalshi" and creds is not None:
+        from ..ws.kalshi import KalshiStream
+        stream = KalshiStream(creds)
+        return VenueStreams(market=stream, private=stream if private else None)
+    if venue == "polymarket":
+        from ..ws.polymarket import PolymarketMarketStream, PolymarketUserStream
+        return VenueStreams(
+            market=PolymarketMarketStream(),
+            private=PolymarketUserStream(trading=adapter) if private and creds is not None and adapter is not None else None,
+        )
+    if venue == "polymarket_us" and creds is not None:
+        from ..ws.polymarket_us import PolymarketUSMarketStream, PolymarketUSPrivateStream
+        return VenueStreams(market=PolymarketUSMarketStream(creds),
+                            private=PolymarketUSPrivateStream(creds) if private else None)
+    if venue == "opinion" and creds is not None:
+        from ..ws.opinion import OpinionMarketStream, OpinionUserStream
+        catalog = getattr(adapter, "catalog", None)
+        return VenueStreams(
+            market=OpinionMarketStream(api_key=creds.api_key, catalog=catalog),
+            private=OpinionUserStream(api_key=creds.api_key, catalog=catalog) if private else None,
+        )
+    if venue == "hyperliquid":
+        from ..ws.hyperliquid import HyperliquidMarketStream, HyperliquidUserStream
+        address = getattr(creds, "address", None)
+        testnet = getattr(creds, "testnet", False)
+        return VenueStreams(
+            market=HyperliquidMarketStream(testnet=testnet),
+            private=HyperliquidUserStream(address=address, testnet=testnet) if private and address else None,
+        )
+    if venue == "predict_fun" and creds is not None and not getattr(creds, "testnet", False):
+        # Mainnet only: the venue documents no test-network WebSocket.
+        from ..ws.predict_fun import PredictFunMarketStream, PredictFunUserStream
+        jwt = getattr(adapter, "jwt", None)
+        return VenueStreams(
+            market=PredictFunMarketStream(api_key=creds.api_key),
+            private=PredictFunUserStream(api_key=creds.api_key, jwt=jwt) if private and jwt else None,
+        )
+    if venue == "limitless":
+        from ..ws.limitless import LimitlessMarketStream, LimitlessUserStream
+        token_id, secret = getattr(creds, "token_id", None), getattr(creds, "secret", None)
+        catalog = getattr(adapter, "catalog", None)
+        return VenueStreams(
+            market=LimitlessMarketStream(),
+            private=LimitlessUserStream(token_id=token_id, secret=secret, catalog=catalog)
+            if private and token_id and secret else None,
+        )
+    if venue == "sx_bet" and creds is not None:
+        # Every SX Bet channel, public ones included, needs the API key.
+        from ..ws.sx_bet import SxBetMarketStream, SxBetUserStream
+        testnet = bool(getattr(creds, "testnet", False))
+        catalog = getattr(adapter, "catalog", None)
+        return VenueStreams(
+            market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
+            private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=creds.address) if private else None,
+        )
+    return None
 
 
 def _has(stream: Any, capability: str) -> bool:
@@ -128,6 +152,10 @@ class Feeds:
         self.watching: dict[str, set[str]] = {venue: set() for venue in self.streams}
         self.dispatched = 0
         self.closing = False
+        self.listeners: list[Callable[[str, Any, Any], None]] = []
+        """Called with `(venue, stream, event)` for every event, after the
+        engine has it: how the server's market socket shares these
+        connections instead of opening its own. A listener must not block."""
 
     def distinct(self) -> list[tuple[str, Any]]:
         """Every stream object once, with the venue it belongs to."""
@@ -201,7 +229,12 @@ class Feeds:
     async def dispatch(self, venue: str, stream: Any, event: Any) -> None:
         self.dispatched += 1
         if isinstance(event, BookEvent):
-            self.register(stream, event.market_id)
+            # Only the books the engine watches are handed to it. A market
+            # someone else subscribed on this shared stream may be unwatched
+            # later, and its book would then sit in the engine still marked
+            # ready while nothing updates it.
+            if event.market_id in self.watching.get(venue, ()):
+                self.register(stream, event.market_id)
             await self.engine.on_book(event)
         elif isinstance(event, TradeEvent):
             await self.engine.on_trade(event)
@@ -229,12 +262,20 @@ class Feeds:
                 await self.dispatch(venue, stream, event)
             except Exception:
                 log.exception("synpath.engine.feeds: handling a %s event from %s failed", type(event).__name__, venue)
+            self.tell_listeners(venue, stream, event)
         if self.closing:
             return
         log.warning("synpath.engine.feeds: the %s %s stream ended; that venue is polled until a restart",
                     venue, getattr(stream, "name", "stream"))
         while self.engine.running and not self.closing:
             await asyncio.sleep(1.0)
+
+    def tell_listeners(self, venue: str, stream: Any, event: Any) -> None:
+        for listener in self.listeners:
+            try:
+                listener(venue, stream, event)
+            except Exception:
+                log.exception("synpath.engine.feeds: a listener failed on a %s event from %s", type(event).__name__, venue)
 
     async def _sync_loop(self) -> None:
         while self.engine.running:

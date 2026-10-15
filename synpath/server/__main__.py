@@ -66,8 +66,9 @@ def bootstrap(args: argparse.Namespace) -> None:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="python -m synpath.server",
-        description="Serve the synpath API. The read app has no authentication: bind to localhost, "
-                    "or mount it behind your own middleware for anything public.",
+        description="Serve the synpath read API alone. It has no authentication: bind to localhost, "
+                    "or mount it behind your own middleware for anything public. `synpath serve` runs the "
+                    "whole stack, with every route behind its access token.",
     )
     parser.add_argument("--host", default="127.0.0.1", help="default: 127.0.0.1")
     parser.add_argument("--port", type=int, default=8000, help="default: 8000")
