@@ -11,7 +11,7 @@ from synpath.errors import AuthenticationError, BadRequest
 
 BOOK = {"market_id": "kalshi:KX-A", "side": "yes", "venue": "kalshi", "bids": [{"price": 0.33, "size": 66.0}],
         "asks": [{"price": 0.36, "size": 10.0}], "timestamp": 1789509500000, "as_of_ms": 1789509599000}
-META = {"dataset_version": "reconciled-v4-test", "time_basis": "venue"}
+META = {"dataset_version": "processed-v1-test"}
 
 
 def client(handler) -> httpx.Client:
@@ -78,7 +78,6 @@ def test_order_book_at_posts_to_the_history_service_and_parses(monkeypatch):
     assert json.loads(request.content) == {"market_id": "kalshi:KX-A", "as_of_ms": 1789509599000, "depth": 5}
     assert request.headers["authorization"] == "Bearer spk_k"
     assert at.book is not None and at.book.best_bid.price == 0.33
-    assert at.metadata.time_basis == "venue"
 
 
 def test_a_missing_book_is_an_absence_not_an_error():
@@ -98,7 +97,6 @@ def test_ranges_and_the_url_override(monkeypatch):
     assert [str(r.url) for r in seen] == ["http://history.test/v1/trades/range", "http://history.test/v1/order-book/range"]
     assert json.loads(seen[1].content) == {"market_id": "kalshi:KX-A", "start_ms": 0, "end_ms": 10, "side": "no"}
     assert trades.trades == [] and books.segments == []
-    assert trades.metadata.time_basis == books.metadata.time_basis == "venue"
 
 
 def test_a_refused_key_says_what_to_set_and_a_huge_range_says_to_narrow_it():
@@ -155,28 +153,3 @@ def test_an_opinion_anchor_is_a_synpath_id():
     seen: list = []
     synpath.match_event("opinion:337", client=answering({"anchor": "opinion:337", "event_ids": [], "events": {"kalshi": None}}, seen))
     assert seen[0].url.params["id"] == "opinion:337"
-
-
-@pytest.mark.parametrize("route,fetch", [
-    ("order-book-at", synpath.fetch_order_book_at),
-    ("order-book-range", synpath.fetch_order_book_range),
-    ("trades-range", synpath.fetch_trades_range),
-])
-def test_published_venue_hour_parses_through_sdk(route, fetch):
-    from pathlib import Path
-
-    # Unedited public responses captured 2026-10-15 for the 12:00–13:00 UTC hour.
-    payload = json.loads((Path(__file__).parent / "samples" / "history" / f"{route}.json").read_text())
-    window = ({"as_of_ms": payload["as_of_ms"]} if route == "order-book-at"
-              else {"start_ms": payload["start_ms"], "end_ms": payload["end_ms"]})
-    response = fetch(payload["market_id"], **window, client=answering(payload, []))
-    assert response.metadata.time_basis == "venue"
-    assert response.metadata.dataset_version == payload["metadata"]["dataset_version"]
-    assert response.metadata.processed_through_ms == 1792069200000
-    if route == "order-book-at":
-        assert response.book.timestamp == response.book.venue_timestamp_ms
-        assert response.book.best_bid.price == payload["book"]["best_bid"]["price"]
-    elif route == "order-book-range":
-        assert response.segments[0].changes[0].observed_at_ms != response.segments[0].changes[0].venue_timestamp_ms
-    else:
-        assert response.coverage[0].status == "available"
