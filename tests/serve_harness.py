@@ -364,6 +364,13 @@ class ServeHarness:
         Kalshi, otherwise the latest one the hub opened."""
         if venue == "kalshi" and self.engine_stream is not None:
             return self.engine_stream
+        # The hub opens a venue's stream on the server's loop after the
+        # subscribe arrives; on a slow machine a test can get here first.
+        # Poll the dict directly: this is also called from conditions that
+        # already run on the server's loop, where a portal call would fail.
+        deadline = time.monotonic() + 10.0
+        while not self.opened.get(venue) and time.monotonic() < deadline:
+            time.sleep(0.01)
         return self.opened[venue][index]
 
     def push(self, venue: str, event: Any) -> None:
