@@ -34,6 +34,10 @@ class BucketMember(_Base):
     """A Synpath id, `venue:native`."""
     flip: bool = False
     """True when this member's YES is the opposite of the bucket's proposition."""
+    enabled: bool = True
+    """False switches the member off: it stays in the definition but is not
+    routed to, not in the merged bucket book, and not streamed for it.
+    Definitions stored before this field existed load with every member on."""
 
     def book_side(self) -> BookSide:
         """Which of the member's two books is the bucket's YES book. Reading
@@ -71,6 +75,21 @@ class Bucket(_Base):
     def market_ids(self) -> list[str]:
         return [m.market_id for m in self.members]
 
+    def enabled_members(self) -> list[BucketMember]:
+        """The members switched on: the ones an order routes to and the merged book shows."""
+        return [m for m in self.members if m.enabled]
+
+    def routable(self) -> "Bucket":
+        """This bucket with only its enabled members: what the router, the
+        merged book and an order on the bucket work from. Raises `BadRequest`
+        when every member is switched off."""
+        enabled = self.enabled_members()
+        if not enabled:
+            raise BadRequest(f"{self.market_id}: every member is switched off; enable at least one to route")
+        if len(enabled) == len(self.members):
+            return self
+        return self.model_copy(update={"members": enabled})
+
     def venues(self) -> set[str]:
         return {ids.venue_of(m.market_id) for m in self.members}
 
@@ -83,9 +102,12 @@ class Bucket(_Base):
     def check(self) -> None:
         """The shape checks a definition must pass before it is stored or
         traded: well-formed ids on known venues, no duplicates, at least two
-        members. Whether the members mean the same thing is not checked."""
+        members, at least one of them enabled. Whether the members mean the
+        same thing is not checked."""
         if len(self.members) < 2:
             raise BadRequest("a bucket needs at least two members")
+        if not any(m.enabled for m in self.members):
+            raise BadRequest("a bucket needs at least one enabled member")
         seen: set[str] = set()
         for m in self.members:
             ids.venue_of(m.market_id)   # raises BadRequest on a bare or unknown id

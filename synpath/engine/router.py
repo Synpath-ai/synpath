@@ -176,10 +176,11 @@ class Plan:
 def merge(bucket: Bucket, books: Mapping[str, Any], fee: FeeFn) -> tuple[list[Level], list[Level]]:
     """The members' books as one, in bucket terms: `(asks, bids)`, asks
     cheapest-net first, bids richest-net first. Books go through `view`, so a
-    flipped member may hand in either side."""
+    flipped member may hand in either side. A member switched off
+    (`enabled=False`) is left out, whatever book is handed in for it."""
     asks: list[Level] = []
     bids: list[Level] = []
-    for member in bucket.members:
+    for member in bucket.enabled_members():
         book = books.get(member.market_id)
         if book is None:
             continue
@@ -247,7 +248,7 @@ def _native_walk(
     """The walk on the Rust core: the side being planned merged there once,
     then walked once per call. `None` to plan in Python."""
     rows = []
-    for member in bucket.members:
+    for member in bucket.enabled_members():
         book = books.get(member.market_id)
         if book is None:
             continue

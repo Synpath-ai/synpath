@@ -53,6 +53,35 @@ class TestMerge:
         assert asks[1].net_price == D("0.43")
 
 
+class TestDisabledMembers:
+    def test_a_member_switched_off_is_left_out_of_the_merge_and_the_plan(self):
+        b = Bucket(book="alpha", name="t", members=[BucketMember(market_id=K),
+                                                    BucketMember(market_id=P, enabled=False)])
+        books = {K: book(K, asks=[(0.45, 30)]), P: book(P, asks=[(0.41, 100)])}
+        asks, _ = merge(b, books, NO_FEE)
+        assert {l.market_id for l in asks} == {K}
+        out = plan(b, books, PREC, NO_FEE, side=Side.BUY, quantity=D("50"), limit=D("0.50"))
+        assert [(l.market_id, l.quantity) for l in out.legs] == [(K, D("30"))]
+
+    def test_enabled_defaults_on_round_trips_and_routable_drops_the_off_members(self):
+        old = Bucket.model_validate({"book": "a", "name": "t", "members": [{"market_id": K}, {"market_id": P}]})
+        assert all(m.enabled for m in old.members) and old.routable() is old
+        off = old.model_copy(update={"members": [BucketMember(market_id=K), BucketMember(market_id=P, enabled=False)]})
+        again = Bucket.model_validate(off.model_dump(mode="json"))
+        assert [m.enabled for m in again.members] == [True, False]
+        assert again.routable().market_ids() == [K] and again.market_ids() == [K, P]
+
+    def test_a_definition_needs_one_enabled_member(self):
+        none_on = Bucket(book="a", name="t", members=[BucketMember(market_id=K, enabled=False),
+                                                      BucketMember(market_id=P, enabled=False)])
+        with pytest.raises(BadRequest, match="enabled"):
+            none_on.check()
+        with pytest.raises(BadRequest, match="switched off"):
+            none_on.routable()
+        Bucket(book="a", name="t", members=[BucketMember(market_id=K, enabled=False),
+                                            BucketMember(market_id=P)]).check()
+
+
 class TestPlan:
     def test_walks_best_net_first_and_never_over_allocates(self):
         books = {K: book(K, asks=[(0.41, 30)]), P: book(P, asks=[(0.42, 100)])}

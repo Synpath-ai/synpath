@@ -295,13 +295,15 @@ async def test_reopen_preserves_data_and_rejects_unknown_version(database, versi
         version = await store.save_config("risk", {"max": "10"})
         await store.set_cursor("cursor", "page-2")
         await store.set_fair_value("kalshi:default", "kalshi:KX-A", D("0.123456789"))
-        await store.save_bucket({"id": "b", "book": "a", "name": "bucket", "members": [{"market_id": "kalshi:KX-A", "flip": True}]})
+        await store.save_bucket({"id": "b", "book": "a", "name": "bucket", "members": [
+            {"market_id": "kalshi:KX-A", "flip": True}, {"market_id": "polymarket:1", "enabled": False}]})
     async with PostgresJournal(dsn, schema=schema) as store:
         assert await store.last_seq() >= seq
         assert await store.config("risk") == (version, {"max": "10"})
         assert await store.cursor("cursor") == "page-2"
         assert (await store.fair_values())[("kalshi:default", "kalshi:KX-A")] == D("0.123456789")
-        assert (await store.bucket("b"))["members"] == [{"market_id": "kalshi:KX-A", "flip": True}]
+        assert (await store.bucket("b"))["members"] == [{"market_id": "kalshi:KX-A", "flip": True, "enabled": True},
+                                                        {"market_id": "polymarket:1", "flip": False, "enabled": False}]
         assert await store.archive_bucket("b") and not await store.archive_bucket("b")
         await store._db.execute("UPDATE meta SET value='999' WHERE key=?", (version_key,))
     invalid = PostgresJournal(dsn, schema=schema)
@@ -373,7 +375,7 @@ async def test_failed_schema_initialization_rolls_back_then_retries(database, mo
         assert await cursor.fetchone() is None
     monkeypatch.setattr(store, "_apply_schema", original)
     async with store:
-        assert await store.schema_version() == 7
+        assert await store.schema_version() == 8
 
 
 async def test_commit_failure_rolls_back_before_next_writer(journal, monkeypatch):

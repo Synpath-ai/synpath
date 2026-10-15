@@ -55,8 +55,9 @@ separate execution/authentication design.
 
 ## Schema and migration compatibility
 
-The current logical version is 7. Alembic revision `0001_journal_v6` adopts the
-frozen pre-Alembic baseline; `0002_single_user` adds the owner and foreign keys.
+The current logical version is 8. Alembic revision `0001_journal_v6` adopts the
+frozen pre-Alembic baseline; `0002_single_user` adds the owner and foreign keys;
+`0003_bucket_member_enabled` adds `bucket_members.enabled` (existing members stay on).
 See the [migration entry point](migrations/README.md). Historical SQLite
 conversions prepare old files for the baseline; new changes use new revisions.
 

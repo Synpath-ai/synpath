@@ -64,7 +64,7 @@ class TestUpgradeFromTwo:
     async def test_a_fresh_file_is_the_current_version_with_the_new_shape(self, tmp_path: Path):
         path = str(tmp_path / "fresh.db")
         async with Journal(path) as journal:
-            assert await journal.schema_version() == SCHEMA_VERSION == 7
+            assert await journal.schema_version() == SCHEMA_VERSION == 8
         assert "parent_id" in columns(path, "orders")
         assert columns(path, "managed_orders")["account_key"] is False
         assert "bucket_id" in columns(path, "bucket_members")
@@ -170,8 +170,15 @@ class TestBuckets:
             await journal.save_bucket(bucket)
             found = await journal.bucket("b-1")
             assert found["name"] == "Falcons -7.5 2H" and found["status"] == "active"
-            assert found["members"] == bucket["members"]
+            assert found["members"] == [{**m, "enabled": True} for m in bucket["members"]]
             assert await journal.bucket("nope") is None
+
+    async def test_a_member_switched_off_stays_off(self, tmp_path: Path):
+        async with Journal(str(tmp_path / "b.db")) as journal:
+            await journal.save_bucket({"id": "b-1", "book": "alpha", "name": "x", "members": [
+                {"market_id": "kalshi:KX-A"}, {"market_id": "polymarket:1", "flip": True, "enabled": False}]})
+            found = await journal.bucket("b-1")
+        assert [m["enabled"] for m in found["members"]] == [True, False]
 
     async def test_saving_again_replaces_the_members(self, tmp_path: Path):
         async with Journal(str(tmp_path / "b.db")) as journal:
@@ -180,7 +187,7 @@ class TestBuckets:
             await journal.save_bucket({"id": "b-1", "book": "alpha", "name": "x",
                                        "members": [{"market_id": "polymarket:2", "flip": True}]})
             found = await journal.bucket("b-1")
-        assert found["members"] == [{"market_id": "polymarket:2", "flip": True}]
+        assert found["members"] == [{"market_id": "polymarket:2", "flip": True, "enabled": True}]
 
     async def test_listing_filters_by_book_and_archive_is_soft(self, tmp_path: Path):
         async with Journal(str(tmp_path / "b.db")) as journal:
