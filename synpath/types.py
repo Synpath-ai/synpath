@@ -372,9 +372,15 @@ class Trade(_Base):
 
 
 # Historical types extend the live market objects without changing their
-# contract. The response metadata identifies the query clock. Trade.timestamp
-# remains the venue's execution time when available.
+# contract. Current request windows use Kalshi venue time (metadata.time_basis
+# is "venue"); observed_at_ms preserves recorder receive time separately.
 class HistoryMetadata(_Base):
+    """The query clock and published dataset watermark.
+
+    Current deployments return time_basis="venue". The recorder_receive value
+    and default remain for compatibility with older responses.
+    """
+
     dataset_version: str
     time_basis: Literal["recorder_receive", "venue"] = "recorder_receive"
     processed_through_ms: int | None = None
@@ -401,8 +407,10 @@ class HistoricalTrade(Trade):
 class HistoricalOrderBook(OrderBook):
     """A full book valued at as_of_ms, possibly unchanged since timestamp.
 
-    Inherited timestamp is the recorder time of the last book update;
+    Inherited timestamp is the last book update on the response's time_basis
+    (venue time on the current service, recorder time on older deployments);
     venue_timestamp_ms is the original exchange time when supplied.
+    as_of_ms is the requested valuation time, so it can be later than timestamp.
     """
 
     as_of_ms: int
@@ -410,7 +418,11 @@ class HistoricalOrderBook(OrderBook):
 
 
 class HistoricalBookChange(_Base):
-    """One change in the requested book view; price is exact and view-relative."""
+    """One change in the requested book view; price is exact and view-relative.
+
+    observed_at_ms is recorder receive time; venue_timestamp_ms is the venue
+    event time used to place the change in current query windows.
+    """
     kind: Literal["snapshot", "delta"]
     observed_at_ms: int
     venue_timestamp_ms: int | None = None

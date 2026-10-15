@@ -45,18 +45,20 @@ synpath keys create my-laptop
 ```python
 import synpath
 
-t = 1790776800000   # any moment, in Unix milliseconds
+t = 1792065600000   # 2026-10-15 12:00 UTC, in venue Unix milliseconds
 
 # The full book exactly as it stood at that millisecond
 snap = synpath.fetch_order_book_at("kalshi:KXQUANTUM-30", as_of_ms=t)
 print(snap.book.bids[0].price, snap.book.asks[0].price, len(snap.book.bids), "bid levels")
 
-# Every change over an hour: a starting book, then each update in arrival order
+# Every change over an hour: a starting book, then each update in venue-time order
 changes = synpath.fetch_order_book_range("kalshi:KXQUANTUM-30", start_ms=t, end_ms=t + 3_600_000)
 
 # Every trade: price, size and taker side
 trades = synpath.fetch_trades_range("kalshi:KXQUANTUM-30", start_ms=t, end_ms=t + 3_600_000)
 ```
+
+Request windows use Kalshi venue time (`metadata.time_basis="venue"`); `observed_at_ms` is the separate recorder receive time.
 
 No silent gaps: if we weren't recording at a moment, you get the reason instead of an empty book. Up to an hour per request; plain HTTP works too (`Authorization: Bearer <key>`). More: **[synpath.dev/tick-data](https://www.synpath.dev/tick-data)** · **[API reference](https://www.synpath.dev/docs/api-reference/history/book-at)**
 
