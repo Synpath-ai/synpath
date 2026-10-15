@@ -572,3 +572,47 @@ async def test_unexpected_decoder_error_after_send_preserves_uncertain_stop(tmp_
         assert len(venue.sent) == 1
     finally:
         await engine.stop()
+
+
+async def test_canceled_commit_keeps_triggered_stop_recoverable(tmp_path, monkeypatch):
+    path = tmp_path / "orders.db"
+    engine, venue = await scripted_engine(path)
+    parent = await engine.submit(stop_request())
+    connection = engine.journal._db.connection
+    entered, release = asyncio.Event(), asyncio.Event()
+    original = connection.exec_driver_sql
+    armed = True
+    async def pause_commit(query, *args, **kwargs):
+        nonlocal armed
+        if query == "COMMIT" and armed:
+            armed = False
+            entered.set()
+            await release.wait()
+        return await original(query, *args, **kwargs)
+    class DelayedConnection:
+        def __getattr__(self, name):
+            return getattr(connection, name)
+        exec_driver_sql = staticmethod(pause_commit)
+    monkeypatch.setattr(engine.journal._db, "connection", DelayedConnection())
+    triggering = asyncio.create_task(engine.on_book({"market_id": "kalshi:KX-A"}))
+    try:
+        await asyncio.wait_for(entered.wait(), 5)
+        triggering.cancel()
+        await asyncio.sleep(0)
+        release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await triggering
+        snapshot = (await engine.journal.managed_one(parent.id))[1]
+        assert snapshot["state"] == "working"
+        assert snapshot["extra"]["pending_child"] is not None
+        assert venue.sent == []
+    finally:
+        release.set()
+        await engine.stop()
+    restarted, _ = await scripted_engine(path, venue)
+    try:
+        await restarted.orders.on_timer()
+        assert restarted.orders.get(parent.id).state != "rejected"
+        assert len(venue.sent) == 1
+    finally:
+        await restarted.stop()

@@ -146,3 +146,50 @@ async def test_cancellation_stays_cancellation_when_driver_operation_fails():
     release.set()
     with pytest.raises(asyncio.CancelledError):
         await task
+
+
+async def test_repeated_cancellation_keeps_begin_rollback_locked():
+    import asyncio
+    connection = await connect_sqlite(":memory:")
+    begin_entered, begin_release = asyncio.Event(), asyncio.Event()
+    rollback_entered, rollback_release = asyncio.Event(), asyncio.Event()
+    driver = connection.connection
+    class DelayedConnection:
+        def __getattr__(self, name):
+            return getattr(driver, name)
+        async def exec_driver_sql(self, query, *args):
+            if query.startswith("BEGIN"):
+                begin_entered.set()
+                await begin_release.wait()
+            elif query == "ROLLBACK":
+                rollback_entered.set()
+                await rollback_release.wait()
+            return await driver.exec_driver_sql(query, *args)
+    connection.connection = DelayedConnection()
+    await connection.execute("CREATE TABLE observed(value INTEGER)")
+    async def begin():
+        await connection.execute("BEGIN IMMEDIATE")
+    opening = asyncio.create_task(begin())
+    write = None
+    try:
+        await begin_entered.wait()
+        opening.cancel()
+        begin_release.set()
+        await rollback_entered.wait()
+        opening.cancel()
+        async def insert():
+            await connection.execute("INSERT INTO observed VALUES(1)")
+        write = asyncio.create_task(insert())
+        await asyncio.sleep(0.01)
+        assert connection.lock.locked() and not write.done()
+        rollback_release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await opening
+        await write
+        async with connection.execute("SELECT value FROM observed") as cursor:
+            assert (await cursor.fetchone())["value"] == 1
+    finally:
+        begin_release.set()
+        rollback_release.set()
+        await asyncio.gather(opening, *([write] if write else []), return_exceptions=True)
+        await connection.close()

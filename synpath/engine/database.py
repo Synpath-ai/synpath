@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from weakref import WeakSet
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.engine import URL, make_url
@@ -78,6 +79,7 @@ class Connection:
         self.engine, self.connection, self.postgres = engine, connection, postgres
         self.lock = asyncio.Lock()
         self.transaction_owner = None
+        self.completed_transaction_owners = WeakSet()
 
     def execute(self, query, args=None):
         return Execution(self, query, args)
@@ -106,6 +108,7 @@ class Connection:
             query = postgres_query(query)
         task = asyncio.current_task()
         if query in ("BEGIN", "BEGIN IMMEDIATE"):
+            self.completed_transaction_owners.discard(task)
             if self.transaction_owner is task:
                 raise RuntimeError("nested journal transaction")
             await self.lock.acquire()
@@ -114,24 +117,39 @@ class Connection:
                 self.transaction_owner = task
             except BaseException:
                 try:
-                    await asyncio.shield(self._execute("ROLLBACK"))
+                    await finish_database_operation(self._execute("ROLLBACK"))
                 finally:
                     self.lock.release()
                 raise
             return CursorResult()
         if query in ("COMMIT", "ROLLBACK"):
+            # A canceled caller may clean up after its shielded COMMIT already
+            # succeeded. Do not roll back a completed or another task's transaction.
+            if query == "ROLLBACK" and task in self.completed_transaction_owners:
+                self.completed_transaction_owners.discard(task)
+                return CursorResult()
             if self.transaction_owner is not task:
                 raise RuntimeError("transaction belongs to another task")
+            completed = False
+            async def finish_transaction():
+                nonlocal completed
+                try:
+                    result = await self._execute(query)
+                except BaseException:
+                    if query == "ROLLBACK":
+                        self.transaction_owner = None
+                        self.lock.release()
+                    raise
+                self.transaction_owner = None
+                self.lock.release()
+                completed = True
+                return result
             try:
-                result = await self._execute(query)
-            except BaseException:
-                if query == "ROLLBACK":
-                    self.transaction_owner = None
-                    self.lock.release()
+                return await finish_database_operation(finish_transaction())
+            except asyncio.CancelledError:
+                if completed and query == "COMMIT":
+                    self.completed_transaction_owners.add(task)
                 raise
-            self.transaction_owner = None
-            self.lock.release()
-            return result
         if self.transaction_owner is task:
             return await self._execute(query, args)
         async with self.lock:

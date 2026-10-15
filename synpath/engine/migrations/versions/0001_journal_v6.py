@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS cursors (
                 WHERE client_order_id IS NOT NULL;
             CREATE INDEX IF NOT EXISTS market_orders_state
                 ON market_orders(user_id, state, updated_ts);
-        
+
 
             CREATE TABLE IF NOT EXISTS limit_orders (
                 venue TEXT NOT NULL, id TEXT NOT NULL,
@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS cursors (
                 WHERE client_order_id IS NOT NULL;
             CREATE INDEX IF NOT EXISTS limit_orders_state
                 ON limit_orders(user_id, state, updated_ts);
-        
+
 
             CREATE TABLE IF NOT EXISTS stop_market_orders (
                 venue TEXT NOT NULL, id TEXT NOT NULL,
@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS cursors (
                 WHERE client_order_id IS NOT NULL;
             CREATE INDEX IF NOT EXISTS stop_market_orders_state
                 ON stop_market_orders(user_id, state, updated_ts);
-        
+
 
             CREATE TABLE IF NOT EXISTS stop_limit_orders (
                 venue TEXT NOT NULL, id TEXT NOT NULL,
