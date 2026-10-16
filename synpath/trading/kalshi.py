@@ -240,6 +240,20 @@ def _side_of(raw: dict[str, Any]) -> Side:
     return Side.BUY if (action == "buy") == (side == "yes") else Side.SELL
 
 
+def _execution_average(raw: dict[str, Any], *, filled: Decimal, cost: Decimal) -> Decimal | None:
+    if filled <= 0 or cost <= 0:
+        return None
+    # Read projections report cost in their priced outcome. The new API can
+    # say side=yes while outcome_side=no; only the latter identifies the cost
+    # leg. Create responses already supply a YES average and bypass this path.
+    outcome = str(raw.get("outcome_side") or raw.get("side") or
+                  ("no" if raw.get("book_side") == "ask" else "yes")).lower()
+    average = cost / filled
+    if outcome == "no":
+        average = 1 - average
+    return average.quantize(Decimal("0.0001"))
+
+
 def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
     """A venue order row as an `Order`, on the YES leg."""
     ticker = str(raw.get("ticker") or "")
@@ -267,7 +281,7 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
         quantity=quantity,
         filled=filled,
         remaining=remaining,
-        average_price=(cost / filled).quantize(Decimal("0.0001")) if filled > 0 and cost > 0 else None,
+        average_price=_execution_average(raw, filled=filled, cost=cost),
         cost=cost if filled > 0 else None,
         fee=fee if filled > 0 else None,
         fee_currency="USD",
@@ -551,6 +565,9 @@ class KalshiTrading(TradingExchange):
         raw = await self._call("POST", "/portfolio/events/orders", json=body, kind="write")
         order = order_from_response(raw, body=body, account=request.account or self.account)
         return order.model_copy(update={"book": request.book, "trader": request.trader, "tags": request.tags})
+
+    async def create_order_with_precision(self, request: OrderRequest, precision: Precision) -> Order:
+        return await self.create_order(request, precision=precision)
 
     async def create_orders(
         self, requests: list[OrderRequest], *, precision: Precision | None = None,

@@ -68,7 +68,7 @@ class RiskConfig(BaseModel):
     priced 0 to 1, so 0.10 is ten cents). `None` disables the check."""
     max_order_contracts: Decimal | None = None
     max_order_notional: Decimal | None = None
-    """Price times contracts, in account currency."""
+    """Priced outcome cost times contracts, in account currency, excluding fees."""
     min_price: Decimal = Decimal("0")
     max_price: Decimal = Decimal("1")
     duplicate_window_ms: int = 2_000
@@ -255,7 +255,15 @@ class RiskEngine:
                     )
         if config.max_order_contracts is not None and request.quantity > config.max_order_contracts:
             return self._no("max_order_contracts", f"{request.quantity} contracts is over the {config.max_order_contracts} limit")
-        notional = (price or ONE) * request.quantity
+        # Prices are always YES prices. Opening NO pays the complement;
+        # reduce-only reverses the token being sold rather than opening one.
+        value_per_contract = ONE
+        if price is not None:
+            values_yes = request.side == Side.BUY
+            if request.reduce_only:
+                values_yes = not values_yes
+            value_per_contract = price if values_yes else ONE - price
+        notional = value_per_contract * request.quantity
         if config.max_order_notional is not None and notional > config.max_order_notional:
             return self._no("max_order_notional", f"{notional} is over the {config.max_order_notional} order limit")
 

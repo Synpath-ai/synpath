@@ -23,7 +23,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Callable, Iterable
 
-from .journal import Journal
+from .storage import JournalStore
 
 log = logging.getLogger("synpath.engine")
 
@@ -81,7 +81,7 @@ class Subscription:
 class EventBus:
     """Publish once, persist once, fan out to every reader."""
 
-    def __init__(self, journal: Journal | None = None, *, persist: bool = True):
+    def __init__(self, journal: JournalStore | None = None, *, persist: bool = True):
         self.journal = journal
         self.persist = persist and journal is not None
         self.subscribers: list[Subscription] = []

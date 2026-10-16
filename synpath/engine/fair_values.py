@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Iterable
 
-from .journal import Journal
+from .storage import JournalStore
 
 ZERO = Decimal("0")
 ONE = Decimal("1")
@@ -46,7 +46,7 @@ class FairValue:
 class FairValues:
     """Marks per account and instrument, kept in memory and in the journal."""
 
-    def __init__(self, journal: Journal | None = None, *, stale_after_s: float = 300.0, face_value: Decimal = ONE):
+    def __init__(self, journal: JournalStore | None = None, *, stale_after_s: float = 300.0, face_value: Decimal = ONE):
         self.journal = journal
         self.stale_after_s = stale_after_s
         self.face_value = face_value

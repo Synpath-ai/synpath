@@ -206,6 +206,8 @@ class Precision(_Base):
 class OrderRequest(_Base):
     """What a caller asks for. Validated against the market before signing."""
 
+    user_id: str | None = None
+    """Application ownership, assigned by the execution worker; not a venue account."""
     market_id: str
     """Synpath id, `venue:native`. A bare native id is accepted by the venue's
     own adapter."""
@@ -290,6 +292,7 @@ class EditRequest(_Base):
 class Order(_Base):
     """An order as the venue (or the engine) reports it."""
 
+    user_id: str | None = None
     id: str
     client_order_id: str | None = None
     venue: str

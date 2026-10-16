@@ -23,6 +23,9 @@ async with Engine({"kalshi": KalshiTrading(credentials)},
     ))
 ```
 
+The experimental storage branch adds [per-type records, migrations and storage configuration](../synpath/engine/README.md).
+Normal shutdown preserves orders by default; an operator halt is explicit.
+
 ## What it promises
 
 **Nothing is sent that was not written down first.** `submit` runs risk,
@@ -134,8 +137,8 @@ can trade at. `last` and `mid` are there for callers who disagree.
 
 **A stop market's child is priced by the engine.** No venue here takes a
 market order without a worst price, so at the trigger the engine sends the
-`market` child, `ioc`, with the touch plus 0.05 for a buy (minus 0.05 for a
-sell), on the venue's tick and inside the price range. There is no parameter
+`market` child, `ioc`, at the legal venue bound for the side, on the market's supplied tick
+(or the conservative venue grid when no market precision is registered). There is no parameter
 for it. With no book to price against at that moment, the stop ends
 `rejected` rather than send at any price.
 
@@ -158,7 +161,7 @@ the venue holds the expiry; the journal keeps `day` alongside it.
 `expires_at` expires the whole order, children included, and the parent
 ends `expired`. `post_only` is
 accepted only by types that rest on the book (`iceberg`, `peg`, a `twap` with
-`style="limit"`); an `oco` or `bracket` takes it on its legs, and a type that
+`style="limit"`, and a GTC/GTD `stop_limit`); an `oco` or `bracket` takes it on its legs, and a type that
 takes liquidity refuses it rather than ignoring it.
 
 **Everything survives a restart.** Each parent's whole state is written on

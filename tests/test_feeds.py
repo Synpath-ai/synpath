@@ -160,7 +160,7 @@ class TestBooks:
         await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.45", "100")], asks=[("0.47", "100")]))
         assert managed.state == "waiting"
         await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.39", "100")], asks=[("0.41", "100")]))
-        assert managed.state == "working" and len(managed.children) == 1
+        assert managed.state in ("working", "done") and len(managed.children) == 1
 
     async def test_a_book_invalidated_after_a_gap_does_not_fire_a_stop(self, setup):
         engine, feeds, kalshi, poly, k_stream, p_market, p_user = setup
@@ -243,7 +243,7 @@ class TestRunning:
         engine, *_ = setup
         loops = engine.background()
         try:
-            assert set(loops) == {"lease", "sweep", "poll", "managed"}
+            assert set(loops) == {"lease", "sweep", "poll", "managed", "dispatch"}
         finally:
             for coro in loops.values():
                 coro.close()

@@ -22,7 +22,7 @@ from ..errors import NotSupported
 from ..types import Page
 from .types import (
     Side,
-    Account, Balance, EditRequest, FeeEstimate, Fill, Order, OrderRequest, Position, Settlement,
+    Account, Balance, EditRequest, FeeEstimate, Fill, Order, OrderRequest, Position, Precision, Settlement,
 )
 
 
@@ -46,6 +46,10 @@ class TradingExchange(ABC):
     async def create_order(self, request: OrderRequest) -> Order:
         """Place one order the venue holds: a limit, or a market where the
         venue has them. Anything else belongs to the engine."""
+
+    async def create_order_with_precision(self, request: OrderRequest, precision: Precision) -> Order:
+        """Use supplied reference rules where supported; other adapters load their own."""
+        return await self.create_order(request)
 
     async def create_orders(self, requests: list[OrderRequest]) -> list[Order | Exception]:
         """Many orders in one call, one result per request in the order asked

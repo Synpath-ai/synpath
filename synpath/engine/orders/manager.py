@@ -24,6 +24,8 @@ import logging
 from decimal import Decimal
 from typing import Any, Iterable, Mapping, Type
 
+from ...errors import NetworkError
+from ..storage_types import IntentState
 from ...trading.types import Fill, Order, OrderRequest, OrderType
 from .base import Child, Context, ManagedOrder, State, now_ms
 
@@ -47,6 +49,7 @@ class ManagedOrders:
         self.by_child: dict[str, str] = {}
         """Child order id to parent id."""
         self.by_market: dict[str, set[str]] = {}
+        self._running_tasks: dict[str, Any] = {}
 
     # -- lookup ---------------------------------------------------------------
 
@@ -90,10 +93,10 @@ class ManagedOrders:
     async def create(self, request: OrderRequest, *, venue: str, account: Any, owner: ManagedOrder | None = None) -> ManagedOrder:
         parent = self.build(request, venue=venue, account=account)
         parent.owner_id = owner.id if owner else None
+        await self.save(parent)
         self.remember(parent)
         if owner is not None:
             self.by_child[parent.id] = owner.id
-        await self.save(parent)
         await self.engine.bus.publish("managed.created", {
             "parent_id": parent.id, "kind": parent.kind, "market_id": parent.market_id,
             "side": parent.side.value, "quantity": str(parent.quantity), "book": request.book,
@@ -115,15 +118,33 @@ class ManagedOrders:
     # -- routing --------------------------------------------------------------
 
     async def run(self, parent: ManagedOrder, call: Any) -> None:
+        """Serialize each parent; child notifications may reenter on this task."""
+        task = asyncio.current_task()
+        if self._running_tasks.get(parent.id) is task:
+            await self._run_hook(parent, call)
+            return
+        async with self.engine._lock(f"managed:{parent.id}"):
+            self._running_tasks[parent.id] = task
+            try:
+                await self._run_hook(parent, call)
+            finally:
+                self._running_tasks.pop(parent.id, None)
+
+    async def _run_hook(self, parent: ManagedOrder, call: Any) -> None:
         """Run one hook, catching what it raises so the others keep working."""
         ctx = self.context(parent)
         try:
             await call(ctx)
+        except (NetworkError, asyncio.TimeoutError):
+            parent.detail = "venue action is unresolved; waiting for reconciliation"
         except Exception as exc:
             log.exception("synpath.engine.orders: %s %s failed", parent.kind, parent.id)
             parent.detail = f"{type(exc).__name__}: {exc}"
             try:
-                await parent.finish(ctx, "rejected", parent.detail)
+                if await self._dispatch_is_uncertain(parent):
+                    parent.detail += "; venue dispatch is unresolved; refusing to reject or resend"
+                else:
+                    await parent.finish(ctx, "rejected", parent.detail)
             except Exception:  # pragma: no cover - the journal is the only thing left
                 log.exception("synpath.engine.orders: could not record the failure of %s", parent.id)
         finally:
@@ -132,6 +153,14 @@ class ManagedOrders:
             await self.save(parent)
             if not parent.live and parent.owner_id:
                 await self.tell_owner(parent)
+
+    async def _dispatch_is_uncertain(self, parent: ManagedOrder) -> bool:
+        """A decoder/host failure after sending cannot prove venue rejection."""
+        pending = getattr(parent, "pending_child", None)
+        if pending is None or not pending.client_order_id:
+            return False
+        intent = await self.engine.journal.intent(pending.client_order_id)
+        return intent is not None and intent.state in (IntentState.SENDING, IntentState.SENT)
 
     async def tell_owner(self, leg: ManagedOrder) -> None:
         """A leg of a bracket or an OCO ended: its owner decides what that means."""
@@ -146,11 +175,26 @@ class ManagedOrders:
         await self.run(owner, lambda ctx: owner.on_child(ctx, leg.as_order(), child))
 
     async def on_book(self, market_id: str) -> None:
-        for parent in self.watching(market_id):
-            await self.run(parent, lambda ctx, p=parent: p.on_book(ctx, market_id))
+        watching = self.watching(market_id)
+        observations = {}
+        for parent in watching:
+            if parent.kind in ("stop_market", "stop_limit") and parent.state == "waiting":
+                if parent.trigger_source in ("touch", "mid"):
+                    observations[parent.id] = parent.watched(self.context(parent))
+        for parent in watching:
+            if parent.kind in ("stop_market", "stop_limit", "trailing_stop") and parent.state != "waiting":
+                continue
+            if parent.id in observations:
+                price = observations[parent.id]
+                if price is not None:
+                    await self.run(parent, lambda ctx, p=parent, value=price: p.consider(ctx, value))
+            else:
+                await self.run(parent, lambda ctx, p=parent: p.on_book(ctx, market_id))
 
     async def on_trade(self, market_id: str, price: Decimal, quantity: Decimal) -> None:
         for parent in self.watching(market_id):
+            if parent.kind in ("stop_market", "stop_limit", "trailing_stop") and parent.state != "waiting":
+                continue
             await self.run(parent, lambda ctx, p=parent: p.on_trade(ctx, market_id, price, quantity))
 
     async def on_order(self, order: Order) -> None:
@@ -158,28 +202,31 @@ class ManagedOrders:
         parent learns its children's fills from: the record is a snapshot,
         the latest overwrites, and the progress since the last one drives
         `on_fill`. Fill events are the ledger's and never reach a parent."""
-        parent = self.parent_of(order.id, order.venue)
+        parent = self.parent_of(order.id, order.venue) or self.parents.get(order.parent_id or "")
         if parent is None:
             return
-        child = parent.child_of(order.id, order.venue)
-        if child is None:
-            return
-        progress = parent.note_order(order, child)
-        if progress is not None:
-            await self.run(parent, lambda ctx: parent.on_fill(ctx, progress, child))
-        await self.run(parent, lambda ctx: parent.on_child(ctx, order, child))
+        async def apply(ctx):
+            child = parent.child_of(order.id, order.venue)
+            if child is None:
+                return
+            progress = parent.note_order(order, child)
+            if progress is not None:
+                await parent.on_fill(ctx, progress, child)
+            await parent.on_child(ctx, order, child)
+        await self.run(parent, apply)
 
     async def on_timer(self) -> None:
-        now_ms = int(self.engine.clock() * 1000)
         for parent in self.live():
-            expires_at = parent.request.expires_at
-            if expires_at is not None and now_ms >= expires_at:
-                # The parent's own expiry. Its type decides what that ends:
-                # by default the whole order, every live child pulled.
-                await self.run(parent, lambda ctx, p=parent: p.expire(ctx))
-                if not parent.live or parent.state == "cancelling":
-                    continue
-            await self.run(parent, lambda ctx, p=parent: p.on_timer(ctx))
+            async def tick(ctx, p=parent):
+                expires_at = p.request.expires_at
+                if expires_at is not None and int(self.engine.clock() * 1000) >= expires_at:
+                    await p.expire(ctx)
+                    if not p.live or p.state == "cancelling":
+                        if p.live:
+                            await p.on_timer(ctx)
+                        return
+                await p.on_timer(ctx)
+            await self.run(parent, tick)
 
     async def on_halt(self, reason: str, *, scope: str = "*") -> int:
         halted = 0
@@ -222,3 +269,10 @@ class ManagedOrders:
         if restored:
             await self.engine.bus.publish("managed.restored", {"count": restored})
         return restored
+
+    async def resume_restored(self) -> None:
+        """Resume persisted stop actions only after intent reconciliation."""
+        for parent in self.live():
+            recover = getattr(parent, "recover", None)
+            if recover is not None:
+                await self.run(parent, lambda ctx, p=parent: p.recover(ctx))

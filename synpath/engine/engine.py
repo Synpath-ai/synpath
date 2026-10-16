@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -50,11 +51,14 @@ from ..trading.base import TradingExchange
 from ..trading.errors import OrderNotFound, OrderRejected, RiskRejected
 from ..trading.types import (
     VENUE_ORDER_TYPES, Account, EditRequest, Fill, HeldBy, Order, OrderRequest, OrderStatus, OrderType, Position,
-    Settlement, Side,
+    Settlement, Side, Precision,
 )
+from ..trading.instruments import MarketMaster
 from .events import EventBus
 from .fair_values import FairValues
-from .journal import IntentState, Journal, LeaseLost, now_ms
+from .journal import IntentState, LeaseLost, now_ms
+from .storage import JournalStore, create_journal
+from .submissions import SubmissionPending, request_identity
 from .ledger import Ledger
 from .orders import ManagedOrders, as_gtd
 from .orders.manager import REGISTRY
@@ -70,6 +74,9 @@ class EngineConfig:
     """How this engine runs. The risk rules live in `RiskConfig`."""
 
     journal_path: str = "synpath.db"
+    storage_backend: str = "sqlite"
+    storage_schema: str = "public"
+    user_id: str = field(default_factory=lambda: os.environ.get("SYNPATH_USER_ID", "local-user"))
     lease_name: str = "engine"
     lease_ttl_ms: int = 30_000
     lease_renew_s: float = 10.0
@@ -90,8 +97,8 @@ class EngineConfig:
     managed_tick_s: float = 1.0
     """How often engine-held orders get their timer. A TWAP slice, an
     iceberg reload and a peg's minimum stay are all measured against it."""
-    session_timezone: str | None = None
-    """Where "today" ends, for Day orders. The machine's zone by default."""
+    session_timezone: str | None = "Europe/London"
+    """Where "today" ends, for Day orders. Europe/London by default, including seasonal clock changes."""
     session_end: str = "23:59:59"
 
 
@@ -121,7 +128,7 @@ class Recovery:
         }
 
 
-POST_ONLY_KINDS = ("iceberg", "peg", "twap")
+POST_ONLY_KINDS = ("iceberg", "peg", "twap", "stop_limit")
 """Engine types whose children rest on the book, where `post_only` means
 something. A TWAP only in its `limit` style."""
 
@@ -138,8 +145,9 @@ def check_managed_fields(request: OrderRequest, *, now_ms: int) -> None:
         if kind in ("oco", "bracket"):
             raise BadRequest(f"post_only goes on the {kind}'s legs, not on the order itself")
         style = str(request.params.get("style") or "limit")
-        if kind not in POST_ONLY_KINDS or (kind == "twap" and style != "limit"):
-            raise BadRequest(f"post_only is for types that rest on the book (iceberg, peg, a limit-style twap); "
+        if (kind not in POST_ONLY_KINDS or (kind == "twap" and style != "limit")
+                or (kind == "stop_limit" and request.time_in_force.value in ("ioc", "fok"))):
+            raise BadRequest(f"post_only is for types that rest on the book (iceberg, peg, limit-style twap, gtc/gtd stop_limit); "
                              f"a {kind} order takes liquidity")
     if request.expires_at is not None and request.expires_at <= now_ms:
         raise BadRequest("expires_at is in the past")
@@ -168,13 +176,18 @@ class Engine:
         config: EngineConfig | None = None,
         *,
         risk: RiskConfig | None = None,
-        journal: Journal | None = None,
+        journal: JournalStore | None = None,
         accounts: Mapping[str, Account] | None = None,
         clock: Any = time.time,
     ):
         self.config = config or EngineConfig()
         self.adapters: dict[str, TradingExchange] = dict(adapters)
-        self.journal = journal or Journal(self.config.journal_path)
+        if not self.config.user_id.strip():
+            raise ValueError("user_id must not be empty")
+        self.journal = journal or create_journal(backend=self.config.storage_backend,
+                                               path=self.config.journal_path, user_id=self.config.user_id, schema=self.config.storage_schema)
+        if self.journal.user_id != self.config.user_id:
+            raise ValueError("execution engine and journal must use the same user_id")
         self.bus = EventBus(self.journal)
         self.ledger = Ledger()
         self.fair_values = FairValues(self.journal, stale_after_s=self.config.mark_stale_after_s)
@@ -188,6 +201,10 @@ class Engine:
         self.running = False
         self.started_ts: int | None = None
         self._tasks: list[asyncio.Task] = []
+        self._dispatch_queue: asyncio.Queue[str] = asyncio.Queue()
+        self._queued_parents: set[str] = set()
+        self.dispatch_running = False
+        self.dispatch_parent: str | None = None
         self._locks: dict[str, asyncio.Lock] = {}
         self.market_close: dict[str, int] = {}
         """Resolution timestamps, for the closing-soon guard; filled by the caller."""
@@ -198,6 +215,8 @@ class Engine:
         self.books: dict[str, Any] = {}
         """The local books engine-held orders watch, fed by `on_book`."""
         self.last_trade: dict[str, Decimal] = {}
+        self.last_trade_timestamps: dict[str, int] = {}
+        self.market_master = MarketMaster()
 
     # -- lifecycle ------------------------------------------------------------
 
@@ -210,7 +229,7 @@ class Engine:
         await self.fair_values.load()
         recovery = await self.recover()
         self.running = True
-        self.started_ts = now_ms()
+        self.started_ts = int(self.clock() * 1000)
         await self.bus.publish("engine.started", {
             "owner": self.journal.owner, "risk_version": version, "recovery": recovery.summary(),
         })
@@ -226,6 +245,7 @@ class Engine:
             "sweep": self._sweep_loop(),
             "poll": self._poll_loop(),
             "managed": self._managed_loop(),
+            "dispatch": self._dispatch_loop(),
         }
 
     async def run(self) -> None:
@@ -246,7 +266,7 @@ class Engine:
             except (asyncio.CancelledError, Exception):
                 pass
         self._tasks = []
-        if self.journal._db is not None:
+        if self.journal.is_open:
             await self.bus.publish("engine.stopped", {"owner": self.journal.owner})
         await self.journal.close()
 
@@ -259,9 +279,98 @@ class Engine:
 
     # -- submitting -----------------------------------------------------------
 
-    async def submit(self, request: OrderRequest, *, venue: str | None = None, mark: Decimal | None = None) -> Order:
+    async def submit(self, request: OrderRequest, *, venue: str | None = None, mark: Decimal | None = None,
+                     precision: Precision | None = None) -> Order:
+        """Retry the same instruction, never repeat an uncertain venue send."""
+        if request.user_id not in (None, self.config.user_id):
+            raise BadRequest("user_id is assigned by the execution worker")
+        if self.config.require_lease and not await self.journal.holds_lease():
+            raise LeaseLost("this execution worker no longer holds the journal lease")
+        request = request.model_copy(update={"user_id": self.config.user_id})
+        supported = VENUE_ORDER_TYPES | {OrderType.STOP_MARKET, OrderType.STOP_LIMIT}
+        if is_bucket_id(request.market_id) or request.type not in supported or request.params.get("walk"):
+            return await self._submit_once(request, venue=venue, mark=mark, precision=precision)
+        venue = venue or self._venue_of(request)
+        account = request.account or self.accounts.get(venue) or Account(venue=venue)
+        deliberate = request.client_order_id is not None
+        request = request.model_copy(update={"account": account,
+                                             "client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"})
+        async with self._lock(f"submission:{request.client_order_id}"):
+            previous = await self.journal.submission(request.client_order_id)
+            if previous is not None:
+                if previous["request"] != request_identity(request):
+                    raise BadRequest("client_order_id already identifies a different instruction or account")
+                result = await self._existing_submission_result(previous)
+                if result is not None:
+                    return result
+                request = OrderRequest.model_validate(previous["effective_request"])
+            else:
+                effective = as_gtd(request, now_s=self.clock(), timezone_name=self.config.session_timezone,
+                                   session_end=self.config.session_end)
+                prior_intent = await self.journal.intent(request.client_order_id)
+                if prior_intent is not None:
+                    prior_request = OrderRequest.model_validate(prior_intent.request)
+                    if prior_intent.operation != "create" or request_identity(prior_request) != request_identity(effective):
+                        raise BadRequest("client_order_id already identifies a different durable action")
+                elif await self.journal.order_by_client_id(request.client_order_id) is not None:
+                    raise BadRequest("client_order_id belongs to an older order without a verifiable instruction")
+                await self.journal.record_submission(request, effective, venue=venue, account=account)
+                if prior_intent is not None:
+                    result = await self._existing_submission_result(await self.journal.submission(request.client_order_id))
+                    if result is not None:
+                        return result
+                request = effective
+            try:
+                return await self._submit_once(request, venue=venue, mark=mark, deliberate=deliberate, precision=precision)
+            except (RiskRejected, BadRequest, OrderRejected) as error:
+                intent = await self.journal.intent(request.client_order_id)
+                if intent is not None and intent.state == IntentState.PLANNED:
+                    await self.journal.mark_intent(request.client_order_id, IntentState.REJECTED, detail=str(error))
+                await self.journal.reject_submission(request.client_order_id,
+                    {"kind": type(error).__name__, "message": str(error), "rule": getattr(error, "rule", None)})
+                raise
+
+    async def _existing_submission_result(self, submission: dict[str, Any]) -> Order | None:
+        if submission["result_id"]:
+            parent = self.orders.get(submission["result_id"])
+            if parent is None:
+                stored = await self.journal.managed_one(submission["result_id"])
+                parent = self._rebuilt(*stored) if stored else None
+            if parent is not None:
+                if parent.live and self.orders.get(parent.id) is None:
+                    self.orders.remember(parent)
+                return parent.as_order()
+            result = await self.journal.order(submission["venue"], submission["result_id"])
+            if result is None:
+                raise SubmissionPending("the accepted submission has no readable result; refusing to repeat it")
+            return result
+        if submission["state"] == "rejected":
+            error = submission["error"]
+            if error["kind"] == "RiskRejected":
+                raise RiskRejected(error["message"], rule=error["rule"])
+            if error["kind"] == "OrderRejected":
+                raise OrderRejected(error["message"])
+            raise BadRequest(error["message"])
+        intent = await self.journal.intent(submission["client_order_id"])
+        if intent is None or intent.state == IntentState.PLANNED:
+            return None
+        if intent.state == IntentState.SENDING:
+            await self._resolve(intent)
+        result = await self.journal.order_by_client_id(submission["client_order_id"])
+        if result is not None:
+            return result
+        if intent.state in (IntentState.REJECTED, IntentState.FAILED, IntentState.SETTLED):
+            raise OrderRejected(intent.detail or "the earlier submission ended without an accepted order")
+        raise SubmissionPending("the earlier venue send is unresolved; refusing to send it again")
+
+    async def _submit_once(self, request: OrderRequest, *, venue: str | None = None,
+                           mark: Decimal | None = None, deliberate: bool | None = None,
+                           precision: Precision | None = None) -> Order:
         """Risk, journal, send, record. Raises `RiskRejected` before anything
         is sent, or the venue's own error after."""
+        if request.user_id not in (None, self.config.user_id):
+            raise BadRequest("user_id is assigned by the execution worker")
+        request = request.model_copy(update={"user_id": self.config.user_id})
         if is_bucket_id(request.market_id):
             return await self._submit_bucket(request, mark=mark)
         venue = venue or self._venue_of(request)
@@ -277,7 +386,7 @@ class Engine:
             # adapter's single immediate limit.
             walked = request.model_copy(update={"params": {**request.params, "managed_kind": "market_engine"}})
             return await self.submit_managed(walked, venue=venue, account=account, mark=mark)
-        deliberate = request.client_order_id is not None
+        deliberate = request.client_order_id is not None if deliberate is None else deliberate
         client_order_id = request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"
         request = request.model_copy(update={"client_order_id": client_order_id, "account": account})
 
@@ -295,7 +404,8 @@ class Engine:
             await self.journal.mark_intent(client_order_id, IntentState.SENDING, bump_attempt=True)
             self.risk.record_sent(request)
             try:
-                order = await adapter.create_order(request)
+                order = (await adapter.create_order_with_precision(request, precision)
+                         if precision is not None else await adapter.create_order(request))
             except OrderRejected as exc:
                 await self.journal.mark_intent(client_order_id, IntentState.REJECTED, detail=str(exc))
                 await self.bus.publish("order.rejected", {"client_order_id": client_order_id, "error": str(exc)}, key=client_order_id)
@@ -361,6 +471,8 @@ class Engine:
                 "book": request.book, "type": request.type.value, "config_version": decision.config_version,
             })
             raise RiskRejected(decision.message, rule=decision.rule)
+        request = request.model_copy(update={"user_id": request.user_id or self.config.user_id,
+                                             "client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"})
         parent = await self.orders.create(request, venue=venue, account=account)
         return parent.as_order()
 
@@ -581,6 +693,7 @@ class Engine:
         # After the in-doubt intents, so an order adopted a moment ago is in
         # the cache the risk rules count against.
         recovery.orders_open = len(await self.refresh_open_orders())
+        await self.orders.resume_restored()
         return recovery
 
     async def sweep(self) -> list[dict[str, Any]]:
@@ -603,6 +716,8 @@ class Engine:
             await self.bus.publish("intent.unresolved", base | {"reason": f"{type(exc).__name__}: {exc}"})
             return base | {"result": "unresolved", "reason": str(exc)}
         if found is not None:
+            if intent.operation == "create":
+                found = self._stamp(found, OrderRequest.model_validate(intent.request))
             await self.journal.upsert_order(found, event="order.adopted")
             self._remember(found)
             await self.journal.mark_intent(intent.client_order_id, IntentState.SENT, order_id=found.id,
@@ -630,12 +745,22 @@ class Engine:
         for order in await adapter.fetch_open_orders():
             if order.client_order_id == intent.client_order_id:
                 return order
-        if adapter.has.get("fetch_orders"):
-            since = intent.created_ts - 60_000
-            page = await adapter.fetch_orders(since=since, limit=200)
+        if not adapter.has.get("fetch_orders"):
+            raise SubmissionPending("the venue cannot confirm historical order absence")
+        since = intent.created_ts - 60_000
+        cursor = None
+        seen = set()
+        while True:
+            page = await adapter.fetch_orders(since=since, limit=200, cursor=cursor)
             for order in page:
                 if order.client_order_id == intent.client_order_id:
                     return order
+            cursor = getattr(page, "next_cursor", None)
+            if not cursor:
+                break
+            if cursor in seen:
+                raise SubmissionPending("the venue repeated its order-history cursor")
+            seen.add(cursor)
         return None
 
     # -- state ----------------------------------------------------------------
@@ -654,7 +779,13 @@ class Engine:
         """Record an order update, from a stream or a poll."""
         stored = await self.journal.order(order.venue, order.id)
         if stored is not None:
+            if order.filled < stored.filled or (stored.is_terminal and not order.is_terminal and order.filled == stored.filled):
+                return
             order = self._stamp(order, None, template=stored)
+        elif order.client_order_id:
+            intent = await self.journal.intent(order.client_order_id)
+            if intent is not None and intent.operation == "create":
+                order = self._stamp(order, OrderRequest.model_validate(intent.request))
         await self.journal.upsert_order(order)
         self._remember(order)
         await self.bus.publish(f"order.{order.status.value}", order.model_dump(mode="json"),
@@ -696,6 +827,15 @@ class Engine:
         market_id = getattr(event, "market_id", None) or event["market_id"]
         price = getattr(event, "price", None) or event["price"]
         quantity = getattr(event, "quantity", None) or event.get("quantity", ZERO)
+        timestamp = getattr(event, "timestamp", None)
+        if isinstance(event, dict):
+            timestamp = event.get("timestamp")
+        if timestamp is not None:
+            timestamp = int(timestamp)
+            minimum = max(self.started_ts or 0, self.last_trade_timestamps.get(market_id, 0))
+            if timestamp < minimum:
+                return
+            self.last_trade_timestamps[market_id] = timestamp
         self.last_trade[market_id] = Decimal(str(price))
         await self.orders.on_trade(market_id, Decimal(str(price)), Decimal(str(quantity)))
 
@@ -793,6 +933,30 @@ class Engine:
                 await self.halt("the journal lease was taken by another engine", policy="hold")
                 raise LeaseLost("another engine took the journal lease; this one stopped trading")
 
+    def queue_managed_action(self, parent_id: str) -> None:
+        """Queue a hint; the durable parent snapshot remains the source of truth."""
+        if parent_id not in self._queued_parents:
+            self._queued_parents.add(parent_id)
+            self._dispatch_queue.put_nowait(parent_id)
+
+    async def _dispatch_loop(self) -> None:
+        """One stop-action dispatcher keeps venue latency off the price consumer."""
+        self.dispatch_running = True
+        try:
+            while self.running:
+                parent_id = await self._dispatch_queue.get()
+                self._queued_parents.discard(parent_id)
+                parent = self.orders.get(parent_id)
+                if parent is None or not parent.live:
+                    continue
+                self.dispatch_parent = parent_id
+                try:
+                    await self.orders.run(parent, lambda ctx: parent.on_timer(ctx))
+                finally:
+                    self.dispatch_parent = None
+        finally:
+            self.dispatch_running = False
+
     async def _managed_loop(self) -> None:
         """The clock engine-held orders run on."""
         while self.running:
@@ -871,6 +1035,12 @@ class Engine:
         source = request or template
         updates: dict[str, Any] = {}
         if source is not None:
+            updates["user_id"] = source.user_id
+            updates["type"] = source.type
+            updates["reduce_only"] = source.reduce_only
+            updates["time_in_force"] = source.time_in_force
+            updates["expires_at"] = source.expires_at
+            updates["parent_id"] = getattr(source, "parent_id", None) or source.tags.get("parent")
             if order.book is None and source.book:
                 updates["book"] = source.book
             if order.trader is None and source.trader:

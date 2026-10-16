@@ -32,9 +32,10 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # Shares carry two decimals; the minimum (usually 5) is per market, read
     # from its book by the trading adapter.
     "polymarket": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("5"), "quantity_step": Decimal("0.01"), "whole": False},
-    # Every live market trades whole contracts today, but a market may set a
-    # fractional `minimumTradeQty`; the trading adapters read it per market.
-    "polymarket_us": {"default_tick": Decimal("0.001"), "min_quantity": Decimal("1"), "quantity_step": Decimal("1"), "whole": True},
+    # Whole-contract fallback until per-market `minimumTradeQty` is loaded.
+    # Live crypto markets can be fractional; the adapter reads their rules.
+    "polymarket_us": {"default_tick": Decimal("0.001"), "min_quantity": Decimal("1"), "quantity_step": Decimal("1"), "whole": True,
+                      "min_price": Decimal("0.01"), "max_price": Decimal("0.99")},
     # Prices to a tenth of a cent on every book read, and at least 5 USDT an
     # order, counted on the token actually bought.
     "opinion": {"default_tick": Decimal("0.001"), "min_quantity": Decimal("1"), "quantity_step": Decimal("0.01"), "whole": False,

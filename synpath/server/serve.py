@@ -19,8 +19,9 @@ One process, one event loop:
 With no configuration it trades every venue whose credentials it finds and
 still serves market data if it finds none. The first start on a new control
 database creates an owner access token; that token makes every other.
-`SIGINT`/`SIGTERM` stop the HTTP server, apply the halt policy (cancel
-everything resting, by default), close the streams, release the lease.
+`SIGINT`/`SIGTERM` stop the HTTP server, preserve durable orders by
+default, close the streams, and release the lease. `halt_on_exit=true`
+explicitly applies the halt policy before shutdown.
 """
 from __future__ import annotations
 
@@ -98,6 +99,10 @@ async def build(
                         "Run `synpath doctor` to see what is missing.")
     engine_config = EngineConfig(
         journal_path=config.get("journal", journal),
+        storage_backend=config.get("storage_backend", "sqlite"),
+        storage_schema=config.get("storage_schema", "public"),
+        session_timezone=config.get("session_timezone", "Europe/London"),
+        session_end=config.get("session_end", "23:59:59"),
         poll_interval_s=float(config.get("poll_interval_s", 5)),
         reconcile_interval_s=float(config.get("reconcile_interval_s", 60)),
         sweep_interval_s=float(config.get("sweep_interval_s", 10)),
@@ -119,7 +124,7 @@ async def build(
         owner_key = issued.secret
     # Leave the token where clients on this machine find it (synpath.server.local).
     stack_key = local.remember(host, port, control=config.get("control", control),
-                               journal=engine_config.journal_path, key=owner_key, home_dir=home_dir)
+                               journal=engine.journal.path, key=owner_key, home_dir=home_dir)
     if feeds is not None:
         await feeds.start()
 
@@ -147,7 +152,7 @@ def background(stack: Stack) -> dict[str, Any]:
 
 async def shutdown(stack: Stack) -> None:
     engine = stack.engine
-    if stack.config.get("halt_on_exit", True) and engine.running:
+    if stack.config.get("halt_on_exit", False) and engine.running:
         try:
             await engine.halt("the server is shutting down", policy=engine.config.halt_policy)
         except Exception:
@@ -206,7 +211,7 @@ async def serve(args: argparse.Namespace) -> int:
 
     engine = stack.engine
     print(f"synpath serving on http://{args.host}:{args.port} (trading at /trading), "
-          f"venues: {', '.join(sorted(engine.adapters)) or 'none'}, journal: {engine.config.journal_path}")
+          f"venues: {', '.join(sorted(engine.adapters)) or 'none'}, journal: {engine.journal.path}")
     try:
         await server.serve()
     finally:
