@@ -40,7 +40,7 @@ asyncio.run(main())
 | `LimitlessMarketStream` | `ws.limitless.exchange` | none | whole books, market resolutions |
 | `LimitlessUserStream` | `ws.limitless.exchange` | a Limitless API token | orders; fills as matched, then mined or failed on chain |
 | `SxBetMarketStream` | `realtime.sx.bet` (or the testnet) | SX Bet API key (every channel needs one) | whole books, top of book, the tape of taker bets, market changes and settlements |
-| `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address | orders; fills as matched, then escrowed or failed on chain |
+| `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -68,8 +68,12 @@ variable `synpath serve` reads it from:
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
-watch their books without their private keys on disk. The account streams,
-and trading, still need the full set ([Trading](trading.md#credentials)).
+watch their books without their private keys on disk. Opinion's and
+predict.fun's account streams, and their trading, still need the full set
+([Trading](trading.md#credentials)). SX Bet's key also trades everything but
+new orders, so its account stream runs on the key once the wallet address is
+known: from `SX_BET_PRIVATE_KEY`, or `SX_BET_ACCOUNT_ADDRESS`. Without either,
+serve logs why and polls the account instead.
 Its `--dotenv` file is also where the read app at `/` finds these keys,
 whatever folder `serve` runs from.
 

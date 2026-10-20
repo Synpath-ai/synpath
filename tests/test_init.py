@@ -219,14 +219,24 @@ def test_sx_bet_takes_a_wallet_and_an_api_key(tmp_path: Path):
     assert loaded is not None and loaded.api_key == "sx-api-key" and loaded.testnet
 
 
+def test_sx_bet_with_only_an_api_key_and_the_wallet_address(tmp_path: Path):
+    env = tmp_path / ".env"
+    p, said = scripted(["n", "n", "n", "n", "n", "n", "n", "y", KEY, WALLET, ""], secrets=["sx-api-key", ""])
+    assert run(env, p) == 0
+    assert read_dotenv(env) == {"SX_BET_API_KEY": "sx-api-key", "SX_BET_ACCOUNT_ADDRESS": WALLET}
+    assert any("That looks like a private key" in line for line in said), "a key pasted as the address is refused"
+    assert any("needed only for placing orders" in line for line in said)
+    loaded = load_credentials({}, dotenv=env, redact_logs=False)["sx_bet"]
+    assert loaded is not None and loaded.private_key is None and loaded.address == WALLET and not loaded.testnet
+
+
 def test_sx_bet_with_only_an_api_key_writes_just_the_key(tmp_path: Path):
     env = tmp_path / ".env"
-    p, _ = scripted(["n", "n", "n", "n", "n", "n", "n", "y", ""], secrets=["sx-api-key", ""])
+    p, _ = scripted(["n", "n", "n", "n", "n", "n", "n", "y", "", ""], secrets=["sx-api-key", ""])
     assert run(env, p) == 0
     assert read_dotenv(env) == {"SX_BET_API_KEY": "sx-api-key"}
-    assert load_credentials({}, dotenv=env, redact_logs=False)["sx_bet"] is None
-    key = load_market_data({}, dotenv=env, redact_logs=False)["sx_bet"]
-    assert key.api_key == "sx-api-key" and not key.testnet
+    loaded = load_credentials({}, dotenv=env, redact_logs=False)["sx_bet"]
+    assert loaded is not None and loaded.private_key is None and loaded.address is None
 
 
 def test_an_api_key_alone_counts_as_set_up_already(tmp_path: Path):

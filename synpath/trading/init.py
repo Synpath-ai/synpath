@@ -92,11 +92,17 @@ def _private_key(raw: str) -> str | None:
     return "That is not a private key: 64 hex characters, optionally starting with 0x."
 
 
-def _optional_private_key(p: Prompter) -> str:
-    """A private key, or empty: market data works without one."""
-    p.say("  The private key is needed only for trading: leave it empty to set up market data only.")
+def _not_an_address(raw: str) -> str:
+    if PRIVATE_KEY.match(raw):
+        return "That looks like a private key. Enter the wallet's public address instead: 0x and 40 hex characters."
+    return "That is not a wallet address: 0x and 40 hex characters."
+
+
+def _optional_private_key(p: Prompter, *, purpose: str = "trading") -> str:
+    """A private key, or empty: what the venue's API key does works without one."""
+    p.say(f"  The private key is needed only for {purpose}: leave it empty to go without.")
     p.say("  It is not your wallet address (0x and 40 hex characters).")
-    return p.value("Private key (64 hex characters, typed hidden; empty for market data only)", secret=True,
+    return p.value(f"Private key (64 hex characters, typed hidden; empty to skip {purpose})", secret=True,
                    default="", check=lambda raw: None if not raw else _private_key(raw))
 
 
@@ -222,16 +228,23 @@ def ask_limitless(p: Prompter) -> dict[str, str]:
 
 
 def ask_sx_bet(p: Prompter) -> dict[str, str]:
-    p.say("\nSX Bet: market data needs only an API key: sx.bet -> Account -> Overview -> API Credentials ->")
-    p.say("Generate API key (toronto.sx.bet for the test network), shown once.")
-    p.say("Trading also needs the private key of the wallet you sign in to sx.bet with: your account's own")
-    p.say("key, not its proxy wallet's.")
+    p.say("\nSX Bet: the API key alone serves market data, reads your account (orders, fills, positions, balance)")
+    p.say("and cancels orders. Get it at sx.bet -> Account -> Overview -> API Credentials -> Generate API key")
+    p.say("(toronto.sx.bet for the test network); it is shown once. The private key is needed only to place")
+    p.say("orders, which SX Bet has the wallet sign: your account's own key, not its proxy wallet's.")
     api_key = p.value("API key (typed hidden)", secret=True, check=_required("The API key"))
-    key = _optional_private_key(p)
-    testnet = p.value("Use the test network? (y/n)", check=_choice("y", "n"), default="n")
+    key = _optional_private_key(p, purpose="placing orders")
     values = {"SX_BET_API_KEY": api_key}
     if key:
         values["SX_BET_PRIVATE_KEY"] = _with_0x(key)
+    else:
+        p.say("  Without the private key the account stream needs your wallet address to name its channels.")
+        account = p.value("Wallet address, 0x and 40 hex (public, not the private key; empty to poll instead)",
+                          default="", check=lambda raw: None if not raw or ADDRESS.match(raw) else
+                          _not_an_address(raw))
+        if account:
+            values["SX_BET_ACCOUNT_ADDRESS"] = account
+    testnet = p.value("Use the test network? (y/n)", check=_choice("y", "n"), default="n")
     if testnet == "y":
         values["SX_BET_TESTNET"] = "1"
     return values

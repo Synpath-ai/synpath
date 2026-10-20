@@ -15,9 +15,18 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from typing import Any
 
 from .credentials import ENV_NAMES, load_credentials, load_market_data
 from .errors import CredentialsMissing
+
+
+def sx_bet_identity(creds: Any) -> str:
+    """What SX Bet's credentials allow: the API key reads market data and the
+    account and cancels; only placing orders needs the private key."""
+    wallet = f"wallet {creds.address}" if creds.address else "wallet address unknown (set SX_BET_ACCOUNT_ADDRESS for the account stream)"
+    placing = "private key loaded: places orders" if creds.private_key else "no private key: set SX_BET_PRIVATE_KEY to place orders"
+    return f"{wallet}; API key: market data, account, cancels; {placing}"
 
 
 def doctor(dotenv: str | None) -> int:
@@ -70,7 +79,7 @@ def doctor(dotenv: str | None) -> int:
             identity = f"wallet {creds.address}, API token {creds.token_id}"
         elif venue == "sx_bet":
             stage = "testnet" if creds.testnet else "mainnet"
-            identity = f"wallet {creds.address}, API key loaded"
+            identity = sx_bet_identity(creds)
         elif getattr(creds, "api_key", None):
             identity = f"api key {creds.api_key[:8]}…"
         else:

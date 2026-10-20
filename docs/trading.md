@@ -70,12 +70,15 @@ private key. `synpath init` tells them apart.
 | Hyperliquid | nothing | a private key: an API wallet's (it signs but cannot withdraw) with the account's address, or the account's own | app.hyperliquid.xyz/API (More -> API) |
 | predict.fun | mainnet: the API key (`pred_sk_...`). Test network: nothing | the API key and a private key: a plain wallet's, or a Predict account's owner key with its deposit address | the key at developers.predict.fun; a web-app account's owner key under Account -> Settings -> Privy wallet |
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
-| SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key and the private key of the wallet you sign in with (the account's own, not its proxy wallet) | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
+| SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
 private key, writing only `OPINION_API_KEY`, `PREDICT_FUN_API_KEY` or
-`SX_BET_API_KEY`. Opinion's key is created by signing with the wallet, so
+`SX_BET_API_KEY`. SX Bet's key goes further: the venue authorizes the
+account's reads, every cancel and the heartbeat by the key, so `synpath
+serve` shows that account's balance, positions and orders and cancels them
+with the key alone; only placing an order asks for `SX_BET_PRIVATE_KEY`. Opinion's key is created by signing with the wallet, so
 making one needs the private key once; a user who has one already enters it
 alone.
 
@@ -91,7 +94,7 @@ The variables each venue reads:
 | Hyperliquid | `HYPERLIQUID_PRIVATE_KEY` (an API wallet's key is safest: it trades but cannot withdraw), `HYPERLIQUID_ACCOUNT_ADDRESS` (the account an API wallet trades for; not needed with the account's own key), `HYPERLIQUID_TESTNET` (`1` for the test network) |
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
-| SX Bet | `SX_BET_API_KEY` (market data streams and trading; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (trading; the wallet you sign in to sx.bet with: the account's own address, not its proxy wallet), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
+| SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
 
 ## Through your own server
 
@@ -521,7 +524,9 @@ persons. Check what applies to you before trading.
 book, OBv3). Order hashes and signatures are checked against an independent
 EIP-712 encoder.
 
-Every request carries the SX Bet API key; every order is also the eight-field
+Every request carries the SX Bet API key, and the key alone reads the
+account, cancels and arms the heartbeat. Placing is the one thing that needs
+the private key: every order is also the eight-field
 EIP-712 `Order`, signed by the wallet under the domain the venue publishes
 (`GET /metadata/obv3`). The order's id is its digest, known before it is sent.
 The wallet is the maker, but the funds sit in a *proxy wallet* the venue

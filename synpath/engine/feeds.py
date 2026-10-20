@@ -144,9 +144,14 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
             from ..ws.sx_bet import SxBetMarketStream, SxBetUserStream
             testnet = bool(getattr(creds, "testnet", False))
             catalog = getattr(adapter, "catalog", None)
+            address = creds.address
+            if not address:
+                log.warning("synpath.engine.feeds: sx_bet has an API key but no account address, so its orders "
+                            "reach the engine by polling; set SX_BET_ACCOUNT_ADDRESS to the wallet's 0x address "
+                            "for the account stream")
             out[venue] = VenueStreams(
                 market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
-                private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=creds.address),
+                private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=address) if address else None,
             )
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)

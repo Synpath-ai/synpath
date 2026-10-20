@@ -9,9 +9,11 @@ log line prints `***` rather than a private key.
 Nothing here talks to a venue. `synpath doctor` reports what
 loaded; the adapters are what use it.
 
-Two sets per venue. `load_credentials` is what trading needs, the private key
-included. `load_market_data` is the API key alone, for the three venues
-whose market data wants one and no wallet: Opinion, predict.fun and SX Bet.
+Two sets per venue. `load_credentials` is what a trading adapter needs: the
+private key included, except for SX Bet, whose API key alone reads the
+account and cancels and whose private key only places orders.
+`load_market_data` is the API key alone, for the three venues whose market
+data wants one and no wallet: Opinion, predict.fun and SX Bet.
 
   Kalshi              KALSHI_KEY_ID, KALSHI_PRIVATE_KEY_PATH (PEM, Ed25519 or RSA),
                       KALSHI_ENV (prod, the default, or demo)
@@ -35,8 +37,9 @@ whose market data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       account), PREDICT_FUN_TESTNET, PREDICT_FUN_RPC_URL
   Limitless           LIMITLESS_PRIVATE_KEY, LIMITLESS_API_TOKEN_ID,
                       LIMITLESS_API_SECRET, and optionally LIMITLESS_RPC_URL
-  SX Bet              SX_BET_API_KEY (market data alone), SX_BET_PRIVATE_KEY, and
-                      optionally SX_BET_TESTNET
+  SX Bet              SX_BET_API_KEY (market data, the account, cancels), and
+                      optionally SX_BET_PRIVATE_KEY (placing orders),
+                      SX_BET_ACCOUNT_ADDRESS, SX_BET_TESTNET
 """
 from __future__ import annotations
 
@@ -272,29 +275,40 @@ class LimitlessCredentials:
 
 @dataclass(frozen=True, repr=False)
 class SxBetCredentials:
-    """SX Bet: the wallet that signs orders, and the API key every request
-    (and every realtime channel) carries."""
+    """SX Bet: the API key every request (and every realtime channel)
+    carries, and, to place orders, the wallet that signs them.
 
-    private_key: str = field(repr=False)
-    """The wallet's private key, hex: the account's own address, never the
-    proxy wallet. Signs every order (EIP-712)."""
+    The venue authorizes everything but placing by the key alone: the
+    account's orders, fills, positions and balance, and every cancel. Only a
+    new order is also an EIP-712 message signed by the wallet."""
+
     api_key: str = field(repr=False)
-    """The SX Bet API key, generated on sx.bet under Account. It belongs to
-    the same address."""
+    """The SX Bet API key, generated on sx.bet under Account -> Overview ->
+    API Credentials. It belongs to the account's own address."""
+    private_key: str | None = field(default=None, repr=False)
+    """The wallet's private key, hex: the account's own address, never the
+    proxy wallet. Signs every order (EIP-712); unset, orders cannot be placed."""
+    account_address: str | None = None
+    """The account's wallet address, for the account stream's channels when
+    no private key names it. Public: the 0x address, not the key."""
     testnet: bool = False
     """The Toronto test network (api.toronto.sx.bet) instead of mainnet."""
-    _public = ("testnet",)
+    _public = ("account_address", "testnet")
     __repr__ = _redacted_repr
 
     @property
-    def address(self) -> str:
-        from .polymarket_signing import WalletSigner
+    def address(self) -> str | None:
+        """The account's address: the signer's, else the one given, else
+        `None` (the venue documents no route that names a key's owner)."""
+        if self.private_key:
+            from .polymarket_signing import WalletSigner
 
-        return WalletSigner(self.private_key).address
+            return WalletSigner(self.private_key).address
+        return self.account_address
 
     @property
     def secrets(self) -> list[str]:
-        return [self.private_key, self.api_key]
+        return [self.api_key] + ([self.private_key] if self.private_key else [])
 
 
 Credentials = (
@@ -322,7 +336,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "PREDICT_FUN_RPC_URL",
     ),
     "limitless": ("LIMITLESS_PRIVATE_KEY", "LIMITLESS_API_TOKEN_ID", "LIMITLESS_API_SECRET", "LIMITLESS_RPC_URL"),
-    "sx_bet": ("SX_BET_PRIVATE_KEY", "SX_BET_API_KEY", "SX_BET_TESTNET"),
+    "sx_bet": ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY", "SX_BET_ACCOUNT_ADDRESS", "SX_BET_TESTNET"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -543,18 +557,39 @@ def load_limitless(env: Mapping[str, str]) -> LimitlessCredentials | None:
 
 
 def load_sx_bet(env: Mapping[str, str]) -> SxBetCredentials | None:
-    key = env.get("SX_BET_PRIVATE_KEY")
-    if not key:
-        return None
-    if not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
-        raise CredentialsMissing("SX_BET_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
     api_key = env.get("SX_BET_API_KEY")
+    key = env.get("SX_BET_PRIVATE_KEY") or None
     if not api_key:
+        if key:
+            raise CredentialsMissing(
+                "SX_BET_PRIVATE_KEY is set but SX_BET_API_KEY is not; generate an API key on sx.bet "
+                "(Account -> Overview -> API Credentials)"
+            )
+        return None
+    if key and not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("SX_BET_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    key = None if key is None else key if key.startswith("0x") else "0x" + key
+    account = env.get("SX_BET_ACCOUNT_ADDRESS") or None
+    if account and not re.match(r"^0x[0-9a-fA-F]{40}$", account):
         raise CredentialsMissing(
-            "SX_BET_PRIVATE_KEY is set but SX_BET_API_KEY is not; generate an API key on sx.bet (Account, API key)"
+            f"SX_BET_ACCOUNT_ADDRESS must be the wallet's 0x address (40 hex characters), not its private key; "
+            f"got {_shape_of(account)}"
         )
+    if account and key:
+        from .polymarket_signing import WalletSigner
+
+        # The key signs as its own address; a different account address would
+        # watch one account's channels while placing for another.
+        if WalletSigner(key).address.lower() != account.lower():
+            raise CredentialsMissing("SX_BET_ACCOUNT_ADDRESS is not the address of SX_BET_PRIVATE_KEY")
     testnet = str(env.get("SX_BET_TESTNET") or "").strip().lower() in ("1", "true", "yes")
-    return SxBetCredentials(private_key=key if key.startswith("0x") else "0x" + key, api_key=api_key, testnet=testnet)
+    return SxBetCredentials(api_key=api_key, private_key=key, account_address=account, testnet=testnet)
+
+
+def _shape_of(value: str) -> str:
+    """What a malformed value looks like, without echoing it: it may be a
+    private key pasted into the wrong variable."""
+    return f"{len(value)} characters" + (" that look like a private key" if re.match(r"^(0x)?[0-9a-fA-F]{64}$", value) else "")
 
 
 LOADERS = {

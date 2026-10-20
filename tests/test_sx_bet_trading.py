@@ -444,3 +444,122 @@ class TestUserStream:
         creds = SxBetCredentials(private_key=KEY, api_key="api-key", testnet=True)
         streams = default_streams({"sx_bet": object()}, {"sx_bet": creds})["sx_bet"]
         assert streams.market.url.startswith("wss://realtime.toronto") and streams.private.address == OWNER.address
+
+
+def key_only(venue: Venue, **changes) -> SxBetTrading:
+    creds = SxBetCredentials(api_key="api-key", **changes)
+    return SxBetTrading(creds, catalog=Catalog(), client=httpx.AsyncClient(transport=httpx.MockTransport(venue)))
+
+
+class TestKeyOnly:
+    """The venue authorizes reads, cancels and the heartbeat by the API key
+    alone; only placing an order needs the wallet's signature."""
+
+    def test_the_api_key_alone_loads(self):
+        creds = load_sx_bet({"SX_BET_API_KEY": "k"})
+        assert creds.private_key is None and creds.address is None and creds.secrets == ["k"]
+
+    def test_the_account_address_can_be_given(self):
+        creds = load_sx_bet({"SX_BET_API_KEY": "k", "SX_BET_ACCOUNT_ADDRESS": OWNER.address})
+        assert creds.address == OWNER.address and OWNER.address in repr(creds)
+
+    def test_a_private_key_in_the_address_variable_is_refused_without_echoing_it(self):
+        with pytest.raises(CredentialsMissing, match="not its private key") as raised:
+            load_sx_bet({"SX_BET_API_KEY": "k", "SX_BET_ACCOUNT_ADDRESS": KEY})
+        assert KEY not in str(raised.value) and KEY[2:] not in str(raised.value)
+
+    def test_an_address_that_is_not_the_keys_is_refused(self):
+        with pytest.raises(CredentialsMissing, match="not the address of SX_BET_PRIVATE_KEY"):
+            load_sx_bet({"SX_BET_API_KEY": "k", "SX_BET_PRIVATE_KEY": KEY, "SX_BET_ACCOUNT_ADDRESS": "0x" + "12" * 20})
+        same = load_sx_bet({"SX_BET_API_KEY": "k", "SX_BET_PRIVATE_KEY": KEY, "SX_BET_ACCOUNT_ADDRESS": OWNER.address.lower()})
+        assert same.address == OWNER.address
+
+    def test_reads_and_cancels_work_with_the_key(self):
+        venue = Venue(**{
+            "GET /orders-v3": {"status": "success", "data": {"orders": [ORDER_ROW]}},
+            f"GET /orders-v3/{ORDER_ROW['id']}": {"status": "success", "data": {
+                **ORDER_ROW, "status": "INACTIVE", "inactiveReason": "USER_REQUESTED"}},
+            "GET /fills-v3": {"status": "success", "data": {"fills": [FILL_ROW]}},
+            "GET /positions-v3": {"status": "success", "data": {"positions": [POSITION_ROW]}},
+            "GET /user/balance-v3": {"status": "success", "data": {"balances": [{
+                "tokenAddress": META["activeAsset"]["baseToken"], "availableAmount": "1000000",
+                "pendingAvailableAmount": "0", "escrowedAmount": "0", "pendingEscrowAmount": "0"}]}},
+            "DELETE /orders-v3": {"status": "success", "data": {"cancelled": [{"orderId": ORDER_ROW["id"]}]}},
+            "DELETE /orders-v3/all": {"status": "success", "data": {"cancelledSubmitted": [{"orderId": "0x1"}]}},
+            "POST /heartbeat/v3": {"status": "success", "data": {"timeoutSeconds": 60}},
+        })
+
+        async def go():
+            async with key_only(venue) as sx:
+                return (await sx.fetch_open_orders(), await sx.fetch_my_trades(), await sx.fetch_positions(),
+                        await sx.fetch_balance(), await sx.cancel_order(ORDER_ROW["id"]),
+                        await sx.cancel_all_orders(), await sx.heartbeat(60),
+                        await sx.fetch_fee_estimate(MARKET_ID, Side.BUY, Decimal("0.4"), Decimal("10")))
+
+        opened, fills, positions, balance, cancelled, count, beat, fee = run(go())
+        assert len(opened) == 1 and len(fills) == 1 and positions and balance.available == Decimal("1")
+        assert cancelled.status == OrderStatus.CANCELED and count == 1 and beat["timeoutSeconds"] == 60
+        assert fee.taker_fee is not None
+        assert all(r.headers["x-sx-api-key"] == "api-key" for r in venue.requests)
+
+    def test_placing_without_a_private_key_raises_before_any_request(self):
+        venue = Venue()
+
+        async def go():
+            async with key_only(venue) as sx:
+                return await sx.create_order(request())
+
+        with pytest.raises(CredentialsMissing, match="set SX_BET_PRIVATE_KEY to place orders"):
+            run(go())
+        assert venue.requests == [], "not even the metadata is read"
+
+    def test_the_address_is_asked_for_when_unknown(self):
+        sx = key_only(Venue())
+        try:
+            with pytest.raises(CredentialsMissing, match="SX_BET_ACCOUNT_ADDRESS"):
+                sx.address
+        finally:
+            run(sx.close())
+        given = key_only(Venue(), account_address=OWNER.address)
+        try:
+            assert given.address == OWNER.address
+        finally:
+            run(given.close())
+
+    def test_cancel_all_repeats_while_the_venue_says_more_are_left(self):
+        pages = iter([{"cancelledSubmitted": [{"orderId": "0x1"}], "hasMore": True},
+                      {"cancelledSubmitted": [{"orderId": "0x2"}], "hasMore": False}])
+        venue = Venue(**{"DELETE /orders-v3/all": lambda req: {"status": "success", "data": next(pages)}})
+
+        async def go():
+            async with key_only(venue) as sx:
+                return await sx.cancel_all_orders()
+
+        assert run(go()) == 2 and len(venue.sent("DELETE", "/orders-v3/all")) == 2
+
+    def test_without_an_address_the_engine_polls_instead_of_streaming_the_account(self, caplog):
+        from synpath.engine.feeds import default_streams
+
+        with caplog.at_level("WARNING", logger="synpath.engine.feeds"):
+            streams = default_streams({"sx_bet": object()}, {"sx_bet": SxBetCredentials(api_key="api-key")})["sx_bet"]
+        assert streams.market is not None and streams.private is None
+        assert "SX_BET_ACCOUNT_ADDRESS" in caplog.text
+
+    def test_with_an_address_the_account_stream_is_built(self):
+        from synpath.engine.feeds import default_streams
+
+        creds = SxBetCredentials(api_key="api-key", account_address=OWNER.address.lower())
+        streams = default_streams({"sx_bet": object()}, {"sx_bet": creds})["sx_bet"]
+        assert streams.private.address == OWNER.address
+
+    def test_doctor_says_what_the_key_does_and_what_the_private_key_adds(self, tmp_path, monkeypatch, capsys):
+        from synpath.trading.__main__ import doctor
+
+        for name in ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY", "SX_BET_ACCOUNT_ADDRESS", "SX_BET_TESTNET"):
+            monkeypatch.delenv(name, raising=False)
+        env = tmp_path / ".env"
+        env.write_text("SX_BET_API_KEY=sx-key-123456\n")
+        assert doctor(str(env)) == 0
+        out = capsys.readouterr().out
+        assert "API key: market data, account, cancels; no private key: set SX_BET_PRIVATE_KEY to place orders" in out
+        assert "sx-key-123456" not in out

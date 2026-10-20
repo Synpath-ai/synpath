@@ -29,11 +29,13 @@ class TestLoading:
         assert {venue: key.api_key for venue, key in market_data.items()} == {
             "opinion": "op-key-123456", "predict_fun": "pred_sk_123456", "sx_bet": "sx-key-123456"}
         trading = load_credentials(API_KEYS, redact_logs=False)
-        assert trading["opinion"] is None and trading["predict_fun"] is None and trading["sx_bet"] is None
+        assert trading["opinion"] is None and trading["predict_fun"] is None
+        assert trading["sx_bet"].private_key is None, "SX Bet's key reads the account and cancels: see test_sx_bet_key_only"
 
     def test_trading_still_needs_the_private_key_and_says_so(self):
-        with pytest.raises(CredentialsMissing, match="SX_BET_API_KEY reads market data; trading also needs the private key"):
-            require("sx_bet", load_credentials(API_KEYS, redact_logs=False))
+        with pytest.raises(CredentialsMissing,
+                           match="PREDICT_FUN_API_KEY reads market data; trading also needs the private key"):
+            require("predict_fun", load_credentials(API_KEYS, redact_logs=False))
 
     def test_with_the_private_key_both_load(self):
         env = {**API_KEYS, "SX_BET_PRIVATE_KEY": KEY, "SX_BET_TESTNET": "1"}
@@ -142,8 +144,8 @@ def test_doctor_reports_a_venue_set_up_for_market_data_only(tmp_path: Path, monk
     for name in API_KEYS:
         monkeypatch.delenv(name, raising=False)
     env_file = tmp_path / ".env"
-    env_file.write_text("SX_BET_API_KEY=sx-key-123456\n")
+    env_file.write_text("PREDICT_FUN_API_KEY=pred_sk_123456\n")
     assert doctor(str(env_file)) == 0
     out = capsys.readouterr().out
-    assert "market data (mainnet)" in out and "set SX_BET_PRIVATE_KEY to trade" in out
-    assert "1 for market data only" in out and "sx-key-123456" not in out
+    assert "market data (mainnet)" in out and "set PREDICT_FUN_PRIVATE_KEY to trade" in out
+    assert "1 for market data only" in out and "pred_sk_123456" not in out
