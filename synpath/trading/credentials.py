@@ -9,7 +9,12 @@ log line prints `***` rather than a private key.
 Nothing here talks to a venue. `synpath doctor` reports what
 loaded; the adapters are what use it.
 
-  Kalshi              KALSHI_KEY_ID, KALSHI_PRIVATE_KEY_PATH, KALSHI_ENV (prod, the default, or demo)
+Two sets per venue. `load_credentials` is what trading needs, the private key
+included. `load_market_data` is the API key alone, for the three venues
+whose market data wants one and no wallet: Opinion, predict.fun and SX Bet.
+
+  Kalshi              KALSHI_KEY_ID, KALSHI_PRIVATE_KEY_PATH (PEM, Ed25519 or RSA),
+                      KALSHI_ENV (prod, the default, or demo)
   Polymarket          POLYMARKET_PRIVATE_KEY, POLYMARKET_SIGNATURE_TYPE (0-3),
                       POLYMARKET_FUNDER, and optionally POLYMARKET_API_KEY /
                       _API_SECRET / _API_PASSPHRASE, POLYMARKET_BUILDER_CODE,
@@ -20,16 +25,18 @@ loaded; the adapters are what use it.
   Polymarket US       POLYMARKET_US_CLIENT_ID, POLYMARKET_US_PRIVATE_KEY_PATH,
     (exchange API)    POLYMARKET_US_PARTICIPANT_ID, POLYMARKET_US_ACCOUNT,
                       POLYMARKET_US_ENV (preprod|prod)
-  Opinion             OPINION_PRIVATE_KEY, OPINION_API_KEY, and optionally
+  Opinion             OPINION_API_KEY (market data alone), OPINION_PRIVATE_KEY, and optionally
                       OPINION_MULTISIG_ADDRESS
   Hyperliquid         HYPERLIQUID_PRIVATE_KEY, and optionally
                       HYPERLIQUID_ACCOUNT_ADDRESS (when the key is an API
                       wallet) and HYPERLIQUID_TESTNET
-  predict.fun         PREDICT_FUN_PRIVATE_KEY, PREDICT_FUN_API_KEY (mainnet),
+  predict.fun         PREDICT_FUN_API_KEY (mainnet; market data alone), PREDICT_FUN_PRIVATE_KEY,
                       and optionally PREDICT_FUN_ACCOUNT_ADDRESS (a Predict
                       account), PREDICT_FUN_TESTNET, PREDICT_FUN_RPC_URL
   Limitless           LIMITLESS_PRIVATE_KEY, LIMITLESS_API_TOKEN_ID,
                       LIMITLESS_API_SECRET, and optionally LIMITLESS_RPC_URL
+  SX Bet              SX_BET_API_KEY (market data alone), SX_BET_PRIVATE_KEY, and
+                      optionally SX_BET_TESTNET
 """
 from __future__ import annotations
 
@@ -563,23 +570,31 @@ LOADERS = {
 }
 
 
-def load_credentials(
-    env: Mapping[str, str] | None = None, *, dotenv: Path | str | None = None,
-    redact_logs: bool = True,
-) -> dict[str, Credentials | None]:
-    """Every venue's credentials, or `None` where none are configured.
-
-    The process environment wins over the `.env` file, so a variable exported
-    for one run overrides what the file says. With `redact_logs`, every secret
-    loaded is registered with the logging filter before anything else can
-    print it.
-    """
+def merged_env(env: Mapping[str, str] | None = None, *, dotenv: Path | str | None = None) -> dict[str, str]:
+    """The `.env` file overlaid by the environment: `dotenv` when given, else
+    `./.env` when there is one. The environment wins, so a variable exported
+    for one run overrides what the file says."""
     merged: dict[str, str] = {}
     if dotenv is not None and Path(dotenv).exists():
         merged.update(read_dotenv(dotenv))
     elif dotenv is None and Path(".env").exists():
         merged.update(read_dotenv(".env"))
     merged.update(env if env is not None else os.environ)
+    return merged
+
+
+def load_credentials(
+    env: Mapping[str, str] | None = None, *, dotenv: Path | str | None = None,
+    redact_logs: bool = True,
+) -> dict[str, Credentials | None]:
+    """Every venue's trading credentials, or `None` where none are configured.
+
+    These are what an order needs, so a venue configured with only the API
+    key its market data needs is `None` here; `load_market_data` has it.
+    With `redact_logs`, every secret loaded is registered with the logging
+    filter before anything else can print it.
+    """
+    merged = merged_env(env, dotenv=dotenv)
     loaded = {venue: loader(merged) for venue, loader in LOADERS.items()}
     if redact_logs:
         for creds in loaded.values():
@@ -588,12 +603,68 @@ def load_credentials(
     return loaded
 
 
+@dataclass(frozen=True, repr=False)
+class MarketDataKey:
+    """The API key a venue wants before it serves market data, with no wallet
+    behind it. Reading books needs nothing more, so a user who only watches
+    prices never has to put a private key on disk."""
+
+    venue: str
+    api_key: str = field(repr=False)
+    testnet: bool = False
+    _public = ("venue", "testnet")
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.api_key]
+
+
+MARKET_DATA_KEYS: dict[str, tuple[str, str | None]] = {
+    "opinion": ("OPINION_API_KEY", None),
+    "predict_fun": ("PREDICT_FUN_API_KEY", "PREDICT_FUN_TESTNET"),
+    "sx_bet": ("SX_BET_API_KEY", "SX_BET_TESTNET"),
+}
+"""The venues whose market data needs an API key but no private key: the
+variable holding the key, and the one choosing the test network. Kalshi and
+Polymarket US sign even their market streams with the full key pair, so
+their trading credentials are their market-data credentials; Polymarket,
+Hyperliquid and Limitless serve market data to anyone."""
+
+
+def _truthy(value: str | None) -> bool:
+    return str(value or "").strip().lower() in ("1", "true", "yes")
+
+
+def load_market_data(
+    env: Mapping[str, str] | None = None, *, dotenv: Path | str | None = None,
+    redact_logs: bool = True,
+) -> dict[str, MarketDataKey]:
+    """The market-data API key of every venue that has one set, whether or
+    not its private key is. Read from the same places as `load_credentials`."""
+    merged = merged_env(env, dotenv=dotenv)
+    keys: dict[str, MarketDataKey] = {}
+    for venue, (key_name, testnet_name) in MARKET_DATA_KEYS.items():
+        api_key = (merged.get(key_name) or "").strip()
+        if api_key:
+            keys[venue] = MarketDataKey(venue=venue, api_key=api_key,
+                                        testnet=_truthy(merged.get(testnet_name)) if testnet_name else False)
+    if redact_logs:
+        for key in keys.values():
+            SecretFilter.install(key.secrets)
+    return keys
+
+
 def require(venue: str, loaded: Mapping[str, Credentials | None]) -> Credentials:
     """The venue's credentials, or `CredentialsMissing` naming what to set."""
     creds = loaded.get(venue)
     if creds is None:
         names = ", ".join(ENV_NAMES.get(venue, ()))
-        raise CredentialsMissing(f"no {venue} credentials configured; set {names}")
+        # An API key alone is a configured venue for market data, so say why
+        # it is not enough here rather than telling the user to set it again.
+        partial = (f" ({MARKET_DATA_KEYS[venue][0]} reads market data; trading also needs the private key)"
+                   if venue in MARKET_DATA_KEYS else "")
+        raise CredentialsMissing(f"no {venue} trading credentials configured; set {names}{partial}")
     return creds
 
 

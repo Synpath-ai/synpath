@@ -16,7 +16,7 @@ import argparse
 import logging
 import sys
 
-from .credentials import ENV_NAMES, load_credentials
+from .credentials import ENV_NAMES, load_credentials, load_market_data
 from .errors import CredentialsMissing
 
 
@@ -24,11 +24,17 @@ def doctor(dotenv: str | None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
         loaded = load_credentials(dotenv=dotenv)
+        market_data = load_market_data(dotenv=dotenv)
     except CredentialsMissing as exc:
         print(f"credentials: {exc}")
         return 2
     rows = []
     for venue, creds in loaded.items():
+        if creds is None and venue in market_data:
+            stage = "testnet" if market_data[venue].testnet else "mainnet"
+            private = ENV_NAMES[venue][0]
+            rows.append((venue, f"market data ({stage})", f"API key loaded; set {private} to trade"))
+            continue
         if creds is None:
             names = ENV_NAMES[venue]
             hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet") else ""
@@ -74,7 +80,9 @@ def doctor(dotenv: str | None) -> int:
     for venue, state, detail in rows:
         print(f"{venue:<{width}}  {state:<22}  {detail}")
     configured = sum(1 for _, state, _ in rows if state.startswith("configured"))
-    print(f"\n{configured} of {len(rows)} venues configured. No secret was printed.")
+    reading = sum(1 for _, state, _ in rows if state.startswith("market data"))
+    also = f", {reading} for market data only" if reading else ""
+    print(f"\n{configured} of {len(rows)} venues configured for trading{also}. No secret was printed.")
     return 0
 
 

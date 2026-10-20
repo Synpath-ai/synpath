@@ -397,7 +397,7 @@ class SxBetTrading(TradingExchange):
         if catalog is None:
             from ..sx_bet import SxBet
 
-            catalog = SxBet(api_url=self.url)
+            catalog = SxBet(api_key=credentials.api_key, api_url=self.url)
         self.catalog = catalog
         """The read adapter: fee schedules."""
         self._meta: dict[str, Any] | None = None

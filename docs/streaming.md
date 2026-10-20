@@ -50,6 +50,29 @@ Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 The Polymarket US exchange API's streams are gRPC; they are described
 [below](#polymarket-us-exchange-api-grpc).
 
+### What market streams need
+
+No market stream needs a private key. Which credential each needs, and the
+variable `synpath serve` reads it from:
+
+| Venue | Market stream needs | Variable |
+|---|---|---|
+| Kalshi | the API key: Key ID and private key file (the handshake is signed) | `KALSHI_KEY_ID`, `KALSHI_PRIVATE_KEY_PATH` |
+| Polymarket US | the retail API key: Key ID and Secret Key | `POLYMARKET_US_KEY_ID`, `POLYMARKET_US_SECRET_KEY` |
+| Polymarket | nothing | |
+| Hyperliquid | nothing | |
+| Limitless | nothing | |
+| Opinion | the Open API key | `OPINION_API_KEY` |
+| predict.fun | the API key (`pred_sk_...`, from developers.predict.fun); mainnet only | `PREDICT_FUN_API_KEY` |
+| SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
+
+`synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
+from the API key alone (`load_market_data`), so a parent on any venue can
+watch their books without their private keys on disk. The account streams,
+and trading, still need the full set ([Trading](trading.md#credentials)).
+Its `--dotenv` file is also where the read app at `/` finds these keys,
+whatever folder `serve` runs from.
+
 ## Events
 
 All events are frozen dataclasses with `venue` and `received_at` (local
