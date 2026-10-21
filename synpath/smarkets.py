@@ -185,9 +185,10 @@ def iso_ms(value: Any) -> int | None:
     text = str(value).replace("Z", "+00:00")
     head, dot, rest = text.partition(".")
     if dot:
-        digits = "".join(ch for ch in rest if ch.isdigit())
+        digits = rest[:len(rest) - len(rest.lstrip("0123456789"))]
         zone = rest[len(digits):]
-        text = f"{head}.{digits[:6]}{zone}"
+        # Python 3.10's fromisoformat takes exactly 3 or 6 fraction digits.
+        text = f"{head}.{digits[:6].ljust(6, '0')}{zone}"
     try:
         parsed = datetime.fromisoformat(text)
     except ValueError:
