@@ -44,6 +44,11 @@ class OrderNotFound(ExchangeError):
     """No order under that id at the venue -- already gone, or never there."""
 
 
+class RfqNotFound(OrderNotFound):
+    """No RFQ, quote or combo under that id at the venue, or none visible to
+    this account."""
+
+
 class OrderRejected(ExchangeError):
     """The venue took the order and rejected it: post-only would have crossed,
     the market is closed, self-trade prevention fired. `info` says which."""

@@ -1,0 +1,27 @@
+{
+  "event_ticker": "KXMVECROSSCATEGORY-S2026GBYNMLIOB4P5GM6R",
+  "market_ticker": "KXMVECROSSCATEGORY-S2026GBYNMLIOB4P5GM6R-6TO3QWLMW",
+  "market": {
+    "ticker": "KXMVECROSSCATEGORY-S2026GBYNMLIOB4P5GM6R-6TO3QWLMW",
+    "event_ticker": "KXMVECROSSCATEGORY-S2026GBYNMLIOB4P5GM6R",
+    "market_type": "binary",
+    "status": "active",
+    "created_time": "2026-10-21T15:01:58Z",
+    "mve_collection_ticker": "KXMVECROSSCATEGORY-R",
+    "mve_selected_legs": [
+      {
+        "event_ticker": "KXNFLGAME-26OCT25KCDEN",
+        "market_ticker": "KXNFLGAME-26OCT25KCDEN-KC",
+        "side": "yes"
+      },
+      {
+        "event_ticker": "KXNBAGAME-26OCT25LALBOS",
+        "market_ticker": "KXNBAGAME-26OCT25LALBOS-BOS",
+        "side": "no"
+      }
+    ],
+    "yes_bid_dollars": "0.0000",
+    "yes_ask_dollars": "0.0000",
+    "volume_fp": "0.00"
+  }
+}

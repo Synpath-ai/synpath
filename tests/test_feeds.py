@@ -310,7 +310,7 @@ class TestRunning:
         engine, *_ = setup
         loops = engine.background()
         try:
-            assert set(loops) == {"lease", "sweep", "poll", "managed", "dispatch"}
+            assert set(loops) == {"lease", "sweep", "poll", "managed", "dispatch", "rfq"}
         finally:
             for coro in loops.values():
                 coro.close()

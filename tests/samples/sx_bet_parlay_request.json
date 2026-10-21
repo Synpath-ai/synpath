@@ -1,0 +1,18 @@
+{
+  "channelName": "markets:parlay",
+  "marketHash": "0x3f8893a68554eca5aaee57896505ea345e757b8809e8301b8ad8873a98b1c73b",
+  "requestorId": "08e489e45313812cf236b43ab68c6236e3e8d63375a07d6bafdec1ecbed85c1b",
+  "baseToken": "0x1BC6326EA6aF2aB8E4b6Bc83418044B1923b2956",
+  "requestSize": "50000000",
+  "chainVersion": "SXR",
+  "legs": [
+    {
+      "marketHash": "0x22ed4cf508418f44e787f9c8e79f76eb31587efa20fe700b3582e09f01775944",
+      "bettingOutcomeOne": false
+    },
+    {
+      "marketHash": "0x186685cf65e1a22952ad42982e1ec75b6a457fa3bdec59fa6f891258a718ddfe",
+      "bettingOutcomeOne": true
+    }
+  ]
+}

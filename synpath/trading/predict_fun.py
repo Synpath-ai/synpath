@@ -478,6 +478,10 @@ class PredictFunTrading(TradingExchange):
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
         "rfq": False,
+        # Typed RFQ and combos arrive phase by phase (docs/rfq-combo.md).
+        "rfq_taker": False,
+        "rfq_quoter": False,
+        "combos": False,
         "split_merge": False,
         "watch_orders": False,
         "watch_my_trades": False,
