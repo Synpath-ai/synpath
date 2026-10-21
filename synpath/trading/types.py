@@ -28,9 +28,9 @@ from __future__ import annotations
 
 from decimal import Decimal
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from .._deprecated import QUANTITY, rename_input, renamed_fields
 from ..types import iso
@@ -42,14 +42,52 @@ class Side(str, Enum):
     `buy` takes the YES side, `sell` takes the NO side, and the price is
     always the YES price: selling at 0.70 is the same order as buying NO at
     0.30. On a venue that nets a position (Kalshi, Polymarket US) that is
-    literally the order sent. On Polymarket, where YES and NO are separate
-    tokens, `sell` buys the NO token at `1 - price`; `sell` with
-    `reduce_only` sells the YES tokens held instead. `buy` with
-    `reduce_only` likewise sells NO tokens held rather than buying YES.
+    literally the order sent. Where YES and NO are separate tokens
+    (Polymarket and the like) the YES leg cannot say whether a `sell` sells
+    YES tokens held or buys NO tokens: an order says which with its
+    `outcome` and `action` (see `OrderRequest`).
     """
 
     BUY = "buy"
     SELL = "sell"
+
+
+Outcome = Literal["yes", "no"]
+"""The outcome an order trades: which token it buys or sells."""
+Action = Literal["buy", "sell"]
+"""What an order does with its outcome."""
+
+
+def yes_side(outcome: str, action: str) -> Side:
+    """An outcome and action on the YES leg: buying YES and selling NO are
+    YES buys; selling YES and buying NO are YES sells."""
+    return Side.BUY if (outcome == "yes") == (action == "buy") else Side.SELL
+
+
+def default_leg(side: Side | str) -> tuple[str, str]:
+    """The outcome and action a YES-leg side means when nothing else says:
+    `buy` buys YES, `sell` buys NO (opening, as an order with no position
+    in mind does)."""
+    return ("yes", "buy") if Side(side) == Side.BUY else ("no", "buy")
+
+
+def legacy_reduce_only(data: Any, *, refuse: bool) -> Any:
+    """`reduce_only` is gone (16 October 2026): an order says what it does
+    with `outcome` and `action`. Written before that, a reduce-only order
+    sold the token its side names the other of: a reduce-only `sell` sold
+    YES held, a reduce-only `buy` sold NO held. Stored and venue-reported
+    data is read that way; a new request naming it is refused."""
+    if not isinstance(data, dict) or "reduce_only" not in data:
+        return data
+    if refuse:
+        raise ValueError("reduce_only is removed: say what the order does with outcome (yes/no) and action "
+                         "(buy/sell), e.g. outcome=yes, action=sell sells YES held")
+    data = dict(data)
+    reduce_only = bool(data.pop("reduce_only"))
+    side = data.get("side")
+    if reduce_only and side is not None and data.get("outcome") is None and data.get("action") is None:
+        data["outcome"], data["action"] = ("yes", "sell") if Side(side) == Side.SELL else ("no", "sell")
+    return data
 
 
 class OrderType(str, Enum):
@@ -212,7 +250,18 @@ class OrderRequest(_Base):
     """Synpath id, `venue:native`. A bare native id is accepted by the venue's
     own adapter."""
     side: Side
-    """`buy` takes YES, `sell` takes NO. See `Side`."""
+    """`buy` takes YES, `sell` takes NO, on the YES leg. See `Side`. Set
+    from `outcome` and `action` when they are given and it is not."""
+    outcome: Outcome | None = None
+    action: Action | None = None
+    """What the order does, in the caller's terms: buy or sell YES or NO.
+    The engine, ledger and risk work on the YES leg (`side`, the YES
+    `price`); a venue adapter reads these to send it. On a venue that nets
+    (Kalshi, Polymarket US) Buy NO and Sell YES are the same order. Where YES
+    and NO are separate tokens (Polymarket, Opinion, Limitless, predict.fun,
+    Hyperliquid) they are not: `sell` sells the tokens held, `buy` buys them.
+    Both or neither: with neither, `side` decides (`default_leg`: `buy` buys
+    YES, `sell` buys NO)."""
     quantity: Decimal
     """Contracts."""
     type: OrderType = OrderType.LIMIT
@@ -226,15 +275,14 @@ class OrderRequest(_Base):
     trigger_source: TriggerSource = TriggerSource.TOUCH
     """What a stop watches; see `TriggerSource`. Stops only."""
     time_in_force: TimeInForce = TimeInForce.GTC
-    """For a `stop_market`, how long the stop stays armed (`gtc`, `gtd`,
-    `day`); its triggered child is always `ioc`. For a `stop_limit`, what
-    the limit child carries once triggered (`gtc`, `gtd`, `ioc`, `fok`)."""
+    """For a stop, how long the whole order lives, armed and after it
+    triggers, as IBKR and FIX use it: `gtc`, `gtd` or `day`. A `stop_limit`'s
+    child inherits it (a `day` one as `gtd` at the same session end); a
+    `stop_market`'s child is `ioc` within that life. `ioc` and `fok` are
+    refused on a stop."""
     expires_at: int | None = None
     """Milliseconds since epoch. Required with `gtd`."""
     post_only: bool = False
-    reduce_only: bool = False
-    """Only reduce an existing position. On Polymarket this is what decides
-    whether `sell` buys NO tokens or sells YES tokens held; see `Side`."""
     client_order_id: str | None = None
     """The idempotency key. Generated before the first write if absent, and
     reused on every retry of the same intent."""
@@ -249,8 +297,41 @@ class OrderRequest(_Base):
     """Venue-specific extras passed through untouched (Kalshi
     `self_trade_prevention_type`, Polymarket `signatureType`, ...)."""
 
+    @classmethod
+    def stored(cls, data: Any) -> "OrderRequest":
+        """An instruction read back from a journal. It was valid when it was
+        accepted: rules added since (a stop's `ioc`/`fok` time in force) do
+        not stop an older order from being restored, listed or retried, and
+        an old `reduce_only` is read as the outcome and action it meant."""
+        return cls.model_validate(data, context={"stored": True})
+
+    @property
+    def leg(self) -> tuple[str, str]:
+        """`(outcome, action)`: what the order does, given or from `side`."""
+        if self.outcome is not None and self.action is not None:
+            return self.outcome, self.action
+        return default_leg(self.side)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _outcome_and_action(cls, data: Any, info: ValidationInfo) -> Any:
+        data = legacy_reduce_only(data, refuse=not (info.context or {}).get("stored"))
+        if not isinstance(data, dict):
+            return data
+        outcome, action = data.get("outcome"), data.get("action")
+        if (outcome is None) != (action is None):
+            raise ValueError("give outcome and action together (buy or sell, yes or no), or neither")
+        if outcome is not None:
+            implied = yes_side(str(outcome), str(action))
+            if data.get("side") is None:
+                data = {**data, "side": implied}
+            elif Side(data["side"]) != implied:
+                raise ValueError(f"side {Side(data['side']).value} is not {action} {outcome} on the YES leg "
+                                 f"({implied.value}); give one or make them agree")
+        return data
+
     @model_validator(mode="after")
-    def _consistent(self) -> "OrderRequest":
+    def _consistent(self, info: ValidationInfo) -> "OrderRequest":
         if self.type == OrderType.LIMIT and self.price is None:
             raise ValueError("a limit order needs a price")
         if self.time_in_force == TimeInForce.GTD and self.expires_at is None:
@@ -262,12 +343,12 @@ class OrderRequest(_Base):
             raise ValueError("stop_limit needs the limit price to submit once triggered")
         if self.trigger_source != TriggerSource.TOUCH and self.type not in STOP_TYPES:
             raise ValueError(f"trigger_source is for stop orders, not {self.type.value}")
-        if self.type == OrderType.STOP_MARKET and self.time_in_force in (TimeInForce.IOC, TimeInForce.FOK):
-            raise ValueError("a stop_market's time_in_force is how long it stays armed: gtc, gtd or day. "
-                             "The order it sends when triggered is always ioc")
+        stored = bool((info.context or {}).get("stored"))
+        if self.type in (OrderType.STOP_MARKET, OrderType.STOP_LIMIT) and not stored \
+                and self.time_in_force in (TimeInForce.IOC, TimeInForce.FOK):
+            raise ValueError(f"a {self.type.value}'s time_in_force is how long the whole order lives, armed and "
+                             f"after it triggers: gtc, gtd or day, not {self.time_in_force.value}")
         if self.type == OrderType.STOP_LIMIT:
-            if self.time_in_force == TimeInForce.DAY:
-                raise ValueError("a stop_limit's time_in_force is gtc, gtd, ioc or fok; for the day, use gtd with expires_at")
             if self.side == Side.SELL and self.price > self.stop_price:  # type: ignore[operator]
                 raise ValueError(f"a sell stop_limit's price {self.price} must be at or below its stop_price {self.stop_price}")
             if self.side == Side.BUY and self.price < self.stop_price:  # type: ignore[operator]
@@ -320,7 +401,12 @@ class Order(_Base):
     last_fill_price: Decimal | None = None
     last_fill_quantity: Decimal | None = None
     post_only: bool = False
-    reduce_only: bool = False
+    outcome: Outcome | None = None
+    action: Action | None = None
+    """What the order does (see `OrderRequest.outcome`): as the caller gave it
+    on an order the engine placed, as the venue reports it where YES and NO
+    are separate tokens, else unknown (`None`). An order placed with a side
+    alone has none: on a netting venue a sell may close YES or open NO."""
     expires_at: int | None = None
     created_at: int | None = None
     updated_at: int | None = None
@@ -334,6 +420,12 @@ class Order(_Base):
     trader: str | None = None
     tags: dict[str, str] = Field(default_factory=dict)
     info: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy(cls, data: Any) -> Any:
+        """An order stored before `reduce_only` was removed reads as the outcome and action it meant."""
+        return legacy_reduce_only(data, refuse=False)
 
     @model_validator(mode="after")
     def _derive(self) -> "Order":
@@ -360,6 +452,10 @@ class Fill(_Base):
     market_id: str
     side: Side
     """On the YES leg, like `Order.side`."""
+    outcome: Outcome | None = None
+    action: Action | None = None
+    """What the fill did, its order's outcome and action (see
+    `OrderRequest.outcome`), where the order is known; else unknown."""
     price: Decimal
     """The YES price."""
     quantity: Decimal

@@ -297,6 +297,8 @@ class MarketStreams:
         """`synpath.server.bucket_books.BucketBooks`, where the server holds buckets."""
         self.bucket_subscriptions: dict[str, set[BucketSubscription]] = {}
         """Bucket id -> every client subscription streaming it, for a definition change."""
+        self.last_stream_status: dict[str, StreamStatusEvent] = {}
+        """Venue -> the last lifecycle event its market connection reported, for `venue_status`."""
         if feeds is not None:
             self.adopt_engine_streams(feeds)
 
@@ -535,7 +537,34 @@ class MarketStreams:
             for session in connection.sessions_by_market.get(event.market_id, ()):
                 session.send(market_status_message(event))
         elif isinstance(event, StreamStatusEvent):
+            self.last_stream_status[venue] = event
             self.send_stream_status(connection, event)
+
+    def venue_status(self) -> list[dict[str, Any]]:
+        """Each open venue market connection's state, for a client's status bar.
+
+        `connected` while the socket is up; `reconnecting` after it dropped or
+        failed to connect (the stream retries by itself); `connecting` before
+        it has reported anything; `failed` when the venue refused it for good.
+        A venue with no open connection is not listed: nothing streams it."""
+        out = []
+        for venue, connection in sorted(self.connections.items()):
+            last = self.last_stream_status.get(venue)
+            up = getattr(connection.stream, "connected", None)
+            if last is not None and last.state == "failed":
+                state = "failed"
+            elif isinstance(up, asyncio.Event) and up.is_set():
+                state = "connected"
+            elif last is None:
+                state = "connecting"
+            elif last.state in ("connected", "subscribed", "resynced"):
+                state = "connected"
+            else:
+                state = "reconnecting"
+            out.append({"venue": venue, "state": state, "detail": last.detail if last is not None else "",
+                        "since_ms": last.received_at if last is not None else None,
+                        "markets": len(connection.watched_channels)})
+        return out
 
     def send_to_market(self, connection: VenueConnection, market_id: str, channel: str, message: dict[str, Any]) -> None:
         for session in connection.sessions_by_market.get(market_id, ()):
@@ -667,9 +696,18 @@ def initial_requests(socket: WebSocket) -> list[dict[str, Any]]:
 def add_market_socket(app: FastAPI, hub: MarketStreams) -> None:
     """`/ws/market` on `app`, authenticated like `/trading/ws/events`: the
     access token as `?key=` or `Authorization: Bearer`, any valid key."""
-    from .trading import socket_principal
+    from fastapi import Depends
+
+    from .trading import caller, socket_principal
 
     app.state.market_streams = hub
+
+    @app.get("/market/streams", tags=["market"], summary="Each venue's market connection",
+             dependencies=[Depends(caller)])
+    async def market_streams_status() -> list[dict[str, Any]]:
+        """Serve's open venue market connections and their state (see
+        `MarketStreams.venue_status`). A venue not listed has no connection."""
+        return hub.venue_status()
 
     @app.websocket("/ws/market")
     async def market(socket: WebSocket) -> None:

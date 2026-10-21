@@ -62,16 +62,18 @@ Every error, on both apps, is one shape. `code` is the library's exception in
 snake case, or the HTTP layer's own (`unauthorized`, `forbidden`,
 `validation_error`, `unknown_venue`); `details` always has `venue` and
 `retryable`, plus `rule` on a risk refusal, `reason` on a venue refusal,
-`retry_after` on a rate limit, and `errors` on a malformed request.
+`retry_after` on a rate limit, `client_order_id` on an order whose outcome is
+not known yet, and `errors` on a malformed request.
 
 ```json
 { "error": { "code": "rate_limit_exceeded", "message": "...", "details": { "venue": "kalshi", "retryable": true } } }
 ```
 
-`400` bad parameters or a venue's refusal of an order, `401` no token, `403` not
-permitted, `404` no such thing, `409` a risk rule or a halt, `422` a malformed
-body, `429` slow down, `501` the venue has no such capability, `502` the venue
-failed, `504` it did not answer. The sockets (`/ws/market`,
+`202` an order whose outcome is not known yet (below), `400` bad parameters or
+a venue's refusal of an order, `401` no token, `403` not permitted, `404` no
+such thing, `409` a risk rule, a halt, or a cancel the venue could not confirm,
+`422` a malformed body, `429` slow down, `501` the venue has no such
+capability, `502` the venue failed, `504` it did not answer. The sockets (`/ws/market`,
 `/trading/ws/events`) close with `4401` without a valid token.
 
 ## Batch reads and search
@@ -185,7 +187,9 @@ is coalesced: the client always gets the latest state, not every step.
 **One venue connection, shared.** The server opens one market connection per
 venue and reference-counts markets on it across every socket. A venue the
 engine trades is read from the engine's own feed connection, so the screen
-and the stops see the same book; the server never opens a second one. When
+and the stops see the same book; the server never opens a second one. A stop
+placed on a market a screen already shows reads that book at once: the venue
+sends no new snapshot for it, and the stop does not wait for the next change. When
 the last socket leaves a market it is unwatched upstream (Kalshi and
 Polymarket US streams cannot unwatch, so their subscription stays until the
 connection closes) unless the engine still watches it; a connection the
@@ -202,6 +206,13 @@ connection for good; subscribe again to reopen it). Not every venue streams
 every channel: Limitless and predict.fun carry no public trades, and that is
 said in `unsupported`. A client that falls more than 10,000 messages behind
 is closed with `1013`.
+
+`GET /market/streams` says what each open venue connection is doing:
+`connected`, `connecting`, `reconnecting` (the stream retries by itself) or
+`failed` (refused for good), with the last thing it reported. A venue not
+listed has no connection open. The engine's own connections are always
+listed; serve subscribes the trades of every market a stop watches or a
+position holds, beside its book.
 
 ### A bucket's merged book
 
@@ -301,12 +312,50 @@ python -m synpath.server bootstrap --control control.db   # the same, from a she
 | `GET /buckets` (`book`, `status`), `GET /buckets/{id}`, `GET /buckets/{id}/orders`, `GET /buckets/{id}/orders/{order_id}`, `GET /buckets/{id}/position` | `view` on every member venue | buckets, the orders on one with fills by venue, the position netted in bucket terms |
 | `POST /buckets/{id}/plan` | `view` on every member venue | preview where an order on the bucket would go now (below); nothing is placed |
 | `GET /orders`, `GET /orders/{id}`, `GET /fills`, `GET /positions`, `GET /balances`, `GET /pnl` | `view` | what the engine and the venues hold |
-| `GET`/`PUT /fair-values` | `view` / `trade` | the marks positions are valued at |
+| `GET /order-log` (`order_id`, `limit`, `before`) | `view` | every action on orders from the journal, newest first, repeats folded (`synpath.engine.order_log`): saved, sent, accepted, triggered, cancel requested, cancelled, filled, refused; one order with its cancel, fills and children |
+| `GET /journal` (`kind`, `limit`, `before`) | `view` | the journal's events as recorded, newest first, every kind or one prefix |
 | `GET /risk`, `PUT /risk` | `view` / `manage_credentials` | the rules in force, versioned on change |
 | `POST /halt`, `POST /resume` | `trade` | the kill switch |
 | `GET`/`POST`/`DELETE /grants`, `POST /keys`, `DELETE /keys/{id}` | `manage_members` / `manage_credentials` | who may do what |
 | `GET /audit` | `manage_members` | the append-only history of those changes |
 | `WS /ws/events` | `view` | the engine's events, replayed from a cursor then live |
+
+**Listing orders.** `GET /orders` takes `scope` (`open`, the default: resting
+venue orders and live engine-held parents, `waiting`, `triggered` or
+`pending_cancel`; `all`: every state, `closed`, `canceled`, `rejected` and
+`expired` too), `market_id`, `venue`, `book`, `since` (created at or after,
+milliseconds since the epoch), `limit` (1–1000; default every open order for
+`open`, 100 for `all`) and `cursor`. Rows are `Order`s, newest first by
+creation. An engine-held parent has `held_by: "engine"`; a venue order a
+parent placed has `held_by: "venue"` and the parent's id in `parent_id`, so
+children group under their parent. Follow `next_cursor` until it is null; a
+page can hold fewer than `limit` rows when some are on accounts the key may
+not view. A cursor this server did not give out is `400`.
+
+**An order whose outcome is not known yet is `202`, not a failure.** When the
+venue gives no verdict (a timeout, a lost response, a 5xx), the send may have
+landed, so `POST /orders` answers `202` with the error envelope, code
+`submission_in_doubt`, `details.retryable: true` and `details.client_order_id`
+(the one sent, or the one the engine assigned). Retry with the same body and
+`client_order_id`: the engine asks the venue first and answers `201` with the
+order it finds, `202 submission_pending` while the venue has no answer yet, or
+the original refusal; it never sends a second order. Reusing the id for a
+different instruction is `400`. `synpath.Client(server=...)` raises
+`SubmissionInDoubt` and `SubmissionPending`, each with `client_order_id`.
+
+```json
+{ "error": { "code": "submission_in_doubt", "message": "...",
+             "details": { "venue": "kalshi", "retryable": true, "client_order_id": "6f1c…" } } }
+```
+
+**A cancel never relabels a fill.** `DELETE /orders/{id}` on an order already
+finished returns it as it is. When the venue answers "not found", the server
+reads the order back and returns the venue's verdict: `closed` with its
+filled quantity if it filled first, `canceled` only if the venue cancelled
+it. An engine-held parent may answer `pending_cancel` until its child's fate
+is known. A venue with no record of the order at all is `409
+cancel_unconfirmed` (`CancelUnconfirmed` in Python); the order keeps its last
+observed status.
 
 **Permissions are per subaccount and nothing is implied.** A grant is
 `(user, account, permission)` where the account is `venue:name` or `*`, and

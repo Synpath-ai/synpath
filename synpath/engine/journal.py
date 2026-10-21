@@ -41,7 +41,7 @@ from .storage_types import Intent, IntentState, JournalEvent, Lease, LeaseLost
 from .submissions import request_identity
 from .order_storage import OrderRecords, UNATTRIBUTED_USER, schema as order_schema
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 10
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS submissions (
@@ -169,14 +169,6 @@ CREATE TABLE IF NOT EXISTS config_versions (
     payload TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS fair_values (
-    account_key TEXT NOT NULL,
-    market_id TEXT NOT NULL,
-    value TEXT NOT NULL,
-    source TEXT,
-    ts INTEGER NOT NULL,
-    PRIMARY KEY (account_key, market_id)
-);
 
 CREATE TABLE IF NOT EXISTS buckets (
     id TEXT PRIMARY KEY,
@@ -347,7 +339,7 @@ class Journal:
                 ) as cursor:
                     rows = await cursor.fetchall()
                 for row in rows:
-                    request = OrderRequest.model_validate(json.loads(row["request"]))
+                    request = OrderRequest.stored(json.loads(row["request"]))
                     snapshot = json.loads(row["snapshot"])
                     if snapshot.get("account"):
                         account = Account.model_validate(snapshot["account"])
@@ -393,7 +385,7 @@ class Journal:
                 intents = await cursor.fetchall()
             for row in intents:
                 try:
-                    request = OrderRequest.model_validate(json.loads(row["request"]))
+                    request = OrderRequest.stored(json.loads(row["request"]))
                 except (ValueError, TypeError):
                     continue
                 await self._order_records.write_request(
@@ -552,6 +544,33 @@ class Journal:
         async with self._db.execute(sql, args) as cursor:
             async for row in cursor:
                 yield JournalEvent(row["seq"], row["ts"], row["kind"], row["key"], json.loads(row["payload"]))
+
+    async def events_page(self, *, kinds: Iterable[str] = (), prefixes: Iterable[str] = (),
+                          keys: Iterable[str] | None = None, before: int | None = None,
+                          limit: int = 500) -> list[JournalEvent]:
+        """Events newest first: of these `kinds` or kinds starting with these
+        `prefixes` (either, or all when both are empty), optionally only these
+        `keys`, older than sequence `before`. The order log reads it."""
+        sql = "SELECT seq, ts, kind, key, payload FROM events WHERE 1=1"
+        args: list[Any] = []
+        kind_terms = [("kind = ?", kind) for kind in kinds] + [("kind LIKE ?", f"{prefix}%") for prefix in prefixes]
+        if kind_terms:
+            sql += " AND (" + " OR ".join(term for term, _ in kind_terms) + ")"
+            args += [value for _, value in kind_terms]
+        if keys is not None:
+            wanted = list(dict.fromkeys(keys))
+            if not wanted:
+                return []
+            sql += f" AND key IN ({','.join('?' * len(wanted))})"
+            args += wanted
+        if before is not None:
+            sql += " AND seq < ?"
+            args.append(int(before))
+        sql += " ORDER BY seq DESC LIMIT ?"
+        args.append(int(limit))
+        async with self._db.execute(sql, args) as cursor:
+            return [JournalEvent(row["seq"], row["ts"], row["kind"], row["key"], json.loads(row["payload"]))
+                    async for row in cursor]
 
     async def last_seq(self) -> int:
         async with self._db.execute("SELECT COALESCE(MAX(seq), 0) AS seq FROM events") as cursor:
@@ -831,6 +850,35 @@ class Journal:
         async with self._db.execute(sql + " ORDER BY updated_ts", args) as cursor:
             return [Order.model_validate(json.loads(row["payload"])) async for row in cursor]
 
+    async def orders_page(self, *, venue: str | None = None, book: str | None = None, market_id: str | None = None,
+                          since_ts: int | None = None, before: tuple[int, str, str] | None = None,
+                          open_only: bool = False, limit: int | None = 100) -> list[tuple[Order, tuple[int, str, str]]]:
+        """Orders in any state, venue orders and engine-held parents alike,
+        newest first by creation, each with its paging key `(created_ts, venue,
+        id)`. `before` is the key of the last row of the previous page; the key
+        is unique, so paging never repeats or skips a row. `open_only` keeps
+        the non-terminal ones; `limit=None` returns every match. Served by the
+        `orders_recent` and `orders_market_recent` indexes."""
+        sql = "SELECT payload, created_ts, venue, id FROM orders WHERE " + ("terminal=0" if open_only else "1=1")
+        args: list[Any] = []
+        for column, value in (("venue", venue), ("book", book), ("market_id", market_id)):
+            if value is not None:
+                sql += f" AND {column}=?"
+                args.append(value)
+        if since_ts is not None:
+            sql += " AND created_ts >= ?"
+            args.append(since_ts)
+        if before is not None:
+            sql += " AND (created_ts, venue, id) < (?, ?, ?)"
+            args.extend(before)
+        sql += " ORDER BY created_ts DESC, venue DESC, id DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            args.append(limit)
+        async with self._db.execute(sql, args) as cursor:
+            return [(Order.model_validate(json.loads(row["payload"])), (int(row["created_ts"]), row["venue"], row["id"]))
+                    async for row in cursor]
+
     async def fills(self, *, since_ts: int | None = None, venue: str | None = None, book: str | None = None) -> list[Fill]:
         """Fills as recorded. The strategy that placed the order is carried in
         `info["book"]`, because a venue's fill does not know about books and
@@ -1023,7 +1071,7 @@ class Journal:
             row = await cursor.fetchone()
         return (row["kind"], json.loads(row["payload"])) if row else None
 
-    # -- cursors, config, fair values ----------------------------------------
+    # -- cursors, config -----------------------------------------------------
 
     async def set_cursor(self, name: str, value: Any) -> None:
         async with self._write:
@@ -1056,23 +1104,6 @@ class Journal:
         async with self._db.execute(sql, args) as cursor:
             row = await cursor.fetchone()
         return (int(row["version"]), json.loads(row["payload"])) if row else None
-
-    async def set_fair_value(self, account_key: str, market_id: str, value: Decimal, *, source: str | None = None) -> None:
-        async with self._write:
-            await self._db.execute(
-                "INSERT INTO fair_values(account_key, market_id, value, source, ts) VALUES(?,?,?,?,?) "
-                "ON CONFLICT(account_key, market_id) DO UPDATE SET value=excluded.value, source=excluded.source, ts=excluded.ts",
-                (account_key, market_id, str(value), source, now_ms()),
-            )
-
-    async def fair_values(self, account_key: str | None = None) -> dict[tuple[str, str], Decimal]:
-        sql = "SELECT account_key, market_id, value FROM fair_values"
-        args: list[Any] = []
-        if account_key is not None:
-            sql += " WHERE account_key=?"
-            args.append(account_key)
-        async with self._db.execute(sql, args) as cursor:
-            return {(row["account_key"], row["market_id"]): Decimal(row["value"]) async for row in cursor}
 
     # -- the single-writer lease ---------------------------------------------
 

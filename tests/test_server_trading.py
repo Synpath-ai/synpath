@@ -256,13 +256,17 @@ class TestTradingRoutes:
         pnl = client.get("/pnl", params={"level": "book"}, headers=auth(server["trader_key"])).json()
         assert pnl["level"] == "book" and "total" in pnl
 
-    async def test_fair_values_round_trip(self, server):
+
+    async def test_the_order_log_and_the_journal_read_back_what_happened(self, server):
         client = server["client"]
-        put = client.put("/fair-values", json={"account": ACCOUNT.key, "market_id": SYM, "value": "0.51"},
-                         headers=auth(server["trader_key"]))
-        assert put.status_code == 200 and put.json()["value"] == "0.51"
-        listed = client.get("/fair-values", headers=auth(server["viewer_key"])).json()
-        assert listed == [{"account": ACCOUNT.key, "market_id": SYM, "value": "0.51"}]
+        placed = client.post("/orders", json=order_body(), headers=auth(server["trader_key"]))
+        assert placed.status_code == 201, placed.text
+        order_id = placed.json()["id"]
+        log = client.get("/order-log", params={"order_id": order_id}, headers=auth(server["viewer_key"])).json()
+        assert log["data"] and all(row["order_id"] in (order_id, None) or row["client_order_id"] for row in log["data"])
+        assert "intent.planned" in [row["kind"] for row in log["data"]]
+        journal = client.get("/journal", params={"kind": "engine."}, headers=auth(server["viewer_key"])).json()
+        assert [row["kind"] for row in journal["data"]][-1] == "engine.started"
 
     async def test_halt_blocks_trading_and_resume_lifts_it(self, server):
         client = server["client"]
@@ -535,14 +539,20 @@ class TestErrorsAndAnswers:
         after = server["client"].get("/orders", headers=auth(server["trader_key"]))
         assert after.status_code == 200, "the server keeps answering"
 
-    async def test_an_unreachable_venue_is_a_retryable_502(self, server, monkeypatch):
+    async def test_an_unreachable_venue_leaves_the_order_in_doubt_202(self, server, monkeypatch):
+        """No verdict from the venue is not a failure: the send may have
+        landed. 202 with its own code, retryable under the same id."""
         from synpath.errors import ExchangeNotAvailable
 
         async def down(request):
             raise ExchangeNotAvailable("kalshi: 503 from the venue")
         monkeypatch.setattr(server["paper"], "create_order", down)
-        failed = server["client"].post("/orders", json=order_body(), headers=auth(server["trader_key"]))
-        assert failed.status_code == 502 and failed.json()["error"]["details"]["retryable"] is True
+        failed = server["client"].post("/orders", json=order_body(client_order_id="down-1"),
+                                       headers=auth(server["trader_key"]))
+        assert failed.status_code == 202, failed.text
+        error = failed.json()["error"]
+        assert error["code"] == "submission_in_doubt" and error["details"]["retryable"] is True
+        assert error["details"]["client_order_id"] == "down-1" and error["details"]["venue"] == "kalshi"
 
     async def test_accounts_lists_a_configured_venue_without_a_named_account(self, tmp_path):
         from fastapi.testclient import TestClient

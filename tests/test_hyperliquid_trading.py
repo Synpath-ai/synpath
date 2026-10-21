@@ -100,8 +100,8 @@ class TestOrderWire:
         assert outcome == "no" and price == Decimal("0.3")
         assert wire["a"] == asset_of("7544", "no") == 100_075_441 and wire["b"] is True and wire["p"] == "0.3"
 
-    def test_reduce_only_sells_the_token_held(self):
-        wire, _, outcome, _ = build_order_wire(request(side=Side.SELL, reduce_only=True))
+    def test_selling_yes_sells_the_token_held(self):
+        wire, _, outcome, _ = build_order_wire(request(side=Side.SELL, outcome="yes", action="sell"))
         assert outcome == "yes" and wire["b"] is False
 
     def test_order_kinds(self):

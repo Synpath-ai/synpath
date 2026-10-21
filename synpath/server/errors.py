@@ -58,7 +58,7 @@ def install_error_handlers(app: FastAPI, status_for: Callable[[Exception], int])
             "venue": getattr(exc, "synpath_venue", None) or _venue_of(exc),
             "retryable": isinstance(exc, NetworkError),
         }
-        for name in ("rule", "reason"):
+        for name in ("rule", "reason", "client_order_id"):
             value = getattr(exc, name, None)
             if value:
                 details[name] = value

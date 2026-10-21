@@ -1,7 +1,7 @@
 """Authorized one-contract stop-limit fill test on a 15-minute crypto market.
 
 Call only with explicit live-trading authorization. The HTTP guard permits
-one bounded entry and one reduce-only exit of that entry's filled quantity.
+one bounded entry and one Sell YES exit of exactly that entry's filled quantity.
 No cancel-all, retries of creates, or use of existing positions is allowed.
 """
 from __future__ import annotations
@@ -53,12 +53,18 @@ class FillGuard:
         entry = self.stage == "entry"
         quantity = D("1") if entry else self.exit_quantity
         price = self.limit if entry else EXIT_LIMIT
-        allowed = {"ticker", "client_order_id", "side", "count", "price", "time_in_force", "self_trade_prevention_type", "post_only", "reduce_only"}
+        # The entry is the stop-limit's child: it lives as long as the stop
+        # (gtd at the check's deadline), and is cancelled the moment it is
+        # read back. The exit is an immediate market order.
+        allowed = {"ticker", "client_order_id", "side", "count", "price", "time_in_force", "self_trade_prevention_type",
+                   "post_only", "expiration_time"}
+        bounded = (body.get("time_in_force") == "good_till_canceled" and bool(body.get("expiration_time"))
+                   if entry else body.get("time_in_force") == "immediate_or_cancel" and "expiration_time" not in body)
         if not (body.get("ticker") == self.ticker and body.get("side") == ("bid" if entry else "ask")
                 and D(body.get("count", "0")) == quantity and 0 < quantity <= 1
                 and D(body.get("price", "0")) == price and (not entry or price <= MAX_LIMIT)
-                and body.get("time_in_force") == "immediate_or_cancel"
-                and body.get("reduce_only") is (not entry) and body.get("post_only") is False
+                and bounded
+                and "reduce_only" not in body and body.get("post_only") is False
                 and not (set(body) - allowed)):
             raise ValueError("unexpected order size, price or flags")
         self.sent[self.stage] = body
@@ -157,8 +163,8 @@ async def close_entry(engine, adapter, guard, entry):
     guard.exit_quantity = entry.filled
     guard.stage = "exit"
     try:
-        await engine.submit(OrderRequest(market_id=entry.market_id, side="sell", quantity=entry.filled,
-                                         type="market", price=EXIT_LIMIT, time_in_force="ioc", reduce_only=True,
+        await engine.submit(OrderRequest(market_id=entry.market_id, outcome="yes", action="sell", quantity=entry.filled,
+                                         type="market", price=EXIT_LIMIT, time_in_force="ioc",
                                          client_order_id=f"close-{uuid.uuid4().hex}", book="bounded-fill-check"),
                             precision=Precision(tick=CENT, min_quantity=D("0.01"), quantity_step=D("0.01")))
     finally:
@@ -173,7 +179,7 @@ async def verify(adapter, guard, directory, market, initial_book, trigger, limit
               "maximum_entry_value_usd": str(limit), "estimated_fee_budget_usd": "0.04"}
     engine = engine_for(adapter, directory / "orders.db")
     request = OrderRequest(market_id=market_id, side="buy", quantity="1", type="stop_limit", stop_price=trigger,
-                           price=limit, time_in_force="ioc", expires_at=int((time.time() + wait_s) * 1000),
+                           price=limit, time_in_force="gtd", expires_at=int((time.time() + wait_s) * 1000),
                            client_order_id=f"stop-fill-{uuid.uuid4().hex}", book="bounded-fill-check")
     parent_id = None
     try:
@@ -216,7 +222,7 @@ async def verify(adapter, guard, directory, market, initial_book, trigger, limit
         fills = await adapter.fetch_my_trades(market_id=market_id, order_id=entry.id)
         report["entry_fill_records"] = [{"quantity": str(f.quantity), "price": str(f.price), "fee": str(f.fee)} for f in fills]
         if entry.filled <= 0:
-            report["outcome"] = "triggered but no IOC fill"
+            report["outcome"] = "triggered but no fill before the entry was cancelled"
             return report
         exit_order = await close_entry(engine, adapter, guard, entry)
         if exit_order:
@@ -241,7 +247,7 @@ async def verify(adapter, guard, directory, market, initial_book, trigger, limit
         try:
             if parent_id and engine.orders.get(parent_id) and engine.orders.get(parent_id).state == "waiting":
                 await engine.cancel(parent_id)
-            # IOC orders should already be terminal; read back and cancel only
+            # The exit is IOC and already terminal; the entry may rest. Read back and cancel only
             # these keys even after a failed/ambiguous response. Never resend.
             for stage in ("entry", "exit"):
                 final = await cancel_remainder(adapter, guard, stage)

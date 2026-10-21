@@ -136,8 +136,8 @@ class TestOrderBody:
         assert order["tokenId"] == INFO.no_token and order["side"] == sig.BUY
         assert int(order["makerAmount"]) == 6 * 10**18
 
-    def test_reduce_only_sells_the_token_held(self):
-        order = signed(request(side=Side.SELL, reduce_only=True))[0]["data"]["order"]
+    def test_selling_yes_sells_the_token_held(self):
+        order = signed(request(side=Side.SELL, outcome="yes", action="sell"))[0]["data"]["order"]
         assert order["tokenId"] == INFO.yes_token and order["side"] == sig.SELL
 
     def test_market_ioc_and_fok_take_at_once(self):

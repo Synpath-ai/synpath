@@ -197,8 +197,6 @@ def translate_order(request: OrderRequest, scale: InstrumentScale, *, account: s
         )
     if request.time_in_force == TimeInForce.DAY:
         raise InvalidOrder("polymarket_us: 'day' is rewritten to 'gtd' by the engine; the venue's DAY does not cancel at the roll")
-    if request.reduce_only:
-        raise InvalidOrder("polymarket_us: the exchange API has no reduce-only flag")
     symbol = symbol_of(request.market_id)
     precision = scale.precision
     needs_price = request.type in (OrderType.LIMIT, OrderType.MARKET, OrderType.STOP_LIMIT)

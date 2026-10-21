@@ -235,7 +235,7 @@ async def _control_loop(engine: Engine, stopping: asyncio.Event) -> None:
 async def _status_loop(engine: Engine, interval: float) -> None:
     while engine.running:
         await asyncio.sleep(interval)
-        marks = engine.fair_values.marks()
+        marks = engine.marks()
         total = engine.ledger.total(marks)
         log.info(
             "synpath.engine: %s open orders, %s positions, realized %s, fees %s, events %s, halted=%s",

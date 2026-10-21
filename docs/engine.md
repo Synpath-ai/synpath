@@ -38,7 +38,15 @@ SQLite's `synchronous=FULL`, so this survives a power cut, not only a crash.
 **An order is never declared lost early.** Venues do not list an order the
 instant they accept it: Kalshi's demo takes a few hundred milliseconds. An
 intent the venue cannot account for stays in doubt until `lost_after_s`
-(default a minute) has passed, and only then is swept.
+(default a minute) has passed, and only then is swept. The caller of a send
+with no verdict gets `SubmissionInDoubt` with the `client_order_id`; a retry
+under it reconciles first and gets the order, or `SubmissionPending` while the
+venue cannot say yet, never a second order.
+
+**A cancel never relabels a fill.** A venue's "not found" to a cancel is not
+a cancellation: the engine reads the order back and records what the venue
+says, `closed` with its fills if it filled first. A venue with no record of
+it at all raises `CancelUnconfirmed` and changes nothing.
 
 **One engine per journal.** Starting takes a lease. A second engine on the
 same file refuses to trade and says who holds it. The lease is renewed while
@@ -53,7 +61,9 @@ configuration is versioned in the journal, and a rejection records the
 version that refused it. `duplicate` refuses a repeat of the same market,
 side, price and size inside `duplicate_window_ms`; it skips the children the
 engine's own order types place, and any order whose `client_order_id` the
-caller set.
+caller set. `price_collar` refuses a limit order priced further than the
+collar from the book midpoint; market orders (their price is a protection
+bound) and the children of engine-held orders are not collared.
 
 **Halting uses the venue's own mechanism, then checks.** `halt()` calls each
 adapter's cancel-all, reads the book back, and cancels anything still resting
@@ -70,7 +80,6 @@ Policies are `cancel`, `hold` (leave them resting, refuse new ones) and
 | `engine.py` | submit, cancel, edit, recovery, the sweep, halting, polling |
 | `risk.py` | the rules, the kill switch, the strategy pause |
 | `ledger.py` | positions netted on the YES leg, average cost, realized and unrealized profit, rolled up by market, book and account |
-| `fair_values.py` | the mark per account and market, and when it goes stale |
 | `reconcile.py` | orphans, ghosts, drift, position and balance differences |
 | `paper.py` | a venue that fills against a real book with queue position and the venue's fee model |
 | `alerts.py` | the few events worth waking someone for |
@@ -101,7 +110,7 @@ ledger's alone.
 | Type | `params` | What it does |
 |---|---|---|
 | `stop_market` | none | fires once at `stop_price`; the child is a `market` order, `ioc`, priced by the engine |
-| `stop_limit` | none | fires once at `stop_price`; the child is a `limit` at `price` with the order's time in force |
+| `stop_limit` | none | fires once at `stop_price`; the child is a `limit` at `price` that inherits the order's time in force and expiry |
 | `trailing_stop` | `trail` or `trail_percent` | the stop follows the market one way and never back |
 | `iceberg` | `display`, `reload_delay_s`, `jitter_s`, `follow` | shows one slice; reloads after the delay, at the back of the queue |
 | `oco` | `legs` (two specifications) | one cancels the other, and a partial fill resizes the other |
@@ -121,12 +130,12 @@ child goes out for the remaining quantity and names the parent in
 
 | Field | Stop market | Stop limit |
 |---|---|---|
-| `market_id`, `side`, `quantity`, `client_order_id`, `reduce_only` | as on any order (`buy` is YES, `sell` is NO) | the same |
+| `market_id`, `side` or `outcome` + `action`, `quantity`, `client_order_id` | as on any order (`buy` is YES, `sell` is NO; or buy/sell YES/NO) | the same |
 | `type` | `stop_market` | `stop_limit` |
 | `stop_price` | the trigger level | the trigger level |
 | `price` | not used | the child's limit: at or below `stop_price` for a sell, at or above it for a buy |
 | `trigger_source` | `touch` (default), `last` or `mid` | the same |
-| `time_in_force` | how long the stop stays armed: `gtc` (default), `gtd`, `day`. `ioc` and `fok` are refused | what the limit child carries once triggered: `gtc` (default), `gtd`, `ioc`, `fok` |
+| `time_in_force` | how long the whole order lives: `gtc` (default), `gtd`, `day`. `ioc` and `fok` are refused. It bounds the armed period; the child is `ioc` | the same, and the limit child inherits it: `gtc` stays `gtc`, `gtd` and `day` go as `gtd` at the order's `expires_at` |
 | `expires_at` | with `gtd` only | with `gtd` only |
 
 **A stop watches the price that would fill it.** `trigger_source="touch"`,
@@ -134,6 +143,19 @@ the default, watches the best ask for a buy stop and the best bid for a sell
 stop. Not the last trade, which on a prediction market can be hours stale,
 and not the mid, which between a 0.30 bid and a 0.70 ask is a number nobody
 can trade at. `last` and `mid` are there for callers who disagree.
+
+**A stop reads the book it is handed.** A new stop is checked against the
+book the engine already holds, and again when its market is subscribed: a
+venue sends no fresh snapshot for a market its connection already carries (a
+screen's `/ws/market`, say), so a quiet market whose ask already meets the
+stop triggers it at once rather than at the next change. A `last` stop waits
+for a print made after it.
+
+**One time in force for the whole order**, as IBKR and FIX use it: a stop's
+`time_in_force` is how long the order lives, armed and after it triggers.
+A stop limit's child carries the same expiry, so a `day` stop limit whose
+child still rests at the session end has the child canceled and ends
+`expired`.
 
 **A stop market's child is priced by the engine.** No venue here takes a
 market order without a worst price, so at the trigger the engine sends the
@@ -147,8 +169,8 @@ of: `closed` (filled; for a stop market, also when the IOC child's remainder
 did not fill, with the unfilled quantity on the order and in its detail),
 `canceled` (cancelled while waiting, or for a stop limit after the trigger
 too, which pulls the resting child), `expired` (a `gtd` or `day` stop whose
-time ran out before it triggered, or a stop limit whose child was still
-resting), or `rejected` (no book for a stop market's child, or the venue
+time ran out before it triggered, or a `gtd` or `day` stop limit whose child
+was still resting), or `rejected` (no book for a stop market's child, or the venue
 refused the child).
 
 **Day is not one of these.** All three venues run nearly around the clock, so
@@ -157,11 +179,11 @@ process. A `day` order is rewritten to `gtd` at the end of the configured
 session (`session_timezone`, `session_end`) before it reaches the adapter, so
 the venue holds the expiry; the journal keeps `day` alongside it.
 
-**The order's own fields still apply.** `reduce_only` passes to every child.
+**The order's own fields still apply.** The outcome and action pass to every child: a Sell YES stop's child sells YES held.
 `expires_at` expires the whole order, children included, and the parent
 ends `expired`. `post_only` is
 accepted only by types that rest on the book (`iceberg`, `peg`, a `twap` with
-`style="limit"`, and a GTC/GTD `stop_limit`); an `oco` or `bracket` takes it on its legs, and a type that
+`style="limit"`, and a `stop_limit`); an `oco` or `bracket` takes it on its legs, and a type that
 takes liquidity refuses it rather than ignoring it.
 
 **Everything survives a restart.** Each parent's whole state is written on
@@ -273,9 +295,12 @@ neither. What was actually bought is kept per side as well, because on
 Polymarket those are real tokens.
 
 Realized profit is taken on the way out against average cost, with fees
-realized when charged. Unrealized profit needs a mark, and a mark is a
-choice: it comes from `fair_values`, and a stale one is reported as no mark
-rather than as a number.
+realized when charged. Unrealized profit needs a mark: the
+price the position could be closed at on the engine's live book, the best bid
+for a long YES and the best ask for a short (a long NO). The engine subscribes
+the book of every market it holds. With no ready book, or nobody on that side,
+the mark is the last trade; with no trade either, the position has no mark and
+no unrealized number.
 
 Three levels roll up:
 

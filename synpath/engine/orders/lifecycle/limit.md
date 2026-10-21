@@ -17,4 +17,14 @@ See [shared storage and ownership](../../README.md).
 
 A same-key retry returns the original result. Reusing the key for another
 instruction is a conflict. An ambiguous earlier send is reconciled; it is
-never automatically resent.
+never automatically resent. A send with no verdict raises `SubmissionInDoubt`
+(`202 submission_in_doubt` over HTTP); a retry before the venue answers raises
+`SubmissionPending` (`202 submission_pending`).
+
+Cancelling an order already `closed`, `canceled`, `rejected` or `expired`
+returns it unchanged without a venue call. If the venue answers a cancel with
+"not found", the engine reads the order back and records the venue's verdict
+with its filled quantity: a limit that filled before the cancel arrived ends
+`closed`, never `canceled`. A venue with no record of the order confirms
+nothing (`CancelUnconfirmed`, `409 cancel_unconfirmed`); the last observed
+status stands.

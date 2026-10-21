@@ -162,8 +162,7 @@ class Context:
 
     def mark(self, market_id: str | None = None) -> Decimal | None:
         instrument = market_id or self.parent.market_id
-        return (self.engine.fair_values.get(self.parent.account_key, instrument)
-                or self.mid(instrument) or self.last(instrument))
+        return self.mid(instrument) or self.last(instrument)
 
     def levels(self, side: Side, market_id: str | None = None) -> list[tuple[Decimal, Decimal]]:
         """The far side of the book, best first: what a taker would eat."""
@@ -326,17 +325,25 @@ class ManagedOrder:
 
     async def cancel(self, ctx: Context, reason: str = "cancelled", *, end: State = "canceled") -> None:
         """Pull every live child, then end as `end`: `canceled`, or `expired`
-        when it is the order's own expiry doing it."""
+        when it is the order's own expiry doing it. A parent whose children
+        turn out to have filled everything ends `done` (`closed`) instead:
+        a cancel never relabels a fill."""
         self.detail = reason
         if not self.live:
             return
         self.state = "cancelling"
         await ctx.save()
         await self.pull_children(ctx)
-        if not self.live_children:
-            await self.finish(ctx, end, reason)
-        else:
+        if not self.live:
+            # A child's final venue record, read while pulling it, ended the
+            # parent already (a fill that won the race closes it).
+            return
+        if self.live_children:
             await ctx.save()
+        elif self.remaining <= 0:
+            await self.finish(ctx, "done", "filled before cancellation completed")
+        else:
+            await self.finish(ctx, end, reason)
 
     async def expire(self, ctx: Context) -> None:
         """The order's own `expires_at` passed: the whole order ends
@@ -413,19 +420,23 @@ class ManagedOrder:
         time_in_force: TimeInForce | None = None,
         post_only: bool = False,
         expires_at: int | None = None,
-        reduce_only: bool | None = None,
         market_id: str | None = None,
         side: Side | None = None,
         params: dict[str, Any] | None = None,
     ) -> OrderRequest:
-        """A venue order in this parent's name, carrying its book and trader."""
+        """A venue order in this parent's name, carrying its book and trader,
+        and doing what the parent does: a child on the parent's side has its
+        outcome and action (a Sell YES stop sells YES held, never buys NO);
+        one on the other side (a flipped bucket member) trades the other
+        outcome the same way."""
+        child_side = side or self.side
+        outcome, action = self.request.outcome, self.request.action
+        if outcome is not None and child_side != self.side:
+            outcome = "no" if outcome == "yes" else "yes"
         return OrderRequest(
-            market_id=market_id or self.market_id, side=side or self.side, quantity=quantity, type=type,
+            market_id=market_id or self.market_id, side=child_side, outcome=outcome, action=action,
+            quantity=quantity, type=type,
             price=price, time_in_force=time_in_force or TimeInForce.GTC, post_only=post_only, expires_at=expires_at,
-            # A parent that may only reduce a position must not open one
-            # through its children: on Polymarket a reduce-only sell sells the
-            # YES held instead of buying NO.
-            reduce_only=self.request.reduce_only if reduce_only is None else reduce_only,
             user_id=self.request.user_id, account=self.account, book=self.request.book, trader=self.request.trader,
             tags={**self.request.tags, "parent": self.id}, params=params or {},
         )
@@ -461,7 +472,7 @@ class ManagedOrder:
 
     @classmethod
     def from_snapshot(cls, snapshot: Mapping[str, Any]) -> "ManagedOrder":
-        request = OrderRequest.model_validate(snapshot["request"])
+        request = OrderRequest.stored(snapshot["request"])
         parent = cls(request, id=snapshot["id"], venue=snapshot["venue"],
                      account=Account.model_validate(snapshot["account"]), state=snapshot["state"])
         parent.children = [Child.of(row) for row in snapshot.get("children") or []]
@@ -486,7 +497,7 @@ class ManagedOrder:
             time_in_force=self.request.time_in_force, status=STATUS_OF[self.state], held_by=HeldBy.ENGINE,
             price=self.request.price, stop_price=self.request.stop_price, quantity=self.quantity, filled=self.filled,
             remaining=self.remaining, average_price=average, book=self.request.book, trader=self.request.trader,
-            reduce_only=self.request.reduce_only, expires_at=self.request.expires_at,
+            outcome=self.request.outcome, action=self.request.action, expires_at=self.request.expires_at,
             tags=dict(self.request.tags), created_at=self.created_ms, updated_at=self.updated_ms,
             info={"kind": self.kind, "state": self.state, "detail": self.detail,
                   "children": [c.order_id for c in self.children], "params": self.params},

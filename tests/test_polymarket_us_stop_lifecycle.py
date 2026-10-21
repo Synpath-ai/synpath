@@ -114,12 +114,14 @@ async def test_price_wait_keeps_the_execution_lease_alive(ed_secret, tmp_path, m
     original = check.engine_for
     def brief_lease(adapter, directory):
         engine = original(adapter, directory)
-        engine.config.lease_ttl_ms = 150
-        engine.config.lease_renew_s = 0.02
+        # Wide margins: on a slow CI runner a 20 ms renewal against a 150 ms
+        # lease could arrive late and drop the lease for an unrelated reason.
+        engine.config.lease_ttl_ms = 600
+        engine.config.lease_renew_s = 0.05
         return engine
     original_book = check.book_for
     async def delayed_book(adapter, slug):
-        await asyncio.sleep(0.25)  # exceeds the lease without its renewal task
+        await asyncio.sleep(0.9)  # exceeds the lease without its renewal task
         return await original_book(adapter, slug)
     monkeypatch.setattr(check, "engine_for", brief_lease)
     monkeypatch.setattr(check, "book_for", delayed_book)

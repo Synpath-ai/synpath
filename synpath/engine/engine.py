@@ -55,10 +55,9 @@ from ..trading.types import (
 )
 from ..trading.instruments import MarketMaster
 from .events import EventBus
-from .fair_values import FairValues
 from .journal import IntentState, LeaseLost, now_ms
 from .storage import JournalStore, create_journal
-from .submissions import SubmissionPending, request_identity
+from .submissions import CancelUnconfirmed, SubmissionInDoubt, SubmissionPending, request_identity
 from .ledger import Ledger
 from .orders import ManagedOrders, as_gtd
 from .orders.manager import REGISTRY
@@ -93,7 +92,6 @@ class EngineConfig:
     """How often to poll orders and fills when no stream is attached."""
     halt_policy: HaltPolicy = "cancel"
     require_lease: bool = True
-    mark_stale_after_s: float = 300.0
     managed_tick_s: float = 1.0
     """How often engine-held orders get their timer. A TWAP slice, an
     iceberg reload and a peg's minimum stay are all measured against it."""
@@ -138,16 +136,15 @@ STOP_KINDS = frozenset({"stop_market", "stop_limit", "trailing_stop"})
 
 def check_managed_fields(request: OrderRequest, *, now_ms: int) -> None:
     """Refuse the order fields an engine-held type cannot honour, rather than
-    ignore them. `reduce_only` always passes to the children; `expires_at` is
+    ignore them. The outcome and action always pass to the children; `expires_at` is
     the whole order's expiry."""
     kind = str(request.params.get("managed_kind") or request.type.value)
     if request.post_only:
         if kind in ("oco", "bracket"):
             raise BadRequest(f"post_only goes on the {kind}'s legs, not on the order itself")
         style = str(request.params.get("style") or "limit")
-        if (kind not in POST_ONLY_KINDS or (kind == "twap" and style != "limit")
-                or (kind == "stop_limit" and request.time_in_force.value in ("ioc", "fok"))):
-            raise BadRequest(f"post_only is for types that rest on the book (iceberg, peg, limit-style twap, gtc/gtd stop_limit); "
+        if kind not in POST_ONLY_KINDS or (kind == "twap" and style != "limit"):
+            raise BadRequest(f"post_only is for types that rest on the book (iceberg, peg, limit-style twap, stop_limit); "
                              f"a {kind} order takes liquidity")
     if request.expires_at is not None and request.expires_at <= now_ms:
         raise BadRequest("expires_at is in the past")
@@ -190,7 +187,6 @@ class Engine:
             raise ValueError("execution engine and journal must use the same user_id")
         self.bus = EventBus(self.journal)
         self.ledger = Ledger()
-        self.fair_values = FairValues(self.journal, stale_after_s=self.config.mark_stale_after_s)
         self.risk = RiskEngine(risk or RiskConfig(), ledger=self.ledger, clock=clock)
         self.accounts: dict[str, Account] = dict(accounts or {})
         for venue in self.adapters:
@@ -226,7 +222,6 @@ class Engine:
             await self.journal.acquire_lease(self.config.lease_name, ttl_ms=self.config.lease_ttl_ms)
         version = await self.journal.save_config("risk", self.risk.config.model_dump(mode="json"))
         self.risk.config_version = version
-        await self.fair_values.load()
         recovery = await self.recover()
         self.running = True
         self.started_ts = int(self.clock() * 1000)
@@ -303,13 +298,13 @@ class Engine:
                 result = await self._existing_submission_result(previous)
                 if result is not None:
                     return result
-                request = OrderRequest.model_validate(previous["effective_request"])
+                request = OrderRequest.stored(previous["effective_request"])
             else:
                 effective = as_gtd(request, now_s=self.clock(), timezone_name=self.config.session_timezone,
                                    session_end=self.config.session_end)
                 prior_intent = await self.journal.intent(request.client_order_id)
                 if prior_intent is not None:
-                    prior_request = OrderRequest.model_validate(prior_intent.request)
+                    prior_request = OrderRequest.stored(prior_intent.request)
                     if prior_intent.operation != "create" or request_identity(prior_request) != request_identity(effective):
                         raise BadRequest("client_order_id already identifies a different durable action")
                 elif await self.journal.order_by_client_id(request.client_order_id) is not None:
@@ -342,7 +337,8 @@ class Engine:
                 return parent.as_order()
             result = await self.journal.order(submission["venue"], submission["result_id"])
             if result is None:
-                raise SubmissionPending("the accepted submission has no readable result; refusing to repeat it")
+                raise SubmissionPending("the accepted submission has no readable result; refusing to repeat it",
+                                        client_order_id=submission["client_order_id"])
             return result
         if submission["state"] == "rejected":
             error = submission["error"]
@@ -361,7 +357,8 @@ class Engine:
             return result
         if intent.state in (IntentState.REJECTED, IntentState.FAILED, IntentState.SETTLED):
             raise OrderRejected(intent.detail or "the earlier submission ended without an accepted order")
-        raise SubmissionPending("the earlier venue send is unresolved; refusing to send it again")
+        raise SubmissionPending("the earlier venue send is unresolved; refusing to send it again",
+                                client_order_id=submission["client_order_id"])
 
     async def _submit_once(self, request: OrderRequest, *, venue: str | None = None,
                            mark: Decimal | None = None, deliberate: bool | None = None,
@@ -412,11 +409,15 @@ class Engine:
                 raise
             except (NetworkError, asyncio.TimeoutError) as exc:
                 # In doubt on purpose: the intent stays `sending` so the sweep
-                # asks the venue rather than this process guessing.
+                # asks the venue rather than this process guessing. The caller
+                # gets the in-doubt error with the id to retry under.
                 await self.bus.publish("order.in_doubt", {
                     "client_order_id": client_order_id, "venue": venue, "error": f"{type(exc).__name__}: {exc}",
                 }, key=client_order_id)
-                raise
+                raise SubmissionInDoubt(
+                    f"{venue}: no answer to the order send ({type(exc).__name__}: {exc}); it may have been "
+                    f"accepted. Retry with client_order_id {client_order_id!r}: the venue is checked first "
+                    "and the order is never sent twice", client_order_id=client_order_id) from exc
             except ExchangeError as exc:
                 await self.journal.mark_intent(client_order_id, IntentState.FAILED, detail=str(exc))
                 await self.bus.publish("order.failed", {"client_order_id": client_order_id, "error": str(exc)}, key=client_order_id)
@@ -514,6 +515,10 @@ class Engine:
         venue = venue or (child.venue if child is not None else parent.venue)
         try:
             return await self.cancel(order_id, venue=venue)
+        except CancelUnconfirmed:
+            # The venue knows nothing of it: the child stays live and the
+            # parent pending, retried by its timer, never assumed cancelled.
+            raise
         except OrderNotFound:
             return None
 
@@ -522,7 +527,7 @@ class Engine:
         """The risk decision on its own, for a caller that wants to ask first."""
         market_id = request.market_id
         if mark is None:
-            mark = self.fair_values.get(account.key, market_id)
+            mark = self.book_mid(market_id)
         return self.risk.check(
             request, venue=venue, account=account,
             open_orders=[o for o in self.open_orders(venue=venue)],
@@ -532,11 +537,21 @@ class Engine:
 
     async def cancel(self, order_id: str, *, venue: str | None = None, market_id: str | None = None) -> Order:
         """Cancel, journaled with its own idempotency key. An engine-held order
-        pulls its children first."""
+        pulls its children first.
+
+        Only the venue confirms a cancellation. An order already finished is
+        returned as it is, without a venue call; a venue that answers "not
+        found" is asked for the order itself, so a fill that won the race is
+        recorded as `closed` rather than overwritten as `canceled`."""
         if order_id in self.orders.parents:
             parent = await self.orders.cancel(order_id)
             return parent.as_order()
         order = await self._known(order_id, venue)
+        if order.is_terminal or order.held_by == HeldBy.ENGINE:
+            # Nothing at a venue to cancel: a finished venue order, or an
+            # engine-held parent this process no longer runs because it
+            # finished before a restart (live parents are always restored).
+            return order
         venue = venue or order.venue
         adapter = self._adapter(venue)
         key = f"cancel:{venue}:{order_id}"
@@ -552,12 +567,7 @@ class Engine:
             try:
                 result = await adapter.cancel_order(order_id, market_id=market_id or order.market_id)
             except OrderNotFound:
-                # Already gone: the cancel achieved what it asked for.
-                await self.journal.mark_intent(key, IntentState.SETTLED, detail="already gone")
-                closed = order.model_copy(update={"status": OrderStatus.CANCELED})
-                await self.journal.upsert_order(closed, event="order.canceled")
-                self._remember(closed)
-                return closed
+                return await self._record_order_the_venue_would_not_cancel(adapter, order, key)
             except (NetworkError, asyncio.TimeoutError):
                 raise
         result = self._stamp(result, None, template=order)
@@ -567,6 +577,33 @@ class Engine:
         await self.orders.on_order(result)
         await self.bus.publish("order.canceled", result.model_dump(mode="json"), key=f"{venue}:{order_id}", persist=False)
         return result
+
+    async def _record_order_the_venue_would_not_cancel(self, adapter: TradingExchange, order: Order,
+                                                       cancel_key: str) -> Order:
+        """The venue has no resting order to cancel. That is not a
+        cancellation: the order may have filled, expired, or been cancelled
+        elsewhere. Read the order itself and record the venue's verdict, with
+        whatever filled, through the same path as any order update, so an
+        engine-held parent hears about its child. A venue with no record at
+        all confirms nothing: the last observed status stands."""
+        try:
+            observed = await adapter.fetch_order(order.id)
+        except OrderNotFound:
+            detail = "the venue has no record of the order; cancellation unconfirmed"
+            await self.journal.mark_intent(cancel_key, IntentState.FAILED, detail=detail)
+            raise CancelUnconfirmed(
+                f"{order.venue} has no record of order {order.id}: cancellation unconfirmed; "
+                f"its last observed status ({order.status.value}) stands") from None
+        observed = self._stamp(observed, None, template=order)
+        if observed.is_terminal:
+            await self.journal.mark_intent(cancel_key, IntentState.SETTLED, order_id=order.id,
+                                           detail=f"already {observed.status.value} at the venue")
+        else:
+            await self.journal.mark_intent(cancel_key, IntentState.FAILED,
+                                           detail=f"the venue refused the cancel and reports the order "
+                                                  f"{observed.status.value}")
+        await self.on_order(observed)
+        return await self.journal.order(order.venue, order.id) or observed
 
     async def edit(self, request: EditRequest, *, venue: str | None = None) -> Order:
         """Amend a resting order. The edit carries its own idempotency key, so
@@ -720,7 +757,7 @@ class Engine:
             return base | {"result": "unresolved", "reason": str(exc)}
         if found is not None:
             if intent.operation == "create":
-                found = self._stamp(found, OrderRequest.model_validate(intent.request))
+                found = self._stamp(found, OrderRequest.stored(intent.request))
             await self.journal.upsert_order(found, event="order.adopted")
             self._remember(found)
             await self.journal.mark_intent(intent.client_order_id, IntentState.SENT, order_id=found.id,
@@ -788,7 +825,7 @@ class Engine:
         elif order.client_order_id:
             intent = await self.journal.intent(order.client_order_id)
             if intent is not None and intent.operation == "create":
-                order = self._stamp(order, OrderRequest.model_validate(intent.request))
+                order = self._stamp(order, OrderRequest.stored(intent.request))
         await self.journal.upsert_order(order)
         self._remember(order)
         await self.bus.publish(f"order.{order.status.value}", order.model_dump(mode="json"),
@@ -796,8 +833,11 @@ class Engine:
         await self.orders.on_order(order)
 
     async def on_fill(self, fill: Fill) -> None:
-        """Record a fill once, book it in the ledger, publish it."""
+        """Record a fill once, book it in the ledger, publish it. A fill of a
+        known order carries that order's outcome and action."""
         order = await self.journal.order(fill.venue, fill.order_id)
+        if order is not None and order.outcome is not None and fill.outcome is None:
+            fill = fill.model_copy(update={"outcome": order.outcome, "action": order.action})
         book = order.book if order else None
         trader = order.trader if order else None
         changed = await self.journal.record_fill(fill, book=book, trader=trader)
@@ -847,12 +887,52 @@ class Engine:
         await self.bus.publish("settlement.booked", settlement.model_dump(mode="json") | {"realized": str(realized)},
                                key=f"{settlement.venue}:{settlement.market_id}")
 
+    def marks(self) -> dict[tuple[str, str, str], Decimal]:
+        """What every open position is marked at, keyed `(account_key, book,
+        market_id)` as `Ledger.rollup` wants: the price it could be closed at
+        now (`exit_price`). Read from the live book each time, so a mark never
+        outlives the book it came from."""
+        marks: dict[tuple[str, str, str], Decimal] = {}
+        for key, state in self.ledger.positions.items():
+            mark = self.exit_price(state.market_id, state.contracts)
+            if mark is not None:
+                marks[key] = mark
+        return marks
+
+    def exit_price(self, market_id: str, contracts: Decimal) -> Decimal | None:
+        """The YES price a position of `contracts` (signed, YES terms) could be
+        closed at: on the engine's ready, uncrossed book, a long YES sells YES
+        at the best bid and a short YES, which is a long NO, buys YES back at
+        the best ask (sells NO at 1 − ask). With no such book, or nobody on
+        that side, the last trade the engine saw. `None` when flat or with
+        neither."""
+        if contracts == 0:
+            return None
+        book = self.books.get(market_id)
+        if book is not None and getattr(book, "ready", True) is not False:
+            bid, ask = book.best_bid, book.best_ask
+            if not (bid is not None and ask is not None and bid > ask):
+                touch = bid if contracts > 0 else ask
+                if touch is not None:
+                    return touch
+        return self.last_trade.get(market_id)
+
+    def book_mid(self, market_id: str) -> Decimal | None:
+        """The midpoint of the engine's ready, uncrossed book for a market,
+        with both sides quoted; `None` otherwise. The risk collar's reference."""
+        book = self.books.get(market_id)
+        if book is None or getattr(book, "ready", True) is False:
+            return None
+        bid, ask = book.best_bid, book.best_ask
+        if bid is None or ask is None or bid > ask:
+            return None
+        return (bid + ask) / 2
+
     def positions(self) -> list[Position]:
-        marks = self.fair_values.marks()
+        marks = self.marks()
         out = []
-        for state in self.ledger.positions.values():
-            mark = marks.get((state.account_key, state.market_id))
-            out.append(state.to_position(self.accounts.get(state.venue), mark=mark))
+        for key, state in self.ledger.positions.items():
+            out.append(state.to_position(self.accounts.get(state.venue), mark=marks.get(key)))
         return out
 
     async def bucket_orders(self, bucket_id: str) -> list[Any]:
@@ -887,7 +967,7 @@ class Engine:
         if row is None:
             raise BadRequest(f"bucket:{bucket_id}: no such bucket in this journal")
         bucket = Bucket.model_validate(row)
-        marks = self.fair_values.marks()
+        marks = self.marks()
         members: list[dict[str, Any]] = []
         net = ZERO
         cost = ZERO
@@ -904,7 +984,7 @@ class Engine:
                     cost += signed * entry
                 realized += state.realized
                 fees += state.fees
-                mark = marks.get((account_key, market_id))
+                mark = marks.get((account_key, name, market_id))
                 members.append({
                     "market_id": member.market_id, "venue": state.venue, "book": name, "account": account_key,
                     "flip": member.flip, "contracts": str(state.contracts), "bucket_contracts": str(signed),
@@ -919,7 +999,7 @@ class Engine:
         }
 
     def pnl(self, level: str = "book") -> dict[str, Any]:
-        marks = self.fair_values.marks()
+        marks = self.marks()
         rows = self.ledger.rollup(level, marks)  # type: ignore[arg-type]
         total = self.ledger.total(marks)
         return {"level": level, "rows": rows, "total": total}
@@ -1040,7 +1120,11 @@ class Engine:
         if source is not None:
             updates["user_id"] = source.user_id
             updates["type"] = source.type
-            updates["reduce_only"] = source.reduce_only
+            # Only what the caller said: an order with a side alone has no
+            # outcome and action of its own (on a netting venue a sell may
+            # close YES or open NO), and a token venue reports the token.
+            if source.outcome is not None:
+                updates["outcome"], updates["action"] = source.outcome, source.action
             updates["time_in_force"] = source.time_in_force
             updates["expires_at"] = source.expires_at
             updates["parent_id"] = getattr(source, "parent_id", None) or source.tags.get("parent")

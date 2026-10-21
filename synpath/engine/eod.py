@@ -84,7 +84,7 @@ class EndOfDay:
             report.volume += fill.quantity
             report.fees += fill.fee or ZERO
 
-        marks = engine.fair_values.marks()
+        marks = engine.marks()
         for level, target in (("book", report.by_book), ("account", report.by_account)):
             for key, row in engine.ledger.rollup(level, marks).items():  # type: ignore[arg-type]
                 target[key] = {

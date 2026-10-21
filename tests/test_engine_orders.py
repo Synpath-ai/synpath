@@ -269,6 +269,42 @@ class TestStops:
         assert managed.as_order().status == OrderStatus.EXPIRED
         assert await paper.fetch_open_orders() == [], "the resting child was pulled"
 
+    async def test_a_day_stop_limit_child_rests_until_the_same_session_end(self, setup):
+        engine, paper, clock = setup
+        sent: list[OrderRequest] = []
+        create = paper.create_order
+
+        async def record(req):
+            sent.append(req)
+            return await create(req)
+        paper.create_order = record
+
+        book(paper, engine, bids=[(D("0.45"), D("500"))], asks=[(D("0.47"), D("500"))])
+        parent = await engine.submit(request(side=Side.SELL, type=OrderType.STOP_LIMIT, stop_price=D("0.40"),
+                                             price=D("0.38"), time_in_force=TimeInForce.DAY))
+        managed = engine.orders.get(parent.id)
+        session_end = session_expiry(clock(), session_end=engine.config.session_end,
+                                     timezone_name=engine.config.session_timezone)
+        assert (managed.request.time_in_force, managed.request.expires_at) == (TimeInForce.GTD, session_end), \
+            "the session end is persisted as an absolute expiry"
+        book(paper, engine, bids=[(D("0.39"), D("0"))], asks=[(D("0.50"), D("500"))])
+        await feed_book(engine, paper=paper)
+        [child] = sent
+        assert (child.type, child.time_in_force, child.expires_at) == (OrderType.LIMIT, TimeInForce.GTD, session_end)
+
+        clock.t = session_end / 1000 + 1
+        await engine.orders.on_timer()
+        assert managed.as_order().status == OrderStatus.EXPIRED
+        assert await paper.fetch_open_orders() == [], "the resting child was canceled at the session end"
+
+    async def test_a_stop_already_met_by_the_book_the_engine_holds_triggers_at_submit(self, setup):
+        engine, paper, clock = setup
+        book(paper, engine, bids=[(D("0.39"), D("500"))], asks=[(D("0.41"), D("500"))])
+        parent = await engine.submit(request(side=Side.SELL, type=OrderType.STOP_MARKET, stop_price=D("0.40")))
+        await paper.deliver()
+        managed = engine.orders.get(parent.id)
+        assert managed.triggered_at is not None and managed.filled == D("10"), "no further book event was needed"
+
     async def test_a_gtd_stop_limit_expires_before_it_triggers(self, setup):
         engine, paper, clock = setup
         book(paper, engine, bids=[(D("0.45"), D("500"))], asks=[(D("0.47"), D("500"))])
@@ -288,6 +324,21 @@ class TestStops:
         await engine.orders.cancel(parent.id)
         assert engine.orders.get(parent.id).as_order().status == OrderStatus.CANCELED
         assert await paper.fetch_open_orders() == []
+
+    async def test_an_older_immediate_stop_limit_is_still_restored(self, setup):
+        """Accepted before a stop's time in force became the whole order's:
+        refused for new orders, never for one a journal already holds."""
+        from pydantic import ValidationError
+        from synpath.engine.orders.stop import StopLimit
+
+        engine, paper, clock = setup
+        parent = await engine.submit(request(side=Side.SELL, type=OrderType.STOP_LIMIT, stop_price=D("0.40"),
+                                             price=D("0.38")))
+        snapshot = engine.orders.get(parent.id).snapshot()
+        snapshot["request"]["time_in_force"] = "ioc"
+        with pytest.raises(ValidationError):
+            OrderRequest.model_validate(snapshot["request"])
+        assert StopLimit.from_snapshot(snapshot).request.time_in_force == TimeInForce.IOC
 
     async def test_the_trigger_source_survives_a_restart_of_the_parent(self, setup):
         from synpath.engine.orders.stop import StopMarket
@@ -318,16 +369,16 @@ class TestStopValidation:
         with pytest.raises(ValueError, match="stop orders"):
             request(price=D("0.5"), trigger_source="last")
 
-    @pytest.mark.parametrize("tif", [TimeInForce.IOC, TimeInForce.FOK])
-    def test_a_stop_market_is_armed_gtc_gtd_or_day_only(self, tif):
-        with pytest.raises(ValueError, match="always ioc"):
-            request(type=OrderType.STOP_MARKET, stop_price=D("0.5"), time_in_force=tif)
-
-    def test_a_stop_limit_takes_gtc_gtd_ioc_or_fok(self):
-        for tif in (TimeInForce.GTC, TimeInForce.IOC, TimeInForce.FOK):
-            request(type=OrderType.STOP_LIMIT, stop_price=D("0.5"), price=D("0.5"), time_in_force=tif)
-        with pytest.raises(ValueError, match="gtd with expires_at"):
-            request(type=OrderType.STOP_LIMIT, stop_price=D("0.5"), price=D("0.5"), time_in_force=TimeInForce.DAY)
+    @pytest.mark.parametrize("kind", [OrderType.STOP_MARKET, OrderType.STOP_LIMIT])
+    def test_a_stop_lives_gtc_gtd_or_day_as_one_order(self, kind):
+        """One time in force for the whole order, as IBKR and FIX use it."""
+        stop = dict(type=kind, stop_price=D("0.5"), price=D("0.5") if kind == OrderType.STOP_LIMIT else None)
+        for tif in (TimeInForce.GTC, TimeInForce.DAY):
+            request(**stop, time_in_force=tif)
+        request(**stop, time_in_force=TimeInForce.GTD, expires_at=1)
+        for tif in (TimeInForce.IOC, TimeInForce.FOK):
+            with pytest.raises(ValueError, match=f"how long the whole order lives.*not {tif.value}"):
+                request(**stop, time_in_force=tif)
 
     def test_a_stop_limit_price_is_on_the_far_side_of_its_stop(self):
         request(side=Side.SELL, type=OrderType.STOP_LIMIT, stop_price=D("0.40"), price=D("0.38"))
@@ -678,7 +729,7 @@ class TestLifecycle:
 
 
 class TestOrderFields:
-    """`reduce_only`, `post_only` and `expires_at` on engine-held orders: honoured or refused, never ignored."""
+    """The outcome and action, `post_only` and `expires_at` on engine-held orders: honoured or refused, never ignored."""
 
     @staticmethod
     def record(paper: PaperVenue) -> list[OrderRequest]:
@@ -691,25 +742,28 @@ class TestOrderFields:
         paper.create_order = create_order  # type: ignore[method-assign]
         return sent
 
-    async def test_a_reduce_only_stop_sends_reduce_only_children(self, setup):
+    async def test_a_sell_yes_stop_sends_sell_yes_children(self, setup):
         engine, paper, clock = setup
         sent = self.record(paper)
         book(paper, engine, bids=[(D("0.45"), D("500"))], asks=[(D("0.47"), D("500"))])
-        await engine.submit(request(side=Side.SELL, type=OrderType.STOP_MARKET, stop_price=D("0.40"), reduce_only=True))
+        await engine.submit(request(side=Side.SELL, outcome="yes", action="sell", type=OrderType.STOP_MARKET,
+                                    stop_price=D("0.40")))
         book(paper, engine, bids=[(D("0.39"), D("500"))], asks=[(D("0.41"), D("500"))])
         await feed_book(engine, paper=paper)
-        assert sent and all(r.reduce_only for r in sent), "a protective stop must not open a position"
+        assert sent and all(r.leg == ("yes", "sell") for r in sent), "a protective stop sells what is held, never buys NO"
 
-    async def test_bracket_legs_inherit_reduce_only_unless_they_say_otherwise(self, setup):
+    async def test_bracket_legs_inherit_the_outcome_and_action_unless_they_say_otherwise(self, setup):
         from synpath.engine.orders.oco import leg_request
 
         engine, paper, clock = setup
         book(paper, engine, bids=[(D("0.45"), D("500"))], asks=[(D("0.47"), D("500"))])
-        parent = await engine.submit(request(side=Side.SELL, type=OrderType.OCO, reduce_only=True, params={"legs": [
-            {"side": "sell", "type": "limit", "price": "0.60"}, {"side": "sell", "type": "limit", "price": "0.65"}]}))
+        parent = await engine.submit(request(side=Side.SELL, outcome="yes", action="sell", type=OrderType.OCO,
+                                             params={"legs": [{"side": "sell", "type": "limit", "price": "0.60"},
+                                                              {"side": "sell", "type": "limit", "price": "0.65"}]}))
         managed = engine.orders.get(parent.id)
-        assert leg_request({"type": "limit", "price": "0.6"}, parent=managed).reduce_only is True
-        assert leg_request({"type": "limit", "price": "0.6", "reduce_only": False}, parent=managed).reduce_only is False
+        assert leg_request({"type": "limit", "price": "0.6"}, parent=managed).leg == ("yes", "sell")
+        assert leg_request({"type": "limit", "price": "0.6", "outcome": "no", "action": "buy"},
+                           parent=managed).leg == ("no", "buy")
 
     async def test_post_only_reaches_the_slices_of_types_that_rest(self, setup):
         engine, paper, clock = setup

@@ -304,10 +304,11 @@ signature and hash for the four wallet types on both exchanges, the L1
 auth signature, the L2 HMAC, and 1,140 limit-order amount cases.
 
 **Two tokens, one leg.** YES and NO are separate tokens with separate books
-and no netting, so the adapter picks the token from the side: `buy` buys the
-YES token at `price`; `sell` buys the NO token at `1 - price`, because you
-cannot sell YES you do not hold. With `reduce_only`, `sell` sells the YES
-tokens held instead and `buy` sells NO tokens held. Everything the venue
+and no netting, so an order says which token it trades with `outcome` and
+`action`: Buy YES buys the YES token at `price`, Sell YES sells YES tokens
+held, Buy NO buys the NO token at `1 - price`, Sell NO sells NO tokens held.
+An order with neither takes its side: `buy` buys YES, `sell` buys NO,
+because you cannot sell YES you do not hold. Everything the venue
 reports on the NO token comes back on the YES leg (a NO buy at 0.30 reads
 as a sell at 0.70), and a position is the two inventories netted with both
 kept on `inventory_yes` / `inventory_no`. Which token is which side comes
@@ -316,7 +317,7 @@ from the Gamma catalog, one read per market, cached.
 **What the venue holds.** Limit orders, `gtc`, `gtd`, and `ioc` / `fok`
 (the venue's FAK and FOK). A market order is an immediate limit at your
 protection price. Post-only for `gtc` and `gtd`. No amend (`edit_order` is
-`False`: a change is a cancel and a new signed order), no reduce-only, no
+`False`: a change is a cancel and a new signed order), no
 client order id -- but the order id is the order's hash, computed before it
 is sent. A `gtd` order is sent with the venue's one-minute early expiry
 added back, so it expires when you asked, and must live at least two
@@ -397,8 +398,8 @@ signing and amounts checked byte for byte against the SDK's code.
 Orders are the CTF exchange's EIP-712 `Order` on BNB Chain, signed by the
 wallet for the account's Safe, which holds the USDT and the tokens; the
 Safe's address is read from the venue when not configured. YES and NO are
-separate tokens, as on Polymarket: `buy` buys YES, `sell` buys NO at
-`1 - price`, and with `reduce_only` they sell the tokens held instead.
+separate tokens, as on Polymarket: an order buys or sells the token its
+`outcome` and `action` name (with neither, `buy` buys YES, `sell` buys NO).
 
 The venue rests limit orders until cancelled and has nothing else: no time
 in force, no post-only, and a market buy that spends a USDT amount rather
@@ -424,8 +425,8 @@ US among them: check them before trading.
 the venue SDK's own test vectors.
 
 An outcome trades as two coins, YES and NO, as on Polymarket: `buy` buys the
-YES coin, `sell` buys the NO coin at `1 - price`, and with `reduce_only` they
-sell the coin held instead. Orders are L1 actions signed by the key in
+YES coin, `sell` buys the NO coin at `1 - price`, and an order's `outcome`
+and `action` (Sell YES, Sell NO) sell the coin held instead. Orders are L1 actions signed by the key in
 `HYPERLIQUID_PRIVATE_KEY` for the account; with an API wallet (approved on
 app.hyperliquid.xyz under More -> API), `HYPERLIQUID_ACCOUNT_ADDRESS` names
 the account, since its orders, fills and balances are what is read.
@@ -460,8 +461,8 @@ of four exchanges by the market's kind (neg-risk or not, yield-bearing or
 not). A plain wallet signs its own orders. A Predict account (the smart
 wallet the web app makes) is the orders' maker and holds the USDT; its owner
 key signs for it, wrapped for the account's Kernel validator. YES and NO are
-separate tokens: `buy` buys YES, `sell` buys NO at `1 - price`, and with
-`reduce_only` they sell the tokens held instead.
+separate tokens: an order buys or sells the token its `outcome` and
+`action` name (with neither, `buy` buys YES, `sell` buys NO).
 
 Orders, cancels and account reads need a login token, which the adapter gets
 by signing the venue's login message with the same key, and renews when the
@@ -505,8 +506,8 @@ also signed with a scoped API token. The profile must be in EOA trading mode:
 an account that once turned on the web app's one-click smart wallet rejects
 orders its own wallet signs, until `use_eoa_trading_mode()` switches it back
 (the web app's one-click trading then stops until it is switched again
-there). YES and NO are separate tokens: `buy` buys YES, `sell` buys NO at
-`1 - price`, and with `reduce_only` they sell the tokens held instead.
+there). YES and NO are separate tokens: an order buys or sells the token
+its `outcome` and `action` name (with neither, `buy` buys YES, `sell` buys NO).
 
 Limits rest until cancelled (`gtc`), post-only on request. `market` and `ioc`
 go as the venue's fill-and-kill at the price given as the worst accepted. The
@@ -550,7 +551,7 @@ price given; `sell` bets outcome two at `1 - price`. The venue counts a stake
 in USDC, so `n` contracts stake `n * price` (or `n * (1 - price)`), at least 1
 USDC, and prices are snapped onto the venue's odds ladder (0.125% today) on
 the cheaper side, so an order never pays more than asked. Every bet on a
-market nets, so `reduce_only` is refused.
+market nets.
 
 Limits rest until cancelled (`gtc`), post-only on request, or until
 `expires_at` (`gtd`). `market` and `ioc` go as the venue's `IOC` at the price

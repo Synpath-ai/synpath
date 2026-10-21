@@ -78,7 +78,7 @@ async def test_real_price_crossing_fills_once_then_closes_only_test_quantity(cre
     assert report["entry_filled"] == "1" and report["entry_average_price"] == "0.4200"
     assert report["exit_filled"] == "1" and report["remaining_position_contracts"] == "0"
     assert report["exit_average_price"] == "0.3900"
-    assert len(venue.posts) == 2 and venue.posts[1]["reduce_only"] is True
+    assert len(venue.posts) == 2 and "reduce_only" not in venue.posts[1] and venue.posts[1]["side"] == "ask"
     assert venue.posts[1]["count"] == "1.00" and venue.position == 0
 
 
@@ -91,12 +91,13 @@ async def test_timeout_cancels_local_parent_without_a_venue_order(creds, tmp_pat
     assert report["creates_attempted"] == 0 and venue.posts == []
 
 
-@pytest.mark.parametrize("change", [{"count": "2"}, {"price": "0.45"}, {"side": "ask"}, {"reduce_only": True}])
+@pytest.mark.parametrize("change", [{"count": "2"}, {"price": "0.45"}, {"side": "ask"}, {"reduce_only": True},
+                                    {"expiration_time": None}])
 async def test_fill_guard_refuses_broader_entry(change):
     guard = FillGuard(TICKER, D("0.44"))
     guard.stage = "entry"
-    body = dict(ticker=TICKER, side="bid", price="0.44", count="1", time_in_force="immediate_or_cancel",
-                post_only=False, reduce_only=False, client_order_id="entry")
+    body = dict(ticker=TICKER, side="bid", price="0.44", count="1", time_in_force="good_till_canceled",
+                expiration_time=1_900_000_000, post_only=False, client_order_id="entry")
     body.update(change)
     with pytest.raises(ValueError):
         await guard.check(httpx.Request("POST", "https://external-api.kalshi.com/trade-api/v2/portfolio/events/orders", json=body))
@@ -106,14 +107,15 @@ async def test_fill_guard_refuses_broader_entry(change):
 async def test_fill_guard_forbids_extra_entry_and_oversized_exit():
     guard = FillGuard(TICKER, D("0.44"))
     guard.stage = "entry"
-    body = dict(ticker=TICKER, side="bid", price="0.44", count="1", time_in_force="immediate_or_cancel",
-                post_only=False, reduce_only=False, client_order_id="entry")
+    body = dict(ticker=TICKER, side="bid", price="0.44", count="1", time_in_force="good_till_canceled",
+                expiration_time=1_900_000_000, post_only=False, client_order_id="entry")
     request = httpx.Request("POST", "https://external-api.kalshi.com/trade-api/v2/portfolio/events/orders", json=body)
     await guard.check(request)
     with pytest.raises(ValueError):
         await guard.check(request)
     guard.stage, guard.exit_quantity = "exit", D("0.50")
-    body.update(side="ask", price="0.001", reduce_only=True, client_order_id="exit")
+    body.update(side="ask", price="0.001", client_order_id="exit", time_in_force="immediate_or_cancel")
+    body.pop("expiration_time")
     with pytest.raises(ValueError):
         await guard.check(httpx.Request("POST", str(request.url), json=body))
 
@@ -136,12 +138,13 @@ async def test_price_wait_renews_lease_before_sending(creds, tmp_path, monkeypat
     original_engine = check.engine_for
     def brief_lease(adapter, path):
         engine = original_engine(adapter, path)
-        engine.config.lease_ttl_ms = 150
-        engine.config.lease_renew_s = 0.02
+        # Wide margins, so a slow CI runner cannot drop the lease by itself.
+        engine.config.lease_ttl_ms = 600
+        engine.config.lease_renew_s = 0.05
         return engine
     original_book = check.book_for
     async def slow_book(adapter, ticker):
-        await asyncio.sleep(0.25)
+        await asyncio.sleep(0.9)  # longer than the lease: only its renewal keeps it
         return await original_book(adapter, ticker)
     monkeypatch.setattr(check, "engine_for", brief_lease)
     monkeypatch.setattr(check, "book_for", slow_book)

@@ -54,11 +54,11 @@ class OneOrderGuard:
         expiry = body.get("expiration_time", 0)
         if not (body.get("ticker") == TICKER and body.get("side") == "bid"
                 and D(body.get("count", "0")) == 1 and D(body.get("price", "0")) == PRICE
-                and body.get("post_only") is True and body.get("reduce_only") is False
+                and body.get("post_only") is True and "reduce_only" not in body
                 and body.get("time_in_force") == "good_till_canceled"
                 and time.time() < expiry <= self.created_at + 90
                 and not (set(body) - {"ticker", "client_order_id", "side", "count", "price", "time_in_force",
-                                    "self_trade_prevention_type", "post_only", "reduce_only", "expiration_time"})):
+                                    "self_trade_prevention_type", "post_only", "expiration_time"})):
             raise ValueError("unexpected size, price, flags or expiry")
         self.sent = body  # reserve before the network; never retry an uncertain send
 

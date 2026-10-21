@@ -96,7 +96,7 @@ async def test_response_lost_still_finds_and_cancels_only_the_accepted_child(cre
 async def test_wire_guard_refuses_any_broader_order(change):
     guard = OneOrderGuard()
     guard.enabled = True
-    body = dict(ticker=TICKER, side="bid", count="1", price="0.01", post_only=True, reduce_only=False,
+    body = dict(ticker=TICKER, side="bid", count="1", price="0.01", post_only=True,
                 time_in_force="good_till_canceled", expiration_time=int(guard.created_at + 85), client_order_id="tiny-test")
     body.update(change)
     with pytest.raises(ValueError, match="unexpected size"):
@@ -109,7 +109,7 @@ async def test_wire_guard_refuses_repeat_submission_and_unrelated_cancel():
     guard.enabled = True
     request = httpx.Request("POST", "https://external-api.kalshi.com/trade-api/v2/portfolio/events/orders",
                             json=dict(ticker=TICKER, side="bid", count="1", price="0.01", post_only=True,
-                                      reduce_only=False, time_in_force="good_till_canceled",
+                                      time_in_force="good_till_canceled",
                                       expiration_time=int(guard.created_at + 85), client_order_id="tiny-test"))
     await guard.check(request)
     with pytest.raises(ValueError, match="single-order authorization"):
@@ -119,18 +119,12 @@ async def test_wire_guard_refuses_repeat_submission_and_unrelated_cancel():
 
 
 @pytest.mark.parametrize("tif", ["ioc", "fok"])
-async def test_post_only_stop_limit_cannot_arm_an_immediate_child(creds, tmp_path, tif):
-    from examples.verify_kalshi_stop_limit import new_engine
+def test_a_stop_limit_cannot_be_immediate_at_all(tif):
+    """One time in force for the whole order: a stop that must live until it
+    triggers cannot be immediate-or-cancel, post-only or not."""
+    from pydantic import ValidationError
     from synpath.trading.types import OrderRequest
-    venue = MockKalshi()
-    async with httpx.AsyncClient(transport=httpx.MockTransport(venue.handle)) as client:
-        async with KalshiTrading(creds, client=client) as adapter:
-            engine = new_engine(adapter, tmp_path / "orders.db")
-            await engine.start()
-            try:
-                with pytest.raises(BadRequest, match="post_only"):
-                    await engine.submit(OrderRequest(market_id=MARKET, side="buy", quantity="1", type="stop_limit",
-                                                     stop_price="0.01", price="0.01", post_only=True, time_in_force=tif))
-                assert venue.creates == []
-            finally:
-                await engine.stop()
+    for post_only in (True, False):
+        with pytest.raises(ValidationError, match="how long the whole order lives"):
+            OrderRequest(market_id=MARKET, side="buy", quantity="1", type="stop_limit",
+                         stop_price="0.01", price="0.01", post_only=post_only, time_in_force=tif)

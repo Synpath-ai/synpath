@@ -44,11 +44,14 @@ def leg_request(spec: Mapping[str, Any], *, parent: ManagedOrder, quantity: Deci
         "trader": parent.request.trader,
         "tags": {**parent.request.tags, "parent": parent.id},
     }
-    for key in ("price", "stop_price", "trigger_source", "time_in_force", "expires_at", "post_only", "reduce_only", "params"):
+    for key in ("price", "stop_price", "trigger_source", "time_in_force", "expires_at", "post_only", "outcome",
+                "action", "params"):
         if spec.get(key) is not None:
             body[key] = spec[key]
-    if "reduce_only" not in body and parent.request.reduce_only:
-        body["reduce_only"] = True
+    if "outcome" not in body and Side(body["side"]) == parent.side and parent.request.outcome is not None:
+        # A leg on the parent's side does what the parent does (a Sell YES
+        # bracket's exits sell YES held); one on the other side keeps its own.
+        body["outcome"], body["action"] = parent.request.outcome, parent.request.action
     return OrderRequest.model_validate(body)
 
 

@@ -141,7 +141,6 @@ class TestOrders:
 
     @pytest.mark.parametrize("changes", [
         {"type": OrderType.ICEBERG},
-        {"reduce_only": True},
         {"time_in_force": TimeInForce.DAY},
         {"time_in_force": TimeInForce.GTD, "expires_at": 1_000},
     ])
