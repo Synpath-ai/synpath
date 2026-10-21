@@ -1,0 +1,130 @@
+{
+ "events": [
+  {
+   "bet_allowed": true,
+   "bettable": true,
+   "chart_time_period": null,
+   "created": "2026-06-06T06:20:46.265718Z",
+   "description": "",
+   "display_order": 0,
+   "end_date": null,
+   "full_slug": "/politics/europe/sweden/2026/09/13/18-00/2026-swedish-general-election-next-swedish-prime-minister",
+   "hidden": false,
+   "id": "45120073",
+   "inplay_enabled": true,
+   "modified": "2026-09-13T18:03:27.532425Z",
+   "name": "2026 Swedish General Election - Next Swedish Prime Minister",
+   "parent_id": "941513",
+   "seo_description": null,
+   "short_name": "",
+   "slug": "2026-swedish-general-election-next-swedish-prime-minister",
+   "special_rules": "",
+   "start_date": "2026-09-13",
+   "start_datetime": "2026-09-13T18:00:00Z",
+   "state": "live",
+   "super_sub_enabled": false,
+   "type": {
+    "domain": "politics",
+    "scope": "single_event"
+   },
+   "venue": null
+  }
+ ],
+ "markets": [
+  {
+   "bet_delay": 0,
+   "cashout_enabled": false,
+   "categories": [
+    "other"
+   ],
+   "category": "other",
+   "complete": false,
+   "contract_selections": null,
+   "created": "2026-06-06T06:22:25.530Z",
+   "description": "",
+   "display_order": 0,
+   "display_type": "default",
+   "event_id": "45120073",
+   "hidden": false,
+   "id": "144500182",
+   "info": {
+    "reason": "Event is live and not inplay enabled"
+   },
+   "inplay_enabled": true,
+   "market_type": {
+    "name": "MANUAL",
+    "param": "GdG98AHT10"
+   },
+   "modified": "2026-06-06T06:22:25.530Z",
+   "name": "Next Swedish Prime Minister",
+   "slug": "next-swedish-prime-minister",
+   "state": "halted",
+   "winner_count": 1
+  }
+ ],
+ "contracts": [
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "NAMED_COMPETITOR",
+    "param": "magdalena-andersson"
+   },
+   "created": "2026-06-06T06:22:25.533Z",
+   "display_order": 0,
+   "hidden": false,
+   "id": "403538588",
+   "info": {},
+   "market_id": "144500182",
+   "modified": "2026-06-06T06:22:25.533Z",
+   "name": "Magdalena Andersson",
+   "outcome_timestamp": null,
+   "slug": "magdalena-andersson",
+   "state_or_outcome": "halted"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "NAMED_COMPETITOR",
+    "param": "ulf-kristersson"
+   },
+   "created": "2026-06-06T06:22:25.533Z",
+   "display_order": 0,
+   "hidden": false,
+   "id": "403538589",
+   "info": {},
+   "market_id": "144500182",
+   "modified": "2026-06-06T06:22:25.533Z",
+   "name": "Ulf Kristersson",
+   "outcome_timestamp": null,
+   "slug": "ulf-kristersson",
+   "state_or_outcome": "halted"
+  }
+ ],
+ "quotes": {
+  "403538588": {
+   "bids": [],
+   "offers": [
+    {
+     "price": 9999,
+     "quantity": 494949
+    }
+   ]
+  },
+  "403538589": {
+   "bids": [],
+   "offers": [
+    {
+     "price": 9999,
+     "quantity": 494949
+    }
+   ]
+  }
+ },
+ "volumes": [
+  {
+   "double_stake_volume": 504,
+   "market_id": "144500182",
+   "volume": 320
+  }
+ ]
+}

@@ -53,6 +53,20 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # so contracts take any size to a millionth.
     "sx_bet": {"default_tick": Decimal("0.00125"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
                "whole": False, "min_notional": Decimal("1")},
+    # No order entry yet; written down for when there is. Prices are decimal
+    # odds on Betfair's ladder (1.01 to 1000), so the step in YES price runs
+    # from about 0.0097 near 1.01 to 0.00001 near 1000: the tick here is the
+    # finest, and an order must still land on the ladder in odds. Stakes are
+    # in the account's currency, to the penny, at least 1 (GBP) a bet.
+    "betfair": {"default_tick": Decimal("0.00001"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.0001"),
+                "whole": False, "min_notional": Decimal("1")},
+    # No order entry yet; written down for when there is. Prices are basis
+    # points of 100% on an odds ladder (5000, 4762, 4545 are odds 2.0, 2.1,
+    # 2.2), so the tick here is the finest, one basis point. Quantities are
+    # pots in 1/10,000 GBP, so contracts step by 0.0001; the minimum stake is
+    # £0.05.
+    "smarkets": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.0001"), "quantity_step": Decimal("0.0001"),
+                 "whole": False, "min_notional": Decimal("0.05")},
 }
 
 

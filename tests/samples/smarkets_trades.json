@@ -1,0 +1,44 @@
+{
+ "recent_trades": [
+  {
+   "contract_id": "456060183",
+   "market_id": "164973231",
+   "price": 5000,
+   "quantity": 14881,
+   "side": "sell",
+   "timestamp": "2026-10-20T08:27:34.157369239Z"
+  },
+  {
+   "contract_id": "456060183",
+   "market_id": "164973231",
+   "price": 5000,
+   "quantity": 77023,
+   "side": "sell",
+   "timestamp": "2026-10-20T11:26:24.865146858Z"
+  },
+  {
+   "contract_id": "456060183",
+   "market_id": "164973231",
+   "price": 5000,
+   "quantity": 72546,
+   "side": "sell",
+   "timestamp": "2026-10-20T11:26:24.865148028Z"
+  },
+  {
+   "contract_id": "456060183",
+   "market_id": "164973231",
+   "price": 5000,
+   "quantity": 31800,
+   "side": "sell",
+   "timestamp": "2026-10-20T12:12:46.215941556Z"
+  },
+  {
+   "contract_id": "456060183",
+   "market_id": "164973231",
+   "price": 5000,
+   "quantity": 20200,
+   "side": "sell",
+   "timestamp": "2026-10-20T18:36:29.168355964Z"
+  }
+ ]
+}

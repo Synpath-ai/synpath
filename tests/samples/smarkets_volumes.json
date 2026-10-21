@@ -1,0 +1,19 @@
+{
+ "volumes": [
+  {
+   "double_stake_volume": 0,
+   "market_id": "164973232",
+   "volume": 0
+  },
+  {
+   "double_stake_volume": 0,
+   "market_id": "164973233",
+   "volume": 0
+  },
+  {
+   "double_stake_volume": 371,
+   "market_id": "164973231",
+   "volume": 376
+  }
+ ]
+}

@@ -5,7 +5,7 @@
 # Synpath – One API for prediction markets <a href="https://x.com/Synpath_Dev"><img src="https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2FSynpath_Dev&style=social&label=Follow" alt="Follow @Synpath_Dev on X" height="28"></a>
 
 **Build on prediction markets without building against each one.**<br/>
-One open-source API across Kalshi, Polymarket, Polymarket US and Opinion: market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
+One open-source API across 8 venues (Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet): market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
 
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <a href="https://pepy.tech/projects/synpath"><img src="https://img.shields.io/pepy/dt/synpath?label=Total%20Downloads&color=blue" alt="Total Downloads"></a>
@@ -45,18 +45,20 @@ synpath keys create my-laptop
 ```python
 import synpath
 
-t = 1790776800000   # any moment, in Unix milliseconds
+t = 1792065600000   # 2026-10-15 12:00 UTC, in venue Unix milliseconds
 
 # The full book exactly as it stood at that millisecond
 snap = synpath.fetch_order_book_at("kalshi:KXQUANTUM-30", as_of_ms=t)
 print(snap.book.bids[0].price, snap.book.asks[0].price, len(snap.book.bids), "bid levels")
 
-# Every change over an hour: a starting book, then each update in arrival order
+# Every change over an hour: a starting book, then each update in venue-time order
 changes = synpath.fetch_order_book_range("kalshi:KXQUANTUM-30", start_ms=t, end_ms=t + 3_600_000)
 
 # Every trade: price, size and taker side
 trades = synpath.fetch_trades_range("kalshi:KXQUANTUM-30", start_ms=t, end_ms=t + 3_600_000)
 ```
+
+Request windows use Kalshi venue time (`metadata.time_basis="venue"`); `observed_at_ms` is the separate recorder receive time.
 
 No silent gaps: if we weren't recording at a moment, you get the reason instead of an empty book. Up to an hour per request; plain HTTP works too (`Authorization: Bearer <key>`). More: **[synpath.dev/tick-data](https://www.synpath.dev/tick-data)** · **[API reference](https://www.synpath.dev/docs/api-reference/history/book-at)**
 
@@ -78,10 +80,16 @@ No silent gaps: if we weren't recording at a moment, you get the reason instead 
 | | [predict.fun](https://predict.fun) | `predict_fun` | ✓ (API key) | ✓ | WebSocket (API key) | one book per market, both sides read it |
 | | [Limitless](https://limitless.exchange) | `limitless` | ✓ | ✓ | WebSocket | one book per market, both sides read it |
 | | [SX Bet](https://sx.bet) | `sx_bet` | ✓ sports | ✓ | WebSocket | one book per market, both sides read it |
+| | [Betfair Exchange](https://www.betfair.com/exchange) | `betfair` | ✓ your own account and app key (delayed key: 1-180 s late, 3 levels) | — | Exchange Stream API (TLS socket) | one book per runner, back and lay read as YES |
+| | [Smarkets](https://smarkets.com) | `smarkets` | ✓ no account (quotes delayed without a login) | — | polled from REST quotes | one book per contract, bids are YES bids |
+
+Betfair is a betting exchange, not a prediction market, read here the same way: each runner (selection) is a yes/no market, `betfair:1.234567890-47972`, and the Betfair market holding the runners is the event. Every Betfair call needs your own Betfair account and application key, and the API is refused from several countries (the US, Germany, France, the Netherlands, Singapore, India, Turkey, the UAE and others). Betfair's keys are for your own betting: showing its prices to anyone else needs a data licence from Betfair. See [capabilities](docs/capabilities.md#betfair).
+
+Smarkets, a UK betting exchange, is read the same way: each contract is a yes/no market, `smarkets:164973231-456060183`, and the Smarkets market holding the contracts is the event. Its market data needs no account (quotes are delayed without a login); betting needs Smarkets' approved API access, which this library does not use yet. Smarkets' API terms allow viewing prices and betting on your own account, and prohibit odds scraping. See [capabilities](docs/capabilities.md#smarkets).
 
 ## Why Synpath
 
-- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US and Opinion, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
+- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
 
 - **Traders deserve advanced order types.** Stops, trailing stops, icebergs, OCO, brackets, TWAP and pegs, on every venue, even where the exchange has none. Orders are journaled before they're sent, so a crash never places one twice.
 
@@ -127,7 +135,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # ['kalshi', 'polymarket', 'polymarket_us', 'opinion', 'hyperliquid', 'predict_fun', 'limitless', 'sx_bet']
+for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'betfair', 'smarkets'] (Betfair and predict.fun need keys)
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 

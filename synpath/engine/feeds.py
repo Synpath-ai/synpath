@@ -51,10 +51,47 @@ class VenueStreams:
     private: Any | None = None
 
 
-def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]) -> dict[str, VenueStreams]:
+def default_streams(
+    adapters: Mapping[str, Any], credentials: Mapping[str, Any], market_data: Mapping[str, Any] | None = None,
+) -> dict[str, VenueStreams]:
     """The library's own streams for each configured venue that has one.
     Kalshi and Polymarket US need credentials even for books; Polymarket's
-    books are public and its user stream authenticates through the adapter."""
+    books are public and its user stream authenticates through the adapter.
+
+    `market_data` (what `load_market_data` returns) adds a market stream for
+    each venue configured with only its API key: no adapter trades there, but
+    a parent on another venue can still watch its books."""
+    out = _trading_streams(adapters, credentials)
+    for venue, key in (market_data or {}).items():
+        if venue not in out and venue not in adapters:
+            stream = market_stream(venue, key)
+            if stream is not None:
+                out[venue] = VenueStreams(market=stream)
+    return out
+
+
+def market_stream(venue: str, key: Any) -> Any | None:
+    """A venue's market stream from its market-data API key alone (a
+    `MarketDataKey`), or `None` for a venue that has none that way."""
+    if venue == "opinion":
+        from ..opinion import Opinion
+        from ..ws.opinion import OpinionMarketStream
+        # The key also lifts the REST limit the stream seeds its books through.
+        return OpinionMarketStream(api_key=key.api_key, catalog=Opinion(api_key=key.api_key))
+    if venue == "predict_fun" and not key.testnet:
+        # Mainnet only: the venue documents no test-network WebSocket.
+        from ..ws.predict_fun import PredictFunMarketStream
+        return PredictFunMarketStream(api_key=key.api_key)
+    if venue == "sx_bet":
+        from ..sx_bet import SxBet
+        from ..ws.sx_bet import SxBetMarketStream
+        return SxBetMarketStream(api_key=key.api_key, testnet=key.testnet,
+                                 catalog=SxBet(api_key=key.api_key, testnet=key.testnet))
+    return None
+
+
+def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]) -> dict[str, VenueStreams]:
+    """Market and account streams for each venue an adapter trades."""
     out: dict[str, VenueStreams] = {}
     for venue, adapter in adapters.items():
         creds = credentials.get(venue)
@@ -107,10 +144,26 @@ def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any])
             from ..ws.sx_bet import SxBetMarketStream, SxBetUserStream
             testnet = bool(getattr(creds, "testnet", False))
             catalog = getattr(adapter, "catalog", None)
+            address = creds.address
+            if not address:
+                log.warning("synpath.engine.feeds: sx_bet has an API key but no account address, so its orders "
+                            "reach the engine by polling; set SX_BET_ACCOUNT_ADDRESS to the wallet's 0x address "
+                            "for the account stream")
             out[venue] = VenueStreams(
                 market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
-                private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=creds.address),
+                private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=address) if address else None,
             )
+        elif venue == "betfair" and creds is not None:
+            # Market data only: no Betfair order entry, so no account stream.
+            # Every Betfair stream, books included, logs in with the account.
+            from ..ws.betfair import BetfairMarketStream
+            out[venue] = VenueStreams(market=BetfairMarketStream(credentials=creds), private=None)
+        elif venue == "smarkets":
+            # Market data only, and public: a polled stream on REST quotes
+            # (Smarkets' socket stream is for approved market makers). The
+            # login, when configured, only undelays the quotes.
+            from ..ws.smarkets import SmarketsMarketStream
+            out[venue] = VenueStreams(market=SmarketsMarketStream(credentials=creds), private=None)
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out
