@@ -46,6 +46,19 @@ def venues_config(config: dict[str, Any], credentials: dict[str, Any]) -> dict[s
     return {**config, "venues": {venue: {} for venue in VENUES if credentials.get(venue) is not None}}
 
 
+def read_options(market_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """The read app's adapter arguments: each market-data API key loaded from
+    serve's own `.env`, which the adapters would not find on their own when
+    serve runs from another folder."""
+    return {venue: {"api_key": key.api_key} for venue, key in market_data.items() if venue in READ_API_KEY_VENUES}
+
+
+READ_API_KEY_VENUES = ("opinion", "predict_fun", "sx_bet")
+"""Venues whose read adapter takes an API key: predict.fun's mainnet refuses
+every request without one; Opinion's raises its rate limit with one; SX Bet
+documents its book snapshots as keyed."""
+
+
 @dataclass
 class Stack:
     engine: Any
@@ -83,13 +96,14 @@ async def build(
     from ..engine.eod import EndOfDay
     from ..engine.feeds import Feeds, default_streams
     from ..engine.reconcile import Reconciler
-    from ..trading.credentials import load_credentials
-    from .api import create_app
+    from ..trading.credentials import load_credentials, load_market_data
+    from .api import VenueRegistry, create_app
     from .store import ControlStore
     from .trading import create_trading_app
 
     config = dict(config or {})
     credentials = load_credentials(dotenv=dotenv) if adapters is None or (streams and stream_map is None) else {}
+    market_data = load_market_data(dotenv=dotenv)
     if adapters is None:
         config = venues_config(config, credentials)
         adapters = build_adapters(config, dotenv=dotenv) if config.get("venues") else {}
@@ -107,7 +121,7 @@ async def build(
     engine = Engine(adapters, engine_config, risk=risk_from(config))
     feeds = None
     if streams and config.get("streams", True):
-        feeds = Feeds(engine, stream_map if stream_map is not None else default_streams(adapters, credentials))
+        feeds = Feeds(engine, stream_map if stream_map is not None else default_streams(adapters, credentials, market_data))
     reconciler = Reconciler(engine, orphan_policy=config.get("orphan_policy", "report"))
     eod = EndOfDay(engine, hour_utc=int(config.get("eod_hour_utc", 0)))
 
@@ -123,7 +137,7 @@ async def build(
     if feeds is not None:
         await feeds.start()
 
-    app = create_app()
+    app = create_app(registry=VenueRegistry(options=read_options(market_data)))
     app.mount("/trading", create_trading_app(engine, store))
     app.state.trading_path = "/trading"
     return Stack(engine=engine, feeds=feeds, store=store, app=app, reconciler=reconciler, eod=eod,

@@ -1,6 +1,6 @@
 """SX Bet: a peer-to-peer sports exchange on its own chain, read from its REST API.
 
-Market data needs no key. Listing, lookup and sports routes share one budget of
+Market data needs no key (an SX Bet API key, when given, is sent anyway). Listing, lookup and sports routes share one budget of
 500 requests a minute per IP; the order book route has its own, much larger.
 
 Four things about this venue that shape the adapter:
@@ -388,13 +388,17 @@ class SxBet(Exchange):
     }
 
     def __init__(
-        self, *, api_url: str = API_URL, testnet: bool = False, timeout: float = 30.0,
+        self, *, api_key: str | None = None, api_url: str = API_URL, testnet: bool = False, timeout: float = 30.0,
         limiter: RateLimiter | None = LIMITER, client: Any = None,
     ):
+        """`api_key` is optional: the routes read here answer without one
+        today, but the venue documents its book snapshots as keyed, so a key
+        given is sent on every request."""
         if testnet and api_url == API_URL:
             api_url = TESTNET_API_URL
         if client is None:
-            client = httpx.Client(timeout=timeout, follow_redirects=True)
+            headers = {"x-sx-api-key": api_key} if api_key else {}
+            client = httpx.Client(timeout=timeout, follow_redirects=True, headers=headers)
         self.http = HttpClient(api_url, limiter=limiter, timeout=timeout, client=client, venue=VENUE)
 
     def _get(self, path: str, params: Any = None, *, what: str = "") -> Any:

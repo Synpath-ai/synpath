@@ -108,8 +108,13 @@ class VenueRegistry:
     returned `Page` — so sharing one across threads is safe.
     """
 
-    def __init__(self, exchanges: dict[str, Exchange] | None = None):
+    def __init__(self, exchanges: dict[str, Exchange] | None = None,
+                 options: dict[str, dict[str, Any]] | None = None):
+        """`options` are each venue's constructor arguments, such as the API
+        key `synpath serve` read from its `--dotenv`: without them an adapter
+        looks only in the environment and the working directory's `.env`."""
         self._exchanges: dict[str, Exchange] = exchanges or {}
+        self._options: dict[str, dict[str, Any]] = options or {}
         # Handlers are sync `def`, so Starlette runs them in a thread pool and
         # two requests really do race here. Without this, both would build an
         # adapter, one would be dropped still holding an open connection pool,
@@ -130,7 +135,7 @@ class VenueRegistry:
             # Checked again under the lock: another thread may have built it
             # while this one waited.
             if venue not in self._exchanges:
-                self._exchanges[venue] = synpath.exchange(venue)
+                self._exchanges[venue] = synpath.exchange(venue, **self._options.get(venue, {}))
             return self._exchanges[venue]
 
     def close(self) -> None:
