@@ -27,7 +27,8 @@ outer.include_router(create_app(docs=False).router, dependencies=[Depends(my_aut
 
 The read app has no auth of its own and never will — a service that ships
 authentication inside the open-source core forces every host to work around
-it. Everything cross-venue (matching the same question across exchanges,
+it. A host plugs its own in with `create_app(dependencies=[...])`, which is
+how `synpath serve` requires its access token on every market-data route. Everything cross-venue (matching the same question across exchanges,
 routing an order) belongs outside too.
 
 **Trading is a second app**, because placing an order does need to know who

@@ -108,8 +108,9 @@ class TestReadApp:
                 journal=str(tmp_path / "s.db"), control=str(tmp_path / "c.db"), dotenv=str(elsewhere),
                 streams=False, adapters={}, home_dir=str(tmp_path / "home"))
             try:
-                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=stack.app),
-                                             base_url="http://synpath") as client:
+                # serve's read routes take its access token, as /trading does.
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=stack.app), base_url="http://synpath",
+                                             headers={"Authorization": f"Bearer {stack.owner_key}"}) as client:
                     answer = await client.get("/venues/predict_fun/markets", params={"query": "bitcoin", "limit": 5})
             finally:
                 await serve.shutdown(stack)

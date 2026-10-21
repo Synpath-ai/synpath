@@ -1,7 +1,7 @@
 """The trading surface over HTTP, and the event stream beside it.
 
-The read app (`synpath.server.api`) has no accounts because reading a public
-market needs none. This one places orders, so it needs to know who is asking
+The read app (`synpath.server.api`) keeps no accounts because reading a public
+market needs none (`synpath serve` still puts it behind this app's token). This one places orders, so it needs to know who is asking
 and what they may touch, and both are checked on every route.
 
 What shapes it:
@@ -53,7 +53,7 @@ from ..trading.errors import (
 )
 from .errors import install_error_handlers
 from ..trading.types import (
-    Account, Balance, EditRequest, Fill, Order, OrderRequest, Position, Settlement, TimeInForce,
+    Account, Balance, EditRequest, Fill, Order, OrderRequest, Position, Settlement, Side, TimeInForce,
 )
 from .models import ErrorBody, PageResponse
 from .store import ALL_ACCOUNTS, ControlStore, Grant, Permission, Principal
@@ -179,11 +179,74 @@ class PnlView(BaseModel):
 
 
 class BucketBody(BaseModel):
-    """A bucket to create. The server assigns the id."""
+    """A bucket to create. The server assigns the id unless one is given."""
 
     book: str = Field(description="The strategy book the bucket belongs to, as on orders")
     name: str = Field(description="A label for people; not unique")
-    members: list[BucketMember] = Field(description="Two or more Synpath market ids, each with `flip`")
+    members: list[BucketMember] = Field(description="Two or more Synpath market ids, each with `flip` and "
+                                                    "`enabled` (default true; at least one enabled)")
+    id: str | None = Field(default=None, description="A UUID made by the client (32 hex digits, or the dashed "
+                                                     "form, kept as given in lower case), so a bucket defined "
+                                                     "elsewhere keeps its id. Taken: 409")
+
+
+class BucketUpdate(BaseModel):
+    """A change to a bucket; fields left out are left alone. `members`
+    replaces the whole list, each member's `enabled` included (switching a
+    member off keeps it in the definition but out of routing and the merged
+    book). `status` archives or restores it."""
+
+    name: str | None = None
+    book: str | None = None
+    members: list[BucketMember] | None = None
+    status: Literal["active", "archived"] | None = None
+
+
+class BucketPlanBody(BaseModel):
+    """What to preview: an order on the bucket, as `POST /orders` would take it."""
+
+    side: Side = Field(description="`buy` takes the bucket's YES, `sell` its NO")
+    quantity: Decimal = Field(gt=0, description="Contracts, in bucket terms")
+    worst_price: Decimal = Field(gt=0, lt=1, description="The worst net price accepted, in bucket terms (an "
+                                                          "order's `price`)")
+
+
+class PlanLegView(BaseModel):
+    """One leg of a plan: what one member venue would receive."""
+
+    market_id: str
+    venue: str
+    flip: bool
+    side: str = Field(description="The member's own side, after `flip`")
+    price: Decimal = Field(description="The member's own YES price, after `flip` and tick rounding: what the "
+                                       "venue would receive")
+    quantity: Decimal
+    bucket_price: Decimal = Field(description="The worst level this leg reaches, in bucket terms, before fees")
+    net_price: Decimal = Field(description="Volume-weighted net price of the levels taken, in bucket terms, fee "
+                                           "floor included")
+    fee: Decimal = Field(description="The taker fee this leg is expected to pay, floor included")
+    fee_floor: Decimal = Field(description="How much of `fee` is the venue's per-order floor")
+
+
+class BucketPlanView(BaseModel):
+    """`synpath.engine.router.plan` on the members' current books. Nothing was placed."""
+
+    bucket_id: str
+    side: str
+    quantity: Decimal
+    worst_price: Decimal
+    legs: list[PlanLegView]
+    allocated: Decimal = Field(description="Contracts the legs add up to; never more than `quantity`")
+    unfilled: Decimal
+    stop_reason: Literal["worst_price", "liquidity", "min_quantity"] | None = Field(
+        description="Why the plan stops short of `quantity`; null when it fills it")
+    expected_net_price: Decimal | None = Field(description="Volume-weighted across legs, in bucket terms, net of fees")
+    fees: Decimal = Field(description="Every leg's expected taker fee")
+    books: dict[str, Literal["stream", "rest", "missing"]] = Field(
+        description="Per member, where its book came from: serve's live stream, a venue read for this request, "
+                    "or nowhere")
+    fees_unknown: list[str] = Field(description="Members whose taker fee the library cannot price; counted as free")
+    computed_at: int = Field(description="Milliseconds since the epoch")
 
 
 class EditBody(BaseModel):
@@ -288,6 +351,15 @@ async def caller(request: Request, store: Annotated[ControlStore, Depends(get_st
     return await principal_of(request, store)
 
 
+async def socket_principal(socket: WebSocket, store: ControlStore, key: str | None) -> Principal | None:
+    """Who an accepted WebSocket belongs to: the token from `?key=` (a browser
+    cannot set headers on a socket) or from `Authorization: Bearer`; `None`
+    without a valid one. The socket counterpart of `caller`."""
+    header = socket.headers.get("authorization") or ""
+    secret = key or (header[7:].strip() if header.lower().startswith("bearer ") else "")
+    return await store.principal(secret) if secret else None
+
+
 Caller = Annotated[Principal, Depends(caller)]
 EngineDep = Annotated[Engine, Depends(get_engine)]
 StoreDep = Annotated[ControlStore, Depends(get_store)]
@@ -331,6 +403,50 @@ def bucket_accounts(bucket: Bucket, engine: Engine) -> list[str]:
 def sees_bucket(principal: Principal, bucket: Bucket, engine: Engine) -> bool:
     """A bucket is visible to a caller who may see every account it trades on."""
     return all(visible(principal, account) for account in bucket_accounts(bucket, engine))
+
+
+def client_bucket_id(value: str) -> str:
+    """A client-made bucket id: any UUID, kept as given (lower case) so the
+    client's references to `bucket:<id>` stay valid."""
+    import uuid
+
+    text = value[len("bucket:"):] if is_bucket_id(value) else value
+    try:
+        uuid.UUID(text)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="a bucket id is a UUID: 32 hex digits or the dashed form") from None
+    if len(text) not in (32, 36):
+        raise HTTPException(status_code=400, detail="a bucket id is a UUID: 32 hex digits or the dashed form")
+    return text.lower()
+
+
+def checked_definition(principal: Principal, engine: Engine, bucket: Bucket) -> None:
+    """The checks every stored definition passes: its shape, a venue this
+    server trades for every member, and a caller allowed to trade each of
+    them, since an order on the bucket will route there."""
+    try:
+        bucket.check()
+    except BadRequest as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    missing = sorted(bucket.venues() - set(engine.adapters))
+    if missing:
+        raise HTTPException(status_code=400, detail=f"this server does not trade {', '.join(missing)}: "
+                                                    "every member venue needs credentials here")
+    for member_venue in sorted(bucket.venues()):
+        require(principal, "trade", account_key(None, engine, member_venue))
+
+
+def plan_view(bucket: Bucket, body: "BucketPlanBody", result: Any) -> "BucketPlanView":
+    plan = result.plan
+    legs = [PlanLegView(market_id=leg.market_id, venue=ids.venue_of(leg.market_id), flip=leg.flip,
+                        side=leg.side.value, price=leg.price, quantity=leg.quantity, bucket_price=leg.bucket_price,
+                        net_price=leg.net_price, fee=leg.fee, fee_floor=leg.fee_floor) for leg in plan.legs]
+    return BucketPlanView(
+        bucket_id=bucket.id, side=body.side.value, quantity=body.quantity, worst_price=body.worst_price, legs=legs,
+        allocated=plan.allocated, unfilled=plan.unfilled, stop_reason=plan.reason or None,
+        expected_net_price=plan.expected_net_price, fees=sum((leg.fee for leg in plan.legs), Decimal("0")),
+        books=result.sources, fees_unknown=result.fees_unknown, computed_at=result.computed_at,
+    )
 
 
 def bucket_report(parent: Any) -> BucketOrderReport:
@@ -410,21 +526,18 @@ def create_trading_router() -> APIRouter:
 
     # -- buckets --------------------------------------------------------------
 
-    @router.post("/buckets", tags=["buckets"], summary="Create a bucket", responses=RESPONSES, status_code=201)
+    @router.post("/buckets", tags=["buckets"], summary="Create a bucket", responses={
+        **RESPONSES, 409: {"model": ErrorBody, "description": "A bucket with that id already exists"}},
+        status_code=201)
     async def create_bucket(principal: Caller, engine: EngineDep, body: BucketBody) -> Bucket:
         bucket = Bucket(book=body.book, name=body.name, members=body.members)
-        try:
-            bucket.check()
-        except BadRequest as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from None
-        missing = sorted(bucket.venues() - set(engine.adapters))
-        if missing:
-            raise HTTPException(status_code=400, detail=f"this server does not trade {', '.join(missing)}: "
-                                                        "every member venue needs credentials here")
-        # Whoever defines a bucket must be able to trade every leg it will route to.
-        for member_venue in sorted(bucket.venues()):
-            require(principal, "trade", account_key(None, engine, member_venue))
-        return await engine.save_bucket(bucket)
+        if body.id is not None:
+            bucket.id = client_bucket_id(body.id)
+        checked_definition(principal, engine, bucket)
+        if body.id is not None and await engine.journal.bucket(bucket.id) is not None:
+            raise HTTPException(status_code=409, detail=f"bucket {bucket.id} already exists")
+        await engine.save_bucket(bucket)
+        return Bucket.model_validate(await engine.journal.bucket(bucket.id))   # with its stored times
 
     async def _bucket(principal: Principal, engine: Engine, bucket_id: str) -> Bucket:
         """The bucket a path names, as `<id>` or as its market id `bucket:<id>`."""
@@ -453,12 +566,50 @@ def create_trading_router() -> APIRouter:
         return await _bucket(principal, engine, bucket_id)
 
     @router.delete("/buckets/{bucket_id}", tags=["buckets"], summary="Archive a bucket", responses=RESPONSES)
-    async def archive_bucket(principal: Caller, engine: EngineDep, bucket_id: Annotated[str, Path()]) -> Bucket:
+    async def archive_bucket(principal: Caller, engine: EngineDep, request: Request,
+                             bucket_id: Annotated[str, Path()]) -> Bucket:
         bucket = await _bucket(principal, engine, bucket_id)
         for account in bucket_accounts(bucket, engine):
             require(principal, "trade", account)
         await engine.journal.archive_bucket(bucket.id)
-        return Bucket.model_validate(await engine.journal.bucket(bucket.id))
+        archived = Bucket.model_validate(await engine.journal.bucket(bucket.id))
+        hub = getattr(request.app.state, "market_streams", None)
+        if hub is not None:
+            await hub.refresh_bucket(archived)
+        return archived
+
+    @router.patch("/buckets/{bucket_id}", tags=["buckets"], summary="Change a bucket", responses=RESPONSES)
+    async def update_bucket(principal: Caller, engine: EngineDep, request: Request,
+                            bucket_id: Annotated[str, Path()], body: BucketUpdate) -> Bucket:
+        bucket = await _bucket(principal, engine, bucket_id)
+        for account in bucket_accounts(bucket, engine):
+            require(principal, "trade", account)
+        changed = bucket.model_copy(update={
+            **body.model_dump(exclude_none=True, exclude={"members"}),
+            **({"members": body.members} if body.members is not None else {}),
+            "updated_ms": None,
+        })
+        checked_definition(principal, engine, changed)
+        await engine.save_bucket(changed)
+        saved = Bucket.model_validate(await engine.journal.bucket(bucket.id))
+        hub = getattr(request.app.state, "market_streams", None)
+        if hub is not None:
+            await hub.refresh_bucket(saved)
+        return saved
+
+    @router.post("/buckets/{bucket_id}/plan", tags=["buckets"], summary="Preview how an order would route",
+                 responses=RESPONSES)
+    async def plan_bucket_order(principal: Caller, engine: EngineDep, request: Request,
+                                bucket_id: Annotated[str, Path()], body: BucketPlanBody) -> BucketPlanView:
+        """The router's plan for a market order on the bucket, on the members'
+        current books (serve's live streams where it holds them, else a venue
+        read) and their published taker fees. Nothing is placed."""
+        bucket = await _bucket(principal, engine, bucket_id)
+        books = getattr(request.app.state, "bucket_books", None)
+        if books is None:
+            raise HTTPException(status_code=503, detail="this server has no market data attached for buckets")
+        result = await books.plan(bucket, side=body.side, quantity=body.quantity, worst_price=body.worst_price)
+        return plan_view(bucket, body, result)
 
     @router.get("/buckets/{bucket_id}/position", tags=["buckets"], summary="Position in a bucket",
                 responses=RESPONSES)
@@ -712,8 +863,7 @@ def add_event_socket(app: FastAPI) -> None:
         if store is None or engine is None:
             await socket.close(code=1011, reason="this server has no engine attached")
             return
-        secret = key or (socket.headers.get("authorization") or "")[7:].strip()
-        principal = await store.principal(secret) if secret else None
+        principal = await socket_principal(socket, store, key)
         if principal is None or not principal.may("view"):
             await socket.close(code=4401, reason="an access token with view permission is required")
             return

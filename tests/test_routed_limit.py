@@ -131,6 +131,18 @@ class TestPlacing:
         finally:
             await engine.stop()
 
+    async def test_a_member_switched_off_gets_no_leg(self, setup):
+        engine, kalshi, poly, clock, bucket = setup
+        off = await engine.save_bucket(bucket.model_copy(update={"members": [
+            BucketMember(market_id=K), BucketMember(market_id=P, enabled=False)]}))
+        book(kalshi, engine, K, asks=[(D("0.44"), D("30"))])
+        book(poly, engine, P, asks=[(D("0.40"), D("100"))])
+        parent = await engine.submit(request(off))
+        assert [(o.price, o.quantity) for o in kalshi.orders.values()] == [(D("0.44"), D("30"))]
+        assert poly.orders == {}, "the cheaper member is off, so nothing goes there"
+        managed = engine.orders.get(parent.id)
+        assert managed.markets() == [K] and managed.venues() == {"kalshi"}
+
 
 class TestWorking:
     async def test_a_partial_fill_leaves_the_remainder_resting_and_the_rest_completes_it(self, setup):

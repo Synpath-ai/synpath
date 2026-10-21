@@ -177,6 +177,15 @@ single market does. An order names `bucket:<id>` the way it names
 `kalshi:KXX`, and the engine holds it as a `routed_limit` parent whose
 children are one leg per member venue.
 
+A member can be switched off without removing it: `BucketMember(...,
+enabled=False)`. It stays in the definition (and in `bucket_position`, so
+anything already held there still nets in), but the router leaves it out:
+no leg goes to it, its book is not merged, and the merged book in `synpath
+serve` does not stream it. An order placed while a member is off carries the
+bucket with only its enabled members. A definition needs at least two members
+and at least one of them enabled; members default to `enabled=True`, so
+definitions stored before the field existed route as before.
+
 ```python
 from synpath import Bucket, BucketMember, OrderRequest, Side
 
@@ -246,7 +255,12 @@ assigns the id and refuses a caller without `trade` on every member venue.
 The client also has `fetch_buckets`, `fetch_bucket`, `archive_bucket`,
 `fetch_bucket_orders`, `fetch_bucket_order` (the `report()` above, typed as
 `BucketOrderReport`, rebuilt from the journal for an order that finished
-before a restart) and `fetch_bucket_position`.
+before a restart) and `fetch_bucket_position`. Over HTTP the server also
+renames, edits and restores a bucket (`PATCH /trading/buckets/{id}`), keeps a
+client-made UUID id when one is given, streams the merged book in bucket
+terms (`bucket:<id>` on `/ws/market`) and previews `router.plan` for an order
+without placing it (`POST /trading/buckets/{id}/plan`); see
+[the server](server.md#a-buckets-merged-book).
 Ids are UUIDs made locally, so a definition made offline stays unique when
 it later moves to a hosted account. Nothing here judges whether the members
 are really the same question.
@@ -312,7 +326,9 @@ synpath serve --config engine.toml   # the venues, risk rules and journal the fi
 (`Engine.background()`: lease, in-doubt sweep, poll, the managed-order clock),
 subscribes each venue's market and account streams (`synpath.engine.feeds`),
 runs reconciliation and the end-of-day close, and serves the HTTP API: market
-data at `/`, trading at `/trading`. The first start on a new control database
+data at `/`, live books, trades and quotes at `/ws/market` (on the same venue
+connections the stops read), trading at `/trading`. Every route but `/`,
+`/health` and the API docs needs the access token. The first start on a new control database
 makes an owner access token and leaves it in `~/.synpath/servers.json` (readable by you
 only), where `synpath.Client(server=...)` and the TypeScript client on the
 same machine find it; a server bound to a network address prints the token

@@ -204,9 +204,11 @@ async with KalshiTrading(require("kalshi", creds)) as kalshi, \
 **REST server**
 
 ```bash
-python -m synpath.server                           # http://127.0.0.1:8000/docs
+python -m synpath.server                           # http://127.0.0.1:8000/docs, no auth: keep it on localhost
 curl "localhost:8000/venues/kalshi/markets?limit=1"
 ```
+
+`synpath serve` runs the same routes (batch reads and search included), plus live books at `/ws/market` (a bucket's merged book too, with a router preview at `/trading/buckets/{id}/plan`) and Synpath's hosted matching and tick history at `/matching` and `/history` (with serve's own Synpath API key), behind its access token; see [docs/server.md](docs/server.md).
 
 Trading has its own app, with per-account keys and an append-only audit log:
 

@@ -41,7 +41,7 @@ from .storage_types import Intent, IntentState, JournalEvent, Lease, LeaseLost
 from .submissions import request_identity
 from .order_storage import OrderRecords, UNATTRIBUTED_USER, schema as order_schema
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS submissions (
@@ -885,8 +885,9 @@ class Journal:
                 await self._db.execute("DELETE FROM bucket_members WHERE bucket_id=?", (bucket["id"],))
                 for position, member in enumerate(members):
                     await self._db.execute(
-                        "INSERT INTO bucket_members(bucket_id, market_id, flip, position) VALUES(?,?,?,?)",
-                        (bucket["id"], member["market_id"], 1 if member.get("flip") else 0, position),
+                        "INSERT INTO bucket_members(bucket_id, market_id, flip, enabled, position) VALUES(?,?,?,?,?)",
+                        (bucket["id"], member["market_id"], 1 if member.get("flip") else 0,
+                         0 if member.get("enabled") is False else 1, position),
                     )
                 await self._db.execute(
                     "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
@@ -903,9 +904,10 @@ class Journal:
         if row is None:
             return None
         async with self._db.execute(
-            "SELECT market_id, flip FROM bucket_members WHERE bucket_id=? ORDER BY position", (bucket_id,)
+            "SELECT market_id, flip, enabled FROM bucket_members WHERE bucket_id=? ORDER BY position", (bucket_id,)
         ) as cursor:
-            members = [{"market_id": m["market_id"], "flip": bool(m["flip"])} async for m in cursor]
+            members = [{"market_id": m["market_id"], "flip": bool(m["flip"]), "enabled": bool(m["enabled"])}
+                       async for m in cursor]
         return {"id": row["id"], "book": row["book"], "name": row["name"], "status": row["status"],
                 "created_ms": row["created_ts"], "updated_ms": row["updated_ts"], "members": members}
 
