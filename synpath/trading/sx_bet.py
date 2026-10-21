@@ -240,8 +240,6 @@ def check_request(request: OrderRequest) -> None:
         raise InvalidOrder(f"{VENUE}: day orders are the engine's; gtc, gtd, ioc or fok")
     if request.price is None:
         raise InvalidOrder(f"{VENUE}: a price is required -- a market order is sent at the worst price you give")
-    if request.reduce_only:
-        raise InvalidOrder(f"{VENUE}: the venue nets every bet on a market; there is no reduce-only order")
     if request.post_only and venue_time_in_force(request) != "GTC":
         raise InvalidOrder(f"{VENUE}: a post-only order cannot also take at once")
 

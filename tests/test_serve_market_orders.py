@@ -34,7 +34,7 @@ def market_rows(harness) -> list[dict]:
 
     async def read() -> list[dict]:
         async with journal._db.execute(
-                "SELECT client_order_id, side, price, state, time_in_force, reduce_only, request, snapshot "
+                "SELECT client_order_id, side, price, state, time_in_force, request, snapshot "
                 "FROM market_orders ORDER BY created_ts") as cursor:
             return [dict(row) for row in await cursor.fetchall()]
 
@@ -60,15 +60,19 @@ class TestMarketOrders:
             assert [(o["id"], o["type"], o["tags"].get("terminal_outcome")) for o in listed["data"]] == \
                 [(order["id"], "market", "yes")]
 
-    def test_a_sell_at_the_lowest_legal_price_with_reduce_only(self, serve_harness):
+    def test_a_sell_yes_at_the_lowest_legal_price_keeps_its_outcome_and_action(self, serve_harness):
         kalshi = MockKalshi()
         with serve_harness(kalshi=kalshi) as harness:
-            placed = place(harness, market(side="sell", price="0.01", reduce_only=True, client_order_id="mkt-s"))
+            placed = place(harness, market(side="sell", outcome="yes", action="sell", price="0.01",
+                                           client_order_id="mkt-s"))
             assert placed.status_code == 201, placed.text
+            assert (placed.json()["outcome"], placed.json()["action"]) == ("yes", "sell")
             [sent] = kalshi.creates
-            assert (sent["side"], D(sent["price"]), sent["reduce_only"]) == ("ask", D("0.01"), True)
+            assert (sent["side"], D(sent["price"])) == ("ask", D("0.01")) and "reduce_only" not in sent
             [row] = market_rows(harness)
-            assert (row["side"], row["reduce_only"]) == ("sell", 1)
+            assert row["side"] == "sell" and json.loads(row["request"])["action"] == "sell"
+            refused = place(harness, market(side="sell", price="0.01", reduce_only=True, client_order_id="mkt-r"))
+            assert refused.status_code in (400, 422) and "reduce_only is removed" in refused.text
 
     def test_the_same_client_order_id_twice_sends_once(self, serve_harness):
         kalshi = MockKalshi()

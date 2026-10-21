@@ -20,10 +20,11 @@ crosses through zero closes the old side first and opens the new one at the
 fill price. Fees are realized when they are charged, never amortized into
 cost, so a flat book's realized profit is what the venue actually paid.
 
-**Unrealized profit needs a mark, and a mark is a choice.** It comes from
-fair values the engine stores per account and instrument (`fair_values.py`),
-not from a book this module cannot see. Without a mark a position reports
-its cost and no unrealized number, rather than a made-up one.
+**Unrealized profit needs a mark.** The engine supplies one per position
+(`Engine.marks`): the price the position could be closed at on the live book,
+the best bid for a long YES and the best ask for a short (a long NO), else
+the last trade, since this module cannot see a book. Without a mark a position reports its cost and
+no unrealized number, rather than a made-up one.
 
 Settlement closes a position at 1 or 0 and moves the whole remaining quantity
 into realized.
@@ -247,14 +248,14 @@ class Ledger:
     def position(self, account_key: str, book: str, venue: str, market_id: str) -> PositionState | None:
         return self.positions.get((account_key, book, market_id))
 
-    def rollup(self, level: Level, marks: dict[tuple[str, str], Decimal] | None = None) -> dict[str, Rollup]:
+    def rollup(self, level: Level, marks: dict[tuple[str, str, str], Decimal] | None = None) -> dict[str, Rollup]:
         """Aggregate every position to one of the four levels.
 
-        `marks` is keyed by `(account_key, market_id)`, as the journal
-        stores fair values.
+        `marks` is keyed like `positions`, `(account_key, book, market_id)`:
+        a mark is the price that position closes at, which depends on its side.
         """
         out: dict[str, Rollup] = {}
-        for state in self.positions.values():
+        for position_key, state in self.positions.items():
             if level in ("market", "instrument"):
                 key = state.market_id
             elif level == "market":
@@ -266,7 +267,7 @@ class Ledger:
             row = out.get(key)
             if row is None:
                 row = out[key] = Rollup(level=level, key=key)
-            mark = (marks or {}).get((state.account_key, state.market_id))
+            mark = (marks or {}).get(position_key)
             unreal = state.unrealized(mark)
             row.contracts += state.contracts
             row.cost += state.cost
@@ -279,7 +280,7 @@ class Ledger:
                 row.marked += 1
         return out
 
-    def total(self, marks: dict[tuple[str, str], Decimal] | None = None) -> Rollup:
+    def total(self, marks: dict[tuple[str, str, str], Decimal] | None = None) -> Rollup:
         """The firm's line: everything, every account, every book."""
         row = Rollup(level="account", key="*")
         for part in self.rollup("account", marks).values():

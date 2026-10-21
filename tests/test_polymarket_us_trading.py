@@ -146,7 +146,6 @@ class TestRetailTranslate:
         ({"price": D("0.1075")}, "tick"),
         ({"price": D("0.995")}, "outside"),
         ({"side": Side.SELL, "price": D("0.995")}, "outside"),
-        ({"reduce_only": True}, "close_position"),
         ({"time_in_force": TimeInForce.DAY}, "session roll"),
         ({"type": OrderType.STOP_LIMIT, "stop_price": D("0.1")}, "execution engine"),
         ({"type": OrderType.MARKET, "price": None}, "protection price"),
@@ -435,7 +434,6 @@ class TestExchangeTranslate:
         ({"type": OrderType.TRAILING_STOP, "stop_price": D("0.1")}, "execution engine"),
         ({"type": OrderType.MARKET, "price": None}, "protection price"),
         ({"time_in_force": TimeInForce.DAY}, "roll"),
-        ({"reduce_only": True}, "reduce-only"),
         ({"quantity": D("0.5")}, "whole contracts"),
     ])
     def test_refused(self, kw, match):

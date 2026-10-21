@@ -1,7 +1,7 @@
 """Authorized one-contract stop-limit fill test on a 15-minute crypto market.
 
 Call only with explicit live-trading authorization. The HTTP guard permits
-one bounded entry and one reduce-only exit of that entry's filled quantity.
+one bounded entry and one Sell YES exit of exactly that entry's filled quantity.
 No cancel-all, retries of creates, or use of existing positions is allowed.
 """
 from __future__ import annotations
@@ -57,14 +57,14 @@ class FillGuard:
         # (gtd at the check's deadline), and is cancelled the moment it is
         # read back. The exit is an immediate market order.
         allowed = {"ticker", "client_order_id", "side", "count", "price", "time_in_force", "self_trade_prevention_type",
-                   "post_only", "reduce_only", "expiration_time"}
+                   "post_only", "expiration_time"}
         bounded = (body.get("time_in_force") == "good_till_canceled" and bool(body.get("expiration_time"))
                    if entry else body.get("time_in_force") == "immediate_or_cancel" and "expiration_time" not in body)
         if not (body.get("ticker") == self.ticker and body.get("side") == ("bid" if entry else "ask")
                 and D(body.get("count", "0")) == quantity and 0 < quantity <= 1
                 and D(body.get("price", "0")) == price and (not entry or price <= MAX_LIMIT)
                 and bounded
-                and body.get("reduce_only") is (not entry) and body.get("post_only") is False
+                and "reduce_only" not in body and body.get("post_only") is False
                 and not (set(body) - allowed)):
             raise ValueError("unexpected order size, price or flags")
         self.sent[self.stage] = body
@@ -163,8 +163,8 @@ async def close_entry(engine, adapter, guard, entry):
     guard.exit_quantity = entry.filled
     guard.stage = "exit"
     try:
-        await engine.submit(OrderRequest(market_id=entry.market_id, side="sell", quantity=entry.filled,
-                                         type="market", price=EXIT_LIMIT, time_in_force="ioc", reduce_only=True,
+        await engine.submit(OrderRequest(market_id=entry.market_id, outcome="yes", action="sell", quantity=entry.filled,
+                                         type="market", price=EXIT_LIMIT, time_in_force="ioc",
                                          client_order_id=f"close-{uuid.uuid4().hex}", book="bounded-fill-check"),
                             precision=Precision(tick=CENT, min_quantity=D("0.01"), quantity_step=D("0.01")))
     finally:

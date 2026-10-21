@@ -97,6 +97,11 @@ class JournalStore(Protocol):
     async def open_orders(self, *, venue: str | None=None, account_key: str | None=None, book: str | None=None) -> list[Order]:
         ...
 
+    async def events_page(self, *, kinds: Iterable[str]=(), prefixes: Iterable[str]=(),
+                          keys: Iterable[str] | None=None, before: int | None=None,
+                          limit: int=500) -> list[JournalEvent]:
+        ...
+
     async def orders_page(self, *, venue: str | None=None, book: str | None=None, market_id: str | None=None,
                           since_ts: int | None=None, before: tuple[int, str, str] | None=None,
                           open_only: bool=False, limit: int | None=100) -> list[tuple[Order, tuple[int, str, str]]]:
@@ -145,12 +150,6 @@ class JournalStore(Protocol):
         ...
 
     async def config(self, kind: str, version: int | None=None) -> tuple[int, dict[str, Any]] | None:
-        ...
-
-    async def set_fair_value(self, account_key: str, market_id: str, value: Decimal, *, source: str | None=None) -> None:
-        ...
-
-    async def fair_values(self, account_key: str | None=None) -> dict[tuple[str, str], Decimal]:
         ...
 
     async def acquire_lease(self, name: str='engine', *, ttl_ms: int=30000, steal_expired: bool=True) -> Lease:

@@ -18,8 +18,8 @@ book prevents market dispatch.
 
 The parent ends closed (including recorded IOC remainder), canceled,
 rejected or expired. No executable book at a last-trade trigger rejects it.
-Expiry applies while armed. A child inherits owner and reduce-only; actual
-no-flip enforcement requires venue verification. Cancel before trigger ends
+Expiry applies while armed. A child inherits owner and the order's outcome and action
+(a Sell YES stop's child sells YES held). Cancel before trigger ends
 without a child. Pending child actions must be reconciled after restart.
 
 `stop_market_orders` owns the request and durable state. The trigger and

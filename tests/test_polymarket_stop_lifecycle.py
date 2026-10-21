@@ -26,13 +26,13 @@ def engine_for(poly, path):
                   risk=RiskConfig(price_collar=None, duplicate_window_ms=0, closing_soon_s=None))
 
 
-@pytest.mark.parametrize("side,reduce_only,token_id,wire_side,maker,taker", [
-    ("buy", False, TOKEN, "BUY", "2400000", "5000000"),
-    ("buy", True, NO_TOKEN, "SELL", "5000000", "2600000"),
-    ("sell", False, NO_TOKEN, "BUY", "3100000", "5000000"),
-    ("sell", True, TOKEN, "SELL", "5000000", "1900000"),
+@pytest.mark.parametrize("side,leg,token_id,wire_side,maker,taker", [
+    ("buy", None, TOKEN, "BUY", "2400000", "5000000"),                     # Buy YES
+    ("buy", ("no", "sell"), NO_TOKEN, "SELL", "5000000", "2600000"),        # Sell NO held
+    ("sell", None, NO_TOKEN, "BUY", "3100000", "5000000"),                 # Buy NO
+    ("sell", ("yes", "sell"), TOKEN, "SELL", "5000000", "1900000"),         # Sell YES held
 ])
-async def test_waiting_restart_limit_child_direction_and_targeted_cancel(venue, tmp_path, side, reduce_only,
+async def test_waiting_restart_limit_child_direction_and_targeted_cancel(venue, tmp_path, side, leg,
                                                                        token_id, wire_side, maker, taker):
     venue.on("POST", "/order", body={"success": True, "orderID": "0xchild", "status": "live"})
     venue.on("DELETE", "/order", body={"canceled": ["0xchild"], "not_canceled": {}})
@@ -44,7 +44,7 @@ async def test_waiting_restart_limit_child_direction_and_targeted_cancel(venue, 
     request = OrderRequest(market_id=MARKET, side=side, quantity="5", type="stop_limit",
                            stop_price="0.45" if side == "buy" else "0.40",
                            price="0.48" if side == "buy" else "0.38", post_only=True,
-                           reduce_only=reduce_only, client_order_id="stop-a")
+                           **({"outcome": leg[0], "action": leg[1]} if leg else {}), client_order_id="stop-a")
     try:
         await engine.start()
         engine.set_book(MARKET, SimpleNamespace(ready=True, best_bid=D("0.44"), best_ask=D("0.44")))

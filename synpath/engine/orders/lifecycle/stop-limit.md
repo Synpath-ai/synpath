@@ -19,7 +19,7 @@ gap. Parent progress is derived from child results and ends closed, canceled,
 rejected or expired. Cancel after trigger pulls the resting child; remain
 pending until its outcome is known. Expiry (GTD or DAY) applies before
 trigger and to the working child: a parent that expires with its child resting
-cancels the child and ends `expired`. Children inherit user identity and reduce-only.
+cancels the child and ends `expired`. Children inherit user identity and the order's outcome and action.
 
 `stop_limit_orders` owns the instruction and durable state. The trigger and
 pending child intent commit together. Stable child identity survives restart;

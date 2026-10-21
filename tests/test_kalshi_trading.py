@@ -132,7 +132,7 @@ class TestTranslate:
         body = translate_order(req())
         assert body["time_in_force"] == "good_till_canceled"
         assert body["self_trade_prevention_type"] == "taker_at_cross"
-        assert body["post_only"] is False and body["reduce_only"] is False
+        assert body["post_only"] is False and "reduce_only" not in body
         assert len(body["client_order_id"]) == 36
         assert "expiration_time" not in body and "subaccount" not in body
 

@@ -7,8 +7,10 @@ a price and a parent never hears that its child filled. That is this module.
 Two kinds of stream per venue, and where each one goes:
 
 * **Market data** (books and public prints). Every market a live engine-held
-  order watches is subscribed on its venue's market stream. The stream keeps a
-  `LocalBook` up to date in place; the engine is handed that same object once
+  order watches, or this account holds a position in (the book marks it,
+  `Engine.exit_price`), is subscribed on its venue's market stream. The stream keeps a
+  `LocalBook` up to date in place, and its public prints are subscribed
+  beside it (a last-trade stop and a position's mark read them); the engine is handed that same object once
   (`Engine.set_book`) and told about every change (`Engine.on_book`), so a
   parent always reads the book as the stream last left it. Subscribing also
   counts as a change: a market the shared connection already carried gets no
@@ -191,11 +193,13 @@ class Feeds:
         await self.sync()
 
     def wanted(self) -> dict[str, set[str]]:
-        """Markets live parents watch, by venue, on venues with a market stream."""
+        """Markets live parents watch, and markets with an open position (so
+        the engine can mark it from the book, `Engine.exit_price`), by venue,
+        on venues with a market stream."""
         out: dict[str, set[str]] = {}
-        for market_id in list(self.engine.orders.by_market):
-            if not self.engine.orders.watching(market_id):
-                continue
+        watched = [market_id for market_id in list(self.engine.orders.by_market) if self.engine.orders.watching(market_id)]
+        held = [state.market_id for state in self.engine.ledger.open_positions()]
+        for market_id in watched + held:
             venue, _ = ids.split(market_id)
             if venue is None or venue not in self.streams or self.streams[venue].market is None:
                 continue
@@ -215,6 +219,7 @@ class Feeds:
             except Exception as exc:
                 log.warning("synpath.engine.feeds: subscribing %s on %s failed: %s", new, venue, exc)
                 continue
+            await self.watch_trades(venue, stream, new)
             self.watching[venue].update(new)
             for market_id in new:
                 self.register(stream, market_id)
@@ -224,6 +229,21 @@ class Feeds:
                 await self.engine.orders.on_book(market_id)
             added += len(new)
         return added
+
+    async def watch_trades(self, venue: str, stream: Any, market_ids: list[str]) -> None:
+        """The public prints too, where the venue streams them on their own
+        channel (Kalshi, Polymarket US; Polymarket's come with its book): a
+        stop that triggers on the last trade hears every one, and a position
+        whose book has no bid or ask is marked at it. A failure is logged;
+        the book stays subscribed."""
+        if not _has(stream, "watch_trades"):
+            return
+        if getattr(type(stream), "watch_trades", None) is getattr(type(stream), "watch_order_book", None):
+            return
+        try:
+            await stream.watch_trades(market_ids)
+        except Exception as exc:
+            log.warning("synpath.engine.feeds: subscribing trades for %s on %s failed: %s", market_ids, venue, exc)
 
     def register(self, stream: Any, market_id: str) -> None:
         """Hand the engine the stream's own book object for this market."""

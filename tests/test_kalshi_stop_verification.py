@@ -96,7 +96,7 @@ async def test_response_lost_still_finds_and_cancels_only_the_accepted_child(cre
 async def test_wire_guard_refuses_any_broader_order(change):
     guard = OneOrderGuard()
     guard.enabled = True
-    body = dict(ticker=TICKER, side="bid", count="1", price="0.01", post_only=True, reduce_only=False,
+    body = dict(ticker=TICKER, side="bid", count="1", price="0.01", post_only=True,
                 time_in_force="good_till_canceled", expiration_time=int(guard.created_at + 85), client_order_id="tiny-test")
     body.update(change)
     with pytest.raises(ValueError, match="unexpected size"):
@@ -109,7 +109,7 @@ async def test_wire_guard_refuses_repeat_submission_and_unrelated_cancel():
     guard.enabled = True
     request = httpx.Request("POST", "https://external-api.kalshi.com/trade-api/v2/portfolio/events/orders",
                             json=dict(ticker=TICKER, side="bid", count="1", price="0.01", post_only=True,
-                                      reduce_only=False, time_in_force="good_till_canceled",
+                                      time_in_force="good_till_canceled",
                                       expiration_time=int(guard.created_at + 85), client_order_id="tiny-test"))
     await guard.check(request)
     with pytest.raises(ValueError, match="single-order authorization"):

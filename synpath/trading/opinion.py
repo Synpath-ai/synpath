@@ -10,9 +10,9 @@ Four facts about the venue shape this adapter.
 `Order`, signed by the wallet's key for the account's Safe on BNB Chain,
 which holds the USDT and tokens. See `opinion_signing`.
 
-**YES and NO are separate tokens**, as on Polymarket. `buy` buys the YES
-token at the price given; `sell` buys the NO token at `1 - price`; with
-`reduce_only`, `sell` sells YES tokens held and `buy` sells NO tokens held.
+**YES and NO are separate tokens**, as on Polymarket. An order buys or
+sells the token its `outcome` and `action` name (with neither, `buy` buys
+YES and `sell` buys NO at `1 - price`).
 Everything the venue reports on the NO token comes back on the YES leg.
 
 **Only resting limits exist.** The venue has no time in force, no post-only
@@ -506,7 +506,8 @@ class OpinionTrading(TradingExchange):
             price=D(request.price),
             quantity=contracts,
             filled=Decimal("0"),
-            reduce_only=request.reduce_only,
+            outcome=request.leg[0],
+            action=request.leg[1],
             created_at=int(time.time() * 1000),
             book=request.book,
             trader=request.trader,

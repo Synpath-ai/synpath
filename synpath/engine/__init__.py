@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from .engine import Engine, EngineConfig, Recovery
 from .events import EngineEvent, EventBus, Subscription
-from .fair_values import FairValue, FairValues
 from .journal import Intent, IntentState, Journal, JournalEvent, LeaseLost
 from .storage import JournalStore, create_journal
 from .ledger import Ledger, PositionState, Rollup
@@ -33,6 +32,5 @@ __all__ = [
     "EventBus", "EngineEvent", "Subscription",
     "Ledger", "PositionState", "Rollup",
     "RiskConfig", "RiskEngine", "Decision", "KillSwitch",
-    "FairValues", "FairValue",
     "ManagedOrder", "ManagedOrders",
 ]

@@ -289,7 +289,7 @@ class _Stop(ManagedOrder):
         self.trigger_source = extra.get("trigger_source", self.trigger_source)
         self.triggered_at = extra.get("triggered_at")
         self.trigger_price = D(extra.get("trigger_price"))
-        self.pending_child = OrderRequest.model_validate(extra["pending_child"]) if extra.get("pending_child") else None
+        self.pending_child = OrderRequest.stored(extra["pending_child"]) if extra.get("pending_child") else None
         self.pending_precision = Precision.model_validate(extra["pending_precision"]) if extra.get("pending_precision") else None
         self.pending_end = extra.get("pending_end")
 

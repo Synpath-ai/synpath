@@ -78,7 +78,7 @@ async def test_real_price_crossing_fills_once_then_closes_only_test_quantity(cre
     assert report["entry_filled"] == "1" and report["entry_average_price"] == "0.4200"
     assert report["exit_filled"] == "1" and report["remaining_position_contracts"] == "0"
     assert report["exit_average_price"] == "0.3900"
-    assert len(venue.posts) == 2 and venue.posts[1]["reduce_only"] is True
+    assert len(venue.posts) == 2 and "reduce_only" not in venue.posts[1] and venue.posts[1]["side"] == "ask"
     assert venue.posts[1]["count"] == "1.00" and venue.position == 0
 
 
@@ -97,7 +97,7 @@ async def test_fill_guard_refuses_broader_entry(change):
     guard = FillGuard(TICKER, D("0.44"))
     guard.stage = "entry"
     body = dict(ticker=TICKER, side="bid", price="0.44", count="1", time_in_force="good_till_canceled",
-                expiration_time=1_900_000_000, post_only=False, reduce_only=False, client_order_id="entry")
+                expiration_time=1_900_000_000, post_only=False, client_order_id="entry")
     body.update(change)
     with pytest.raises(ValueError):
         await guard.check(httpx.Request("POST", "https://external-api.kalshi.com/trade-api/v2/portfolio/events/orders", json=body))
@@ -108,13 +108,13 @@ async def test_fill_guard_forbids_extra_entry_and_oversized_exit():
     guard = FillGuard(TICKER, D("0.44"))
     guard.stage = "entry"
     body = dict(ticker=TICKER, side="bid", price="0.44", count="1", time_in_force="good_till_canceled",
-                expiration_time=1_900_000_000, post_only=False, reduce_only=False, client_order_id="entry")
+                expiration_time=1_900_000_000, post_only=False, client_order_id="entry")
     request = httpx.Request("POST", "https://external-api.kalshi.com/trade-api/v2/portfolio/events/orders", json=body)
     await guard.check(request)
     with pytest.raises(ValueError):
         await guard.check(request)
     guard.stage, guard.exit_quantity = "exit", D("0.50")
-    body.update(side="ask", price="0.001", reduce_only=True, client_order_id="exit", time_in_force="immediate_or_cancel")
+    body.update(side="ask", price="0.001", client_order_id="exit", time_in_force="immediate_or_cancel")
     body.pop("expiration_time")
     with pytest.raises(ValueError):
         await guard.check(httpx.Request("POST", str(request.url), json=body))

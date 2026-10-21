@@ -45,7 +45,7 @@ from typing import Any, Iterable, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from .. import ids
-from ..trading.types import Account, Order, OrderRequest, Side
+from ..trading.types import Account, Order, OrderRequest, OrderType, Side
 from .ledger import Ledger
 
 ZERO = Decimal("0")
@@ -246,7 +246,12 @@ class RiskEngine:
         if price is not None:
             if not (config.min_price <= price <= config.max_price):
                 return self._no("price_bounds", f"price {price} is outside {config.min_price}-{config.max_price}")
-            if config.price_collar is not None and mark is not None:
+            # The collar is for a limit a caller sends. A market order's price
+            # is only its protection bound (Kalshi's 0.99 / 0.01), and an
+            # engine-held order's child (a stop that fired) trades at the
+            # market on purpose: neither is a quote to check against the mark.
+            collared = request.type == OrderType.LIMIT and not request.tags.get("parent")
+            if config.price_collar is not None and mark is not None and collared:
                 away = abs(price - mark)
                 if away > config.price_collar:
                     return self._no(
@@ -255,14 +260,11 @@ class RiskEngine:
                     )
         if config.max_order_contracts is not None and request.quantity > config.max_order_contracts:
             return self._no("max_order_contracts", f"{request.quantity} contracts is over the {config.max_order_contracts} limit")
-        # Prices are always YES prices. Opening NO pays the complement;
-        # reduce-only reverses the token being sold rather than opening one.
+        # Prices are always YES prices; a contract is worth its outcome's
+        # price, YES at the price and NO at the complement, bought or sold.
         value_per_contract = ONE
         if price is not None:
-            values_yes = request.side == Side.BUY
-            if request.reduce_only:
-                values_yes = not values_yes
-            value_per_contract = price if values_yes else ONE - price
+            value_per_contract = price if request.leg[0] == "yes" else ONE - price
         notional = value_per_contract * request.quantity
         if config.max_order_notional is not None and notional > config.max_order_notional:
             return self._no("max_order_notional", f"{notional} is over the {config.max_order_notional} order limit")
@@ -288,7 +290,7 @@ class RiskEngine:
             if len(self._sent) >= config.max_orders_per_minute:
                 return self._no("order_rate", f"{len(self._sent)} orders in the last minute, at the {config.max_orders_per_minute} limit")
 
-        if config.closing_soon_s is not None and market_close_ts is not None and not request.reduce_only:
+        if config.closing_soon_s is not None and market_close_ts is not None and request.leg[1] != "sell":
             left = (market_close_ts - now * 1000) / 1000
             if left <= config.closing_soon_s:
                 return self._no(

@@ -55,7 +55,6 @@ from ..trading.types import (
 )
 from ..trading.instruments import MarketMaster
 from .events import EventBus
-from .fair_values import FairValues
 from .journal import IntentState, LeaseLost, now_ms
 from .storage import JournalStore, create_journal
 from .submissions import CancelUnconfirmed, SubmissionInDoubt, SubmissionPending, request_identity
@@ -93,7 +92,6 @@ class EngineConfig:
     """How often to poll orders and fills when no stream is attached."""
     halt_policy: HaltPolicy = "cancel"
     require_lease: bool = True
-    mark_stale_after_s: float = 300.0
     managed_tick_s: float = 1.0
     """How often engine-held orders get their timer. A TWAP slice, an
     iceberg reload and a peg's minimum stay are all measured against it."""
@@ -138,7 +136,7 @@ STOP_KINDS = frozenset({"stop_market", "stop_limit", "trailing_stop"})
 
 def check_managed_fields(request: OrderRequest, *, now_ms: int) -> None:
     """Refuse the order fields an engine-held type cannot honour, rather than
-    ignore them. `reduce_only` always passes to the children; `expires_at` is
+    ignore them. The outcome and action always pass to the children; `expires_at` is
     the whole order's expiry."""
     kind = str(request.params.get("managed_kind") or request.type.value)
     if request.post_only:
@@ -189,7 +187,6 @@ class Engine:
             raise ValueError("execution engine and journal must use the same user_id")
         self.bus = EventBus(self.journal)
         self.ledger = Ledger()
-        self.fair_values = FairValues(self.journal, stale_after_s=self.config.mark_stale_after_s)
         self.risk = RiskEngine(risk or RiskConfig(), ledger=self.ledger, clock=clock)
         self.accounts: dict[str, Account] = dict(accounts or {})
         for venue in self.adapters:
@@ -225,7 +222,6 @@ class Engine:
             await self.journal.acquire_lease(self.config.lease_name, ttl_ms=self.config.lease_ttl_ms)
         version = await self.journal.save_config("risk", self.risk.config.model_dump(mode="json"))
         self.risk.config_version = version
-        await self.fair_values.load()
         recovery = await self.recover()
         self.running = True
         self.started_ts = int(self.clock() * 1000)
@@ -302,13 +298,13 @@ class Engine:
                 result = await self._existing_submission_result(previous)
                 if result is not None:
                     return result
-                request = OrderRequest.model_validate(previous["effective_request"])
+                request = OrderRequest.stored(previous["effective_request"])
             else:
                 effective = as_gtd(request, now_s=self.clock(), timezone_name=self.config.session_timezone,
                                    session_end=self.config.session_end)
                 prior_intent = await self.journal.intent(request.client_order_id)
                 if prior_intent is not None:
-                    prior_request = OrderRequest.model_validate(prior_intent.request)
+                    prior_request = OrderRequest.stored(prior_intent.request)
                     if prior_intent.operation != "create" or request_identity(prior_request) != request_identity(effective):
                         raise BadRequest("client_order_id already identifies a different durable action")
                 elif await self.journal.order_by_client_id(request.client_order_id) is not None:
@@ -531,7 +527,7 @@ class Engine:
         """The risk decision on its own, for a caller that wants to ask first."""
         market_id = request.market_id
         if mark is None:
-            mark = self.fair_values.get(account.key, market_id)
+            mark = self.book_mid(market_id)
         return self.risk.check(
             request, venue=venue, account=account,
             open_orders=[o for o in self.open_orders(venue=venue)],
@@ -761,7 +757,7 @@ class Engine:
             return base | {"result": "unresolved", "reason": str(exc)}
         if found is not None:
             if intent.operation == "create":
-                found = self._stamp(found, OrderRequest.model_validate(intent.request))
+                found = self._stamp(found, OrderRequest.stored(intent.request))
             await self.journal.upsert_order(found, event="order.adopted")
             self._remember(found)
             await self.journal.mark_intent(intent.client_order_id, IntentState.SENT, order_id=found.id,
@@ -829,7 +825,7 @@ class Engine:
         elif order.client_order_id:
             intent = await self.journal.intent(order.client_order_id)
             if intent is not None and intent.operation == "create":
-                order = self._stamp(order, OrderRequest.model_validate(intent.request))
+                order = self._stamp(order, OrderRequest.stored(intent.request))
         await self.journal.upsert_order(order)
         self._remember(order)
         await self.bus.publish(f"order.{order.status.value}", order.model_dump(mode="json"),
@@ -837,8 +833,11 @@ class Engine:
         await self.orders.on_order(order)
 
     async def on_fill(self, fill: Fill) -> None:
-        """Record a fill once, book it in the ledger, publish it."""
+        """Record a fill once, book it in the ledger, publish it. A fill of a
+        known order carries that order's outcome and action."""
         order = await self.journal.order(fill.venue, fill.order_id)
+        if order is not None and order.outcome is not None and fill.outcome is None:
+            fill = fill.model_copy(update={"outcome": order.outcome, "action": order.action})
         book = order.book if order else None
         trader = order.trader if order else None
         changed = await self.journal.record_fill(fill, book=book, trader=trader)
@@ -888,12 +887,52 @@ class Engine:
         await self.bus.publish("settlement.booked", settlement.model_dump(mode="json") | {"realized": str(realized)},
                                key=f"{settlement.venue}:{settlement.market_id}")
 
+    def marks(self) -> dict[tuple[str, str, str], Decimal]:
+        """What every open position is marked at, keyed `(account_key, book,
+        market_id)` as `Ledger.rollup` wants: the price it could be closed at
+        now (`exit_price`). Read from the live book each time, so a mark never
+        outlives the book it came from."""
+        marks: dict[tuple[str, str, str], Decimal] = {}
+        for key, state in self.ledger.positions.items():
+            mark = self.exit_price(state.market_id, state.contracts)
+            if mark is not None:
+                marks[key] = mark
+        return marks
+
+    def exit_price(self, market_id: str, contracts: Decimal) -> Decimal | None:
+        """The YES price a position of `contracts` (signed, YES terms) could be
+        closed at: on the engine's ready, uncrossed book, a long YES sells YES
+        at the best bid and a short YES, which is a long NO, buys YES back at
+        the best ask (sells NO at 1 − ask). With no such book, or nobody on
+        that side, the last trade the engine saw. `None` when flat or with
+        neither."""
+        if contracts == 0:
+            return None
+        book = self.books.get(market_id)
+        if book is not None and getattr(book, "ready", True) is not False:
+            bid, ask = book.best_bid, book.best_ask
+            if not (bid is not None and ask is not None and bid > ask):
+                touch = bid if contracts > 0 else ask
+                if touch is not None:
+                    return touch
+        return self.last_trade.get(market_id)
+
+    def book_mid(self, market_id: str) -> Decimal | None:
+        """The midpoint of the engine's ready, uncrossed book for a market,
+        with both sides quoted; `None` otherwise. The risk collar's reference."""
+        book = self.books.get(market_id)
+        if book is None or getattr(book, "ready", True) is False:
+            return None
+        bid, ask = book.best_bid, book.best_ask
+        if bid is None or ask is None or bid > ask:
+            return None
+        return (bid + ask) / 2
+
     def positions(self) -> list[Position]:
-        marks = self.fair_values.marks()
+        marks = self.marks()
         out = []
-        for state in self.ledger.positions.values():
-            mark = marks.get((state.account_key, state.market_id))
-            out.append(state.to_position(self.accounts.get(state.venue), mark=mark))
+        for key, state in self.ledger.positions.items():
+            out.append(state.to_position(self.accounts.get(state.venue), mark=marks.get(key)))
         return out
 
     async def bucket_orders(self, bucket_id: str) -> list[Any]:
@@ -928,7 +967,7 @@ class Engine:
         if row is None:
             raise BadRequest(f"bucket:{bucket_id}: no such bucket in this journal")
         bucket = Bucket.model_validate(row)
-        marks = self.fair_values.marks()
+        marks = self.marks()
         members: list[dict[str, Any]] = []
         net = ZERO
         cost = ZERO
@@ -945,7 +984,7 @@ class Engine:
                     cost += signed * entry
                 realized += state.realized
                 fees += state.fees
-                mark = marks.get((account_key, market_id))
+                mark = marks.get((account_key, name, market_id))
                 members.append({
                     "market_id": member.market_id, "venue": state.venue, "book": name, "account": account_key,
                     "flip": member.flip, "contracts": str(state.contracts), "bucket_contracts": str(signed),
@@ -960,7 +999,7 @@ class Engine:
         }
 
     def pnl(self, level: str = "book") -> dict[str, Any]:
-        marks = self.fair_values.marks()
+        marks = self.marks()
         rows = self.ledger.rollup(level, marks)  # type: ignore[arg-type]
         total = self.ledger.total(marks)
         return {"level": level, "rows": rows, "total": total}
@@ -1081,7 +1120,11 @@ class Engine:
         if source is not None:
             updates["user_id"] = source.user_id
             updates["type"] = source.type
-            updates["reduce_only"] = source.reduce_only
+            # Only what the caller said: an order with a side alone has no
+            # outcome and action of its own (on a netting venue a sell may
+            # close YES or open NO), and a token venue reports the token.
+            if source.outcome is not None:
+                updates["outcome"], updates["action"] = source.outcome, source.action
             updates["time_in_force"] = source.time_in_force
             updates["expires_at"] = source.expires_at
             updates["parent_id"] = getattr(source, "parent_id", None) or source.tags.get("parent")

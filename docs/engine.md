@@ -61,7 +61,9 @@ configuration is versioned in the journal, and a rejection records the
 version that refused it. `duplicate` refuses a repeat of the same market,
 side, price and size inside `duplicate_window_ms`; it skips the children the
 engine's own order types place, and any order whose `client_order_id` the
-caller set.
+caller set. `price_collar` refuses a limit order priced further than the
+collar from the book midpoint; market orders (their price is a protection
+bound) and the children of engine-held orders are not collared.
 
 **Halting uses the venue's own mechanism, then checks.** `halt()` calls each
 adapter's cancel-all, reads the book back, and cancels anything still resting
@@ -78,7 +80,6 @@ Policies are `cancel`, `hold` (leave them resting, refuse new ones) and
 | `engine.py` | submit, cancel, edit, recovery, the sweep, halting, polling |
 | `risk.py` | the rules, the kill switch, the strategy pause |
 | `ledger.py` | positions netted on the YES leg, average cost, realized and unrealized profit, rolled up by market, book and account |
-| `fair_values.py` | the mark per account and market, and when it goes stale |
 | `reconcile.py` | orphans, ghosts, drift, position and balance differences |
 | `paper.py` | a venue that fills against a real book with queue position and the venue's fee model |
 | `alerts.py` | the few events worth waking someone for |
@@ -129,7 +130,7 @@ child goes out for the remaining quantity and names the parent in
 
 | Field | Stop market | Stop limit |
 |---|---|---|
-| `market_id`, `side`, `quantity`, `client_order_id`, `reduce_only` | as on any order (`buy` is YES, `sell` is NO) | the same |
+| `market_id`, `side` or `outcome` + `action`, `quantity`, `client_order_id` | as on any order (`buy` is YES, `sell` is NO; or buy/sell YES/NO) | the same |
 | `type` | `stop_market` | `stop_limit` |
 | `stop_price` | the trigger level | the trigger level |
 | `price` | not used | the child's limit: at or below `stop_price` for a sell, at or above it for a buy |
@@ -178,7 +179,7 @@ process. A `day` order is rewritten to `gtd` at the end of the configured
 session (`session_timezone`, `session_end`) before it reaches the adapter, so
 the venue holds the expiry; the journal keeps `day` alongside it.
 
-**The order's own fields still apply.** `reduce_only` passes to every child.
+**The order's own fields still apply.** The outcome and action pass to every child: a Sell YES stop's child sells YES held.
 `expires_at` expires the whole order, children included, and the parent
 ends `expired`. `post_only` is
 accepted only by types that rest on the book (`iceberg`, `peg`, a `twap` with
@@ -294,9 +295,12 @@ neither. What was actually bought is kept per side as well, because on
 Polymarket those are real tokens.
 
 Realized profit is taken on the way out against average cost, with fees
-realized when charged. Unrealized profit needs a mark, and a mark is a
-choice: it comes from `fair_values`, and a stale one is reported as no mark
-rather than as a number.
+realized when charged. Unrealized profit needs a mark: the
+price the position could be closed at on the engine's live book, the best bid
+for a long YES and the best ask for a short (a long NO). The engine subscribes
+the book of every market it holds. With no ready book, or nobody on that side,
+the mark is the last trade; with no trade either, the position has no mark and
+no unrealized number.
 
 Three levels roll up:
 

@@ -22,10 +22,10 @@ Results here are `pending`, `pending_cancel` or read back, never assumed.
 Batched cancels and modifies echo the ids sent, which the venue says is not
 a confirmation.
 
-**No client order id, no reduce-only.** The venue assigns order ids; a
-`client_order_id` is kept on the returned `Order` for the caller's own
-records and is not sent. Reduce-only is refused: the venue offers
-close-position instead.
+**No client order id.** The venue assigns order ids; a `client_order_id`
+is kept on the returned `Order` for the caller's own records and is not
+sent. The venue nets YES and NO, so Sell YES and Buy NO are the same order
+on the YES leg; to flatten a position the venue offers close-position.
 """
 from __future__ import annotations
 
@@ -158,8 +158,6 @@ def translate_order(request: OrderRequest, rules: MarketRules) -> dict[str, Any]
             "polymarket_us: a price is required -- a market order is sent as an immediate limit at the "
             "protection price you give"
         )
-    if request.reduce_only:
-        raise InvalidOrder("polymarket_us: the venue has no reduce-only flag; use close_position")
     slug = slug_of(request.market_id)
     wire_price = check_prices(D(request.price), rules)
     quantity = validate_quantity(D(request.quantity), rules.precision)

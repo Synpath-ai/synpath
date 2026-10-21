@@ -260,7 +260,7 @@ class PaperVenue(TradingExchange):
             type=request.type, time_in_force=request.time_in_force, status=OrderStatus.OPEN, price=price,
             quantity=request.quantity, filled=ZERO, remaining=request.quantity, book=request.book, trader=request.trader,
             created_at=int(self.clock() * 1000), tags=dict(request.tags), expires_at=request.expires_at,
-            post_only=request.post_only, reduce_only=request.reduce_only,
+            post_only=request.post_only, outcome=request.outcome, action=request.action,
         )
         self.orders[order_id] = order
         rest = Resting(order=order, queue_ahead=book.size_at(request.side, price) if price is not None else ZERO, request=request)

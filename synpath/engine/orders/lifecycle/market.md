@@ -40,7 +40,7 @@ is written; nothing reaches the venue.
 `tests/test_serve_market_orders.py`, through a whole `synpath serve` on the
 mocked Kalshi, on SQLite and PostgreSQL: the instruction row in
 `market_orders` before the send, one IOC at the worst price, the order
-`closed`; a sell at 0.01 with reduce-only; a same-key retry sends once; a lost
+`closed`; a Sell YES at 0.01 keeping its outcome and action (`reduce_only` refused); a same-key retry sends once; a lost
 response is `submission_in_doubt` and the retry adopts it without resending;
 another instruction under the same key is refused; no worst price is refused
 with nothing sent. A stop market's child is also a `market` order on this path

@@ -207,6 +207,13 @@ every channel: Limitless and predict.fun carry no public trades, and that is
 said in `unsupported`. A client that falls more than 10,000 messages behind
 is closed with `1013`.
 
+`GET /market/streams` says what each open venue connection is doing:
+`connected`, `connecting`, `reconnecting` (the stream retries by itself) or
+`failed` (refused for good), with the last thing it reported. A venue not
+listed has no connection open. The engine's own connections are always
+listed; serve subscribes the trades of every market a stop watches or a
+position holds, beside its book.
+
 ### A bucket's merged book
 
 A bucket (`bucket:<id>`, defined through `/trading/buckets`) subscribes like
@@ -305,7 +312,8 @@ python -m synpath.server bootstrap --control control.db   # the same, from a she
 | `GET /buckets` (`book`, `status`), `GET /buckets/{id}`, `GET /buckets/{id}/orders`, `GET /buckets/{id}/orders/{order_id}`, `GET /buckets/{id}/position` | `view` on every member venue | buckets, the orders on one with fills by venue, the position netted in bucket terms |
 | `POST /buckets/{id}/plan` | `view` on every member venue | preview where an order on the bucket would go now (below); nothing is placed |
 | `GET /orders`, `GET /orders/{id}`, `GET /fills`, `GET /positions`, `GET /balances`, `GET /pnl` | `view` | what the engine and the venues hold |
-| `GET`/`PUT /fair-values` | `view` / `trade` | the marks positions are valued at |
+| `GET /order-log` (`order_id`, `limit`, `before`) | `view` | every action on orders from the journal, newest first, repeats folded (`synpath.engine.order_log`): saved, sent, accepted, triggered, cancel requested, cancelled, filled, refused; one order with its cancel, fills and children |
+| `GET /journal` (`kind`, `limit`, `before`) | `view` | the journal's events as recorded, newest first, every kind or one prefix |
 | `GET /risk`, `PUT /risk` | `view` / `manage_credentials` | the rules in force, versioned on change |
 | `POST /halt`, `POST /resume` | `trade` | the kill switch |
 | `GET`/`POST`/`DELETE /grants`, `POST /keys`, `DELETE /keys/{id}` | `manage_members` / `manage_credentials` | who may do what |

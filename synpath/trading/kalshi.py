@@ -202,7 +202,6 @@ def translate_order(request: OrderRequest, *, precision: Precision | None = None
         "time_in_force": tif,
         "self_trade_prevention_type": params.pop("self_trade_prevention_type", "taker_at_cross"),
         "post_only": request.post_only,
-        "reduce_only": request.reduce_only,
     }
     if request.time_in_force == TimeInForce.GTD and request.expires_at is not None:
         body["expiration_time"] = int(request.expires_at // 1000)
@@ -328,7 +327,6 @@ def order_from_response(
         fee=D(raw["average_fee_paid"]) * filled if raw.get("average_fee_paid") not in (None, "") and filled > 0 else None,
         fee_currency="USD",
         post_only=bool(body.get("post_only")),
-        reduce_only=bool(body.get("reduce_only")),
         expires_at=int(body["expiration_time"]) * 1000 if body.get("expiration_time") else None,
         created_at=int(ts_ms) if ts_ms is not None else None,
         updated_at=int(ts_ms) if ts_ms is not None else None,

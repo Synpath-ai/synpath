@@ -108,8 +108,8 @@ class TestBuild:
         assert body["tokenId"] == info.no_token and body["side"] == "0" and body["price"] == "0.45"
         assert contracts == D("100")
 
-    def test_reduce_only_sells_the_tokens_held(self, signer, info):
-        body, contracts = build_signed_order(request(side=Side.SELL, price=D("0.6"), reduce_only=True), info,
+    def test_selling_yes_sells_the_tokens_held(self, signer, info):
+        body, contracts = build_signed_order(request(side=Side.SELL, price=D("0.6"), outcome="yes", action="sell"), info,
                                              signer=signer, maker=SAFE, now_s=1, salt=5)
         assert body["tokenId"] == info.yes_token and body["side"] == "1"
         assert body["makerAmount"] == str(100 * 10**18) and contracts == D("100")

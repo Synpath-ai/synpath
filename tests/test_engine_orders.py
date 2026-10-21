@@ -729,7 +729,7 @@ class TestLifecycle:
 
 
 class TestOrderFields:
-    """`reduce_only`, `post_only` and `expires_at` on engine-held orders: honoured or refused, never ignored."""
+    """The outcome and action, `post_only` and `expires_at` on engine-held orders: honoured or refused, never ignored."""
 
     @staticmethod
     def record(paper: PaperVenue) -> list[OrderRequest]:
@@ -742,25 +742,28 @@ class TestOrderFields:
         paper.create_order = create_order  # type: ignore[method-assign]
         return sent
 
-    async def test_a_reduce_only_stop_sends_reduce_only_children(self, setup):
+    async def test_a_sell_yes_stop_sends_sell_yes_children(self, setup):
         engine, paper, clock = setup
         sent = self.record(paper)
         book(paper, engine, bids=[(D("0.45"), D("500"))], asks=[(D("0.47"), D("500"))])
-        await engine.submit(request(side=Side.SELL, type=OrderType.STOP_MARKET, stop_price=D("0.40"), reduce_only=True))
+        await engine.submit(request(side=Side.SELL, outcome="yes", action="sell", type=OrderType.STOP_MARKET,
+                                    stop_price=D("0.40")))
         book(paper, engine, bids=[(D("0.39"), D("500"))], asks=[(D("0.41"), D("500"))])
         await feed_book(engine, paper=paper)
-        assert sent and all(r.reduce_only for r in sent), "a protective stop must not open a position"
+        assert sent and all(r.leg == ("yes", "sell") for r in sent), "a protective stop sells what is held, never buys NO"
 
-    async def test_bracket_legs_inherit_reduce_only_unless_they_say_otherwise(self, setup):
+    async def test_bracket_legs_inherit_the_outcome_and_action_unless_they_say_otherwise(self, setup):
         from synpath.engine.orders.oco import leg_request
 
         engine, paper, clock = setup
         book(paper, engine, bids=[(D("0.45"), D("500"))], asks=[(D("0.47"), D("500"))])
-        parent = await engine.submit(request(side=Side.SELL, type=OrderType.OCO, reduce_only=True, params={"legs": [
-            {"side": "sell", "type": "limit", "price": "0.60"}, {"side": "sell", "type": "limit", "price": "0.65"}]}))
+        parent = await engine.submit(request(side=Side.SELL, outcome="yes", action="sell", type=OrderType.OCO,
+                                             params={"legs": [{"side": "sell", "type": "limit", "price": "0.60"},
+                                                              {"side": "sell", "type": "limit", "price": "0.65"}]}))
         managed = engine.orders.get(parent.id)
-        assert leg_request({"type": "limit", "price": "0.6"}, parent=managed).reduce_only is True
-        assert leg_request({"type": "limit", "price": "0.6", "reduce_only": False}, parent=managed).reduce_only is False
+        assert leg_request({"type": "limit", "price": "0.6"}, parent=managed).leg == ("yes", "sell")
+        assert leg_request({"type": "limit", "price": "0.6", "outcome": "no", "action": "buy"},
+                           parent=managed).leg == ("no", "buy")
 
     async def test_post_only_reaches_the_slices_of_types_that_rest(self, setup):
         engine, paper, clock = setup

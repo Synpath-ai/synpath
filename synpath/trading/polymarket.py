@@ -10,11 +10,11 @@ by asking for that id. Signing, amounts and wallet calls live in
 `polymarket_signing`, checked byte for byte against the venue's client.
 
 **YES and NO are separate tokens with separate books.** An order in this
-library names a market and a side on the YES leg; this adapter picks the
-token. `buy` buys the YES token at the price given. `sell` buys the NO token
-at `1 - price`, because the venue has no netting and you cannot sell YES you
-do not hold. With `reduce_only`, `sell` sells the YES tokens held instead,
-and `buy` sells the NO tokens held. Everything the venue reports on the NO
+library says what it does with `outcome` and `action` (buy or sell, YES or
+NO), and this adapter sends exactly that: the outcome's token, bought or
+sold, at the outcome's price (a NO price is `1 - ` the YES price). An order
+with neither takes its YES-leg side: `buy` buys YES, `sell` buys NO, because
+the venue has no netting and you cannot sell YES you do not hold. Everything the venue reports on the NO
 token comes back converted to the YES leg, and a position is the two token
 inventories netted, with both kept beside it. The Gamma catalog supplies
 which token is which; the CLOB never says.
@@ -180,10 +180,17 @@ def check_token_id(token_id: str) -> str:
 
 def wire_leg(request: OrderRequest) -> tuple[str, str]:
     """`(outcome, venue_side)`: which token the order goes to and whether it
-    buys or sells that token. See the module docstring."""
-    if request.side == Side.BUY:
-        return ("no", "SELL") if request.reduce_only else ("yes", "BUY")
-    return ("yes", "SELL") if request.reduce_only else ("no", "BUY")
+    buys or sells that token: the order's own outcome and action
+    (`OrderRequest.leg`). See the module docstring."""
+    outcome, action = request.leg
+    return outcome, action.upper()
+
+
+def token_leg(outcome: str, venue_side: str) -> dict[str, str]:
+    """An order's `outcome` and `action` from the token and the venue's side
+    (`BUY` / `SELL`), where both are known; nothing otherwise."""
+    action = venue_side.strip().lower()
+    return {"outcome": outcome, "action": action} if outcome in ("yes", "no") and action in ("buy", "sell") else {}
 
 
 def to_yes_leg(outcome: str, venue_side: str, price: Decimal | None) -> tuple[Side, Decimal | None]:
@@ -348,6 +355,7 @@ def order_of(
         account=account,
         market_id=market_id,
         side=side,
+        **token_leg(outcome, str(raw.get("side") or "")),
         type=OrderType.LIMIT,
         time_in_force=TIF.get(str(raw.get("order_type") or "GTC").upper(), TimeInForce.GTC),
         status=status,
@@ -386,6 +394,8 @@ def order_from_response(
         account=account,
         market_id=ids.qualify(VENUE, ids.native(VENUE, request.market_id)),
         side=request.side,
+        outcome=request.leg[0],
+        action=request.leg[1],
         type=request.type,
         time_in_force=TIF[entry["orderType"]],
         status=status,

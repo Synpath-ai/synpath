@@ -122,6 +122,8 @@ class OrderRecords:
                   body.get("parent_id") or (body.get("tags") or {}).get("parent"),
                   body["market_id"], body["side"], str(body["quantity"]), str(body.get("filled", "0")),
                   body.get("remaining"), state, body.get("time_in_force", "gtc"), body.get("expires_at"),
+                  # Left from before orders said their outcome and action (now in
+                  # `request` and `snapshot`); always 0 for an order written since.
                   int(body.get("reduce_only", False))]
         values.extend(body.get(name, "touch" if name == "trigger_source" else None)
                       for name in TYPE_COLUMNS[kind])

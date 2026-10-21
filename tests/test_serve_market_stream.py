@@ -185,6 +185,28 @@ class TestReconnecting:
             assert len(harness.opened["polymarket"]) == 2
 
 
+class TestVenueStatus:
+    def states(self, harness):
+        answer = harness.client.get("/market/streams", headers=harness.auth)
+        assert answer.status_code == 200, answer.text
+        return {row["venue"]: row["state"] for row in answer.json()}
+
+    def test_each_open_connection_reports_its_own_state(self, serve_harness):
+        with serve_harness() as harness:
+            assert harness.client.get("/market/streams").status_code == 401, "the token is required"
+            assert "polymarket" not in self.states(harness), "nothing streams Polymarket yet"
+            with harness.client.websocket_connect(url(harness, P)) as socket:
+                receive_until(socket, "subscribed")
+                stream = harness.stream("polymarket")
+                harness.push("polymarket", stream.reconnected())
+                receive_until(socket, "status")
+                assert self.states(harness)["polymarket"] == "connected"
+                harness.push("polymarket", stream.drop())
+                receive_until(socket, "status")
+                assert self.states(harness)["polymarket"] == "reconnecting"
+            assert "kalshi" in self.states(harness), "the engine's own Kalshi connection is always listed"
+
+
 def test_streams_turned_off_answer_with_an_error_not_a_poll(serve_harness, tmp_path):
     with serve_harness(config={"streams": False}) as harness:
         with harness.client.websocket_connect(url(harness, P)) as socket:

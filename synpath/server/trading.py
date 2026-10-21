@@ -187,19 +187,6 @@ class HaltResult(BaseModel):
     managed: int = 0
 
 
-class FairValueBody(BaseModel):
-    account: str
-    market_id: str
-    value: Decimal
-    source: str = "manual"
-
-
-class FairValueView(BaseModel):
-    account: str
-    market_id: str
-    value: Decimal
-
-
 class PnlRow(BaseModel):
     key: str
     contracts: Decimal
@@ -817,20 +804,39 @@ def create_trading_router() -> APIRouter:
                                     unrealized=total.unrealized, fees=total.fees, volume=total.volume,
                                     positions=total.positions, marked=total.marked))
 
-    # -- fair values ----------------------------------------------------------
 
-    @router.get("/fair-values", tags=["portfolio"], summary="The marks positions are valued at", responses=RESPONSES)
-    async def list_fair_values(principal: Caller, engine: EngineDep) -> list[FairValueView]:
+    # -- the order log ------------------------------------------------------
+
+    @router.get("/order-log", tags=["orders"], summary="Every action on orders, newest first", responses=RESPONSES)
+    async def get_order_log(
+        principal: Caller, engine: EngineDep,
+        order_id: Annotated[str | None, Query(description="One order and its family: its cancel, fills, children")] = None,
+        limit: Annotated[int, Query(ge=1, le=500)] = 200,
+        before: Annotated[int | None, Query(description="The `next` of the previous page")] = None,
+    ) -> dict[str, Any]:
+        """The journal's order events as a log (`synpath.engine.order_log`):
+        instructions saved, sends and their outcome, the venue's records,
+        engine-held parents' states, cancels, fills and risk refusals, with
+        repeats folded. Read only."""
         require(principal, "view")
-        return [FairValueView(account=account, market_id=market, value=value)
-                for (account, market), value in engine.fair_values.marks().items()
-                if visible(principal, account)]
+        from ..engine.order_log import order_log
+        rows, cursor = await order_log(engine, order_id=order_id, limit=limit, before=before)
+        return {"data": rows, "next": cursor}
 
-    @router.put("/fair-values", tags=["portfolio"], summary="Set a mark", responses=RESPONSES)
-    async def set_fair_value(principal: Caller, engine: EngineDep, body: FairValueBody) -> FairValueView:
-        require(principal, "trade", body.account)
-        mark = await engine.fair_values.set(body.account, body.market_id, body.value, source=body.source)
-        return FairValueView(account=body.account, market_id=body.market_id, value=mark.value)
+    @router.get("/journal", tags=["status"], summary="The engine's journal events, newest first", responses=RESPONSES)
+    async def get_journal(
+        principal: Caller, engine: EngineDep,
+        kind: Annotated[str | None, Query(description="Only kinds starting with this, e.g. `reconcile.` or `engine.`")] = None,
+        limit: Annotated[int, Query(ge=1, le=500)] = 200,
+        before: Annotated[int | None, Query(description="The `next` of the previous page")] = None,
+    ) -> dict[str, Any]:
+        """The append-only journal as it is, every kind (the order log reads
+        the order kinds of it, folded). Each event: `seq`, `ts`, `kind`, `key`
+        and its `payload`. Read only."""
+        require(principal, "view")
+        events = await engine.journal.events_page(prefixes=[kind] if kind else (), before=before, limit=limit)
+        rows = [{"seq": e.seq, "ts": e.ts, "kind": e.kind, "key": e.key, "payload": e.payload} for e in events]
+        return {"data": rows, "next": rows[-1]["seq"] if len(rows) == limit else None}
 
     # -- risk and the kill switch --------------------------------------------
 

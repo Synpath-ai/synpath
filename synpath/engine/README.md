@@ -55,11 +55,12 @@ separate execution/authentication design.
 
 ## Schema and migration compatibility
 
-The current logical version is 9. Alembic revision `0001_journal_v6` adopts the
+The current logical version is 10. Alembic revision `0001_journal_v6` adopts the
 frozen pre-Alembic baseline; `0002_single_user` adds the owner and foreign keys;
 `0003_bucket_member_enabled` adds `bucket_members.enabled` (existing members stay on);
 `0004_orders_recent` indexes `orders` newest first, overall and per market, and
-gives any row without a `created_ts` its `updated_ts`.
+gives any row without a `created_ts` its `updated_ts`; `0005_drop_fair_values` drops
+the unused `fair_values` table.
 See the [migration entry point](migrations/README.md). Historical SQLite
 conversions prepare old files for the baseline; new changes use new revisions.
 
@@ -135,7 +136,7 @@ A stop reads the book the engine already holds when it is created and when its
 market is subscribed, not only on the next change. Precision
 comes from registered market rules, with conservative venue defaults otherwise.
 Risk checks still apply at the worst submitted price. Opening NO notional uses
-`1 - YES price`; reduce-only prices the outcome being closed. Fees are separate.
+`1 - YES price`: a contract is priced as its outcome (`outcome`), bought or sold. Fees are separate.
 
 All displayed prices/averages use the YES leg. Kalshi read projections may report
 NO outcome costs alongside `side=yes`; execution averages use `outcome_side`
