@@ -1,6 +1,9 @@
 """`synpath serve` and the `synpath` command: the whole self-hosted stack in one process."""
 from __future__ import annotations
 
+import argparse
+import asyncio
+
 try:
     import tomllib
 except ImportError:  # Python 3.10
@@ -12,10 +15,11 @@ import httpx
 import pytest
 
 from synpath.__main__ import main as synpath_main
+from synpath.engine import Journal
 from synpath.engine.feeds import VenueStreams
 from synpath.engine.paper import PaperVenue
 from synpath.server import serve
-from synpath.trading.types import Account
+from synpath.trading.types import Account, OrderRequest, Side
 
 from test_feeds import FakeStream
 
@@ -123,6 +127,49 @@ class TestStack:
         assert fake.closed
         again, *_ = await stack_for(tmp_path)          # the lease is free: a new process can start
         await serve.shutdown(again)
+
+
+class TestRun:
+    """`synpath run`: the engine alone. Where the loop takes no signal handlers
+    (Windows), Ctrl-C cancels `run()` instead of setting its stop event."""
+
+    async def test_ctrl_c_without_signal_handlers_cancels_what_rests_and_releases_the_lease(self, tmp_path, monkeypatch):
+        from synpath.engine import __main__ as daemon
+
+        kalshi = PaperVenue(venue="kalshi", cash=D("10000"), account=Account(venue="kalshi", name="paper"))
+        started = asyncio.get_running_loop().create_future()
+
+        class Engine(daemon.Engine):
+            async def start(self):
+                recovery = await super().start()
+                started.set_result(self)
+                return recovery
+
+        def no_signal_handlers(*args):
+            raise NotImplementedError                  # what the event loop says on Windows
+
+        monkeypatch.setattr(daemon, "build_adapters", lambda config, dotenv=None: {"kalshi": kalshi})
+        monkeypatch.setattr(daemon, "Engine", Engine)
+        monkeypatch.setattr(asyncio.get_running_loop(), "add_signal_handler", no_signal_handlers)
+        config = tmp_path / "engine.toml"
+        config.write_text("streams = false\n")
+        journal = str(tmp_path / "engine.db")
+        run = asyncio.create_task(daemon.run(argparse.Namespace(
+            config=str(config), journal=journal, dotenv=None, log_level="WARNING")))
+        engine = await asyncio.wait_for(started, 10)
+        await kalshi.create_order(OrderRequest(market_id=K, side=Side.BUY, quantity=D("5"), price=D("0.35")))
+
+        run.cancel()                                   # what asyncio.run does on Ctrl-C
+        with pytest.raises(asyncio.CancelledError):
+            await run
+        try:
+            assert all(o.is_terminal for o in kalshi.orders.values()), "the default halt policy cancels"
+            async with Journal(journal) as again:      # the lease is free: a new process can start
+                await again.acquire_lease(ttl_ms=60_000)
+        finally:
+            # A no-op once run() has stopped the engine. Without the fix, the
+            # journal's open connection would keep pytest from exiting.
+            await engine.journal.close()
 
 
 class TestLocalKey:
