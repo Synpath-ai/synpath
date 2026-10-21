@@ -1,0 +1,90 @@
+[
+  {
+    "marketId": "1.234567890",
+    "marketName": "Match Odds",
+    "marketStartTime": "2026-10-25T15:00:00.000Z",
+    "description": {
+      "persistenceEnabled": true,
+      "bspMarket": false,
+      "marketTime": "2026-10-25T15:00:00.000Z",
+      "suspendTime": "2026-10-25T15:00:00.000Z",
+      "bettingType": "ODDS",
+      "turnInPlayEnabled": true,
+      "marketType": "MATCH_ODDS",
+      "regulator": "MALTA LOTTERIES AND GAMBLING AUTHORITY",
+      "marketBaseRate": 5.0,
+      "discountAllowed": true,
+      "wallet": "UK wallet",
+      "rules": "<b>Market Information</b><br>Predict the result of this match. All bets apply to Full Time according to the match officials, plus any stoppage time. Extra-time/penalty shoot-outs are not included.",
+      "rulesHasDate": true,
+      "priceLadderDescription": {"type": "CLASSIC"}
+    },
+    "totalMatched": 482113.27,
+    "runners": [
+      {"selectionId": 1096, "runnerName": "Arsenal", "handicap": 0.0, "sortPriority": 1, "metadata": {"runnerId": "1096"}},
+      {"selectionId": 55190, "runnerName": "Chelsea", "handicap": 0.0, "sortPriority": 2, "metadata": {"runnerId": "55190"}},
+      {"selectionId": 58805, "runnerName": "The Draw", "handicap": 0.0, "sortPriority": 3, "metadata": {"runnerId": "58805"}}
+    ],
+    "eventType": {"id": "1", "name": "Soccer"},
+    "competition": {"id": "10932509", "name": "English Premier League"},
+    "event": {"id": "34812345", "name": "Arsenal v Chelsea", "countryCode": "GB", "timezone": "GMT", "openDate": "2026-10-25T15:00:00.000Z"}
+  },
+  {
+    "marketId": "1.234567891",
+    "marketName": "Over/Under 2.5 Goals",
+    "marketStartTime": "2026-10-25T15:00:00.000Z",
+    "description": {
+      "persistenceEnabled": true,
+      "bspMarket": false,
+      "marketTime": "2026-10-25T15:00:00.000Z",
+      "suspendTime": "2026-10-25T15:00:00.000Z",
+      "bettingType": "ODDS",
+      "turnInPlayEnabled": true,
+      "marketType": "OVER_UNDER_25",
+      "regulator": "MALTA LOTTERIES AND GAMBLING AUTHORITY",
+      "marketBaseRate": 2.0,
+      "discountAllowed": true,
+      "wallet": "UK wallet",
+      "rules": "<b>Market Information</b><br>How many goals will be scored in this match.",
+      "rulesHasDate": true,
+      "priceLadderDescription": {"type": "CLASSIC"}
+    },
+    "totalMatched": 120554.1,
+    "runners": [
+      {"selectionId": 47972, "runnerName": "Under 2.5 Goals", "handicap": 0.0, "sortPriority": 1},
+      {"selectionId": 47973, "runnerName": "Over 2.5 Goals", "handicap": 0.0, "sortPriority": 2}
+    ],
+    "eventType": {"id": "1", "name": "Soccer"},
+    "competition": {"id": "10932509", "name": "English Premier League"},
+    "event": {"id": "34812345", "name": "Arsenal v Chelsea", "countryCode": "GB", "timezone": "GMT", "openDate": "2026-10-25T15:00:00.000Z"}
+  },
+  {
+    "marketId": "1.234567892",
+    "marketName": "Asian Handicap",
+    "marketStartTime": "2026-10-25T17:30:00.000Z",
+    "description": {
+      "persistenceEnabled": true,
+      "bspMarket": false,
+      "marketTime": "2026-10-25T17:30:00.000Z",
+      "suspendTime": "2026-10-25T17:30:00.000Z",
+      "bettingType": "ASIAN_HANDICAP_DOUBLE_LINE",
+      "turnInPlayEnabled": true,
+      "marketType": "ASIAN_HANDICAP",
+      "regulator": "MALTA LOTTERIES AND GAMBLING AUTHORITY",
+      "marketBaseRate": 5.0,
+      "discountAllowed": true,
+      "wallet": "UK wallet",
+      "rules": "<b>Market Information</b><br>Asian Handicap betting.",
+      "rulesHasDate": true,
+      "priceLadderDescription": {"type": "CLASSIC"}
+    },
+    "totalMatched": 8813.0,
+    "runners": [
+      {"selectionId": 2426, "runnerName": "Liverpool", "handicap": -0.5, "sortPriority": 1},
+      {"selectionId": 48351, "runnerName": "Everton", "handicap": 0.5, "sortPriority": 2}
+    ],
+    "eventType": {"id": "1", "name": "Soccer"},
+    "competition": {"id": "10932509", "name": "English Premier League"},
+    "event": {"id": "34812399", "name": "Liverpool v Everton", "countryCode": "GB", "timezone": "GMT", "openDate": "2026-10-25T17:30:00.000Z"}
+  }
+]

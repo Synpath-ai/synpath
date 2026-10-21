@@ -96,6 +96,18 @@ The variables each venue reads:
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
 
+Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
+optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
+load the same way and `synpath doctor` reports them, but they serve market data
+and the stream only: there is no Betfair order entry yet. See
+[Betfair](capabilities.md#betfair).
+
+Smarkets needs no credentials for market data. `SMARKETS_USERNAME` and
+`SMARKETS_PASSWORD` are optional: they log in for undelayed quotes, and
+`synpath doctor` reports them. There is no Smarkets order entry yet: betting
+through Smarkets' API needs its approved API access (applied for, with a
+one-off £150 fee). See [Smarkets](capabilities.md#smarkets).
+
 ## Through your own server
 
 The engine's order types (stops, icebergs, TWAP, orders on a bucket) live in

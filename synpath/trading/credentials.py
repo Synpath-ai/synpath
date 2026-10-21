@@ -40,6 +40,11 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
   SX Bet              SX_BET_API_KEY (market data, the account, cancels), and
                       optionally SX_BET_PRIVATE_KEY (placing orders),
                       SX_BET_ACCOUNT_ADDRESS, SX_BET_TESTNET
+  Betfair             BETFAIR_APP_KEY, BETFAIR_USERNAME, BETFAIR_PASSWORD, and
+    (market data)     optionally BETFAIR_CERT_PATH / BETFAIR_KEY_PATH
+                      (certificate login) and BETFAIR_JURISDICTION
+  Smarkets            optionally SMARKETS_USERNAME and SMARKETS_PASSWORD: market
+    (market data)     data needs no login; one gives undelayed quotes
 """
 from __future__ import annotations
 
@@ -311,9 +316,51 @@ class SxBetCredentials:
         return [self.api_key] + ([self.private_key] if self.private_key else [])
 
 
+@dataclass(frozen=True, repr=False)
+class BetfairCredentials:
+    """Betfair: the account's application key and its login. Every Betfair
+    call, market data included, needs both: the key names the application,
+    the login's session token the account."""
+
+    app_key: str = field(repr=False)
+    """The application key (delayed or live) from the account's developer
+    settings. Sent on every request as `X-Application`."""
+    username: str
+    password: str = field(repr=False)
+    cert_path: str | None = None
+    key_path: str | None = None
+    """A self-signed client certificate and its key, for Betfair's
+    non-interactive (certificate) login. Without them the login is interactive."""
+    jurisdiction: str = "com"
+    """The Betfair site the account is registered on: com, it, es, ro or com.au."""
+    _public = ("username", "cert_path", "jurisdiction")
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.app_key, self.password]
+
+
+@dataclass(frozen=True, repr=False)
+class SmarketsCredentials:
+    """Smarkets: an optional account login. Market data needs none; a session
+    from it gives undelayed quotes and the account's own rate limits. Betting
+    needs Smarkets' approved API access, which this library does not use yet."""
+
+    username: str
+    password: str = field(repr=False)
+    _public = ("username",)
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.password]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
     | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
+    | BetfairCredentials | SmarketsCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -337,6 +384,11 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
     ),
     "limitless": ("LIMITLESS_PRIVATE_KEY", "LIMITLESS_API_TOKEN_ID", "LIMITLESS_API_SECRET", "LIMITLESS_RPC_URL"),
     "sx_bet": ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY", "SX_BET_ACCOUNT_ADDRESS", "SX_BET_TESTNET"),
+    "betfair": (
+        "BETFAIR_APP_KEY", "BETFAIR_USERNAME", "BETFAIR_PASSWORD", "BETFAIR_CERT_PATH", "BETFAIR_KEY_PATH",
+        "BETFAIR_JURISDICTION",
+    ),
+    "smarkets": ("SMARKETS_USERNAME", "SMARKETS_PASSWORD"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -592,6 +644,47 @@ def _shape_of(value: str) -> str:
     return f"{len(value)} characters" + (" that look like a private key" if re.match(r"^(0x)?[0-9a-fA-F]{64}$", value) else "")
 
 
+BETFAIR_JURISDICTIONS = ("com", "it", "es", "ro", "com.au")
+
+
+def load_betfair(env: Mapping[str, str]) -> BetfairCredentials | None:
+    app_key = env.get("BETFAIR_APP_KEY")
+    if not app_key:
+        return None
+    username, password = env.get("BETFAIR_USERNAME"), env.get("BETFAIR_PASSWORD")
+    if not username or not password:
+        raise CredentialsMissing(
+            "BETFAIR_APP_KEY is set but BETFAIR_USERNAME / BETFAIR_PASSWORD are not; every Betfair call, "
+            "market data included, needs the account's login"
+        )
+    cert, key = env.get("BETFAIR_CERT_PATH") or None, env.get("BETFAIR_KEY_PATH") or None
+    if bool(cert) != bool(key):
+        raise CredentialsMissing("certificate login needs both BETFAIR_CERT_PATH and BETFAIR_KEY_PATH")
+    for path in (cert, key):
+        if path and not Path(path).expanduser().exists():
+            raise CredentialsMissing(f"no file at {path} (BETFAIR_CERT_PATH / BETFAIR_KEY_PATH)")
+    jurisdiction = (env.get("BETFAIR_JURISDICTION") or "com").strip().lower().lstrip(".")
+    if jurisdiction not in BETFAIR_JURISDICTIONS:
+        raise CredentialsMissing(f"BETFAIR_JURISDICTION must be one of {', '.join(BETFAIR_JURISDICTIONS)}")
+    return BetfairCredentials(
+        app_key=app_key, username=username, password=password,
+        cert_path=str(Path(cert).expanduser()) if cert else None, key_path=str(Path(key).expanduser()) if key else None,
+        jurisdiction=jurisdiction,
+    )
+
+
+def load_smarkets(env: Mapping[str, str]) -> SmarketsCredentials | None:
+    username, password = env.get("SMARKETS_USERNAME"), env.get("SMARKETS_PASSWORD")
+    if not username and not password:
+        return None
+    if not username or not password:
+        raise CredentialsMissing(
+            "a Smarkets login needs both SMARKETS_USERNAME and SMARKETS_PASSWORD (or neither: market data "
+            "needs no login)"
+        )
+    return SmarketsCredentials(username=username, password=password)
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -602,6 +695,8 @@ LOADERS = {
     "predict_fun": load_predict_fun,
     "limitless": load_limitless,
     "sx_bet": load_sx_bet,
+    "betfair": load_betfair,
+    "smarkets": load_smarkets,
 }
 
 
