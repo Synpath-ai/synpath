@@ -1,0 +1,66 @@
+{
+  "connection": {"op": "connection", "connectionId": "002-051134157842-432409"},
+  "auth_success": {"op": "status", "id": 1, "statusCode": "SUCCESS", "connectionClosed": false, "connectionsAvailable": 9},
+  "auth_failure": {"op": "status", "id": 1, "statusCode": "FAILURE", "errorCode": "INVALID_SESSION_INFORMATION", "errorMessage": "Session token is invalid", "connectionClosed": true, "connectionId": "002-051134157842-432409"},
+  "app_key_failure": {"op": "status", "id": 1, "statusCode": "FAILURE", "errorCode": "INVALID_APP_KEY", "errorMessage": "Application key is invalid", "connectionClosed": true},
+  "subscribe_success": {"op": "status", "id": 2, "statusCode": "SUCCESS", "connectionClosed": false},
+  "subscription_limit": {"op": "status", "id": 2, "statusCode": "FAILURE", "errorCode": "SUBSCRIPTION_LIMIT_EXCEEDED", "errorMessage": "trying to subscribe to 201 markets", "connectionClosed": false},
+  "image": {
+    "op": "mcm", "id": 2, "initialClk": "G1jHgcgNHPgjjcwRj5LFHw==", "clk": "AAAAAAAAAAAAAA==",
+    "conflateMs": 180000, "heartbeatMs": 5000, "pt": 1761404400000, "ct": "SUB_IMAGE",
+    "mc": [
+      {
+        "id": "1.234567890", "img": true,
+        "marketDefinition": {
+          "bspMarket": false, "turnInPlayEnabled": true, "persistenceEnabled": true, "marketBaseRate": 5.0,
+          "eventId": "34812345", "eventTypeId": "1", "numberOfWinners": 1, "bettingType": "ODDS",
+          "marketType": "MATCH_ODDS", "marketTime": "2026-10-25T15:00:00.000Z", "suspendTime": "2026-10-25T15:00:00.000Z",
+          "bspReconciled": false, "complete": true, "inPlay": false, "crossMatching": true, "runnersVoidable": false,
+          "numberOfActiveRunners": 3, "betDelay": 0, "status": "OPEN",
+          "runners": [
+            {"status": "ACTIVE", "sortPriority": 1, "id": 1096},
+            {"status": "ACTIVE", "sortPriority": 2, "id": 55190},
+            {"status": "ACTIVE", "sortPriority": 3, "id": 58805}
+          ],
+          "regulators": ["MR_INT"], "countryCode": "GB", "discountAllowed": true, "timezone": "GMT",
+          "openDate": "2026-10-25T15:00:00.000Z", "version": 6012345678
+        },
+        "rc": [
+          {"batb": [[0, 2.08, 1520.4], [1, 2.06, 830.0], [2, 2.04, 412.12]], "batl": [[0, 2.1, 640.25], [1, 2.12, 1003.0], [2, 2.14, 95.5]], "id": 1096},
+          {"batb": [[0, 3.65, 210.0], [1, 3.6, 77.0]], "batl": [[0, 3.7, 180.0]], "id": 55190}
+        ],
+        "con": true
+      }
+    ]
+  },
+  "delta": {
+    "op": "mcm", "id": 2, "clk": "AAAAAAAAAAAAAB==", "pt": 1761404580000,
+    "mc": [
+      {"id": "1.234567890", "rc": [{"batb": [[0, 2.1, 300.0]], "batl": [[0, 2.1, 700.0], [2, 2.14, 0]], "id": 1096}], "con": true}
+    ]
+  },
+  "status_change": {
+    "op": "mcm", "id": 2, "clk": "AAAAAAAAAAAAAC==", "pt": 1761404760000,
+    "mc": [
+      {
+        "id": "1.234567890",
+        "marketDefinition": {
+          "bettingType": "ODDS", "marketType": "MATCH_ODDS", "inPlay": true, "betDelay": 5, "status": "SUSPENDED",
+          "numberOfWinners": 1, "version": 6012345690,
+          "runners": [
+            {"status": "ACTIVE", "sortPriority": 1, "id": 1096},
+            {"status": "ACTIVE", "sortPriority": 2, "id": 55190},
+            {"status": "REMOVED", "sortPriority": 3, "id": 58805}
+          ]
+        }
+      }
+    ]
+  },
+  "heartbeat": {"op": "mcm", "id": 2, "clk": "AAAAAAAAAAAAAD==", "pt": 1761404940000, "ct": "HEARTBEAT"},
+  "resub_delta": {
+    "op": "mcm", "id": 3, "clk": "AAAAAAAAAAAAAE==", "conflateMs": 180000, "heartbeatMs": 5000, "pt": 1761405120000, "ct": "RESUB_DELTA",
+    "mc": [
+      {"id": "1.234567890", "rc": [{"batl": [[0, 2.14, 50.0]], "id": 1096}], "con": true}
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "login_success": {"token": "SESSION-TOKEN-1", "product": "APP-KEY-DELAYED", "status": "SUCCESS", "error": ""},
+  "login_failure": {"token": "", "product": "APP-KEY-DELAYED", "status": "FAIL", "error": "INVALID_USERNAME_OR_PASSWORD"},
+  "certlogin_success": {"sessionToken": "CERT-SESSION-TOKEN-1", "loginStatus": "SUCCESS"},
+  "certlogin_failure": {"loginStatus": "CERT_AUTH_REQUIRED"},
+  "keepalive_success": {"token": "SESSION-TOKEN-1", "product": "APP-KEY-DELAYED", "status": "SUCCESS", "error": ""},
+  "keepalive_failure": {"token": "", "product": "APP-KEY-DELAYED", "status": "FAIL", "error": "NO_SESSION"},
+  "invalid_session": {
+    "faultcode": "Client",
+    "faultstring": "ANGX-0003",
+    "detail": {
+      "APINGException": {"requestUUID": "ie2-ang05b-prd-10201201-000a1b2c3d", "errorCode": "INVALID_SESSION_INFORMATION", "errorDetails": "The session token hasn't been provided, is invalid or has expired."},
+      "exceptionname": "APINGException"
+    }
+  },
+  "too_much_data": {
+    "faultcode": "Client",
+    "faultstring": "ANGX-0001",
+    "detail": {
+      "APINGException": {"requestUUID": "ie2-ang05b-prd-10201201-000a1b2c3e", "errorCode": "TOO_MUCH_DATA", "errorDetails": "The operation requested too much data, exceeding the Market Data Request Limits."},
+      "exceptionname": "APINGException"
+    }
+  },
+  "invalid_app_key": {
+    "faultcode": "Client",
+    "faultstring": "ANGX-0004",
+    "detail": {
+      "APINGException": {"requestUUID": "ie2-ang05b-prd-10201201-000a1b2c3f", "errorCode": "INVALID_APP_KEY", "errorDetails": "The application key passed is invalid or is not present"},
+      "exceptionname": "APINGException"
+    }
+  }
+}

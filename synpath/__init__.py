@@ -47,6 +47,8 @@ from .hyperliquid import Hyperliquid
 from .predict_fun import PredictFun
 from .limitless import Limitless
 from .sx_bet import SxBet
+from .betfair import Betfair
+from .smarkets import Smarkets
 from .matching import match_event, match_market
 from .history import fetch_order_book_at, fetch_order_book_range, fetch_trades_range
 from .bucket import Bucket, BucketMember, BucketOrderReport, BucketPosition
@@ -91,6 +93,8 @@ exchanges: dict[str, type[Exchange]] = {
     "predict_fun": PredictFun,
     "limitless": Limitless,
     "sx_bet": SxBet,
+    "betfair": Betfair,
+    "smarkets": Smarkets,
 }
 """Every venue this library speaks, by id."""
 
@@ -141,6 +145,7 @@ _STREAM_CLASSES = (
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
     "OpinionMarketStream", "OpinionUserStream", "HyperliquidMarketStream", "HyperliquidUserStream",
     "PredictFunMarketStream", "PredictFunUserStream", "LimitlessMarketStream", "LimitlessUserStream", "SxBetMarketStream", "SxBetUserStream",
+    "BetfairMarketStream", "SmarketsMarketStream",
 )
 _SERVER_NAMES = ("create_app", "create_trading_app", "VenueRegistry", "ControlStore", "Principal")
 
@@ -162,7 +167,7 @@ def __getattr__(name: str):
 
 
 __all__ = [
-    "Kalshi", "Polymarket", "PolymarketUS", "Opinion", "Hyperliquid", "PredictFun", "Limitless", "SxBet", "Exchange", "exchange", "exchanges",
+    "Kalshi", "Polymarket", "PolymarketUS", "Opinion", "Hyperliquid", "PredictFun", "Limitless", "SxBet", "Betfair", "Smarkets", "Exchange", "exchange", "exchanges",
     "Capability", "HttpClient", "RateLimiter",
     "Market", "Event", "Outcome", "Quote", "MarketStats", "OrderBook",
     "OrderLevel", "Trade", "Candle", "FeeSchedule", "Series", "Page",
