@@ -52,6 +52,19 @@ def venues_config(config: dict[str, Any], credentials: dict[str, Any]) -> dict[s
     return {**config, "venues": {venue: {} for venue in VENUES if credentials.get(venue) is not None}}
 
 
+def read_options(market_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """The read app's adapter arguments: each market-data API key loaded from
+    serve's own `.env`, which the adapters would not find on their own when
+    serve runs from another folder."""
+    return {venue: {"api_key": key.api_key} for venue, key in market_data.items() if venue in READ_API_KEY_VENUES}
+
+
+READ_API_KEY_VENUES = ("opinion", "predict_fun", "sx_bet")
+"""Venues whose read adapter takes an API key: predict.fun's mainnet refuses
+every request without one; Opinion's raises its rate limit with one; SX Bet
+documents its book snapshots as keyed."""
+
+
 @dataclass
 class Stack:
     engine: Any
@@ -98,10 +111,10 @@ async def build(
     from ..engine.eod import EndOfDay
     from ..engine.feeds import Feeds, default_streams, market_stream
     from ..engine.reconcile import Reconciler
-    from ..trading.credentials import load_credentials
+    from ..trading.credentials import load_credentials, load_market_data
     from fastapi import Depends
 
-    from .api import create_app
+    from .api import VenueRegistry, create_app
     from .bucket_books import BucketBooks
     from .hosted_routes import add_hosted_routes
     from .market_stream import MarketStreams, add_market_socket
@@ -111,6 +124,9 @@ async def build(
     config = dict(config or {})
     needs_credentials = adapters is None or (streams and (stream_map is None or market_stream_factory is None))
     credentials = load_credentials(dotenv=dotenv) if needs_credentials else {}
+    # Always loaded, injected adapters or not: the API keys alone open the
+    # market streams and the read app's keyed reads.
+    market_data = load_market_data(dotenv=dotenv)
     if adapters is None:
         config = venues_config(config, credentials)
         adapters = build_adapters(config, dotenv=dotenv) if config.get("venues") else {}
@@ -133,9 +149,10 @@ async def build(
     feeds = None
     streaming = streams and config.get("streams", True)
     if streaming:
-        feeds = Feeds(engine, stream_map if stream_map is not None else default_streams(adapters, credentials))
+        feeds = Feeds(engine, stream_map if stream_map is not None
+                      else default_streams(adapters, credentials, market_data))
     market_streams = MarketStreams(
-        market_stream_factory or (lambda venue: market_stream(venue, credentials.get(venue))),
+        market_stream_factory or (lambda venue: market_stream(venue, credentials.get(venue) or market_data.get(venue))),
         feeds=feeds, enabled=bool(streaming), book_interval_s=float(config.get("book_interval_s", 0.1)),
     )
     reconciler = Reconciler(engine, orphan_policy=config.get("orphan_policy", "report"))
@@ -155,7 +172,9 @@ async def build(
 
     # The market-data routes take the same access token as /trading: the
     # read app's dependency hook gets `caller`, which finds the control store
-    # on this (root) app.
+    # on this (root) app. Its adapters get serve's own market-data API keys.
+    if registry is None:
+        registry = VenueRegistry(options=read_options(market_data))
     app = create_app(registry=registry, dependencies=[Depends(caller)])
     app.state.control = store
     # Matching and tick history: serve calls Synpath's hosted services with

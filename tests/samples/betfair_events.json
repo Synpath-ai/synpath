@@ -1,0 +1,4 @@
+[
+  {"event": {"id": "34812345", "name": "Arsenal v Chelsea", "countryCode": "GB", "timezone": "GMT", "openDate": "2026-10-25T15:00:00.000Z"}, "marketCount": 64},
+  {"event": {"id": "34812399", "name": "Liverpool v Everton", "countryCode": "GB", "timezone": "GMT", "openDate": "2026-10-25T17:30:00.000Z"}, "marketCount": 58}
+]

@@ -10,12 +10,12 @@ backend-path = ["build_backend"]
 [project]
 name = "synpath"
 version = "0.8.1"
-description = "One API for prediction markets. Kalshi and Polymarket, normalized, with every price labelled by source and time."
+description = "One API for 8 prediction markets: Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet. Market data, streaming, self-hosted trading and smart order routing."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Synpath" }]
-keywords = ["prediction-markets", "kalshi", "polymarket", "unified-api", "trading", "market-data"]
+keywords = ["prediction-markets", "kalshi", "polymarket", "polymarket-us", "opinion", "hyperliquid", "predict-fun", "limitless", "sx-bet", "unified-api", "trading", "market-data"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",
