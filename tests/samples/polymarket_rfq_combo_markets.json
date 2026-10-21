@@ -1,0 +1,52 @@
+{
+  "markets": [
+    {
+      "id": "1897034",
+      "condition_id": "0x4cd7000000000000000000000000000000000000000000000000000000000000",
+      "position_ids": [
+        "101",
+        "102"
+      ],
+      "slug": "fifwc-mex-rsa-2026-06-11-mex",
+      "title": "Will Mexico win on 2026-06-11?",
+      "outcomes": [
+        "Yes",
+        "No"
+      ],
+      "outcome_prices": [
+        "0.685",
+        "0.315"
+      ],
+      "image": "https://example.test/a.png",
+      "volume": 330327.71,
+      "tags": [
+        "sports",
+        "soccer"
+      ]
+    },
+    {
+      "id": "1897035",
+      "condition_id": "0x0391000000000000000000000000000000000000000000000000000000000000",
+      "position_ids": [
+        "201",
+        "202"
+      ],
+      "slug": "fifwc-total-goals-over-2",
+      "title": "Over 2.5 goals?",
+      "outcomes": [
+        "Yes",
+        "No"
+      ],
+      "outcome_prices": [
+        "0.52",
+        "0.48"
+      ],
+      "image": "https://example.test/b.png",
+      "volume": 120000.5,
+      "tags": [
+        "sports"
+      ]
+    }
+  ],
+  "next_cursor": "Mg"
+}

@@ -1,0 +1,25 @@
+{
+  "quotes": [
+    {
+      "id": "quote_09",
+      "rfqId": "rfq_02",
+      "creatorRfqUserId": "rfquser_me",
+      "symbol": "crossd-example",
+      "status": "QUOTE_STATUS_ACCEPTED",
+      "createdTime": "2026-07-29T14:00:00.200Z",
+      "buyPrice": "0.615",
+      "sellPrice": "0.585",
+      "restRemainder": false,
+      "postOnly": true,
+      "rfqCreatorUserId": "rfquser_other",
+      "rfqCashOrderQty": null,
+      "buyQtyDecimal": "25",
+      "sellQtyDecimal": "25",
+      "updatedTime": "2026-07-29T14:00:00.200Z",
+      "acceptedSide": "SIDE_SELL",
+      "acceptedTime": "2026-07-29T14:01:01Z",
+      "confirmationDeadline": "2026-07-29T14:01:04Z"
+    }
+  ],
+  "cursor": ""
+}

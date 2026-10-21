@@ -143,7 +143,7 @@ class PaperVenue(TradingExchange):
         "cancel_all_orders": True, "edit_order": True, "fetch_order": True, "fetch_open_orders": True,
         "fetch_orders": True, "fetch_my_trades": True, "fetch_positions": True, "fetch_balance": True,
         "fetch_settlements": False, "fetch_queue_position": True, "fetch_fee_estimate": True,
-        "rfq": False, "split_merge": False,
+        "rfq": False, "rfq_taker": False, "rfq_quoter": False, "combos": False, "split_merge": False,
         "watch_orders": False, "watch_my_trades": False, "watch_positions": False, "watch_balance": False,
     }
 
@@ -532,3 +532,403 @@ class PaperVenue(TradingExchange):
             if price is not None:
                 total += price * contracts
         return total
+
+
+# -- RFQ and combos on paper ---------------------------------------------------------
+
+
+@dataclass
+class PaperMaker:
+    """A counterparty that answers every RFQ a `PaperRfqVenue` receives."""
+
+    name: str = "maker"
+    bid: Decimal | None = Decimal("0.40")
+    """The YES price it buys at (what a requester selling YES gets)."""
+    ask: Decimal | None = Decimal("0.45")
+    """The YES price it sells at (what a requester buying YES pays)."""
+    quantity: Decimal | None = None
+    """Contracts on each side; `None` sizes to the RFQ (its amount at the price)."""
+    confirms: bool = True
+    """`False` lets the last look lapse: the accepted quote expires."""
+    fill_ratio: Decimal = ONE
+    """How much of the accepted size the requester's order fills; the rest
+    is cancelled, as an IOC order's would be."""
+    report_side: Side | None = None
+    """Report this side as the one accepted, whatever was asked (the venue
+    getting the side wrong, for the engine's side guard)."""
+
+
+class PaperRfqVenue(PaperVenue):
+    """A paper venue with RFQs, quotes and combos, both sides, offline.
+
+    Requester side: `create_rfq` gets a quote from every configured
+    `PaperMaker`; `accept_quote` takes one; `advance()` runs the venue's
+    clock one step (the maker's last look, then the execution, which makes
+    an `rfq_taker` order and its fills). Quoter side: `add_incoming_rfq`
+    is someone else's RFQ, `requester_accepts` is that someone taking our
+    quote, `confirm_quote` our last look, `advance()` the execution.
+
+    `auto_advance` steps a quote each time it is read, so a follower (or
+    `wait=True`) sees the whole lifecycle without a driver.
+    """
+
+    id = "paper_rfq"
+    name = "Paper trading with RFQ"
+    has: dict[str, Capability] = {**PaperVenue.has, "rfq_taker": True, "rfq_quoter": True, "combos": True}
+
+    def __init__(self, *, makers: Sequence[PaperMaker] = (), last_look_s: float = 3.0,
+                 auto_advance: bool = False, maker_fill_ratio: Decimal = ONE, stream_incoming: bool = False,
+                 **kw: Any):
+        super().__init__(**kw)
+        self.stream_incoming = stream_incoming
+        """`True` pushes each `add_incoming_rfq` to `subscribe_incoming_rfqs`
+        listeners at once, as a venue stream would; `False` leaves it to be polled."""
+        self.rfq_listeners: list[Callable[[Any], Any]] = []
+        self.stream_started = False
+        self.makers: list[PaperMaker] = list(makers) or [PaperMaker()]
+        self.last_look_s = last_look_s
+        self.auto_advance = auto_advance
+        self.maker_fill_ratio = maker_fill_ratio
+        """How much of a confirmed maker quote fills, on the quoter side."""
+        self.rfqs: dict[str, Any] = {}
+        self.quotes: dict[str, Any] = {}
+        self.combos: dict[str, Any] = {}
+        self.accepted: dict[str, dict[str, Any]] = {}
+        self.calls: list[str] = []
+        self.quote_listeners: list[Callable[[Any], Any]] = []
+        self.pending_quotes: list[Any] = []
+        self._q = 0
+
+    # -- streams --------------------------------------------------------------
+
+    def subscribe_incoming_rfqs(self, listener: Callable[[Any], Any]) -> Callable[[], None] | None:
+        """With `stream_incoming`, hear each incoming RFQ as it is added."""
+        if not self.stream_incoming:
+            return None
+        self.rfq_listeners.append(listener)
+        return lambda: self.rfq_listeners.remove(listener) if listener in self.rfq_listeners else None
+
+    async def start_incoming_rfqs(self) -> None:
+        self.stream_started = True
+
+    async def push_incoming_rfq(self, instrument_id: str, **kw: Any) -> Any:
+        """`add_incoming_rfq`, then every listener hears it (awaited), as a stream would deliver it."""
+        rfq = self.add_incoming_rfq(instrument_id, **kw)
+        for listener in list(self.rfq_listeners):
+            result = listener(rfq)
+            if hasattr(result, "__await__"):
+                await result
+        return rfq
+
+    def subscribe_quotes(self, listener: Callable[[Any], Any]) -> Callable[[Any], Any]:
+        """Receive quote updates, as a venue's RFQ stream would send them."""
+        self.quote_listeners.append(listener)
+        return listener
+
+    async def deliver(self) -> list[Fill]:
+        """Quote updates first (the execution), then fills and orders."""
+        updates, self.pending_quotes = self.pending_quotes, []
+        for quote in updates:
+            for listener in list(self.quote_listeners):
+                result = listener(self.quotes.get(quote.id, quote))
+                if hasattr(result, "__await__"):
+                    await result
+        return await super().deliver()
+
+    def _set_quote(self, quote: Any) -> Any:
+        self.quotes[quote.id] = quote
+        self.pending_quotes = [q for q in self.pending_quotes if q.id != quote.id]
+        self.pending_quotes.append(quote)
+        return quote
+
+    def _next(self, prefix: str) -> str:
+        self._q += 1
+        return f"{prefix}-{self._q}"
+
+    def _now(self) -> int:
+        return int(self.clock() * 1000)
+
+    # -- combos ---------------------------------------------------------------
+
+    async def create_combo(self, legs: list[Any]) -> Any:
+        import hashlib
+
+        from ..trading.types import Combo
+
+        self.calls.append("create_combo")
+        digest = hashlib.sha1("|".join(sorted(f"{l.market_id}={l.outcome}" for l in legs)).encode()).hexdigest()[:10]
+        market_id = f"{self.venue}:combo-{digest}"
+        combo = self.combos.get(market_id) or Combo(market_id=market_id, venue=self.venue, legs=list(legs),
+                                                    status="open", created_at=self._now())
+        self.combos[market_id] = combo
+        return combo
+
+    async def fetch_combo(self, combo_id: str) -> Any:
+        from ..trading.errors import RfqNotFound
+
+        if combo_id not in self.combos:
+            raise RfqNotFound(f"paper: no combo {combo_id}")
+        return self.combos[combo_id]
+
+    # -- requester side -------------------------------------------------------
+
+    async def create_rfq(self, instrument_id: str, *, quantity: Decimal | None = None, amount: Decimal | None = None,
+                         outcome: str | None = None, action: str | None = None, rest_remainder: bool = False,
+                         combo: Any = None) -> Any:
+        from ..trading.types import Rfq
+
+        self.calls.append("create_rfq")
+        on_combo = combo is not None or instrument_id in self.combos
+        rfq = Rfq(id=self._next("prfq"), venue=self.venue, account=self.account,
+                  market_id=None if on_combo else instrument_id, combo_id=instrument_id if on_combo else None,
+                  combo=combo or self.combos.get(instrument_id), quantity=quantity, amount=amount,
+                  rest_remainder=rest_remainder, mine=True, created_at=self._now())
+        self.rfqs[rfq.id] = rfq
+        for maker in self.makers:
+            self._maker_quote(rfq, maker)
+        return rfq
+
+    def _maker_quote(self, rfq: Any, maker: PaperMaker) -> Any:
+        from ..trading.types import RfqQuote
+
+        def size(price: Decimal | None, cost: Decimal | None) -> Decimal | None:
+            if price is None:
+                return None
+            if maker.quantity is not None:
+                return maker.quantity
+            if rfq.quantity is not None:
+                return rfq.quantity
+            return (rfq.amount / cost).quantize(Decimal("0.01"), rounding="ROUND_DOWN") if cost else None
+
+        quote = RfqQuote(
+            id=self._next("pq"), rfq_id=rfq.id, venue=self.venue, market_id=rfq.instrument_id,
+            bid=maker.bid, ask=maker.ask,
+            bid_quantity=size(maker.bid, ONE - maker.bid if maker.bid is not None else None),
+            ask_quantity=size(maker.ask, maker.ask), created_at=self._now(), mine=False,
+            info={"maker": maker.name},
+        )
+        return self._set_quote(quote)
+
+    def _maker_of(self, quote: Any) -> PaperMaker | None:
+        return next((m for m in self.makers if m.name == quote.info.get("maker")), None)
+
+    async def fetch_rfq(self, rfq_id: str) -> Any:
+        from ..trading.errors import RfqNotFound
+
+        if rfq_id not in self.rfqs:
+            raise RfqNotFound(f"paper: no RFQ {rfq_id}")
+        return self.rfqs[rfq_id]
+
+    async def fetch_rfqs(self, *, status: Any = None, market_id: str | None = None, limit: int | None = None,
+                         cursor: str | None = None) -> Any:
+        from ..types import Page
+
+        rows = [r for r in self.rfqs.values() if r.mine
+                and (status is None or r.status.value == getattr(status, "value", status))
+                and (market_id is None or r.instrument_id == market_id)]
+        return Page(rows[: limit or len(rows)])
+
+    async def cancel_rfq(self, rfq_id: str) -> None:
+        from ..trading.types import QuoteStatus, RfqCloseReason, RfqStatus
+
+        self.calls.append("cancel_rfq")
+        rfq = await self.fetch_rfq(rfq_id)
+        self.rfqs[rfq_id] = rfq.model_copy(update={"status": RfqStatus.CLOSED, "closed_reason": RfqCloseReason.CANCELED})
+        for quote in list(self.quotes.values()):
+            if quote.rfq_id == rfq_id and quote.status == QuoteStatus.OPEN:
+                self._set_quote(quote.model_copy(update={"status": QuoteStatus.CANCELED}))
+
+    async def fetch_quotes(self, rfq_id: str, *, status: Any = None) -> list[Any]:
+        return [q for q in self.quotes.values() if q.rfq_id == rfq_id
+                and (status is None or q.status.value == getattr(status, "value", status))]
+
+    async def fetch_quote(self, quote_id: str, *, rfq_id: str | None = None) -> Any:
+        from ..trading.errors import RfqNotFound
+
+        if quote_id not in self.quotes:
+            raise RfqNotFound(f"paper: no quote {quote_id}")
+        if self.auto_advance:
+            self._step(quote_id)
+        return self.quotes[quote_id]
+
+    async def accept_quote(self, accept: Any) -> Any:
+        from ..trading.types import QuoteStatus
+
+        self.calls.append("accept_quote")
+        quote = self.quotes.get(accept.quote_id)
+        if quote is None:
+            from ..trading.errors import RfqNotFound
+            raise RfqNotFound(f"paper: no quote {accept.quote_id}")
+        if quote.status != QuoteStatus.OPEN:
+            from ..trading.errors import OrderRejected
+            raise OrderRejected(f"paper: quote {quote.id} is {quote.status.value}", reason="quote_not_open")
+        price = quote.price_for(accept.outcome, accept.action)
+        if price is None:
+            raise InvalidOrder(f"paper: quote {quote.id} declines that side")
+        if accept.refuses(price):
+            raise InvalidOrder(f"paper: {price} is worse than {accept.worst_price}")
+        if accept.amount is not None:
+            raise InvalidOrder("paper: accept by contracts; the engine sizes an amount")
+        full = quote.quantity_for(accept.outcome, accept.action)
+        quantity = accept.quantity or full
+        if quantity is None or (full is not None and quantity > full):
+            raise InvalidOrder(f"paper: cannot take {quantity} of quote {quote.id}")
+        maker = self._maker_of(quote)
+        reported = maker.report_side if maker is not None and maker.report_side is not None else accept.side
+        self.accepted[quote.id] = {"accept": accept, "quantity": quantity, "price": price, "side": reported}
+        return self._set_quote(quote.model_copy(update={
+            "status": QuoteStatus.ACCEPTED, "accepted_side": reported,
+            "confirm_by": self._now() + int(self.last_look_s * 1000), "updated_at": self._now(),
+        }))
+
+    # -- quoter side ----------------------------------------------------------
+
+    def add_incoming_rfq(self, instrument_id: str, *, quantity: Decimal | None = None, amount: Decimal | None = None,
+                         combo: Any = None) -> Any:
+        """Someone else's RFQ, for us to quote."""
+        from ..trading.types import Rfq
+
+        on_combo = combo is not None or instrument_id in self.combos
+        rfq = Rfq(id=self._next("prfq-in"), venue=self.venue, market_id=None if on_combo else instrument_id,
+                  combo_id=instrument_id if on_combo else None, combo=combo, quantity=quantity, amount=amount,
+                  mine=False, created_at=self._now())
+        self.rfqs[rfq.id] = rfq
+        return rfq
+
+    async def fetch_incoming_rfqs(self, *, market_id: str | None = None, limit: int | None = None,
+                                  cursor: str | None = None) -> Any:
+        from ..trading.types import RfqStatus
+        from ..types import Page
+
+        rows = [r for r in self.rfqs.values() if not r.mine and r.status == RfqStatus.OPEN
+                and (market_id is None or r.instrument_id == market_id)]
+        return Page(rows[: limit or len(rows)])
+
+    async def send_quote(self, quote: Any) -> Any:
+        from ..trading.types import RfqQuote
+
+        self.calls.append("send_quote")
+        rfq = await self.fetch_rfq(quote.rfq_id)
+        quantity = quote.quantity or rfq.quantity
+        made = RfqQuote(id=self._next("pq-mine"), rfq_id=rfq.id, venue=self.venue, account=self.account,
+                        market_id=rfq.instrument_id, bid=quote.bid, ask=quote.ask,
+                        bid_quantity=quantity if quote.bid is not None else None,
+                        ask_quantity=quantity if quote.ask is not None else None,
+                        expires_at=quote.expires_at, mine=True, created_at=self._now(),
+                        info={"client_order_id": quote.client_order_id})
+        return self._set_quote(made)
+
+    async def replace_quote(self, quote_id: str, quote: Any) -> Any:
+        from ..trading.types import QuoteStatus
+
+        self.calls.append("replace_quote")
+        old = self.quotes.get(quote_id)
+        if old is not None and not old.is_terminal:
+            self._set_quote(old.model_copy(update={"status": QuoteStatus.CANCELED}))
+        return await self.send_quote(quote)
+
+    async def cancel_quote(self, quote_id: str, *, rfq_id: str | None = None) -> None:
+        from ..trading.types import QuoteStatus
+
+        self.calls.append("cancel_quote")
+        quote = self.quotes.get(quote_id)
+        if quote is None:
+            from ..trading.errors import RfqNotFound
+            raise RfqNotFound(f"paper: no quote {quote_id}")
+        if quote.status in (QuoteStatus.OPEN, QuoteStatus.ACCEPTED):
+            self._set_quote(quote.model_copy(update={"status": QuoteStatus.CANCELED}))
+
+    def requester_accepts(self, quote_id: str, *, outcome: str = "yes", action: str = "buy",
+                          quantity: Decimal | None = None) -> Any:
+        """Someone takes one side of our quote; our last look starts."""
+        from ..trading.types import QuoteStatus, yes_side
+
+        quote = self.quotes[quote_id]
+        side = yes_side(outcome, action)
+        price = quote.ask if side == Side.BUY else quote.bid
+        self.accepted[quote_id] = {"quantity": quantity or quote.quantity_for(outcome, action), "price": price,
+                                   "side": side}
+        return self._set_quote(quote.model_copy(update={
+            "status": QuoteStatus.ACCEPTED, "accepted_side": side,
+            "confirm_by": self._now() + int(self.last_look_s * 1000), "updated_at": self._now(),
+        }))
+
+    async def confirm_quote(self, quote: Any) -> Any:
+        from ..trading.types import QuoteStatus
+
+        self.calls.append("confirm_quote")
+        current = self.quotes[quote.id]
+        if current.status != QuoteStatus.ACCEPTED:
+            from ..trading.errors import OrderRejected
+            raise OrderRejected(f"paper: quote {quote.id} is {current.status.value}", reason="quote_not_accepted")
+        return self._set_quote(current.model_copy(update={"status": QuoteStatus.CONFIRMED, "updated_at": self._now()}))
+
+    async def fetch_my_quotes(self, *, rfq_id: str | None = None, status: Any = None) -> list[Any]:
+        return [q for q in self.quotes.values() if q.mine and (rfq_id is None or q.rfq_id == rfq_id)
+                and (status is None or q.status.value == getattr(status, "value", status))]
+
+    # -- the venue's clock ----------------------------------------------------
+
+    def advance(self) -> None:
+        """One step for every quote in flight: an accepted quote is confirmed
+        by its maker (or lapses), a confirmed one executes."""
+        for quote_id in list(self.accepted):
+            self._step(quote_id)
+
+    def _step(self, quote_id: str) -> None:
+        from ..trading.types import QuoteStatus
+
+        quote = self.quotes[quote_id]
+        if quote_id not in self.accepted:
+            return
+        if quote.status == QuoteStatus.ACCEPTED:
+            if quote.mine:
+                if quote.confirm_by is not None and self._now() >= quote.confirm_by:
+                    self._set_quote(quote.model_copy(update={"status": QuoteStatus.EXPIRED}))
+                    self.accepted.pop(quote_id, None)
+                return
+            maker = self._maker_of(quote)
+            if maker is not None and not maker.confirms:
+                self._set_quote(quote.model_copy(update={"status": QuoteStatus.EXPIRED}))
+                self.accepted.pop(quote_id, None)
+            else:
+                self._set_quote(quote.model_copy(update={"status": QuoteStatus.CONFIRMED}))
+        elif quote.status == QuoteStatus.CONFIRMED:
+            self._execute(quote)
+
+    def _execute(self, quote: Any) -> None:
+        from ..trading.types import QuoteStatus, RfqCloseReason, RfqStatus
+
+        deal = self.accepted.pop(quote.id)
+        requester_side: Side = deal["side"]
+        mine = quote.mine
+        side = requester_side if not mine else (Side.SELL if requester_side == Side.BUY else Side.BUY)
+        ratio = self.maker_fill_ratio if mine else (self._maker_of(quote) or PaperMaker()).fill_ratio
+        accept = deal.get("accept")
+        client_id = accept.client_order_id if accept is not None else quote.info.get("client_order_id")
+        outcome = accept.outcome if accept is not None else None
+        action = accept.action if accept is not None else None
+        order_id = self._next("paper-rfq")
+        quantity: Decimal = deal["quantity"]
+        order = Order(
+            id=order_id, client_order_id=client_id, venue=self.venue, account=self.account,
+            market_id=quote.market_id, side=side, type=OrderType.RFQ_MAKER if mine else OrderType.RFQ_TAKER,
+            time_in_force=TimeInForce.IOC, status=OrderStatus.OPEN, price=deal["price"], quantity=quantity,
+            created_at=self._now(), outcome=outcome, action=action,
+        )
+        self.orders[order_id] = order
+        request = OrderRequest(market_id=quote.market_id, side=side, quantity=quantity, price=deal["price"],
+                               type=OrderType.LIMIT, client_order_id=client_id)
+        rest = Resting(order=order, queue_ahead=ZERO, request=request)
+        filled = (quantity * ratio).quantize(Decimal("0.01"), rounding="ROUND_DOWN")
+        if filled > 0:
+            self._fill(rest, price=deal["price"], quantity=filled, liquidity=Liquidity.MAKER if mine else Liquidity.TAKER)
+        if self.orders[order_id].remaining and self.orders[order_id].remaining > 0:
+            self._close(order_id, OrderStatus.CANCELED)
+        update: dict[str, Any] = {"status": QuoteStatus.EXECUTED, "updated_at": self._now()}
+        update["maker_order_id" if mine else "taker_order_id"] = order_id
+        self._set_quote(quote.model_copy(update=update))
+        rfq = self.rfqs.get(quote.rfq_id)
+        if rfq is not None:
+            self.rfqs[rfq.id] = rfq.model_copy(update={"status": RfqStatus.CLOSED,
+                                                       "closed_reason": RfqCloseReason.EXECUTED})

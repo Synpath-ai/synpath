@@ -315,7 +315,13 @@ python -m synpath.server bootstrap --control control.db   # the same, from a she
 | `GET /order-log` (`order_id`, `limit`, `before`) | `view` | every action on orders from the journal, newest first, repeats folded (`synpath.engine.order_log`): saved, sent, accepted, triggered, cancel requested, cancelled, filled, refused; one order with its cancel, fills and children |
 | `GET /journal` (`kind`, `limit`, `before`) | `view` | the journal's events as recorded, newest first, every kind or one prefix |
 | `GET /risk`, `PUT /risk` | `view` / `manage_credentials` | the rules in force, versioned on change |
-| `POST /halt`, `POST /resume` | `trade` | the kill switch |
+| `POST /halt`, `POST /resume` | `trade` | the kill switch; with the `cancel` policy it first cancels our open RFQs and quotes (`rfq` in the result) |
+| `POST /rfqs`, `DELETE /rfqs/{id}` | `trade` on the venue's account | ask for quotes on a market or a combo, by `quantity` or `amount`; cancel one ([RFQs](#rfqs-quotes-and-combos)) |
+| `GET /rfqs` (`venue`, `status`, `market_id`, `source`, `limit`), `GET /rfqs/{id}`, `GET /rfqs/{id}/quotes` (`status`) | `view` | our RFQs, and the quotes on one |
+| `POST /quotes/{id}/accept` | `trade` | take one side of a quote: `202` at once, `200` when `wait` and the quote is final |
+| `GET /rfqs/incoming`, `GET /quotes` (`venue`, `rfq_id`, `status`) | `view` | the quoter side: others' open RFQs, our quotes |
+| `POST /quotes`, `PUT /quotes/{id}`, `DELETE /quotes/{id}`, `POST /quotes/{id}/confirm` | `trade` | send, replace, withdraw a quote; confirm an accepted one (`202`/`200` as accept) |
+| `POST /combos`, `POST /combos/lookup`, `GET /combos/{market_id}` | `trade` / `view` / `view` | create or look up the combo for some legs (idempotent); look one up without creating it; read its legs |
 | `GET`/`POST`/`DELETE /grants`, `POST /keys`, `DELETE /keys/{id}` | `manage_members` / `manage_credentials` | who may do what |
 | `GET /audit` | `manage_members` | the append-only history of those changes |
 | `WS /ws/events` | `view` | the engine's events, replayed from a cursor then live |
@@ -378,6 +384,66 @@ reconnects does not miss the fill that happened while it was away.
 ```bash
 websocat "ws://127.0.0.1:8000/trading/ws/events?key=$SYNPATH_ACCESS_TOKEN&since=0&kinds=order,fill"
 ```
+
+### RFQs, quotes and combos
+
+The engine's RFQ desk ([docs/rfq-combo.md](rfq-combo.md)) over HTTP. Every
+write goes through the engine, so risk, the journal, the halt and recovery
+are the same as for an order. Prices are YES prices; a quote's `ask` is what
+we can buy YES at, its `bid` what we can sell at.
+
+**Which venue.** RFQ and quote ids are the venue's own, not Synpath ids. A
+route takes the venue from `venue` (query or body), the `account` named, a
+Synpath market id, what the engine already holds about the id, or the only
+venue with the capability; otherwise it is `400`. The grant is checked on
+that venue's account (`venue:name`) before anything is sent. A venue without
+the capability (`has["rfq_taker"]`, `rfq_quoter`, `combos`) is `400`; a call
+the venue does not offer (Polymarket US has no read-only combo lookup) is
+`501 not_supported`; an unknown id is `404`.
+
+**Accept and confirm answer `202`.** `POST /quotes/{id}/accept` takes
+`AcceptQuote` (`rfq_id`, `outcome`, `action`, `worst_price`, `quantity` or
+`amount`, `client_order_id`, `account`, `book`, `trader`, `tags`) plus `wait`
+and `timeout_s` (default 30, at most 120). It answers `QuoteResult`: the
+`quote`, the intent key `client_order_id`, `final`, `intent_state` (`sending`
+until the quote is final, then `sent` or `failed`) and `order_id` once the
+execution's order is adopted. The status is `202` unless `wait` was true and
+the quote ended (`executed`, `canceled`, `expired`, `failed`), then `200`.
+The rest arrives as events. A send with no answer is `202
+submission_in_doubt` with `details.client_order_id`; a retry under that key
+reads the venue first and never sends twice. `POST /quotes/{id}/confirm`
+(the maker's last look; body optional: `rfq_id`, `venue`, `wait`,
+`timeout_s`) is the same, keyed `rfq-confirm:{venue}:{quote_id}`.
+
+**Refusals.** A risk rule is `409 risk_rejected` with `details.rule`:
+`worst_price` (the quote is worse than the caller's limit), `kill_switch`,
+`max_order_contracts`, `max_order_notional`, `max_position`, and the other
+order rules. Accept and confirm run every order rule; creating an RFQ and
+sending a quote run the halt, a paused book, the restricted list and the
+size limits. Cancels (`DELETE /rfqs/{id}`, `DELETE /quotes/{id}`) are never
+refused by risk.
+
+**Lists.** `GET /rfqs` and `GET /rfqs/incoming` read each venue by default;
+`source=engine` returns what the engine already holds (our open RFQs, the
+incoming feed's last view) without a venue call. Rows are filtered to the
+accounts the key may view. `GET /rfqs` rows carry the engine's `book` and
+`trader`; `GET /quotes` fills in the `expires_at` the engine holds (venues
+may not take one).
+
+**Combos.** `POST /combos {legs: [{market_id, outcome}], venue?}` creates or
+returns the combo (the same legs give the same id; an existing combo costs
+no venue quota) and keeps its legs with the engine (`combo.saved`). A combo
+is its own instrument: `POST /rfqs` with its `market_id`, and its position
+carries `info.combo` with the legs.
+
+**Events.** `/ws/events` carries `rfq.created`, `rfq.closed`, `rfq.in_doubt`,
+`rfq.side_mismatch`, `quote.received`, `quote.sent`, `quote.replaced`,
+`quote.accepted`, `quote.confirmed`, `quote.executed`, `quote.canceled`,
+`quote.expired`, `quote.failed`, `quote.in_doubt`, `combo.saved`, then the
+resulting order's `order.*` and `fill.booked`. Quote events are keyed
+`{venue}:quote:{id}`. `rfq.incoming` is not journaled, so it is live only: a
+replay from a cursor does not include it. `kinds=rfq,quote,combo` filters
+the replay and the live stream alike.
 
 ### Mounting it
 

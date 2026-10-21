@@ -1,0 +1,32 @@
+{
+  "rfq_id": "rfq_sell_1",
+  "status": "AWAITING_REQUESTER_ACCEPTANCE",
+  "expires_at": 4102444800000,
+  "request": {
+    "rfq_id": "rfq_sell_1",
+    "maker_address": "0x1111111111111111111111111111111111111111",
+    "requestor_public_id": "req_public_1",
+    "leg_position_ids": [
+      "101",
+      "202"
+    ],
+    "condition_id": "0x03ababababababababababababababababababababababababababababababab",
+    "yes_position_id": "789",
+    "no_position_id": "790",
+    "direction": "SELL",
+    "side": "YES",
+    "requested_size": {
+      "unit": "shares",
+      "value_e6": "2000000"
+    },
+    "created_at": 1773890758000
+  },
+  "quote": {
+    "quote_id": "quote_sell_1",
+    "blended_price_e6": "450000",
+    "maker_amount_e6": "2000000",
+    "taker_amount_e6": "900000",
+    "total_required_e6": "2000000",
+    "net_receive_e6": "870000"
+  }
+}

@@ -111,6 +111,9 @@ class OrderType(str, Enum):
     PEG = "peg"
     SMART_TAKER = "smart_taker"
     RFQ_TAKER = "rfq_taker"
+    """The requester's order from an accepted RFQ quote (docs/rfq-combo.md)."""
+    RFQ_MAKER = "rfq_maker"
+    """The quoter's order from a quote it confirmed."""
 
 
 VENUE_ORDER_TYPES = frozenset({OrderType.LIMIT, OrderType.MARKET})
@@ -566,3 +569,318 @@ class FeeEstimate(_Base):
         if value <= 0:
             raise ValueError("must be positive")
         return value
+
+
+# -- RFQ and combos -------------------------------------------------------------
+#
+# See docs/rfq-combo.md. A requester (the taker) asks for a quote on a market
+# or a combo; makers (quoters) answer with a two-sided YES quote; the taker
+# accepts one side; the maker confirms (a last look); the venue submits the
+# two orders. Every price is a YES price, as everywhere else.
+
+
+class RfqStatus(str, Enum):
+    OPEN = "open"
+    CLOSED = "closed"
+    """No longer quotable; `Rfq.closed_reason` says why."""
+
+
+class RfqCloseReason(str, Enum):
+    CANCELED = "canceled"
+    """Deleted by its creator."""
+    EXPIRED = "expired"
+    EXECUTED = "executed"
+    """A quote on it traded."""
+    REPLACED = "replaced"
+    """Closed by the venue because a newer RFQ took its place."""
+
+
+class QuoteStatus(str, Enum):
+    """`open` → `accepted` → `confirmed` → `executed`, or off the path to
+    `canceled`, `expired` or `failed` before `executed`."""
+
+    OPEN = "open"
+    """Quotable: the requester may accept a side."""
+    ACCEPTED = "accepted"
+    """The requester took a side; the maker has not confirmed."""
+    CONFIRMED = "confirmed"
+    """The maker confirmed (its last look); the venue will submit the orders."""
+    EXECUTED = "executed"
+    """The orders were submitted. Not a fill: read the order's fills."""
+    CANCELED = "canceled"
+    """The maker withdrew it, or its RFQ closed."""
+    EXPIRED = "expired"
+    """Not accepted, or not confirmed, by its deadline."""
+    FAILED = "failed"
+    """The venue reported that the execution failed; nothing traded."""
+
+
+QUOTE_TERMINAL_STATUSES = frozenset({
+    QuoteStatus.EXECUTED, QuoteStatus.CANCELED, QuoteStatus.EXPIRED, QuoteStatus.FAILED,
+})
+
+
+def _yes_price(value: Decimal | None, name: str) -> Decimal | None:
+    if value is not None and not (Decimal("0") < value < Decimal("1")):
+        raise ValueError(f"{name} {value} is a YES price and must be inside (0, 1)")
+    return value
+
+
+def _positive(value: Decimal | None, name: str) -> Decimal | None:
+    if value is not None and value <= 0:
+        raise ValueError(f"{name} must be positive, got {value}")
+    return value
+
+
+def _one_size(quantity: Decimal | None, amount: Decimal | None, *, required: bool) -> None:
+    if quantity is not None and amount is not None:
+        raise ValueError("size by quantity (contracts) or amount (money), not both")
+    if required and quantity is None and amount is None:
+        raise ValueError("give a size: quantity (contracts) or amount (money)")
+    _positive(quantity, "quantity")
+    _positive(amount, "amount")
+
+
+def _leg_pair(outcome: str | None, action: str | None) -> None:
+    if action is not None and outcome is None:
+        raise ValueError("an action needs the outcome it acts on (yes or no)")
+
+
+class ComboLeg(_Base):
+    """One market a combo needs, and which outcome of it."""
+
+    market_id: str
+    """Synpath id, `venue:native`."""
+    outcome: Outcome
+    """The outcome this leg needs. On Polymarket US `no` is `SIDE_SELL`."""
+    event_id: str | None = None
+    """The leg's event, where the venue wants it (Kalshi `event_ticker`)."""
+    info: dict[str, Any] = Field(default_factory=dict)
+
+
+class Combo(_Base):
+    """A multi-leg instrument with its own market id: it pays out only if every
+    leg does. Positions, P&L and settlement live on `market_id`, like any
+    market's."""
+
+    market_id: str
+    """The combo's own Synpath id (`kalshi:KXMVE…`, `polymarket_us:caoc-…`)."""
+    venue: str
+    collection_id: str | None = None
+    """Kalshi's multivariate event collection the combo was built in."""
+    legs: list[ComboLeg]
+    status: Literal["open", "closed", "settled"] | None = None
+    created_at: int | None = None
+    info: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("legs")
+    @classmethod
+    def _two_or_more(cls, legs: list[ComboLeg]) -> list[ComboLeg]:
+        if len(legs) < 2:
+            raise ValueError("a combo needs at least two legs")
+        if len({leg.market_id for leg in legs}) != len(legs):
+            raise ValueError("a combo names each market once")
+        return legs
+
+
+class Rfq(_Base):
+    """A request for quote: one market or one combo, sized by contracts or by
+    money, never both."""
+
+    id: str
+    venue: str
+    account: Account | None = None
+    market_id: str | None = None
+    """The single market asked about. Exactly one of this and `combo_id`."""
+    combo_id: str | None = None
+    """The combo's own market id (`Combo.market_id`) when the RFQ is on a combo."""
+    combo: Combo | None = None
+    """The combo's legs, where known."""
+    outcome: Outcome | None = None
+    action: Action | None = None
+    """The side asked for, where the venue asks one side (Polymarket global:
+    YES, buy or sell). `None` on a two-sided request (Kalshi, Polymarket US)."""
+    quantity: Decimal | None = None
+    """Contracts. Exactly one of this and `amount`."""
+    amount: Decimal | None = None
+    """Money, in the venue's collateral (Kalshi `target_cost_dollars`,
+    Polymarket US `cashOrderQty`). Not the old name for `quantity`."""
+    rest_remainder: bool = False
+    """Leave what a quote does not fill resting on the book."""
+    status: RfqStatus = RfqStatus.OPEN
+    closed_reason: RfqCloseReason | None = None
+    mine: bool = True
+    """Created by this account; `False` for an incoming RFQ a quoter sees."""
+    created_at: int | None = None
+    expires_at: int | None = None
+    updated_at: int | None = None
+    info: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "Rfq":
+        if (self.market_id is None) == (self.combo_id is None):
+            raise ValueError("an RFQ is on a market_id or a combo_id, exactly one")
+        if self.combo is not None and self.combo_id is not None and self.combo.market_id != self.combo_id:
+            raise ValueError(f"combo {self.combo.market_id} is not combo_id {self.combo_id}")
+        _leg_pair(self.outcome, self.action)
+        # The venue may not echo a size back on an incoming RFQ; one we
+        # created always has one.
+        _one_size(self.quantity, self.amount, required=self.mine)
+        if self.closed_reason is not None and self.status != RfqStatus.CLOSED:
+            raise ValueError("closed_reason is for a closed RFQ")
+        return self
+
+    @property
+    def instrument_id(self) -> str:
+        """What is quoted: the market or the combo's own market id."""
+        return self.market_id or self.combo_id  # type: ignore[return-value]
+
+
+class RfqQuote(_Base):
+    """A maker's answer to an RFQ, both sides on the YES leg.
+
+    `ask` is the YES price the requester can buy at (Kalshi `1 - no_bid`,
+    Polymarket US `buyPrice`); `bid` the YES price it can sell at (Kalshi
+    `yes_bid`, Polymarket US `sellPrice`). A side the maker declined is
+    `None`. Named `RfqQuote` because `synpath.Quote` is the market-data quote.
+    """
+
+    id: str
+    rfq_id: str
+    venue: str
+    account: Account | None = None
+    market_id: str | None = None
+    """The instrument quoted (a market or a combo's own id), where the venue says."""
+    bid: Decimal | None = None
+    ask: Decimal | None = None
+    bid_quantity: Decimal | None = None
+    ask_quantity: Decimal | None = None
+    status: QuoteStatus = QuoteStatus.OPEN
+    accepted_side: Side | None = None
+    """The YES-leg side the requester took, as the venue reports it."""
+    confirm_by: int | None = None
+    """When the maker must confirm (its last look) after an accept."""
+    execute_by: int | None = None
+    """When the venue submits the orders after a confirm."""
+    expires_at: int | None = None
+    """When the quote stops being acceptable."""
+    taker_order_id: str | None = None
+    """The requester's order once executed (Kalshi `rfq_creator_order_id`)."""
+    maker_order_id: str | None = None
+    """The quoter's order once executed (Kalshi `quote_creator_order_id`)."""
+    mine: bool = False
+    """Made by this account (the quoter side); `False` for one we received."""
+    created_at: int | None = None
+    updated_at: int | None = None
+    info: dict[str, Any] = Field(default_factory=dict)
+
+    @classmethod
+    def from_venue(cls, data: Any) -> "RfqQuote":
+        """A quote as a venue reported it. A crossed quote (`bid > ask`) is
+        refused when a caller builds one, but a venue may send one: it is
+        kept, and `crossed` says so, rather than breaking a whole list."""
+        return cls.model_validate(data, context={"venue": True})
+
+    @model_validator(mode="after")
+    def _consistent(self, info: ValidationInfo) -> "RfqQuote":
+        _yes_price(self.bid, "bid")
+        _yes_price(self.ask, "ask")
+        if self.bid is None and self.ask is None:
+            raise ValueError("a quote has a bid, an ask or both")
+        if self.crossed and not (info.context or {}).get("venue"):
+            raise ValueError(f"bid {self.bid} is above ask {self.ask}")
+        _positive(self.bid_quantity, "bid_quantity")
+        _positive(self.ask_quantity, "ask_quantity")
+        return self
+
+    @property
+    def is_terminal(self) -> bool:
+        return self.status in QUOTE_TERMINAL_STATUSES
+
+    @property
+    def crossed(self) -> bool:
+        """The bid is above the ask: only ever a venue's report (`from_venue`)."""
+        return self.bid is not None and self.ask is not None and self.bid > self.ask
+
+    def price_for(self, outcome: str, action: str) -> Decimal | None:
+        """The YES price this quote trades at for `action` on `outcome`:
+        buying YES or selling NO takes the ask, selling YES or buying NO the
+        bid. `None` where the maker declined that side."""
+        return self.ask if yes_side(outcome, action) == Side.BUY else self.bid
+
+    def quantity_for(self, outcome: str, action: str) -> Decimal | None:
+        return self.ask_quantity if yes_side(outcome, action) == Side.BUY else self.bid_quantity
+
+
+class AcceptQuote(_Base):
+    """A requester taking one side of a quote. Becomes an `rfq_taker` order."""
+
+    quote_id: str
+    rfq_id: str | None = None
+    """Needed by venues that address a quote under its RFQ (Kalshi, Polymarket US)."""
+    outcome: Outcome
+    action: Action
+    worst_price: Decimal | None = None
+    """The worst YES price accepted: the highest for a YES buy (or NO sell),
+    the lowest for a YES sell (or NO buy). A quote worse than it is refused
+    before anything is sent."""
+    quantity: Decimal | None = None
+    amount: Decimal | None = None
+    """A partial size, where the venue allows one (Kalshi FIX). Neither means
+    the quote's full size. At most one."""
+    client_order_id: str | None = None
+    """The idempotency key; defaults to one derived from the quote."""
+    account: Account | None = None
+    book: str | None = None
+    trader: str | None = None
+    tags: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "AcceptQuote":
+        _yes_price(self.worst_price, "worst_price")
+        _one_size(self.quantity, self.amount, required=False)
+        return self
+
+    @property
+    def side(self) -> Side:
+        """The YES-leg side taken."""
+        return yes_side(self.outcome, self.action)
+
+    def refuses(self, yes_price: Decimal) -> bool:
+        """Whether a YES price is worse than `worst_price`."""
+        if self.worst_price is None:
+            return False
+        return yes_price > self.worst_price if self.side == Side.BUY else yes_price < self.worst_price
+
+
+class MakerQuote(_Base):
+    """A quoter's answer to an incoming RFQ, in YES prices."""
+
+    rfq_id: str
+    bid: Decimal | None = None
+    """The YES price we buy at, if the requester sells."""
+    ask: Decimal | None = None
+    """The YES price we sell at, if the requester buys."""
+    quantity: Decimal | None = None
+    """Contracts on each side; `None` means the RFQ's full size."""
+    expires_at: int | None = None
+    client_order_id: str | None = None
+    rest_remainder: bool = False
+    post_only: bool = False
+    """Our order, once the quote trades, only adds liquidity (Polymarket US
+    `postOnly`, participate-don't-initiate)."""
+    account: Account | None = None
+    book: str | None = None
+    trader: str | None = None
+    tags: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "MakerQuote":
+        _yes_price(self.bid, "bid")
+        _yes_price(self.ask, "ask")
+        if self.bid is None and self.ask is None:
+            raise ValueError("quote a bid, an ask or both")
+        if self.bid is not None and self.ask is not None and self.bid >= self.ask:
+            raise ValueError(f"bid {self.bid} must be below ask {self.ask}")
+        _positive(self.quantity, "quantity")
+        return self

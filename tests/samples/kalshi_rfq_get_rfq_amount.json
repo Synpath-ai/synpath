@@ -1,0 +1,18 @@
+{
+  "rfq": {
+    "id": "7a7e0f51-2b1d-4d09-8f4e-6c2b3a9d1e07",
+    "creator_id": "comm-self-7f3a",
+    "market_ticker": "KXNFLGAME-26OCT25KCDEN-KC",
+    "contracts_fp": "0.00",
+    "status": "open",
+    "created_ts": "2026-10-21T15:02:11.482Z",
+    "updated_ts": "2026-10-21T15:02:11.482Z",
+    "mve_collection_ticker": "",
+    "mve_selected_legs": [],
+    "rest_remainder": false,
+    "creator_user_id": "488e312d-cc17-405c-9961-d389284068e2",
+    "creator_subaccount": 0,
+    "target_cost_dollars": "12.5000",
+    "target_cost_excludes_fees": true
+  }
+}

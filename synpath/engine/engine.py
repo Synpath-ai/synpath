@@ -62,6 +62,7 @@ from .ledger import Ledger
 from .orders import ManagedOrders, as_gtd
 from .orders.manager import REGISTRY
 from .risk import Decision, HaltPolicy, RiskConfig, RiskEngine
+from .rfq import FOLLOWED, RFQ_OPERATIONS, RfqDesk
 
 log = logging.getLogger("synpath.engine")
 
@@ -98,6 +99,17 @@ class EngineConfig:
     session_timezone: str | None = "Europe/London"
     """Where "today" ends, for Day orders. Europe/London by default, including seasonal clock changes."""
     session_end: str = "23:59:59"
+    rfq_poll_interval_s: float = 1.0
+    """How often the RFQ follower reads accepted and confirmed quotes, the
+    quotes on our open RFQs and our own maker quotes (and expires them)."""
+    rfq_incoming_interval_s: float | None = 2.0
+    """How often to poll incoming RFQs on quoting venues without a stream
+    (`rfq.incoming`); venues that push (`subscribe_incoming_rfqs`) are not
+    polled. `None` turns the feed off, streams included."""
+    rfq_stream_incoming: bool = True
+    """Start the venues' incoming-RFQ streams (Polymarket global's quoter
+    session, SX Bet's parlay channel) when the RFQ loop starts. `False`
+    leaves starting them to the caller; RFQs they push still reach the engine."""
 
 
 @dataclass(slots=True)
@@ -213,6 +225,8 @@ class Engine:
         self.last_trade: dict[str, Decimal] = {}
         self.last_trade_timestamps: dict[str, int] = {}
         self.market_master = MarketMaster()
+        self.rfq = RfqDesk(self)
+        """RFQs and combos, both sides (docs/rfq-combo.md); the methods below delegate to it."""
 
     # -- lifecycle ------------------------------------------------------------
 
@@ -241,6 +255,7 @@ class Engine:
             "poll": self._poll_loop(),
             "managed": self._managed_loop(),
             "dispatch": self._dispatch_loop(),
+            "rfq": self.rfq.run(),
         }
 
     async def run(self) -> None:
@@ -282,6 +297,8 @@ class Engine:
         if self.config.require_lease and not await self.journal.holds_lease():
             raise LeaseLost("this execution worker no longer holds the journal lease")
         request = request.model_copy(update={"user_id": self.config.user_id})
+        if request.type in (OrderType.RFQ_TAKER, OrderType.RFQ_MAKER):
+            raise BadRequest(f"a {request.type.value} order comes from a quote: use accept_quote or confirm_quote")
         supported = VENUE_ORDER_TYPES | {OrderType.STOP_MARKET, OrderType.STOP_LIMIT}
         if is_bucket_id(request.market_id) or request.type not in supported or request.params.get("walk"):
             return await self._submit_once(request, venue=venue, mark=mark, precision=precision)
@@ -638,6 +655,38 @@ class Engine:
         await self.bus.publish("order.edited", result.model_dump(mode="json"), key=f"{venue}:{result.id}", persist=False)
         return result
 
+    # -- RFQ and combos (docs/rfq-combo.md; the work is in `engine.rfq`) -------
+
+    async def create_rfq(self, instrument_id: str, **kw: Any) -> Any:
+        """Ask for quotes on a market or a combo. See `RfqDesk.create_rfq`."""
+        return await self.rfq.create_rfq(instrument_id, **kw)
+
+    async def cancel_rfq(self, rfq_id: str, *, venue: str | None = None) -> None:
+        await self.rfq.cancel_rfq(rfq_id, venue=venue)
+
+    async def accept_quote(self, accept: Any, *, venue: str | None = None, wait: bool = False,
+                           timeout_s: float = 30.0) -> Any:
+        """Take one side of a quote: risk, intent, venue, then events. Returns
+        at once with the quote state unless `wait`. See `RfqDesk.accept_quote`."""
+        return await self.rfq.accept_quote(accept, venue=venue, wait=wait, timeout_s=timeout_s)
+
+    async def send_quote(self, quote: Any, *, venue: str | None = None) -> Any:
+        return await self.rfq.send_quote(quote, venue=venue)
+
+    async def replace_quote(self, quote_id: str, quote: Any, *, venue: str | None = None) -> Any:
+        return await self.rfq.replace_quote(quote_id, quote, venue=venue)
+
+    async def cancel_quote(self, quote_id: str, *, rfq_id: str | None = None, venue: str | None = None) -> None:
+        await self.rfq.cancel_quote(quote_id, rfq_id=rfq_id, venue=venue)
+
+    async def confirm_quote(self, quote: Any, *, rfq_id: str | None = None, venue: str | None = None,
+                            wait: bool = False, timeout_s: float = 30.0) -> Any:
+        """The maker's last look, through risk and the journal. See `RfqDesk.confirm_quote`."""
+        return await self.rfq.confirm_quote(quote, rfq_id=rfq_id, venue=venue, wait=wait, timeout_s=timeout_s)
+
+    async def create_combo(self, legs: list[Any], *, venue: str | None = None) -> Any:
+        return await self.rfq.create_combo(legs, venue=venue)
+
     # -- halting --------------------------------------------------------------
 
     async def halt(self, reason: str, *, scope: str = "*", policy: HaltPolicy | None = None, rearm_after_s: float | None = None) -> dict[str, Any]:
@@ -646,6 +695,9 @@ class Engine:
         self.risk.kill.engage(reason=reason, scope=scope, policy=policy, rearm_after_s=rearm_after_s)
         result: dict[str, Any] = {"policy": policy, "scope": scope, "reason": reason, "canceled": {}, "remaining": {}}
         if policy == "cancel":
+            # Offers first: an RFQ or a quote left up could be accepted while
+            # the orders are being pulled (docs/rfq-combo.md §5).
+            result["rfq"] = await self.rfq.on_halt(scope)
             for venue, adapter in self.adapters.items():
                 if scope not in ("*", venue):
                     continue
@@ -718,6 +770,7 @@ class Engine:
             self.ledger.apply_fill(fill)
             recovery.fills_replayed += 1
         self.risk.roll_day()
+        await self.rfq.restore()
         for intent in await self.journal.in_doubt():
             recovery.in_doubt += 1
             outcome = await self._resolve(intent)
@@ -745,6 +798,8 @@ class Engine:
 
     async def _resolve(self, intent: Any) -> dict[str, Any]:
         """Ask the venue whether this intent's order exists."""
+        if intent.operation in RFQ_OPERATIONS:
+            return await self.rfq.resolve(intent)
         adapter = self.adapters.get(intent.venue)
         base = {"client_order_id": intent.client_order_id, "venue": intent.venue, "operation": intent.operation}
         if adapter is None:
@@ -824,7 +879,7 @@ class Engine:
             order = self._stamp(order, None, template=stored)
         elif order.client_order_id:
             intent = await self.journal.intent(order.client_order_id)
-            if intent is not None and intent.operation == "create":
+            if intent is not None and intent.operation in ("create", *FOLLOWED):
                 order = self._stamp(order, OrderRequest.stored(intent.request))
         await self.journal.upsert_order(order)
         self._remember(order)
@@ -836,6 +891,9 @@ class Engine:
         """Record a fill once, book it in the ledger, publish it. A fill of a
         known order carries that order's outcome and action."""
         order = await self.journal.order(fill.venue, fill.order_id)
+        if order is None and self.rfq.following:
+            # Maybe the order an executed quote made, not adopted yet.
+            order = await self.rfq.claim_fill(fill)
         if order is not None and order.outcome is not None and fill.outcome is None:
             fill = fill.model_copy(update={"outcome": order.outcome, "action": order.action})
         book = order.book if order else None
@@ -929,10 +987,17 @@ class Engine:
         return (bid + ask) / 2
 
     def positions(self) -> list[Position]:
+        """Every position the ledger holds. A combo is its own instrument; its
+        legs ride along in `info["combo"]` for display."""
         marks = self.marks()
         out = []
         for key, state in self.ledger.positions.items():
-            out.append(state.to_position(self.accounts.get(state.venue), mark=marks.get(key)))
+            position = state.to_position(self.accounts.get(state.venue), mark=marks.get(key))
+            combo = self.rfq.combos.get(state.market_id)
+            if combo is not None:
+                position.info["combo"] = {"collection_id": combo.collection_id,
+                                          "legs": [leg.model_dump(mode="json", exclude={"info"}) for leg in combo.legs]}
+            out.append(position)
         return out
 
     async def bucket_orders(self, bucket_id: str) -> list[Any]:

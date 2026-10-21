@@ -30,6 +30,7 @@ on the YES leg; to flatten a position the venue offers close-position.
 from __future__ import annotations
 
 import base64
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -43,13 +44,16 @@ from ..polymarket_us import fee_schedule_of, parse_ts
 from ..types import Page
 from .base import TradingExchange
 from .credentials import PolymarketUSCredentials
-from .errors import InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected
+from .errors import InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected, RfqNotFound
 from .limiter import BudgetLimiter, Priority
 from .money import D, complement, validate_quantity, validate_price
 from .types import (
     Account, Balance, EditRequest, FeeEstimate, Order, OrderRequest, OrderStatus, OrderType, Position,
     PositionSide, Precision, Settlement, Side, TimeInForce, VENUE_ORDER_TYPES,
+    AcceptQuote, Combo, ComboLeg, MakerQuote, QuoteStatus, Rfq, RfqCloseReason, RfqQuote, RfqStatus,
 )
+
+log = logging.getLogger("synpath.trading.polymarket_us")
 
 VENUE = "polymarket_us"
 API_URL = "https://api.polymarket.us"
@@ -62,6 +66,23 @@ PRICE_CEILING = Decimal("0.99")
 order id and is then rejected, so it is refused here first."""
 
 MARKET_TTL_S = 300.0
+
+RFQ_PACE_PER_SECOND = 1.0
+"""The venue's per-endpoint limit on its RFQ list and create calls."""
+PACED_ENDPOINTS: dict[tuple[str, str], str] = {
+    ("GET", "/v1/rfqs"): "rfqs",
+    ("GET", "/v1/rfqs/quotes"): "rfq_quotes",
+    ("POST", "/v1/rfqs"): "rfq_create",
+    ("POST", "/v1/combos"): "rfq_create",
+}
+"""Endpoints the venue limits to one request a second, each to its pace
+group (docs/rfq-combo.md, Polymarket US): `GET /v1/rfqs`, `GET
+/v1/rfqs/quotes`, and `POST /v1/rfqs` with `POST /v1/combos`, which share
+one budget. Exact paths: `/v1/rfqs/user-id` and the per-id writes (cancel,
+accept, confirm) only meet the shared limiter."""
+PACE_MAX_WAIT_S = 15.0
+"""How long a paced call may queue behind others in its group before it is
+refused (`RateBudgetExceeded`) rather than sent late."""
 
 
 # ---------------------------------------------------------------------------
@@ -377,6 +398,232 @@ def error_of(exc: ExchangeError) -> ExchangeError:
 
 
 # ---------------------------------------------------------------------------
+# Combos and RFQ (docs/rfq-combo.md)
+# ---------------------------------------------------------------------------
+#
+# Sources: https://docs.polymarket.us/api-reference/combos/overview.md,
+# /api-reference/rfqs/overview.md, /trader-guide/combos.md,
+# /partners/orders/combos-takers.md and the OpenAPI schemas
+# /api-reference/oapi-schemas/{combos,rfqs}-schema.json.
+#
+# A combo is an instrument with its own symbol (`caoc-...`, `crossd-...`);
+# the symbol is a market slug like any other here, so its Synpath id is
+# `polymarket_us:<symbol>` and its orders and positions use that slug.
+#
+# Sides are the requester's, on the YES (long) leg, and unambiguous:
+# `buyPrice` is "the price offered for a requester BUY order", `sellPrice`
+# "for a requester SELL order", and `acceptedSide` is the requester's side
+# (`SIDE_BUY` takes `buyPrice` and `buyQtyDecimal`, the maker sells). Both
+# prices are YES prices: a requester sell costs `1 - price` a contract.
+# A price of "0" marks a side the maker declined.
+
+MAX_COMBO_LEGS = 50
+COMBO_PREFIXES = ("caoc-", "crossd-")
+"""The documented combo symbol prefixes. The venue says to treat symbols as
+opaque; this is only the fallback when an RFQ carries no `comboLegs`."""
+
+SIDE_TO_WIRE = {Side.BUY: "SIDE_BUY", Side.SELL: "SIDE_SELL"}
+SIDE_FROM_WIRE = {wire: side for side, wire in SIDE_TO_WIRE.items()}
+
+RFQ_STATUS_TO_WIRE = {RfqStatus.OPEN: "RFQ_STATUS_OPEN", RfqStatus.CLOSED: "RFQ_STATUS_CLOSED"}
+RFQ_STATUS_FROM_WIRE = {wire: status for status, wire in RFQ_STATUS_TO_WIRE.items()}
+
+QUOTE_STATUS_FROM_WIRE = {
+    "QUOTE_STATUS_ACTIVE": QuoteStatus.OPEN,
+    "QUOTE_STATUS_ACCEPTED": QuoteStatus.ACCEPTED,
+    "QUOTE_STATUS_CONFIRMED": QuoteStatus.CONFIRMED,
+    "QUOTE_STATUS_EXECUTED": QuoteStatus.EXECUTED,
+    # Withdrawn, replaced, or declined during the last look: the venue has
+    # no expired or failed status, and none of these traded.
+    "QUOTE_STATUS_DELETED": QuoteStatus.CANCELED,
+}
+QUOTE_STATUS_TO_WIRE = {status: wire for wire, status in QUOTE_STATUS_FROM_WIRE.items()}
+
+COMBO_STATE = {"INSTRUMENT_STATE_OPEN": "open"}
+"""Every other instrument state (pre-open, suspended, halted, closed,
+expired, terminated...) reads as `closed`; the native state stays in `info`.
+Settlement is read on the symbol, not from this state."""
+
+
+def decimal_text(value: Decimal) -> str:
+    """An exact decimal string, as the RFQ API wants prices and sizes: no
+    exponent, no trailing zeros (`0.6150` -> `"0.615"`, `10` -> `"10"`)."""
+    return format(D(value).normalize(), "f")
+
+
+def _decimal(value: Any) -> Decimal | None:
+    if isinstance(value, dict):
+        value = value.get("value")
+    return D(str(value)) if value not in (None, "") else None
+
+
+def _positive_or_none(value: Any) -> Decimal | None:
+    """A price or quantity, `None` for a declined side ("0") or an absent one."""
+    number_ = _decimal(value)
+    return number_ if number_ is not None and number_ > 0 else None
+
+
+def is_combo_symbol(symbol: str) -> bool:
+    return symbol.startswith(COMBO_PREFIXES)
+
+
+def leg_to_wire(leg: ComboLeg) -> dict[str, str]:
+    """`outcome=yes` buys the leg (`SIDE_BUY`); `no` sells it (`SIDE_SELL`)."""
+    return {"symbol": slug_of(leg.market_id), "side": "SIDE_BUY" if leg.outcome == "yes" else "SIDE_SELL"}
+
+
+def leg_of(raw: dict[str, Any]) -> ComboLeg:
+    return ComboLeg(
+        market_id=ids.qualify(VENUE, str(raw.get("symbol") or "")),
+        outcome="yes" if raw.get("side") == "SIDE_BUY" else "no",
+        info=raw,
+    )
+
+
+def combo_of(raw: dict[str, Any]) -> Combo:
+    """A `v1ComboInstrument`."""
+    state = str(raw.get("state") or "")
+    return Combo(
+        market_id=ids.qualify(VENUE, str(raw.get("id") or "")),
+        venue=VENUE,
+        legs=[leg_of(leg) for leg in raw.get("legs") or []],
+        status=COMBO_STATE.get(state, "closed") if state else None,
+        created_at=parse_ts(raw.get("createdTime")),
+        info=raw,
+    )
+
+
+def rfq_of(raw: dict[str, Any], *, me: str | None = None, mine: bool | None = None, account: Account | None = None) -> Rfq:
+    """A `v1RFQ`. `mine` is whether `rfqCreatorUserId` is `me`, this
+    participant's RFQ user id, unless the caller already knows."""
+    symbol = str(raw.get("symbol") or "")
+    instrument = ids.qualify(VENUE, symbol)
+    legs = raw.get("comboLegs") or []
+    combo = None
+    if len(legs) >= 2:
+        combo = Combo(market_id=instrument, venue=VENUE, legs=[leg_of(leg) for leg in legs], info={"comboLegs": legs})
+    on_combo = combo is not None or is_combo_symbol(symbol)
+    if mine is None:
+        mine = me is not None and raw.get("rfqCreatorUserId") == me
+    status = RFQ_STATUS_FROM_WIRE.get(str(raw.get("status") or ""), RfqStatus.OPEN)
+    return Rfq(
+        id=str(raw.get("id") or ""),
+        venue=VENUE,
+        account=account if mine else None,
+        market_id=None if on_combo else instrument,
+        combo_id=instrument if on_combo else None,
+        combo=combo,
+        quantity=_positive_or_none(raw.get("qtyDecimal")),
+        amount=_positive_or_none(raw.get("cashOrderQty")),
+        rest_remainder=bool(raw.get("restRemainder")),
+        status=status,
+        mine=mine,
+        created_at=parse_ts(raw.get("createdTime")),
+        updated_at=parse_ts(raw.get("updatedTime")),
+        info=raw,
+    )
+
+
+def quote_of(raw: dict[str, Any], *, me: str | None = None, mine: bool | None = None, account: Account | None = None) -> RfqQuote:
+    """A `v1Quote` on the YES leg: `ask` is `buyPrice` (what the requester
+    buys at), `bid` is `sellPrice` (what it sells at); a "0" side is `None`.
+    `accepted_side` is the requester's side as the venue reports it."""
+    if mine is None:
+        mine = me is not None and raw.get("creatorRfqUserId") == me
+    accepted = SIDE_FROM_WIRE.get(str(raw.get("acceptedSide") or ""))
+    symbol = raw.get("symbol")
+    quote = RfqQuote.from_venue(dict(
+        id=str(raw.get("id") or ""),
+        rfq_id=str(raw.get("rfqId") or ""),
+        venue=VENUE,
+        account=account if mine else None,
+        market_id=ids.qualify(VENUE, str(symbol)) if symbol else None,
+        bid=_positive_or_none(raw.get("sellPrice")),
+        ask=_positive_or_none(raw.get("buyPrice")),
+        bid_quantity=_positive_or_none(raw.get("sellQtyDecimal")),
+        ask_quantity=_positive_or_none(raw.get("buyQtyDecimal")),
+        status=QUOTE_STATUS_FROM_WIRE.get(str(raw.get("status") or ""), QuoteStatus.OPEN),
+        accepted_side=accepted,
+        confirm_by=parse_ts(raw.get("confirmationDeadline")),
+        execute_by=parse_ts(raw.get("executionDeadline")),
+        taker_order_id=raw.get("rfqCreatorOrderId") or None,
+        maker_order_id=raw.get("creatorOrderId") or None,
+        mine=mine,
+        created_at=parse_ts(raw.get("createdTime")),
+        updated_at=parse_ts(raw.get("updatedTime")),
+        info=raw,
+    ))
+    if quote.crossed:
+        log.warning("polymarket_us: quote %s on RFQ %s is crossed (bid %s above ask %s); kept and flagged",
+                    quote.id, quote.rfq_id, quote.bid, quote.ask)
+    return quote
+
+
+def tolerant(rows: Any, build: Any, what: str) -> list[Any]:
+    """Normalise a venue list row by row: a row the model refuses is logged
+    and skipped, so one bad record does not break the whole list."""
+    out = []
+    for row in rows or []:
+        try:
+            out.append(build(row))
+        except (ValueError, TypeError) as exc:
+            log.warning("polymarket_us: skipped a %s the venue sent that does not validate (%s): %r",
+                        what, exc, row)
+    return out
+
+
+def translate_rfq(
+    instrument_id: str, *, quantity: Decimal | None, amount: Decimal | None, rest_remainder: bool,
+) -> dict[str, Any]:
+    """The `POST /v1/rfqs` body: `qtyDecimal` for contracts, `cashOrderQty`
+    for money (the venue sizes each quoted side to it, taker fee included)."""
+    if (quantity is None) == (amount is None):
+        raise InvalidOrder("polymarket_us: size an RFQ by quantity (contracts) or amount (USD), exactly one")
+    body: dict[str, Any] = {"symbol": slug_of(instrument_id), "restRemainder": bool(rest_remainder)}
+    if quantity is not None:
+        if D(quantity) <= 0:
+            raise InvalidOrder(f"polymarket_us: quantity must be positive, got {quantity}")
+        body["qtyDecimal"] = decimal_text(quantity)
+    else:
+        if D(amount) <= 0:
+            raise InvalidOrder(f"polymarket_us: amount must be positive, got {amount}")
+        body["cashOrderQty"] = decimal_text(amount)  # type: ignore[arg-type]
+    return body
+
+
+def translate_quote(quote: MakerQuote) -> dict[str, Any]:
+    """The `POST /v1/rfqs/quotes` body. `buyPrice` is our ask (the requester
+    buys, we sell), `sellPrice` our bid; "0" declines a side. The venue takes
+    no quantity, expiry or client id: sizes come from the RFQ."""
+    if quote.quantity is not None:
+        raise InvalidOrder("polymarket_us: a quote is for the RFQ's full size; the venue takes no quantity")
+    if quote.expires_at is not None:
+        raise InvalidOrder("polymarket_us: a quote has no expiry on this venue; cancel it instead")
+    body: dict[str, Any] = {
+        "rfqId": quote.rfq_id,
+        "buyPrice": decimal_text(quote.ask) if quote.ask is not None else "0",
+        "sellPrice": decimal_text(quote.bid) if quote.bid is not None else "0",
+        "restRemainder": bool(quote.rest_remainder),
+    }
+    if quote.post_only:
+        body["postOnly"] = True
+    return body
+
+
+def accept_key(quote_id: str) -> str:
+    """The engine's idempotency key for an accept (docs/rfq-combo.md §5)."""
+    return f"rfq-accept:{VENUE}:{quote_id}"
+
+
+def rfq_error_of(exc: ExchangeError) -> ExchangeError:
+    """`error_of`, except that a 404 names an RFQ, quote or combo."""
+    if isinstance(exc, MarketNotFound):
+        return RfqNotFound(str(exc), body=exc.body, status=exc.status)
+    return error_of(exc)
+
+
+
+# ---------------------------------------------------------------------------
 # Adapter
 # ---------------------------------------------------------------------------
 
@@ -436,8 +683,12 @@ class PolymarketUSTrading(TradingExchange):
         "fetch_settlements": True,
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
-        # RFQ on this venue quotes combos, which synpath does not model yet.
+        # The old key means the raw Kalshi RFQ methods; this venue answers
+        # the typed ones below (docs/rfq-combo.md, P2).
         "rfq": False,
+        "rfq_taker": True,
+        "rfq_quoter": True,
+        "combos": True,
         "split_merge": False,
         "watch_orders": False,
         "watch_my_trades": False,
@@ -455,6 +706,7 @@ class PolymarketUSTrading(TradingExchange):
         limiter: BudgetLimiter | None = None,
         timeout: float = 30.0,
         client: Any = None,
+        rfq_pace_per_second: float | None = RFQ_PACE_PER_SECOND,
     ):
         import httpx
 
@@ -463,15 +715,28 @@ class PolymarketUSTrading(TradingExchange):
         self.account = Account(venue=VENUE, name=account_name)
         # Twenty requests a second per key, shared by every endpoint: one lane.
         self.limiter = limiter or BudgetLimiter(read_per_second=20, write_per_second=20, burst_seconds=1)
+        # One request a second on the RFQ lists and creates, per pace group,
+        # ahead of the shared limiter: the engine's follower polls quotes and
+        # must not trip the venue's 429s. `None` turns it off.
+        self.pacers: dict[str, BudgetLimiter] = {} if not rfq_pace_per_second else {
+            group: BudgetLimiter(read_per_second=rfq_pace_per_second, write_per_second=rfq_pace_per_second,
+                                 burst_seconds=1, borrow_seconds=1, max_wait_s=PACE_MAX_WAIT_S)
+            for group in set(PACED_ENDPOINTS.values())
+        }
         shared = client or httpx.AsyncClient(timeout=timeout, follow_redirects=True)
         self.api = AsyncHttpClient(api_url, limiter=None, client=shared, venue=VENUE)
         self.gateway = AsyncHttpClient(gateway_url, limiter=None, client=shared, venue=VENUE)
         self._http = shared
         self._markets: dict[str, MarketRules] = {}
+        self._rfq_user_id: str | None = None
 
     async def _call(
         self, method: str, path: str, *, params: Any = None, json: Any = None, priority: Priority = Priority.NORMAL,
+        errors: Any = error_of,
     ) -> Any:
+        group = PACED_ENDPOINTS.get((method.upper(), path))
+        if group is not None and group in self.pacers:
+            await self.pacers[group].acquire(cost=1, kind="write", priority=Priority.NORMAL)
         await self.limiter.acquire(cost=1, kind="write", priority=priority)
         headers = self.signer.headers(method, path)
         try:
@@ -479,7 +744,10 @@ class PolymarketUSTrading(TradingExchange):
                 method, path, params=params or None, json=json, headers=headers,
             )
         except ExchangeError as exc:
-            raise error_of(exc) from None
+            raise errors(exc) from None
+
+    async def _rfq_call(self, method: str, path: str, **kwargs: Any) -> Any:
+        return await self._call(method, path, errors=rfq_error_of, **kwargs)
 
     # -- market rules ---------------------------------------------------------
 
@@ -698,6 +966,258 @@ class PolymarketUSTrading(TradingExchange):
             maker_fee=D(str(maker)) if maker is not None else None,
             currency="USD", info={"schedule": schedule.model_dump()},
         )
+
+    # -- combos ---------------------------------------------------------------
+
+    async def create_combo(self, legs: list[ComboLeg]) -> Combo:
+        """`POST /v1/combos`: the canonical combo for these legs. The same legs
+        always give the same symbol, and returning an existing combo does not
+        use the weekly quota of 1,000 new ones, so this is idempotent. Legs
+        the venue cannot combine (incompatible, redundant, not tradable) are
+        `InvalidOrder` with the venue's message."""
+        if not 2 <= len(legs) <= MAX_COMBO_LEGS:
+            raise InvalidOrder(f"polymarket_us: a combo has 2 to {MAX_COMBO_LEGS} legs, got {len(legs)}")
+        wire = [leg_to_wire(leg) for leg in legs]
+        if len({leg["symbol"] for leg in wire}) != len(wire):
+            raise InvalidOrder("polymarket_us: a combo names each market once")
+        try:
+            raw = await self._rfq_call("POST", "/v1/combos", json={"legs": wire})
+        except OrderRejected as exc:
+            if exc.reason == "latency_stopgap":
+                raise
+            raise InvalidOrder(str(exc), body=exc.body, status=exc.status) from None
+        found = (raw or {}).get("combo")
+        if not found or not found.get("id"):
+            raise ExchangeError("polymarket_us: create combo returned no combo", body=raw)
+        return combo_of(found)
+
+    async def fetch_combo(self, combo_id: str) -> Combo:
+        """`GET /v1/combos?symbol=`, the exact symbol."""
+        symbol = slug_of(combo_id)
+        raw = await self._rfq_call("GET", "/v1/combos", params={"symbol": symbol})
+        rows = (raw or {}).get("combos") or []
+        if not rows:
+            raise RfqNotFound(f"polymarket_us: no combo {symbol!r}")
+        return combo_of(rows[0])
+
+    async def lookup_combo(self, legs: list[ComboLeg]) -> Combo | None:
+        raise NotSupported(
+            "polymarket_us: no read-only lookup by legs; create_combo returns the existing combo for the same "
+            "legs without using the weekly quota"
+        )
+
+    # -- RFQ, both sides ------------------------------------------------------
+
+    async def fetch_rfq_user_id(self) -> str:
+        """This participant's pseudonymous RFQ user id (`GET /v1/rfqs/user-id`),
+        which marks its own RFQs and quotes. Read once and kept."""
+        if self._rfq_user_id is None:
+            raw = await self._rfq_call("GET", "/v1/rfqs/user-id")
+            self._rfq_user_id = str((raw or {}).get("rfqUserId") or "") or None
+        return self._rfq_user_id or ""
+
+    async def _rfqs(self, params: dict[str, Any], *, mine: bool | None) -> Page[Rfq]:
+        me = None if mine is not None else await self.fetch_rfq_user_id()
+        raw = await self._rfq_call("GET", "/v1/rfqs", params={k: v for k, v in params.items() if v is not None})
+        rows = tolerant((raw or {}).get("rfqs"), lambda row: rfq_of(row, me=me, mine=mine, account=self.account), "RFQ")
+        return Page(rows, next_cursor=(raw or {}).get("cursor") or None)
+
+    async def _quotes(self, params: dict[str, Any], *, mine: bool | None = None) -> list[RfqQuote]:
+        me = None if mine is not None else await self.fetch_rfq_user_id()
+        params = {k: v for k, v in params.items() if v is not None}
+        quotes: list[RfqQuote] = []
+        cursor: str | None = None
+        while True:
+            raw = await self._rfq_call("GET", "/v1/rfqs/quotes", params={**params, **({"cursor": cursor} if cursor else {})})
+            quotes.extend(tolerant((raw or {}).get("quotes"),
+                                   lambda row: quote_of(row, me=me, mine=mine, account=self.account), "quote"))
+            cursor = (raw or {}).get("cursor") or None
+            if not cursor:
+                return quotes
+
+    @staticmethod
+    def _quote_status(status: QuoteStatus | str | None) -> str | None:
+        if status is None:
+            return None
+        wire = QUOTE_STATUS_TO_WIRE.get(QuoteStatus(status))
+        if wire is None:
+            raise BadRequest(f"polymarket_us: quotes have no {QuoteStatus(status).value!r} status on this venue")
+        return wire
+
+    # -- RFQ, requester (taker) side ------------------------------------------
+
+    async def create_rfq(
+        self, instrument_id: str, *, quantity: Decimal | None = None, amount: Decimal | None = None,
+        outcome: str | None = None, action: str | None = None, rest_remainder: bool = False,
+        combo: Combo | None = None,
+    ) -> Rfq:
+        """`POST /v1/rfqs` on a combo or any open instrument. Two-sided: the
+        venue takes no side, so `outcome`/`action` are refused. An `amount`
+        is sent as `cashOrderQty` (USD, the combo taker fee included in it).
+        Returns the RFQ as sent, `open`; the venue answers with its id only."""
+        if outcome is not None or action is not None:
+            raise InvalidOrder("polymarket_us: an RFQ is two-sided; pick the side when accepting a quote")
+        body = translate_rfq(instrument_id, quantity=quantity, amount=amount, rest_remainder=rest_remainder)
+        raw = await self._rfq_call("POST", "/v1/rfqs", json=body)
+        rfq_id = str((raw or {}).get("rfqId") or "")
+        if not rfq_id:
+            raise ExchangeError("polymarket_us: create RFQ returned no id", body=raw)
+        instrument = ids.qualify(VENUE, body["symbol"])
+        on_combo = combo is not None or is_combo_symbol(body["symbol"])
+        return Rfq(
+            id=rfq_id, venue=VENUE, account=self.account,
+            market_id=None if on_combo else instrument, combo_id=instrument if on_combo else None, combo=combo,
+            quantity=D(quantity) if quantity is not None else None, amount=D(amount) if amount is not None else None,
+            rest_remainder=rest_remainder, status=RfqStatus.OPEN, mine=True, created_at=int(time.time() * 1000),
+            info={"request": body, "response": raw},
+        )
+
+    async def fetch_rfq(self, rfq_id: str) -> Rfq:
+        page = await self._rfqs({"rfqId": rfq_id}, mine=None)
+        if not page:
+            raise RfqNotFound(f"polymarket_us: no RFQ {rfq_id}")
+        return page[0]
+
+    async def fetch_rfqs(
+        self, *, status: RfqStatus | str | None = None, market_id: str | None = None,
+        limit: int | None = None, cursor: str | None = None,
+    ) -> Page[Rfq]:
+        """This participant's RFQs (`userFilter=USER_FILTER_SELF`)."""
+        return await self._rfqs({
+            "userFilter": "USER_FILTER_SELF", "status": RFQ_STATUS_TO_WIRE[RfqStatus(status)] if status else None,
+            "symbol": slug_of(market_id) if market_id else None, "limit": limit, "cursor": cursor,
+        }, mine=True)
+
+    async def cancel_rfq(self, rfq_id: str) -> None:
+        """`DELETE /v1/rfqs/{id}`. RFQs on this venue have no expiry, so an
+        RFQ stays open until it is cancelled or a quote on it is accepted."""
+        await self._rfq_call("DELETE", f"/v1/rfqs/{rfq_id}", priority=Priority.HIGH)
+
+    async def fetch_quotes(self, rfq_id: str, *, status: QuoteStatus | str | None = None) -> list[RfqQuote]:
+        """`GET /v1/rfqs/quotes?rfqId=`: every visible quote on our RFQ, or
+        our own (with earlier replacements) on someone else's."""
+        return await self._quotes({"rfqId": rfq_id, "status": self._quote_status(status), "limit": 100})
+
+    async def fetch_quote(self, quote_id: str, *, rfq_id: str | None = None) -> RfqQuote:
+        if not rfq_id:
+            raise InvalidOrder("polymarket_us: a quote is read under its RFQ; give rfq_id")
+        rows = [q for q in await self._quotes({"rfqId": rfq_id, "quoteId": quote_id}) if q.id == quote_id]
+        if not rows:
+            raise RfqNotFound(f"polymarket_us: no quote {quote_id} on RFQ {rfq_id}")
+        return rows[0]
+
+    async def accept_quote(self, accept: AcceptQuote) -> RfqQuote:
+        """`PUT /v1/rfqs/{rfq}/quotes/{q}/accept {acceptedSide}`.
+
+        The quote is read first. `acceptedSide` is the requester's side on
+        the YES leg: buying YES (or selling NO) is `SIDE_BUY` at `buyPrice`,
+        selling YES (or buying NO) is `SIDE_SELL` at `sellPrice`. Refused
+        before anything is sent when that side was declined or is worse than
+        `worst_price`, and when the quote is not active.
+
+        A retry is safe: a quote already accepted on the same side is
+        returned as read, without sending again, and the venue derives the
+        requester's order id (`rfq1.`...) from the quote and side, so it
+        cannot make a second order either. Returns at once with the quote
+        `accepted`; `executed` later means the orders were submitted, not
+        filled (`taker_order_id` is `rfqCreatorOrderId` then).
+        """
+        if not accept.rfq_id:
+            raise InvalidOrder("polymarket_us: a quote is accepted under its RFQ; give rfq_id")
+        if accept.quantity is not None or accept.amount is not None:
+            raise InvalidOrder("polymarket_us: a quote is accepted for its full size; the venue takes no partial size")
+        side = accept.side
+        wire_side = SIDE_TO_WIRE[side]
+        key = accept.client_order_id or accept_key(accept.quote_id)
+        quote = await self.fetch_quote(accept.quote_id, rfq_id=accept.rfq_id)
+        if quote.status in (QuoteStatus.ACCEPTED, QuoteStatus.CONFIRMED, QuoteStatus.EXECUTED):
+            if quote.accepted_side == side:
+                return quote.model_copy(update={"info": {**quote.info, "accept": {"acceptedSide": wire_side, "client_order_id": key, "resent": False}}})
+            raise OrderRejected(
+                f"polymarket_us: quote {quote.id} was already accepted on the {quote.accepted_side} side",
+                reason="already_accepted", info=quote.info,
+            )
+        if quote.info.get("status") != "QUOTE_STATUS_ACTIVE":
+            raise OrderRejected(
+                f"polymarket_us: quote {quote.id} is {quote.info.get('status') or 'in no state'}, not active",
+                reason="quote_not_active", info=quote.info,
+            )
+        price = quote.price_for(accept.outcome, accept.action)
+        if price is None:
+            raise InvalidOrder(f"polymarket_us: quote {quote.id} declines the {side.value} side")
+        if accept.refuses(price):
+            raise InvalidOrder(
+                f"polymarket_us: quote {quote.id} {side.value}s YES at {price}, worse than the worst price "
+                f"{accept.worst_price}"
+            )
+        body = {"acceptedSide": wire_side}
+        raw = await self._rfq_call(
+            "PUT", f"/v1/rfqs/{accept.rfq_id}/quotes/{accept.quote_id}/accept", json=body, priority=Priority.HIGH,
+        )
+        return quote.model_copy(update={
+            "status": QuoteStatus.ACCEPTED, "accepted_side": side,
+            "info": {**quote.info, "accept": {**body, "client_order_id": key, "response": raw, "resent": True}},
+        })
+
+    # -- RFQ, quoter (maker) side ---------------------------------------------
+
+    async def fetch_incoming_rfqs(
+        self, *, market_id: str | None = None, limit: int | None = None, cursor: str | None = None,
+    ) -> Page[Rfq]:
+        """Open RFQs from other participants (ours are left out)."""
+        page = await self._rfqs({
+            "status": "RFQ_STATUS_OPEN", "symbol": slug_of(market_id) if market_id else None,
+            "limit": limit, "cursor": cursor,
+        }, mine=None)
+        return Page([r for r in page if not r.mine], next_cursor=page.next_cursor)
+
+    async def send_quote(self, quote: MakerQuote) -> RfqQuote:
+        """`POST /v1/rfqs/quotes`, both sides at once: our `ask` is the
+        venue's `buyPrice`, our `bid` its `sellPrice`, a missing side "0".
+        Prices go as exact decimals; the venue checks them against the RFQ's
+        `tickSize`. Returns the quote as sent, `open`, under the new id."""
+        body = translate_quote(quote)
+        raw = await self._rfq_call("POST", "/v1/rfqs/quotes", json=body)
+        quote_id = str((raw or {}).get("quoteId") or "")
+        if not quote_id:
+            raise ExchangeError("polymarket_us: create quote returned no id", body=raw)
+        return RfqQuote(
+            id=quote_id, rfq_id=quote.rfq_id, venue=VENUE, account=quote.account or self.account,
+            bid=quote.bid, ask=quote.ask, status=QuoteStatus.OPEN, mine=True, created_at=int(time.time() * 1000),
+            info={"request": body, "response": raw, "client_order_id": quote.client_order_id},
+        )
+
+    async def replace_quote(self, quote_id: str, quote: MakerQuote) -> RfqQuote:
+        """A new quote on the same RFQ. The venue replaces ours in place and
+        deletes the old one (`quoteDeleted`); the result has a new id."""
+        new = await self.send_quote(quote)
+        return new.model_copy(update={"info": {**new.info, "replaces": quote_id}})
+
+    async def cancel_quote(self, quote_id: str, *, rfq_id: str | None = None) -> None:
+        """`DELETE /v1/rfqs/{rfq}/quotes/{q}`: withdraw a quote, or decline an
+        accepted one during the last look."""
+        if not rfq_id:
+            raise InvalidOrder("polymarket_us: a quote is deleted under its RFQ; give rfq_id")
+        await self._rfq_call("DELETE", f"/v1/rfqs/{rfq_id}/quotes/{quote_id}", priority=Priority.HIGH)
+
+    async def confirm_quote(self, quote: RfqQuote) -> RfqQuote:
+        """`PUT /v1/rfqs/{rfq}/quotes/{q}/confirm`, the maker's last look
+        (3 s from `confirm_by`). Use the id the venue accepted
+        (`quoteAccepted.quote.id`). The venue then submits the maker's order,
+        then the requester's, at `execute_by`."""
+        raw = await self._rfq_call(
+            "PUT", f"/v1/rfqs/{quote.rfq_id}/quotes/{quote.id}/confirm", json={}, priority=Priority.HIGH,
+        )
+        return quote.model_copy(update={"status": QuoteStatus.CONFIRMED, "info": {**quote.info, "confirm": raw}})
+
+    async def fetch_my_quotes(
+        self, *, rfq_id: str | None = None, status: QuoteStatus | str | None = None,
+    ) -> list[RfqQuote]:
+        """Quotes this participant made: `userFilter=USER_FILTER_SELF`, or on
+        one RFQ `rfqId` alone, which a maker reads as its own quotes there
+        (replacements included). The venue takes one of the two filters."""
+        scope = {"rfqId": rfq_id} if rfq_id else {"userFilter": "USER_FILTER_SELF"}
+        return await self._quotes({**scope, "status": self._quote_status(status), "limit": 100}, mine=True)
 
     async def close(self) -> None:
         await self._http.aclose()

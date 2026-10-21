@@ -115,6 +115,20 @@ def precision_for(market: Market) -> Precision:
     )
 
 
+def venue_precision(venue: str, *, tick: Decimal | None = None) -> Precision:
+    """A venue's order rules with no market loaded, from `VENUE_RULES`: for
+    sizing an amount on a combo the catalog has not read yet. `KeyError` for
+    a venue with no rules, rather than another venue's."""
+    rules = VENUE_RULES[venue]
+    return Precision(
+        tick=tick or rules["default_tick"],
+        min_quantity=rules["min_quantity"],
+        quantity_step=rules["quantity_step"],
+        whole_contracts=rules["whole"],
+        min_notional=rules.get("min_notional"),
+    )
+
+
 def spec_from_market(market: Market) -> MarketSpec:
     yes_info, no_info = market.yes.info or {}, market.no.info or {}
     tradable_yes = bool(yes_info.get("tradable", True))   # Polymarket US publishes it per side

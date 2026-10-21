@@ -256,16 +256,27 @@ class TestOrderGroups:
 
 
 class TestRFQ:
+    """The typed RFQ interface (docs/rfq-combo.md P6). Creates and deletes
+    one RFQ on a plain market; nothing is accepted or quoted, so nothing
+    trades. The accept side and the quoter flow are P10's, with notice."""
+
     def test_create_read_delete(self, kalshi, loop, market):
-        rfq_id = run(loop, kalshi.create_rfq(market, 10))
-        assert rfq_id
+        from synpath.trading import RfqStatus
+
+        rfq = run(loop, kalshi.create_rfq(market, quantity=D("10")))
+        assert rfq.id and rfq.status == RfqStatus.OPEN
         try:
-            rfq = run(loop, kalshi.fetch_rfq(rfq_id))
-            assert rfq["market_ticker"] == market and rfq["status"] == "open" and rfq["contracts_fp"] == "10.00"
-            assert run(loop, kalshi.fetch_quotes(rfq_id)) == []  # nobody quotes on the demo
+            read = run(loop, kalshi.fetch_rfq(rfq.id))
+            assert read.market_id == f"kalshi:{market}" and read.quantity == D("10") and read.mine
+            assert rfq.id in {r.id for r in run(loop, kalshi.fetch_rfqs(status="open"))}
+            run(loop, kalshi.fetch_quotes(rfq.id))   # a demo maker may or may not answer
         finally:
-            run(loop, kalshi.delete_rfq(rfq_id))
-        assert run(loop, kalshi.fetch_rfq(rfq_id))["status"] != "open"
+            run(loop, kalshi.cancel_rfq(rfq.id))
+        assert run(loop, kalshi.fetch_rfq(rfq.id)).status == RfqStatus.CLOSED
+
+    def test_collections_are_listed(self, kalshi, loop):
+        page = run(loop, kalshi.fetch_combo_collections(limit=5))
+        assert all("collection_ticker" in row for row in page)
 
 
 class TestBudget:

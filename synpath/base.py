@@ -82,6 +82,12 @@ CAPABILITIES: tuple[str, ...] = (
     "fetch_queue_position",
     "fetch_fee_estimate",
     "rfq",
+    # RFQ and combos (docs/rfq-combo.md): the typed requester side, the
+    # typed quoter side, and multi-leg instruments. `rfq` above is the older
+    # key for the raw Kalshi RFQ methods, kept for one release.
+    "rfq_taker",
+    "rfq_quoter",
+    "combos",
     "split_merge",
     "watch_orders",
     "watch_my_trades",

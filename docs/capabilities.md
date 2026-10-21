@@ -221,7 +221,10 @@ onboarded firms.
 | `fetch_settlements` | yes | yes, from the redemption activity | yes | no | no | no | no | no | no |
 | `fetch_queue_position` | yes | no | no | no | no | no | no | no | no |
 | `fetch_fee_estimate` | yes | yes | yes | yes | yes, from the fee contract, 0.25 USDT minimum | yes, the closing charge; opening fills pay nothing | yes, `rate * min(p, 1 - p)` a share | yes, the venue's buy-fee curve on the token bought | yes, 1% of a winning taker bet's profit |
-| `rfq` | yes | no | no | no | no | no | no | no | no |
+| `rfq` | yes; the older key, kept one release: the typed methods below | no | no | no | no | no | no | no | no |
+| `rfq_taker` | yes; two-sided RFQs by contracts (`contracts_fp`) or USD (`target_cost_dollars`), accept with `worst_price` (buy YES sends `accepted_side=no`) | yes; combo RFQs, one side of the combo's YES: buy by pUSD, sell by shares; accept signs an Exchange v3 order, refused on `worst_price` before signing; Deposit Wallet, proxy or Safe only (EOAs refused) | yes; two-sided RFQs by contracts or USD (`cashOrderQty`), accept with `worst_price` | no | no | no | no | no | no; no API requests a parlay (a bettor asks on sx.bet) |
+| `rfq_quoter` | yes; quote (`yes_bid`/`no_bid`), cancel, confirm (30 s, 3 s on combos); replace is cancel then send | yes; requests over the quoter WebSocket (400 ms window), quotes as signed Exchange v3 orders over REST, cancel, confirm (1 s last look, venue opt-in); replace is cancel then send | yes; quote, replace, cancel, confirm (3 s last look) | no | no | no | no | no | yes; parlay requests from `parlay_markets:global`, a quote is signed orders on the parlay market expiring with it (60 s); cancel, replace (cancel then send); no last look, so no confirm |
+| `combos` | yes; multivariate collections, create (5,000 a week) and fetch by `KXMVE…` ticker, no read-only lookup by legs | yes; RFQ-only: no create or lookup at the venue; `create_combo` is offline (a provisional id until an RFQ names `combo-<condition_id>`), legs from the public catalogue | yes; create (idempotent) and fetch by symbol, no read-only lookup by legs | no | no | no | no | no | yes; a parlay market and its legs, fetched and looked up among the requests heard; none created through the API |
 | `split_merge` | no; contracts are not tokens | partial: Deposit Wallets and EOAs | no | no | no | no | no | no | no |
 
 Order types are a separate question. A venue holds `limit` and `market`;
@@ -256,12 +259,15 @@ Every stream answers the `watch_*` keys the same way
 | `LimitlessUserStream` | no | no | no | no | yes | yes | no | no |
 | `SxBetMarketStream` | yes | partial | yes | yes | no | no | no | no |
 | `SxBetUserStream` | no | no | no | no | yes | yes | no | no |
+| `SxBetParlayStream` | no | no | no | no | no | no | no | no |
 | `BetfairMarketStream` | yes, best offers to 10 levels | partial: top of book | no: no public trades | yes, per runner | no | no | no | no |
 | `SmarketsMarketStream` | partial: polled from REST quotes, every 5 s by default | partial: polled | no: read the recent tape with `fetch_trades` | partial: polled every few rounds | no | no | no | no |
 
 The exchange API's other gRPC streams carry one thing each and say so:
 drop copy and trade capture carry fills, position and position-change carry
 positions, instrument state carries market status, and the balance ledger
-carries account movements as venue events.
+carries account movements as venue events. `SxBetParlayStream` carries
+parlay requests (`parlay_markets:global`) as `parlay_request` venue events,
+each with the request as an incoming `Rfq`.
 
 ---
