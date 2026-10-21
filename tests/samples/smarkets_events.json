@@ -1,0 +1,83 @@
+{
+ "events": [
+  {
+   "bet_allowed": true,
+   "bettable": true,
+   "chart_time_period": null,
+   "created": "2026-09-17T09:27:57.059053Z",
+   "description": null,
+   "display_order": -8,
+   "end_date": null,
+   "full_slug": "/sport/football/england-league-cup/2026/10/28/19-45/fulham-vs-crystal-palace",
+   "hidden": false,
+   "id": "45325999",
+   "inplay_enabled": false,
+   "modified": "2026-10-20T16:12:14.136390Z",
+   "name": "Fulham vs Crystal Palace",
+   "parent_id": "33055504",
+   "seo_description": "Bet on {{ contracts.home.name }} vs {{ contracts.away.name }} on {{ event.start_datetime | date \"eeee, d MMMM\" }}.\r\n\r\nWi…",
+   "short_name": "FUL vs. CRY",
+   "slug": "fulham-vs-crystal-palace",
+   "special_rules": null,
+   "start_date": "2026-10-28",
+   "start_datetime": "2026-10-28T19:45:00Z",
+   "state": "upcoming",
+   "super_sub_enabled": true,
+   "type": {
+    "domain": "football",
+    "scope": "single_event"
+   },
+   "venue": {
+    "capacity": 26600,
+    "city": "England",
+    "country_code": "GB-ENG",
+    "country_name": "England",
+    "latitude": 51.475,
+    "longitude": -0.221667,
+    "name": "Craven Cottage",
+    "neutral": false
+   }
+  },
+  {
+   "bet_allowed": true,
+   "bettable": true,
+   "chart_time_period": null,
+   "created": "2026-09-17T09:29:31.624424Z",
+   "description": null,
+   "display_order": -8,
+   "end_date": null,
+   "full_slug": "/sport/football/england-league-cup/2026/10/27/20-00/fleetwood-town-vs-arsenal",
+   "hidden": false,
+   "id": "45326001",
+   "inplay_enabled": false,
+   "modified": "2026-10-20T20:14:37.316460Z",
+   "name": "Fleetwood Town vs Arsenal",
+   "parent_id": "33055504",
+   "seo_description": "Bet on {{ contracts.home.name }} vs {{ contracts.away.name }} on {{ event.start_datetime | date \"eeee, d MMMM\" }}.\r\n\r\nWi…",
+   "short_name": "FLE vs. ARS",
+   "slug": "fleetwood-town-vs-arsenal",
+   "special_rules": null,
+   "start_date": "2026-10-27",
+   "start_datetime": "2026-10-27T20:00:00Z",
+   "state": "upcoming",
+   "super_sub_enabled": true,
+   "type": {
+    "domain": "football",
+    "scope": "single_event"
+   },
+   "venue": {
+    "capacity": 3663,
+    "city": "England",
+    "country_code": "GB-ENG",
+    "country_name": "England",
+    "latitude": 53.916499,
+    "longitude": -3.024722,
+    "name": "Highbury Stadium",
+    "neutral": false
+   }
+  }
+ ],
+ "pagination": {
+  "next_page": "?state=upcoming&state=live&type_domain=football&type_scope=single_event&with_new_type=True&limit=2&sort=id&include_hidden=False&pagination_last_id=45326001"
+ }
+}

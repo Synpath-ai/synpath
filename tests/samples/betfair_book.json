@@ -1,0 +1,91 @@
+[
+  {
+    "marketId": "1.234567890",
+    "isMarketDataDelayed": true,
+    "status": "OPEN",
+    "betDelay": 0,
+    "bspReconciled": false,
+    "complete": true,
+    "inplay": false,
+    "numberOfWinners": 1,
+    "numberOfRunners": 3,
+    "numberOfActiveRunners": 3,
+    "lastMatchTime": "2026-10-24T18:22:41.553Z",
+    "totalMatched": 482113.27,
+    "totalAvailable": 1093821.55,
+    "crossMatching": true,
+    "runnersVoidable": false,
+    "version": 6012345678,
+    "runners": [
+      {
+        "selectionId": 1096, "handicap": 0.0, "status": "ACTIVE", "adjustmentFactor": 47.6,
+        "lastPriceTraded": 2.1, "totalMatched": 0.0,
+        "ex": {
+          "availableToBack": [{"price": 2.08, "size": 1520.4}, {"price": 2.06, "size": 830.0}, {"price": 2.04, "size": 412.12}],
+          "availableToLay": [{"price": 2.1, "size": 640.25}, {"price": 2.12, "size": 1003.0}, {"price": 2.14, "size": 95.5}],
+          "tradedVolume": []
+        }
+      },
+      {
+        "selectionId": 55190, "handicap": 0.0, "status": "ACTIVE", "adjustmentFactor": 27.0,
+        "lastPriceTraded": 3.7, "totalMatched": 0.0,
+        "ex": {
+          "availableToBack": [{"price": 3.65, "size": 210.0}, {"price": 3.6, "size": 77.0}],
+          "availableToLay": [{"price": 3.7, "size": 180.0}],
+          "tradedVolume": []
+        }
+      },
+      {
+        "selectionId": 58805, "handicap": 0.0, "status": "ACTIVE", "adjustmentFactor": 25.4,
+        "lastPriceTraded": 3.9, "totalMatched": 0.0,
+        "ex": {"availableToBack": [], "availableToLay": [], "tradedVolume": []}
+      }
+    ]
+  },
+  {
+    "marketId": "1.234567891",
+    "isMarketDataDelayed": true,
+    "status": "SUSPENDED",
+    "betDelay": 5,
+    "bspReconciled": false,
+    "complete": true,
+    "inplay": true,
+    "numberOfWinners": 1,
+    "numberOfRunners": 2,
+    "numberOfActiveRunners": 2,
+    "totalMatched": 120554.1,
+    "totalAvailable": 50211.0,
+    "crossMatching": true,
+    "runnersVoidable": false,
+    "version": 6012345700,
+    "runners": [
+      {"selectionId": 47972, "handicap": 0.0, "status": "ACTIVE", "lastPriceTraded": 1.8,
+       "ex": {"availableToBack": [{"price": 1.79, "size": 50.0}], "availableToLay": [{"price": 1.81, "size": 25.0}], "tradedVolume": []}},
+      {"selectionId": 47973, "handicap": 0.0, "status": "ACTIVE", "lastPriceTraded": 2.24,
+       "ex": {"availableToBack": [{"price": 2.22, "size": 30.0}], "availableToLay": [{"price": 2.26, "size": 41.0}], "tradedVolume": []}}
+    ]
+  },
+  {
+    "marketId": "1.234567892",
+    "isMarketDataDelayed": true,
+    "status": "OPEN",
+    "betDelay": 0,
+    "bspReconciled": false,
+    "complete": true,
+    "inplay": false,
+    "numberOfWinners": 1,
+    "numberOfRunners": 2,
+    "numberOfActiveRunners": 2,
+    "totalMatched": 8813.0,
+    "totalAvailable": 4021.0,
+    "crossMatching": false,
+    "runnersVoidable": false,
+    "version": 6012345801,
+    "runners": [
+      {"selectionId": 2426, "handicap": -0.5, "status": "ACTIVE",
+       "ex": {"availableToBack": [{"price": 1.95, "size": 100.0}], "availableToLay": [{"price": 1.97, "size": 60.0}], "tradedVolume": []}},
+      {"selectionId": 48351, "handicap": 0.5, "status": "ACTIVE",
+       "ex": {"availableToBack": [{"price": 2.02, "size": 58.0}], "availableToLay": [{"price": 2.06, "size": 96.0}], "tradedVolume": []}}
+    ]
+  }
+]

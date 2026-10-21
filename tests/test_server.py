@@ -125,7 +125,7 @@ class TestDiscovery:
         assert rows["polymarket"]["book_model"] == "native_per_outcome"
 
     def test_unknown_venue_lists_the_known_ones(self, client):
-        response = client.get("/venues/betfair/markets")
+        response = client.get("/venues/notavenue/markets")
         assert response.status_code == 404
         error = response.json()["error"]
         assert error["code"] == "unknown_venue" and "kalshi" in error["message"]

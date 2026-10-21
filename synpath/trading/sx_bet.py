@@ -5,8 +5,11 @@ book): order hashing and signatures are checked against an independent
 EIP-712 encoder.
 
 **Two credentials.** Every request carries an SX Bet API key
-(`x-sx-api-key`, self-service at sx.bet under Account); every order is also an
-EIP-712 message signed by the wallet itself. The wallet is the order's maker;
+(`x-sx-api-key`, self-service at sx.bet under Account), and the key alone
+reads the account's orders, fills, positions and balance and makes every
+cancel and heartbeat; the venue scopes each to the address that owns it. Only
+placing needs more: every new order is an EIP-712 message signed by the
+wallet itself, so the private key is optional until then. The wallet is the order's maker;
 the funds sit in a *proxy wallet* the venue derives from it, which must be
 deployed (`deploy_proxy()`, once) and funded (sx.bet's deposit) before the
 first order.
@@ -385,7 +388,8 @@ class SxBetTrading(TradingExchange):
 
         self.credentials = credentials
         self.testnet = bool(credentials.testnet)
-        self.signer = WalletSigner(credentials.private_key)
+        self.signer = WalletSigner(credentials.private_key) if credentials.private_key else None
+        """Signs new orders; `None` with the API key alone, which does everything else."""
         self.account = Account(venue=VENUE, name=account_name)
         self.limiter = limiter or BudgetLimiter(read_per_second=4, write_per_second=10)
         self.url = url or (TESTNET_API_URL if self.testnet else API_URL)
@@ -395,7 +399,7 @@ class SxBetTrading(TradingExchange):
         if catalog is None:
             from ..sx_bet import SxBet
 
-            catalog = SxBet(api_url=self.url)
+            catalog = SxBet(api_key=credentials.api_key, api_url=self.url)
         self.catalog = catalog
         """The read adapter: fee schedules."""
         self._meta: dict[str, Any] | None = None
@@ -403,7 +407,13 @@ class SxBetTrading(TradingExchange):
     @property
     def address(self) -> str:
         """The wallet: the orders' maker, and the account the API key belongs to."""
-        return self.signer.address
+        address = self.credentials.address
+        if not address:
+            raise CredentialsMissing(
+                f"{VENUE}: the account's address is unknown with the API key alone; set SX_BET_ACCOUNT_ADDRESS "
+                "to the wallet's 0x address (not its private key), or SX_BET_PRIVATE_KEY"
+            )
+        return address
 
     # -- plumbing -------------------------------------------------------------
 
@@ -473,6 +483,7 @@ class SxBetTrading(TradingExchange):
     async def create_orders(self, requests: list[OrderRequest]) -> list[Order | Exception]:
         """Many orders, ten a request, one result each in the order asked for.
         A refused order comes back as its exception."""
+        signer = self._order_signer()
         meta = await self.metadata()
         batch = int((meta.get("limits") or {}).get("maxCreateOrders") or 10)
         out: list[Order | Exception] = []
@@ -481,7 +492,7 @@ class SxBetTrading(TradingExchange):
             built: list[tuple[OrderRequest, dict[str, Any], str, int, int] | Exception] = []
             for request in chunk:
                 try:
-                    item, order_id, odds, stake = build_signed_order(request, signer=self.signer, meta=meta)
+                    item, order_id, odds, stake = build_signed_order(request, signer=signer, meta=meta)
                     built.append((request, item, order_id, odds, stake))
                 except InvalidOrder as exc:
                     built.append(exc)
@@ -501,6 +512,15 @@ class SxBetTrading(TradingExchange):
                 out.append(order_after_placing(request, result, order_id=str(result.get("orderId") or order_id).lower(),
                                                odds=odds, stake=stake, account=self.account))
         return out
+
+    def _order_signer(self) -> WalletSigner:
+        """The wallet that signs new orders, checked before anything is sent."""
+        if self.signer is None:
+            raise CredentialsMissing(
+                f"{VENUE}: SX Bet signs every order with the wallet's private key (EIP-712); set SX_BET_PRIVATE_KEY "
+                "to place orders. Reading the account and cancelling work with SX_BET_API_KEY alone."
+            )
+        return self.signer
 
     async def cancel_order(self, order_id: str, *, market_id: str | None = None) -> Order:
         """Cancel one order and read it back."""
@@ -539,13 +559,16 @@ class SxBetTrading(TradingExchange):
     async def cancel_all_orders(self, *, market_id: str | None = None) -> int:
         """Every open order on a market, or on the account. The venue submits
         the cancels and returns at once; returns how many it submitted."""
-        if market_id:
-            raw = await self._call("DELETE", "/orders-v3/market",
-                                   params={"marketHash": ids.native(VENUE, market_id).lower()},
-                                   kind="write", priority=Priority.HIGH) or {}
-        else:
-            raw = await self._call("DELETE", "/orders-v3/all", kind="write", priority=Priority.HIGH) or {}
-        return len(raw.get("cancelledSubmitted") or [])
+        path, params = ("/orders-v3/market", {"marketHash": ids.native(VENUE, market_id).lower()}) if market_id \
+            else ("/orders-v3/all", None)
+        submitted = 0
+        # The venue cancels one batch a call and says `hasMore` until none are left.
+        for _ in range(MAX_CANCEL_ALL_ROUNDS):
+            raw = await self._call("DELETE", path, params=params, kind="write", priority=Priority.HIGH) or {}
+            submitted += len(raw.get("cancelledSubmitted") or [])
+            if not raw.get("hasMore"):
+                break
+        return submitted
 
     async def fetch_order(self, order_id: str) -> Order:
         """One order by id, in any state."""
@@ -642,6 +665,10 @@ class SxBetTrading(TradingExchange):
         await self.http.close()
         if self._own_catalog:
             self.catalog.close()
+
+
+MAX_CANCEL_ALL_ROUNDS = 50
+"""Most cancel-all calls one `cancel_all_orders` makes while the venue says more are left."""
 
 
 def _iso(ms: int) -> str:

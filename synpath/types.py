@@ -372,9 +372,15 @@ class Trade(_Base):
 
 
 # Historical types extend the live market objects without changing their
-# contract. The response metadata identifies the query clock. Trade.timestamp
-# remains the venue's execution time when available.
+# contract. Current request windows use Kalshi venue time (metadata.time_basis
+# is "venue"); observed_at_ms preserves recorder receive time separately.
 class HistoryMetadata(_Base):
+    """The query clock and published dataset watermark.
+
+    Current deployments return time_basis="venue". The recorder_receive value
+    and default remain for compatibility with older responses.
+    """
+
     dataset_version: str
     time_basis: Literal["recorder_receive", "venue"] = "recorder_receive"
     processed_through_ms: int | None = None
@@ -401,8 +407,10 @@ class HistoricalTrade(Trade):
 class HistoricalOrderBook(OrderBook):
     """A full book valued at as_of_ms, possibly unchanged since timestamp.
 
-    Inherited timestamp is the recorder time of the last book update;
+    Inherited timestamp is the last book update on the response's time_basis
+    (venue time on the current service, recorder time on older deployments);
     venue_timestamp_ms is the original exchange time when supplied.
+    as_of_ms is the requested valuation time, so it can be later than timestamp.
     """
 
     as_of_ms: int
@@ -410,7 +418,11 @@ class HistoricalOrderBook(OrderBook):
 
 
 class HistoricalBookChange(_Base):
-    """One change in the requested book view; price is exact and view-relative."""
+    """One change in the requested book view; price is exact and view-relative.
+
+    observed_at_ms is recorder receive time; venue_timestamp_ms is the venue
+    event time used to place the change in current query windows.
+    """
     kind: Literal["snapshot", "delta"]
     observed_at_ms: int
     venue_timestamp_ms: int | None = None
@@ -573,6 +585,18 @@ class FeeSchedule(_Base):
         * `profit_on_win` (SX Bet) — `rate * (1 - P) * C`, a share of the
           profit, charged at settlement and only if the bet wins. The estimate
           is that charge, so on a bet that loses it is an upper bound.
+        * `net_market_winnings` (Betfair, Smarkets) — `rate * (1 - P) * C`, the
+          commission on what this fill wins if it wins, at the market's base
+          rate (`taker_rate` and `maker_rate` alike: Betfair charges both
+          sides). Betfair cannot be priced per fill exactly: it charges the
+          rate on an account's *net* winnings across the whole Betfair market
+          at settlement (a losing back on one runner offsets a winning one on
+          another), less the account's discount, plus its Expert Fee where it
+          applies. The estimate is the charge on this fill alone, so it is an
+          upper bound when other bets in the market lose and leaves the
+          Expert Fee out.
+          Smarkets charges the same way (2% on its standard tier, no
+          Expert Fee), on net winnings per Smarkets market.
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:
@@ -594,7 +618,7 @@ class FeeSchedule(_Base):
             if not taker or rate == 0:
                 return 0.0
             return round(limitless_buy_rate(price) * rate / LIMITLESS_FEE_CEILING * price * contracts, 6)
-        if self.fee_type == "profit_on_win" and rate is not None:
+        if self.fee_type in ("profit_on_win", "net_market_winnings") and rate is not None:
             return round(rate * (1 - price) * contracts, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent

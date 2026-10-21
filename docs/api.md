@@ -10,15 +10,23 @@ Historical HTTP requests use Synpath IDs and snake-case JSON fields:
 | `POST /v1/order-book/range` | `market_id`, `start_ms`, `end_ms`, optional `side`, `limit` | `OrderBookRangeResponse` |
 | `POST /v1/trades/range` | `market_id`, `start_ms`, `end_ms`, optional `limit` | `TradesRangeResponse` |
 
-Historical objects extend the existing market-data types: `HistoricalTrade(Trade)` and `HistoricalOrderBook(OrderBook)`. A trade appears directly in `TradesRangeResponse.trades` (for example, `response.trades[0].price`), with `observed_at_ms` and `timestamp_source` added. `Trade.timestamp` remains venue execution time when supplied. Historical books add `as_of_ms` (the time the state was requested/valued for) and optional `venue_timestamp_ms`; their inherited `timestamp` is the recorder time of the last incorporated book update. Thus an unchanged but valid book may have `timestamp < as_of_ms`. Book queries use recorder receive time. Trade queries may use recorder or venue time; inspect `response.metadata.time_basis`. Trade coverage boundaries come from recorder time and cannot be mapped exactly onto venue event time. A book range starts with a full-depth historical book and view-relative changes; an unavailable interval is explicit rather than an empty book. The server reads published processed hours from one or more non-overlapping runs and includes their dataset version and watermark. A new run starts with unavailable coverage until fresh book snapshots and a trade subscription acknowledgment. The server caps ranges and returns `result_too_large` instead of a cursor when a response exceeds `limit`.
+Request times `as_of_ms`, `start_ms`, and `end_ms` are **Kalshi venue time in Unix milliseconds**. Range windows are half-open: `[start_ms, end_ms)`. Current responses identify this clock with `metadata.time_basis = "venue"`; `"recorder_receive"` is supported for older deployments.
 
-For a multi-hour or multi-day book walk, use [`examples/track_historical_book.py`](../examples/track_historical_book.py). It requests at most one hour at a time, splits HTTP 413 responses into smaller ranges, replays each full starting book and its exact delta strings into successive `HistoricalOrderBook` objects, and emits `BookGap` intervals instead of carrying stale state through an absence. It aborts if the dataset version changes mid-walk. For example:
+Historical objects extend the existing market-data types: `HistoricalTrade(Trade)` and `HistoricalOrderBook(OrderBook)`:
+
+- A trade appears directly in `TradesRangeResponse.trades` (for example, `response.trades[0].price`). `timestamp` is venue execution time when supplied; `timestamp_source` identifies venue time or a recorder fallback. `observed_at_ms` is when the recorder received it, which can differ from execution time and fall outside the requested venue-time window.
+- A historical book adds `as_of_ms` (the requested valuation time) and optional `venue_timestamp_ms` (the original exchange time). Its inherited `timestamp` is the last incorporated update on the response's clock: venue time on the current service, recorder time on older deployments. An unchanged valid book can have `timestamp < as_of_ms`.
+- A book range starts with a full-depth historical book and view-relative changes. Each change retains recorder receive time in `observed_at_ms` and exchange time in `venue_timestamp_ms`. Use venue time to place changes in the current request window; do not filter them by recorder arrival time.
+
+Coverage varies by market; unavailable intervals are explicit rather than empty books. Recording-health evidence is observed on the recorder clock and does not establish exact venue-event loss boundaries. The server reads published reconciled hours and includes an opaque `dataset_version` and `processed_through_ms` watermark. A published hour alone does not guarantee continuous coverage. The server caps ranges and returns `result_too_large` instead of a cursor when a response exceeds `limit`.
+
+For a multi-hour or multi-day book walk, use [`examples/track_historical_book.py`](../examples/track_historical_book.py). It requests at most one hour at a time, splits HTTP 413 responses into smaller ranges, replays each full starting book and its exact delta strings into successive `HistoricalOrderBook` objects, and emits `BookGap` intervals instead of carrying stale state through an absence. It follows the response time basis and aborts if the dataset version changes mid-walk. For example:
 
 ```bash
 # the history service needs a Synpath API key: synpath login, then synpath keys create
 python examples/track_historical_book.py \
   --market-id kalshi:YOUR-TICKER \
-  --start 2026-09-23T00:00:00Z --end 2026-09-26T00:00:00Z \
+  --start 2026-10-15T12:00:00Z --end 2026-10-15T13:00:00Z \
   --output book-timeline.jsonl
 ```
 
@@ -42,13 +50,14 @@ synpath logout
 ```python
 import synpath
 
-history = synpath.fetch_order_book_at("kalshi:KXQUANTUM-30", as_of_ms=1789509599000)
+history = synpath.fetch_order_book_at("kalshi:KXQUANTUM-30", as_of_ms=1792069199000)
 if history.book is None:
-    print("No book:", history.absence_reason)       # e.g. outside_loaded_data
+    print("No book:", history.absence_reason)       # e.g. outside_published_data
 else:
     print("Dataset:", history.metadata.dataset_version)
     print("Best bid/ask:", history.book.best_bid, history.book.best_ask)
 
+start_ms, end_ms = 1792065600000, 1792069200000  # 2026-10-15 12:00–13:00 UTC, venue time
 trades = synpath.fetch_trades_range("kalshi:KXQUANTUM-30", start_ms, end_ms, limit=1000)
 changes = synpath.fetch_order_book_range("kalshi:KXQUANTUM-30", start_ms, end_ms, side="no")
 ```
@@ -68,11 +77,11 @@ and spot exchanges do not.
 | Method | Returns | Notes |
 |---|---|---|
 | `fetch_markets(query, limit, cursor, status, sort)` | `Page[Market]` | `limit` up to 100 |
-| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request), order preserved, closed and settled markets included |
+| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read), order preserved, closed and settled markets included |
 | `fetch_events(query, limit, cursor, status)` | `Page[Event]` | markets nested |
 | `fetch_market(market_id)` | `Market` | |
 | `fetch_order_book(market_id, side, depth)` | `OrderBook` | `side="yes"` (default) or `"no"` |
-| `fetch_order_books(market_ids, side, depth)` | `dict[str, OrderBook]` | many books; one request on Polymarket (500 books), one per market elsewhere |
+| `fetch_order_books(market_ids, side, depth)` | `dict[str, OrderBook]` | many books; one request on Polymarket (500 books), on Betfair (40 Betfair markets, every runner of each) and on Smarkets (200 Smarkets markets, every contract of each), one per market elsewhere |
 | `fetch_trades(market_id, since, limit, cursor)` | `Page[Trade]` | newest page first, each page oldest first; `since` in ms; `next_cursor` null at the end |
 | `fetch_ohlcv(market_id, timeframe, since, until, limit)` | `list[Candle]` | in the YES price; check `price_source`. With `since`, the first `limit` bars from it; without, the newest `limit` |
 | `fetch_series(series_id)` | `Series` | Kalshi only |
@@ -80,7 +89,40 @@ and spot exchanges do not.
 | `iter_events(status)` | iterator of `Event` | walks the whole catalog for you |
 
 Polymarket and Polymarket US add `refresh_quotes(market)`, which replaces the
-catalog's quotes with the live book. Polymarket also has
+catalog's quotes with the live book.
+
+Betfair adds `fetch_event_types()` and `fetch_betfair_events(event_type,
+competition, query)`, the venue's own sports and fixtures as it lists them,
+and takes `event_type` (an id or a name, `"Soccer"`), `competition`, `event`
+and `market_type` (`"MATCH_ODDS"`) on `fetch_markets` and `fetch_events`.
+Every Betfair call needs your own account and application key; see
+[Betfair](capabilities.md#betfair).
+
+```python
+bf = synpath.Betfair()                    # BETFAIR_APP_KEY, BETFAIR_USERNAME, BETFAIR_PASSWORD
+runners = bf.fetch_markets(event_type="Soccer", market_type="MATCH_ODDS", limit=9)
+book = bf.fetch_order_book(runners[0].id)  # resting backs are YES bids, resting lays asks
+book.info["back"], book.info["lay"]        # Betfair's own [odds, stake] pairs
+book.info["delayed"]                       # True on a delayed key
+```
+
+Smarkets needs no account. It adds `fetch_event(id)` (one Smarkets market
+with its contracts, open or settled), `fetch_smarkets_events(ids)`,
+`fetch_event_states(ids)` (scores, clock, period), and the raw
+`fetch_quotes`, `fetch_volumes` and `fetch_last_executed_prices` by Smarkets
+market id, and takes `domain` (`"football"`, `"politics"`), `scope`
+(`"single_event"`, `"outright"`) and `market_type` (`"WINNER_3_WAY"`) on
+`fetch_markets` and `fetch_events`. See [Smarkets](capabilities.md#smarkets).
+
+```python
+smk = synpath.Smarkets()                   # no account; SMARKETS_USERNAME / _PASSWORD undelay the quotes
+contracts = smk.fetch_markets(domain="football", market_type="WINNER_3_WAY", limit=9)
+book = smk.fetch_order_book(contracts[0].id)  # Smarkets bids are YES bids, offers YES asks
+book.info["bids"], book.info["offers"]     # Smarkets' own [price bps, quantity] pairs
+smk.fetch_trades(contracts[0].id)          # the short recent tape
+```
+
+Polymarket also has
 `fetch_order_books_by_token(token_ids, depth)`, by CLOB token id.
 
 ### Search
@@ -168,7 +210,7 @@ result.matched     # MarketLink | None
 
 Matching covers every venue this library speaks: `kalshi`, `polymarket`,
 `polymarket_us`, `opinion`, `hyperliquid`, `predict_fun`, `limitless` and
-`sx_bet`. `venue=` asks one of them in particular; without it the answer is
+`sx_bet` (not Betfair or Smarkets yet). `venue=` asks one of them in particular; without it the answer is
 the first venue listing the same question, in the order Polymarket, Kalshi,
 Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Polymarket US.
 
@@ -222,13 +264,16 @@ One vocabulary, one meaning per word, on every venue.
 | `all` | no filter |
 
 A venue that cannot filter by one of them raises `NotSupported`. Polymarket
-does for `settled`, since its catalog does not publish resolution status.
+does for `settled`, since its catalog does not publish resolution status, and
+Betfair for everything but `open`, since a closed market leaves its catalogue
+(read it by id instead). Smarkets filters on its events' states: `closed` is an
+ended or suspended event, `settled` a settled or cancelled one.
 Anything outside the four raises `BadRequest` rather than being handed to the
 venue to interpret for itself.
 
 ### Identifiers
 
-One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
+One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
 
 ### Paging
 

@@ -41,7 +41,7 @@ import sys
 from decimal import Decimal
 from typing import Any
 
-from ..trading.credentials import load_credentials
+from ..trading.credentials import load_credentials, load_market_data
 from ..trading.errors import CredentialsMissing
 from .engine import Engine, EngineConfig
 from .feeds import Feeds, default_streams
@@ -137,7 +137,8 @@ async def run(args: argparse.Namespace) -> int:
     )
     adapters = build_adapters(config, dotenv=args.dotenv)
     engine = Engine(adapters, engine_config, risk=risk_from(config))
-    feeds = (Feeds(engine, default_streams(adapters, load_credentials(dotenv=args.dotenv)))
+    feeds = (Feeds(engine, default_streams(adapters, load_credentials(dotenv=args.dotenv),
+                                           load_market_data(dotenv=args.dotenv)))
              if config.get("streams", True) else None)
     reconciler = Reconciler(engine, orphan_policy=config.get("orphan_policy", "report"))
     eod = EndOfDay(engine, hour_utc=int(config.get("eod_hour_utc", 0)))

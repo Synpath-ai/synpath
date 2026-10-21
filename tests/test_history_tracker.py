@@ -128,3 +128,46 @@ def test_rejects_dataset_version_change_mid_walk():
         with pytest.raises(RuntimeError, match="Dataset changed"):
             list(iter_book_timeline(client, "http://test", "kalshi:M", 1000, 3000,
                                     chunk_ms=1000))
+
+
+@pytest.mark.parametrize("kind", ["delta", "snapshot"])
+def test_venue_timeline_uses_event_time_when_recorder_arrives_outside_window(kind):
+    change = {"kind": kind, "observed_at_ms": 2100, "venue_timestamp_ms": 1200}
+    if kind == "snapshot":
+        change["book"] = {**_book(5), "timestamp": 1200, "venue_timestamp_ms": 1200,
+                          "as_of_ms": 1200}
+    else:
+        change.update(book_side="bid", price_exact="0.5", quantity_delta_exact="-2")
+    payload = _response(1000, 2000, [{"kind": "data", "start_ms": 1000, "end_ms": 2000,
+                                    "initial_book": _book(7), "changes": [change]}])
+    payload["metadata"]["time_basis"] = "venue"
+    with httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload))) as client:
+        items = list(iter_book_timeline(client, "http://test", "kalshi:M", 1000, 2000))
+    assert items[1].at_ms == items[1].book.as_of_ms == items[1].book.timestamp == 1200
+    assert items[1].book.venue_timestamp_ms == 1200
+    assert items[1].book.bids[0].size == 5
+
+
+def test_venue_timeline_rejects_missing_venue_timestamp():
+    payload = _response(1000, 2000, [{"kind": "data", "start_ms": 1000, "end_ms": 2000,
+        "initial_book": _book(7), "changes": [{"kind": "delta", "observed_at_ms": 1200,
+            "book_side": "bid", "price_exact": "0.5", "quantity_delta_exact": "-2"}]}])
+    payload["metadata"]["time_basis"] = "venue"
+    with httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload))) as client:
+        with pytest.raises(ValueError, match="no venue timestamp"):
+            list(iter_book_timeline(client, "http://test", "kalshi:M", 1000, 2000))
+
+
+def test_replays_published_venue_hour():
+    from pathlib import Path
+
+    payload = json.loads((Path(__file__).parent / "samples/history/order-book-range.json").read_text())
+    with httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload))) as client:
+        items = list(iter_book_timeline(client, "http://test", payload["market_id"],
+                                       payload["start_ms"], payload["end_ms"]))
+    changes = payload["segments"][0]["changes"]
+    assert len(items) == len(changes) + 1
+    assert [item.at_ms for item in items[1:]] == [change["venue_timestamp_ms"] for change in changes]
+    at = json.loads((Path(__file__).parent / "samples/history/order-book-at.json").read_text())
+    assert [level.model_dump() for level in items[-1].book.bids] == at["book"]["bids"]
+    assert [level.model_dump() for level in items[-1].book.asks] == at["book"]["asks"]

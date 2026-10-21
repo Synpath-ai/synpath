@@ -61,10 +61,16 @@ class VenueStreams:
     private: Any | None = None
 
 
-def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]) -> dict[str, VenueStreams]:
+def default_streams(
+    adapters: Mapping[str, Any], credentials: Mapping[str, Any], market_data: Mapping[str, Any] | None = None,
+) -> dict[str, VenueStreams]:
     """The library's own streams for each configured venue that has one.
     Kalshi and Polymarket US need credentials even for books; Polymarket's
-    books are public and its user stream authenticates through the adapter."""
+    books are public and its user stream authenticates through the adapter.
+
+    `market_data` (what `load_market_data` returns) adds a market stream for
+    each venue configured with only its API key: no adapter trades there, but
+    a parent on another venue can still watch its books."""
     out: dict[str, VenueStreams] = {}
     for venue, adapter in adapters.items():
         streams = venue_streams(venue, credentials.get(venue), adapter)
@@ -72,13 +78,20 @@ def default_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any])
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
             continue
         out[venue] = streams
+    for venue, key in (market_data or {}).items():
+        if venue not in out and venue not in adapters:
+            stream = market_stream(venue, key)
+            if stream is not None:
+                out[venue] = VenueStreams(market=stream)
     return out
 
 
 def market_stream(venue: str, creds: Any) -> Any | None:
     """One venue's market-data stream alone, for a reader with no adapter
-    (the server's market socket); `None` where the venue streams nothing
-    without credentials it does not have."""
+    (the server's market socket, a venue configured with only its API key).
+    `creds` is the venue's trading credentials or its `MarketDataKey`;
+    `None` where the venue streams nothing without credentials it does not
+    have."""
     streams = venue_streams(venue, creds, None, private=False)
     return streams.market if streams is not None else None
 
@@ -86,7 +99,15 @@ def market_stream(venue: str, creds: Any) -> Any | None:
 def venue_streams(venue: str, creds: Any, adapter: Any | None, *, private: bool = True) -> VenueStreams | None:
     """One venue's streams from its credentials (and adapter, which some
     private streams authenticate through). `private=False` builds the market
-    stream only. `None` where the venue has no stream these credentials open."""
+    stream only, and so does a `MarketDataKey` (an API key with no account
+    behind it): Opinion, predict.fun and SX Bet stream books on the key
+    alone. `None` where the venue has no stream these credentials open."""
+    from ..trading.credentials import MARKET_DATA_KEYS, MarketDataKey
+    if isinstance(creds, MarketDataKey):
+        if venue not in MARKET_DATA_KEYS:
+            # Public venues stream without any key; a key is no credential here.
+            return None
+        private = False
     if venue == "kalshi" and creds is not None:
         from ..ws.kalshi import KalshiStream
         stream = KalshiStream(creds)
@@ -104,6 +125,10 @@ def venue_streams(venue: str, creds: Any, adapter: Any | None, *, private: bool 
     if venue == "opinion" and creds is not None:
         from ..ws.opinion import OpinionMarketStream, OpinionUserStream
         catalog = getattr(adapter, "catalog", None)
+        if catalog is None:
+            # The key also lifts the REST limit the stream seeds its books through.
+            from ..opinion import Opinion
+            catalog = Opinion(api_key=creds.api_key)
         return VenueStreams(
             market=OpinionMarketStream(api_key=creds.api_key, catalog=catalog),
             private=OpinionUserStream(api_key=creds.api_key, catalog=catalog) if private else None,
@@ -138,10 +163,30 @@ def venue_streams(venue: str, creds: Any, adapter: Any | None, *, private: bool 
         from ..ws.sx_bet import SxBetMarketStream, SxBetUserStream
         testnet = bool(getattr(creds, "testnet", False))
         catalog = getattr(adapter, "catalog", None)
+        if catalog is None:
+            from ..sx_bet import SxBet
+            catalog = SxBet(api_key=creds.api_key, testnet=testnet)
+        address = getattr(creds, "address", None)
+        if private and not address:
+            log.warning("synpath.engine.feeds: sx_bet has an API key but no account address, so its orders "
+                        "reach the engine by polling; set SX_BET_ACCOUNT_ADDRESS to the wallet's 0x address "
+                        "for the account stream")
         return VenueStreams(
             market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
-            private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=creds.address) if private else None,
+            private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=address)
+            if private and address else None,
         )
+    if venue == "betfair" and creds is not None:
+        # Market data only: no Betfair order entry, so no account stream.
+        # Every Betfair stream, books included, logs in with the account.
+        from ..ws.betfair import BetfairMarketStream
+        return VenueStreams(market=BetfairMarketStream(credentials=creds), private=None)
+    if venue == "smarkets":
+        # Market data only, and public: a polled stream on REST quotes
+        # (Smarkets' socket stream is for approved market makers). The
+        # login, when configured, only undelays the quotes.
+        from ..ws.smarkets import SmarketsMarketStream
+        return VenueStreams(market=SmarketsMarketStream(credentials=creds), private=None)
     return None
 
 

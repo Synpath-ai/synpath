@@ -1,0 +1,494 @@
+{
+ "events": [
+  {
+   "bet_allowed": true,
+   "bettable": true,
+   "chart_time_period": null,
+   "created": "2026-10-09T15:36:28.946148Z",
+   "description": null,
+   "display_order": 10,
+   "end_date": null,
+   "full_slug": "/sport/football/brazil-serie-a/2026/10/18/00-00/sao-paulo-vs-vasco-da-gama",
+   "hidden": false,
+   "id": "45369416",
+   "inplay_enabled": true,
+   "modified": "2026-10-18T02:31:10.791112Z",
+   "name": "São Paulo vs Vasco",
+   "parent_id": "28934185",
+   "seo_description": "Bet on {{ contracts.home.name }} vs {{ contracts.away.name }} on {{ event.start_datetime | date \"eeee, d MMMM\" }}.\r\n\r\nWi…",
+   "short_name": "SOP vs. VAS",
+   "slug": "sao-paulo-vs-vasco-da-gama",
+   "special_rules": null,
+   "start_date": "2026-10-18",
+   "start_datetime": "2026-10-18T00:00:00Z",
+   "state": "ended",
+   "super_sub_enabled": false,
+   "type": "football_match",
+   "venue": {
+    "capacity": 67428,
+    "city": "Brazil",
+    "country_code": "BRA",
+    "country_name": "Brazil",
+    "name": "Estádio do Morumbi",
+    "neutral": false
+   }
+  }
+ ],
+ "markets": [
+  {
+   "bet_delay": 0,
+   "cashout_enabled": true,
+   "categories": [
+    "winner",
+    "bet_builder",
+    "popular"
+   ],
+   "category": "winner",
+   "complete": true,
+   "contract_selections": null,
+   "created": "2026-10-09T15:36:29.069Z",
+   "description": "",
+   "display_order": 100000,
+   "display_type": "default",
+   "event_id": "45369416",
+   "hidden": false,
+   "id": "169719862",
+   "info": {
+    "reason": "Triggered by message 5891f5dd71034600bbaf32cc60873c3d"
+   },
+   "inplay_enabled": true,
+   "market_type": {
+    "name": "WINNER_3_WAY"
+   },
+   "modified": "2026-10-18T02:00:06.832Z",
+   "name": "Full-time result",
+   "slug": "winner",
+   "state": "settled",
+   "winner_count": 1
+  },
+  {
+   "bet_delay": 0,
+   "cashout_enabled": true,
+   "categories": [
+    "winner",
+    "bet_builder",
+    "popular"
+   ],
+   "category": "winner",
+   "complete": true,
+   "contract_selections": null,
+   "created": "2026-10-09T15:36:29.069Z",
+   "description": "",
+   "display_order": 100005,
+   "display_type": "default",
+   "event_id": "45369416",
+   "hidden": false,
+   "id": "169719863",
+   "info": {
+    "reason": "Triggered by message 5891f5dd71034600bbaf32cc60873c3d"
+   },
+   "inplay_enabled": true,
+   "market_type": {
+    "name": "CORRECT_SCORE"
+   },
+   "modified": "2026-10-18T02:00:06.832Z",
+   "name": "Correct score",
+   "slug": "correct-score",
+   "state": "settled",
+   "winner_count": 1
+  }
+ ],
+ "contracts": [
+  {
+   "competitor_id": 197988,
+   "contract_type": {
+    "name": "HOME"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 0,
+   "hidden": false,
+   "id": "468217060",
+   "info": {},
+   "market_id": "169719862",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "São Paulo",
+   "outcome_timestamp": "2026-10-18T02:00:06.436Z",
+   "slug": "home",
+   "state_or_outcome": "winner"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "DRAW"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 50,
+   "hidden": false,
+   "id": "468217062",
+   "info": {},
+   "market_id": "169719862",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "Draw",
+   "outcome_timestamp": "2026-10-18T02:00:06.436Z",
+   "slug": "draw",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": 201222,
+   "contract_type": {
+    "name": "AWAY"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 100,
+   "hidden": false,
+   "id": "468217061",
+   "info": {},
+   "market_id": "169719862",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "Vasco",
+   "outcome_timestamp": "2026-10-18T02:00:06.436Z",
+   "slug": "away",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "0-0"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 0,
+   "hidden": true,
+   "id": "468217063",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-18T01:32:07.496Z",
+   "name": "0 - 0",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "0-0",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "0-1"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 1,
+   "hidden": true,
+   "id": "468217064",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-18T01:32:07.549Z",
+   "name": "0 - 1",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "0-1",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "0-2"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 2,
+   "hidden": true,
+   "id": "468217065",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-18T01:32:07.582Z",
+   "name": "0 - 2",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "0-2",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "0-3"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 3,
+   "hidden": true,
+   "id": "468217066",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-18T01:32:07.618Z",
+   "name": "0 - 3",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "0-3",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "1-0"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 10,
+   "hidden": false,
+   "id": "468217067",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "1 - 0",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "1-0",
+   "state_or_outcome": "winner"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "1-1"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 11,
+   "hidden": false,
+   "id": "468217068",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "1 - 1",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "1-1",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "1-2"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 12,
+   "hidden": false,
+   "id": "468217069",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "1 - 2",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "1-2",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "1-3"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 13,
+   "hidden": false,
+   "id": "468217070",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "1 - 3",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "1-3",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "2-0"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 20,
+   "hidden": false,
+   "id": "468217071",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "2 - 0",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "2-0",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "2-1"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 21,
+   "hidden": false,
+   "id": "468217072",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "2 - 1",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "2-1",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "2-2"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 22,
+   "hidden": false,
+   "id": "468217073",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "2 - 2",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "2-2",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "2-3"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 23,
+   "hidden": false,
+   "id": "468217074",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "2 - 3",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "2-3",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "3-0"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 30,
+   "hidden": false,
+   "id": "468217075",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "3 - 0",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "3-0",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "3-1"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 31,
+   "hidden": false,
+   "id": "468217076",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "3 - 1",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "3-1",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "3-2"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 32,
+   "hidden": false,
+   "id": "468217077",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "3 - 2",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "3-2",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "SCORE",
+    "param": "3-3"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 33,
+   "hidden": false,
+   "id": "468217078",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "3 - 3",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "3-3",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "ANY_OTHER_HOME_WIN"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 1000,
+   "hidden": false,
+   "id": "468217079",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "Any other home win",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "any-other-home-win",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "ANY_OTHER_AWAY_WIN"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 1001,
+   "hidden": false,
+   "id": "468217080",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "Any other away win",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "any-other-away-win",
+   "state_or_outcome": "loser"
+  },
+  {
+   "competitor_id": null,
+   "contract_type": {
+    "name": "ANY_OTHER_DRAW"
+   },
+   "created": "2026-10-09T15:36:29.118Z",
+   "display_order": 1002,
+   "hidden": false,
+   "id": "468217081",
+   "info": {},
+   "market_id": "169719863",
+   "modified": "2026-10-09T15:36:29.118Z",
+   "name": "Any other draw",
+   "outcome_timestamp": "2026-10-18T02:00:06.469Z",
+   "slug": "any-other-draw",
+   "state_or_outcome": "loser"
+  }
+ ],
+ "quotes": {}
+}
