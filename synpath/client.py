@@ -94,6 +94,9 @@ class Client:
         """The trading adapter for a venue, built once from its credentials.
         `CredentialsMissing` names the variables to set when there are none."""
         if venue not in self._trading:
+            if venue not in _TRADING:
+                from .errors import NotSupported
+                raise NotSupported(f"{venue}: this library reads its market data only; it has no order entry yet")
             creds = require(venue, self.credentials)
             self._trading[venue] = _TRADING[venue](creds)  # type: ignore[index]
         return self._trading[venue]

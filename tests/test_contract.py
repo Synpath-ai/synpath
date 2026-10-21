@@ -259,7 +259,7 @@ class TestRegistry:
 
     def test_unknown_venue_lists_the_known_ones(self):
         with pytest.raises(BadRequest, match="kalshi"):
-            synpath.exchange("betfair")
+            synpath.exchange("notavenue")
 
     def test_context_manager_closes(self):
         with synpath.exchange("kalshi", limiter=None) as venue:

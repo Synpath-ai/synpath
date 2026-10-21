@@ -1,0 +1,97 @@
+{
+ "markets": [
+  {
+   "bet_delay": 0,
+   "cashout_enabled": true,
+   "categories": [
+    "winner",
+    "bet_builder",
+    "popular"
+   ],
+   "category": "winner",
+   "complete": true,
+   "contract_selections": null,
+   "created": "2026-09-17T09:27:57.447Z",
+   "description": "",
+   "display_order": 0,
+   "display_type": "default",
+   "event_id": "45325999",
+   "hidden": false,
+   "id": "164973231",
+   "info": {
+    "reason": ""
+   },
+   "inplay_enabled": false,
+   "market_type": {
+    "name": "WINNER_3_WAY"
+   },
+   "modified": "2026-09-18T18:11:03.771Z",
+   "name": "Full-time result",
+   "slug": "winner",
+   "state": "open",
+   "winner_count": 1
+  },
+  {
+   "bet_delay": 0,
+   "cashout_enabled": true,
+   "categories": [
+    "winner",
+    "bet_builder",
+    "popular"
+   ],
+   "category": "winner",
+   "complete": true,
+   "contract_selections": null,
+   "created": "2026-09-17T09:27:57.447Z",
+   "description": "",
+   "display_order": 5,
+   "display_type": "default",
+   "event_id": "45325999",
+   "hidden": false,
+   "id": "164973232",
+   "info": {
+    "reason": ""
+   },
+   "inplay_enabled": false,
+   "market_type": {
+    "name": "CORRECT_SCORE"
+   },
+   "modified": "2026-09-18T18:11:03.771Z",
+   "name": "Correct score",
+   "slug": "correct-score",
+   "state": "open",
+   "winner_count": 1
+  },
+  {
+   "bet_delay": 0,
+   "cashout_enabled": true,
+   "categories": [
+    "teams",
+    "bet_builder",
+    "popular"
+   ],
+   "category": "teams",
+   "complete": true,
+   "contract_selections": null,
+   "created": "2026-09-17T09:27:57.448Z",
+   "description": "",
+   "display_order": 6,
+   "display_type": "default",
+   "event_id": "45325999",
+   "hidden": false,
+   "id": "164973233",
+   "info": {
+    "reason": ""
+   },
+   "inplay_enabled": false,
+   "market_type": {
+    "name": "BTTS"
+   },
+   "modified": "2026-09-18T18:11:03.771Z",
+   "name": "Both teams to score",
+   "slug": "both-teams-score",
+   "state": "open",
+   "winner_count": 1
+  }
+ ]
+}

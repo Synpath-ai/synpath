@@ -153,6 +153,17 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
                 market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
                 private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=address) if address else None,
             )
+        elif venue == "betfair" and creds is not None:
+            # Market data only: no Betfair order entry, so no account stream.
+            # Every Betfair stream, books included, logs in with the account.
+            from ..ws.betfair import BetfairMarketStream
+            out[venue] = VenueStreams(market=BetfairMarketStream(credentials=creds), private=None)
+        elif venue == "smarkets":
+            # Market data only, and public: a polled stream on REST quotes
+            # (Smarkets' socket stream is for approved market makers). The
+            # login, when configured, only undelays the quotes.
+            from ..ws.smarkets import SmarketsMarketStream
+            out[venue] = VenueStreams(market=SmarketsMarketStream(credentials=creds), private=None)
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

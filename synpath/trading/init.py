@@ -250,6 +250,34 @@ def ask_sx_bet(p: Prompter) -> dict[str, str]:
     return values
 
 
+def ask_betfair(p: Prompter) -> dict[str, str]:
+    p.say("\nBetfair: your application key (the delayed key is free: developer.betfair.com, or the Accounts API")
+    p.say("visualiser) and your Betfair login. Every Betfair call, market data included, logs in. The key and the")
+    p.say("password are typed hidden. A client certificate (optional) switches to Betfair's certificate login.")
+    app_key = p.value("Application key (typed hidden)", secret=True, check=_required("The application key"))
+    username = p.value("Betfair username", check=_required("The username"))
+    password = p.value("Betfair password (typed hidden)", secret=True, check=_required("The password"))
+    cert = p.value("Client certificate file (.crt, empty for interactive login)", default="", check=lambda raw: None)
+    key = p.value("Its private key file (.key)", default="", check=lambda raw: None) if cert else ""
+    jurisdiction = p.value("Betfair site the account is on (com, it, es, ro, com.au)", default="com",
+                           check=_choice("com", "it", "es", "ro", "com.au"))
+    values = {"BETFAIR_APP_KEY": app_key, "BETFAIR_USERNAME": username, "BETFAIR_PASSWORD": password}
+    if cert and key:
+        values["BETFAIR_CERT_PATH"], values["BETFAIR_KEY_PATH"] = cert, key
+    if jurisdiction != "com":
+        values["BETFAIR_JURISDICTION"] = jurisdiction
+    return values
+
+
+def ask_smarkets(p: Prompter) -> dict[str, str]:
+    p.say("\nSmarkets: market data needs no login at all. A login (optional) sends a session token for")
+    p.say("undelayed quotes and your account's own rate limits. Betting needs Smarkets' approved API access")
+    p.say("(a one-off £150 fee), which this library does not support yet. The password is typed hidden.")
+    username = p.value("Smarkets username (your email)", check=_required("The username"))
+    password = p.value("Smarkets password (typed hidden)", secret=True, check=_required("The password"))
+    return {"SMARKETS_USERNAME": username, "SMARKETS_PASSWORD": password}
+
+
 VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", ("KALSHI_KEY_ID",), ask_kalshi),
     ("Polymarket", ("POLYMARKET_PRIVATE_KEY",), ask_polymarket),
@@ -259,6 +287,8 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("predict.fun", ("PREDICT_FUN_API_KEY", "PREDICT_FUN_PRIVATE_KEY"), ask_predict_fun),
     ("Limitless", ("LIMITLESS_PRIVATE_KEY",), ask_limitless),
     ("SX Bet", ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY"), ask_sx_bet),
+    ("Betfair", ("BETFAIR_APP_KEY",), ask_betfair),
+    ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
 ]
 """Each venue, the settings any of which means it is set up already (an API
 key alone is, for market data), and the questions."""

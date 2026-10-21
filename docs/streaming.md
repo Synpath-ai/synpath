@@ -41,6 +41,8 @@ asyncio.run(main())
 | `LimitlessUserStream` | `ws.limitless.exchange` | a Limitless API token | orders; fills as matched, then mined or failed on chain |
 | `SxBetMarketStream` | `realtime.sx.bet` (or the testnet) | SX Bet API key (every channel needs one) | whole books, top of book, the tape of taker bets, market changes and settlements |
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
+| `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
+| `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -167,6 +169,39 @@ jittered exponential backoff between attempts.
   grows, and a quiet market publishes nothing, so each book is seeded from the
   REST snapshot when its subscription is confirmed. Trades and market changes
   are venue-wide channels, filtered here to the markets asked for.
+- *Betfair* is not a WebSocket: its Exchange Stream API is one TLS socket to
+  `stream-api.betfair.com:443` carrying CRLF-delimited JSON. The stream
+  authenticates with the application key and a session token straight away
+  (Betfair drops a connection whose first message has not come within 15
+  seconds), then sends one `marketSubscription` for every market wanted, at
+  most 200 on a connection; a new subscription replaces the old one, so a
+  change of markets resends the whole set and starts a fresh image. Best
+  offers arrive as positional ladders (`batb`, `batl`: `[level, odds,
+  stake]`, a stake of 0 deleting the level), read on YES as the REST books
+  are: resting backs are bids, resting lays asks, at 1/odds, stake times odds
+  contracts. Every message carries a clock; a reconnect resubscribes with
+  `initialClk` and `clk`, and Betfair answers with a `RESUB_DELTA` of what
+  changed while disconnected, after which every book is rebuilt from the
+  cache and reported `resynced`. **A delayed application key is conflated to
+  180,000 ms**: at most one update per market every three minutes, whatever
+  `conflate_ms` asks. The stream logs a warning once when it sees that, and
+  waits a whole conflation window before treating silence as a dead socket.
+  No public trades, so no `watch_trades`; no account stream yet.
+- *Smarkets* has no public stream: its socket feed (the protobuf stream on
+  `api.smarkets.com:3701` that `smk_python_sdk` speaks) is for approved API
+  users and market makers. `SmarketsMarketStream` polls the REST quotes
+  instead, two hundred Smarkets markets a request, and emits the difference
+  between one answer and the next: a snapshot first, then deltas of the
+  levels that changed, nothing when nothing did. Polls share the adapter's
+  rate budget (`QUOTES_LIMITER`: 20 quotes requests a minute anonymously), so
+  the default 5 s interval is 12 a minute for up to 200 markets. Status is
+  read every `status_every` polls (6 by default) while `watch_market_status`
+  is on. A refused or failed poll is a dropped connection: the base loop
+  backs off and reconnects, and the next poll rebuilds every book and
+  reports it `resynced`. Quotes are delayed without a login, and every event
+  says so in `info["delayed"]`. A change shows at the next poll, not as it
+  happens, so its `watch_*` keys are `partial`. No `watch_trades`: the recent
+  tape is short and unpaged; read it with `Smarkets.fetch_trades`.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to
@@ -312,6 +347,17 @@ documented heartbeat and rely on gRPC keepalive.
   reproduces the venue's worked example. Both production and preprod
   endpoints answer an invalid token with `UNAUTHENTICATED` as the streams
   expect.
+
+- **Betfair:** built to Betfair's Exchange Stream API documentation, with
+  hand-built messages in its documented shapes (no account was available):
+  a TLS-shaped socket carrying CRLF framing, authentication, an image then
+  deltas and deletes, a resubscribe from the clock, heartbeats, status
+  changes and the 200-market cap. Not yet run against Betfair.
+
+- **Smarkets:** polls answered from REST quotes recorded anonymously from
+  api.smarkets.com: a snapshot, unchanged polls, deltas, a whole market,
+  tickers, halted and settled contract states, a refused poll and a resync
+  after a drop, through the base loop.
 
 Run the live checks with:
 

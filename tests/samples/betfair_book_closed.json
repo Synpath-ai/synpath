@@ -1,0 +1,26 @@
+[
+  {
+    "marketId": "1.230000001",
+    "isMarketDataDelayed": true,
+    "status": "CLOSED",
+    "betDelay": 0,
+    "bspReconciled": true,
+    "complete": true,
+    "inplay": false,
+    "numberOfWinners": 1,
+    "numberOfRunners": 4,
+    "numberOfActiveRunners": 0,
+    "totalMatched": 0.0,
+    "totalAvailable": 0.0,
+    "crossMatching": false,
+    "runnersVoidable": false,
+    "version": 5999000111,
+    "runners": [
+      {"selectionId": 101, "handicap": 0.0, "status": "WINNER", "ex": {"availableToBack": [], "availableToLay": [], "tradedVolume": []}},
+      {"selectionId": 102, "handicap": 0.0, "status": "LOSER", "ex": {"availableToBack": [], "availableToLay": [], "tradedVolume": []}},
+      {"selectionId": 103, "handicap": 0.0, "status": "REMOVED", "removalDate": "2026-10-19T12:01:00.000Z", "adjustmentFactor": 12.5,
+       "ex": {"availableToBack": [], "availableToLay": [], "tradedVolume": []}},
+      {"selectionId": 104, "handicap": 0.0, "status": "LOSER", "ex": {"availableToBack": [], "availableToLay": [], "tradedVolume": []}}
+    ]
+  }
+]

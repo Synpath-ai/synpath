@@ -585,6 +585,18 @@ class FeeSchedule(_Base):
         * `profit_on_win` (SX Bet) — `rate * (1 - P) * C`, a share of the
           profit, charged at settlement and only if the bet wins. The estimate
           is that charge, so on a bet that loses it is an upper bound.
+        * `net_market_winnings` (Betfair, Smarkets) — `rate * (1 - P) * C`, the
+          commission on what this fill wins if it wins, at the market's base
+          rate (`taker_rate` and `maker_rate` alike: Betfair charges both
+          sides). Betfair cannot be priced per fill exactly: it charges the
+          rate on an account's *net* winnings across the whole Betfair market
+          at settlement (a losing back on one runner offsets a winning one on
+          another), less the account's discount, plus its Expert Fee where it
+          applies. The estimate is the charge on this fill alone, so it is an
+          upper bound when other bets in the market lose and leaves the
+          Expert Fee out.
+          Smarkets charges the same way (2% on its standard tier, no
+          Expert Fee), on net winnings per Smarkets market.
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:
@@ -606,7 +618,7 @@ class FeeSchedule(_Base):
             if not taker or rate == 0:
                 return 0.0
             return round(limitless_buy_rate(price) * rate / LIMITLESS_FEE_CEILING * price * contracts, 6)
-        if self.fee_type == "profit_on_win" and rate is not None:
+        if self.fee_type in ("profit_on_win", "net_market_winnings") and rate is not None:
             return round(rate * (1 - price) * contracts, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent

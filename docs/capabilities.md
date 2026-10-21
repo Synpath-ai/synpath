@@ -6,21 +6,21 @@ Read `has` before you call. A capability a venue lacks raises `NotSupported`
 rather than returning an empty list, so "cannot" is never mistaken for "there
 is nothing".
 
-| Method | `kalshi` | `polymarket` | `polymarket_us` | `opinion` | `hyperliquid` | `predict_fun` | `limitless` | `sx_bet` |
-|---|---|---|---|---|---|---|---|---|
-| `fetch_markets` | yes | yes | yes | yes, categorical topics flattened into their options | yes, every outcome of a question is a market, the fallback ("Other") included | yes, quoted from the listing | yes, a group's options flattened; quoted from the venue's prices, bid and ask on `refresh_quotes` | yes, outcome one as YES, under the venue's names for both sides; bid and ask on `refresh_quotes` |
-| `fetch_events` | yes | yes | yes | yes, one per topic | yes, one per question; a standalone outcome is its own event | yes, one per category | yes, one per group; a standalone market is its own event | yes, one per fixture, one league a page |
-| `fetch_market` | yes | yes | yes | yes; a categorical option costs a second read for its topic | yes, from the cached catalog | yes | yes; a group option costs a second read for its question | yes, open or settled |
-| `fetch_order_book` | yes | yes | yes | yes | yes, top 20 levels a side; NO mirrored from YES | yes; NO mirrored from YES | yes; NO mirrored from YES | yes; orders on outcome two read as YES asks; NO mirrored |
-| `fetch_order_books` (batched) | yes, one request per market | yes, one round trip | yes, one request per market | yes, one request per market | yes, one request per market | yes, one request per 50 | yes, one request per market | yes, one request per market |
-| `fetch_trades` | yes | yes | no public tape over REST; the last trade is on the book | no public tape; the last trade is on `refresh_quotes` | partial: the venue's last few prints only, no history | yes, the venue's matches | yes, the venue's settled fills | yes, the venue's tape of taker bets |
-| `fetch_ohlcv` | yes, the venue's candles | yes, built from the trade tape, both tokens folded into the YES price; the venue's quote samples via `source="quotes"` | partial: quote-derived bid/ask midpoints, no volume; no public tape to build from | partial: last-trade samples, hourly or daily, no volume | yes, the venue's traded candles with volume; 6h built from 2h | partial: the venue's probability samples, no volume | partial: the venue's price samples over fixed lookbacks, no volume | partial: built from the tape of taker bets, with volume; at most 2,000 bets back |
-| `fetch_series` | yes | no series tier | yes, but fees are per market, not per series | no series tier | no series tier | no series tier | no series tier | no series tier |
-| `fetch_fee_schedule` | yes | yes | yes | yes, read from the venue's fee contract on BNB Chain | yes, at the lowest volume tier; charged on closing fills only | yes, taker only | yes, the venue's buy-fee curve, taker only | yes, the venue's default rates: 1% of a winning taker's profit |
-| `search` | yes ([undocumented host](api.md#search)) | yes | yes | partial: no venue search; titles matched here over 25 catalog pages | yes, matched here over the whole catalog | yes, at the venue | yes, at the venue | yes, fixtures by team name at the venue (at most eight) |
-| `fetch_markets_by_ids` | yes | yes | yes | yes, one request per market | yes, one catalog read | yes, one request per market | yes, one request per market | yes, 30 a request |
-| `sort` | yes, the page is ordered after it is read | yes, at the venue | yes, the page is ordered after it is read; `volume` and `liquidity` cost one read per market | partial: `volume` and `newest` at the venue; no liquidity figure exists | partial: `volume` and `newest`; no liquidity figure exists | partial: `volume` only | partial: `newest` only | no: the venue publishes no volume, liquidity or listing time |
-| `match_market` / `match_event` | no | no | no | no | no | no | no | no |
+| Method | `kalshi` | `polymarket` | `polymarket_us` | `opinion` | `hyperliquid` | `predict_fun` | `limitless` | `sx_bet` | `betfair` | `smarkets` |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `fetch_markets` | yes | yes | yes | yes, categorical topics flattened into their options | yes, every outcome of a question is a market, the fallback ("Other") included | yes, quoted from the listing | yes, a group's options flattened; quoted from the venue's prices, bid and ask on `refresh_quotes` | yes, outcome one as YES, under the venue's names for both sides; bid and ask on `refresh_quotes` | yes, each runner a market, soonest start first, with its best offers; filter by event type, competition, event or market type | yes, each contract a market, Smarkets events in id order; quotes, last executed price and market volume attached; filter by domain, scope or market type, no login |
+| `fetch_events` | yes | yes | yes | yes, one per topic | yes, one per question; a standalone outcome is its own event | yes, one per category | yes, one per group; a standalone market is its own event | yes, one per fixture, one league a page | yes, one per Betfair market (all its runners); the fixture is `info["betfair_event"]` | yes, one per Smarkets market (all its contracts); the fixture is `info["smarkets_event"]` |
+| `fetch_market` | yes | yes | yes | yes; a categorical option costs a second read for its topic | yes, from the cached catalog | yes | yes; a group option costs a second read for its question | yes, open or settled | yes, open or closed; a closed market is read from its book alone (no names, but the result) | yes, open or settled |
+| `fetch_order_book` | yes | yes | yes | yes | yes, top 20 levels a side; NO mirrored from YES | yes; NO mirrored from YES | yes; NO mirrored from YES | yes; orders on outcome two read as YES asks; NO mirrored | yes, best offers (3 levels on a delayed key); resting backs are YES bids, resting lays asks; NO mirrored | yes, the venue's quotes: bids are YES bids, offers YES asks; delayed without a login; NO mirrored |
+| `fetch_order_books` (batched) | yes, one request per market | yes, one round trip | yes, one request per market | yes, one request per market | yes, one request per market | yes, one request per 50 | yes, one request per market | yes, one request per market | yes, forty Betfair markets a request (the weight limit) | yes, two hundred Smarkets markets a request |
+| `fetch_trades` | yes | yes | no public tape over REST; the last trade is on the book | no public tape; the last trade is on `refresh_quotes` | partial: the venue's last few prints only, no history | yes, the venue's matches | yes, the venue's settled fills | yes, the venue's tape of taker bets | no: Betfair publishes no individual trades, only volume per price and the last traded price | partial: the venue's short recent tape per contract (a handful of trades), no paging |
+| `fetch_ohlcv` | yes, the venue's candles | yes, built from the trade tape, both tokens folded into the YES price; the venue's quote samples via `source="quotes"` | partial: quote-derived bid/ask midpoints, no volume; no public tape to build from | partial: last-trade samples, hourly or daily, no volume | yes, the venue's traded candles with volume; 6h built from 2h | partial: the venue's probability samples, no volume | partial: the venue's price samples over fixed lookbacks, no volume | partial: built from the tape of taker bets, with volume; at most 2,000 bets back | no: no trades to build from | no: the venue's executions time series answers `CHARTS_UNAVAILABLE` |
+| `fetch_series` | yes | no series tier | yes, but fees are per market, not per series | no series tier | no series tier | no series tier | no series tier | no series tier | no series tier | no series tier |
+| `fetch_fee_schedule` | yes | yes | yes | yes, read from the venue's fee contract on BNB Chain | yes, at the lowest volume tier; charged on closing fills only | yes, taker only | yes, the venue's buy-fee curve, taker only | yes, the venue's default rates: 1% of a winning taker's profit | yes, commission at the market's base rate on net market winnings; discount and Expert Fee not included | yes, 2% (the standard tier) on net market winnings; tier and promotional rates not included |
+| `search` | yes ([undocumented host](api.md#search)) | yes | yes | partial: no venue search; titles matched here over 25 catalog pages | yes, matched here over the whole catalog | yes, at the venue | yes, at the venue | yes, fixtures by team name at the venue (at most eight) | yes, Betfair's text search | yes, Smarkets' event search |
+| `fetch_markets_by_ids` | yes | yes | yes | yes, one request per market | yes, one catalog read | yes, one request per market | yes, one request per market | yes, 30 a request | yes, a hundred Betfair markets a catalogue request, forty a book request | yes, three hundred markets a lookup, a hundred a contracts read |
+| `sort` | yes, the page is ordered after it is read | yes, at the venue | yes, the page is ordered after it is read; `volume` and `liquidity` cost one read per market | partial: `volume` and `newest` at the venue; no liquidity figure exists | partial: `volume` and `newest`; no liquidity figure exists | partial: `volume` only | partial: `newest` only | no: the venue publishes no volume, liquidity or listing time | partial: `volume` (matched) and `liquidity` (available) at the venue, one page; no listing time | no: the venue lists by id, start time or display order only |
+| `match_market` / `match_event` | no | no | no | no | no | no | no | no | no | no |
 
 Polymarket US is the CFTC-regulated exchange, not the on-chain CLOB the
 `polymarket` adapter reads; the two share a brand and nothing else. It has
@@ -76,6 +76,111 @@ cancelled game, a spread landing on the line), which returns every bet;
 `info["winning_outcome"]` is `yes`, `no` or `void`. Prices sit on a 0.125%
 ladder. Fees are charged on winnings: 1% of a taker's profit on a winning bet,
 nothing for a maker. No key for market data.
+
+### Betfair
+
+Betfair Exchange is a betting exchange, read as YES/NO markets. A Betfair
+*market* ("Match Odds" on Arsenal v Chelsea) holds *runners* (Arsenal, Chelsea,
+the Draw); each runner is a Synpath market, `betfair:1.234567890-1096` (the
+handicap follows a second dash on a handicap runner: `betfair:1.234567892-2426--0.5`),
+and the Betfair market is its event, `betfair:1.234567890`, the way a Polymarket
+neg-risk event holds one market per candidate. The Betfair event (the fixture,
+which holds many Betfair markets) is in `info["betfair_event"]`.
+
+Backing a runner at decimal odds O buys its YES at 1/O; laying it sells YES at
+1/O. Betfair names its book after what a taker can do, so `availableToBack`
+(resting lays) are YES **asks** at 1/O and `availableToLay` (resting backs) are
+YES **bids**. Sizes are stakes in the account's currency (`info["currency"]`);
+a stake S at odds O is S·O contracts. The venue's own odds and stakes stay in
+the book's `info["back"]` and `info["lay"]`; prices are always Betfair's,
+never moved off its ladder (1.01 to 1000). Handicap and line runners can
+half-win or be voided on the line, so they are `market_type="unknown"`.
+
+A market's status is `OPEN`, `SUSPENDED` (still `open` here, with
+`active=False`: Betfair suspends for a goal or the off and reopens),
+`INACTIVE` (`unopened`) or `CLOSED`; each runner is `ACTIVE`, `WINNER`,
+`LOSER`, `PLACED`, `REMOVED` or `HIDDEN`. The result is the runner's status:
+`info["result"]` is `yes`, `no` or `void` (a removed runner). Only open markets
+are listed; a closed one is still read by id.
+
+**Your account, your key.** Every Betfair call, market data included, needs
+your own Betfair account and application key (`BETFAIR_APP_KEY`,
+`BETFAIR_USERNAME`, `BETFAIR_PASSWORD`; `BETFAIR_CERT_PATH` and
+`BETFAIR_KEY_PATH` for certificate login; `BETFAIR_JURISDICTION` for the .it,
+.es, .ro or .com.au sites). The adapter logs in on the first call and keeps the
+session token in memory only, extending it with `keepAlive`. The free
+**delayed** key serves snapshots 1 to 180 seconds late, three price levels a
+side, with no full ladder and no traded volume per runner; every book and
+market says `info["delayed"]` (Betfair's own `isMarketDataDelayed` when it
+sends it). Requests are batched to stay inside Betfair's weight limit (200 a
+request: best offers weigh 5 a market). There is no order entry for Betfair
+yet.
+
+**Where it works, and what you may do with it.** Betfair refuses its API from
+several countries, among them the US, Germany, France, the Netherlands,
+Singapore, India, Turkey and the UAE. Its keys are for an account holder's own
+betting: displaying Betfair prices to anyone else needs a Betfair data
+licence.
+
+### Smarkets
+
+Smarkets is a UK betting exchange, read as YES/NO markets the way Betfair is.
+A Smarkets *market* ("Full-time result" on Fulham v Crystal Palace) holds
+*contracts* (Fulham, Crystal Palace, the Draw); each contract is a Synpath
+market, `smarkets:164973231-456060183` (market id, contract id), and the
+Smarkets market is its event, `smarkets:164973231`. The Smarkets event (the
+fixture, which holds a hundred markets) is in `info["smarkets_event"]`.
+
+Smarkets already prices in probability: basis points of 100% (5000 = 50%,
+decimal odds 2.0). Its `bids` are resting buys (backs), which are YES bids,
+and its `offers` resting sells (lays), YES asks, so nothing is inverted: the
+YES price is the venue's price over 10,000. A level's `quantity` is the pot
+(back stake plus lay liability) in 1/100 of a penny, and a pot of £Q pays £Q to
+the winner, so it is Q contracts paying 1 each: quantity 100,000 at 5000 is 10
+contracts costing £5. Amounts are GBP. The venue's own rows stay in the book's
+`info["bids"]` and `info["offers"]`.
+
+Volumes come per Smarkets market, not per contract, in whole pounds (back
+stakes plus lay liabilities matched): on the event as `info["volume_gbp"]` and
+on each contract as `info["market_volume_gbp"]`, never as the contract's own
+volume. The last executed price comes per contract, as a percentage, and is the
+quote's `last` (a "0" means it never traded). The recent-trades tape is short
+(a handful per contract) and unpaged, so `fetch_trades` is partial; the
+executions time series behind Smarkets' charts answers `CHARTS_UNAVAILABLE`,
+so there are no candles.
+
+A market is `new`, `open`, `live` (in-play), `halted`, `settled`, `voided` or
+`unavailable`; a contract `new`, `open`, `live`, `halted`, `unavailable`, or
+its outcome `winner`, `loser`, `deadheat`, `reduced` (a withdrawn runner, the
+others reduced by its factor) or `voided`. Halted and unavailable are still
+`open` here, with `active=False`. `info["result"]` is `yes`, `no`, `void` (a
+voided market or contract, or a reduced one) or `dead_heat`. Listings take
+`status`: open is upcoming or live events, closed ended or suspended, settled
+settled or cancelled.
+
+Commission is 2% of an account's net winnings in each Smarkets market at
+settlement on the standard tier (`net_market_winnings`); an account's tier or
+promotion can change it, so pass `commission=` to the adapter if yours differs.
+
+**No account for market data.** Every read here is an anonymous GET. Without a
+session Smarkets serves its quotes *delayed* (it does not say by how much) and
+at lower limits: about 60 requests a minute, 20 on `/quotes/`, against 1,200
+per 60 s (50 on `/quotes/`) for an API account. Every book and market says
+`info["delayed"]`. An optional login (`SMARKETS_USERNAME`,
+`SMARKETS_PASSWORD`) sends a session token (`Authorization: Session-Token`)
+for undelayed quotes; it lasts 30 minutes from its last use, and Smarkets
+allows 5 logins per 5 minutes. Accounts with two-factor login are refused with
+a clear error. **Betting needs Smarkets' approved API access** (applied for,
+with a one-off £150 fee); there is no Smarkets order entry here yet.
+
+Requests carry a `synpath/<version>` User-Agent: Smarkets' Cloudflare front
+answers the default ones of HTTP libraries (python-httpx, curl) with a 403
+page. A 403 that is not Smarkets' own JSON is reported as Cloudflare's.
+
+**What you may do with it.** Smarkets' API terms allow viewing prices and
+betting on your own account; odds scraping is prohibited. Which countries
+Smarkets refuses API use from is not published with its API documentation and
+is unverified here.
 
 Matching spans venues, so no adapter claims it. `synpath.match_market(id)`
 and `synpath.match_event(id)` are answered by Synpath's hosted matching service
@@ -151,6 +256,8 @@ Every stream answers the `watch_*` keys the same way
 | `LimitlessUserStream` | no | no | no | no | yes | yes | no | no |
 | `SxBetMarketStream` | yes | partial | yes | yes | no | no | no | no |
 | `SxBetUserStream` | no | no | no | no | yes | yes | no | no |
+| `BetfairMarketStream` | yes, best offers to 10 levels | partial: top of book | no: no public trades | yes, per runner | no | no | no | no |
+| `SmarketsMarketStream` | partial: polled from REST quotes, every 5 s by default | partial: polled | no: read the recent tape with `fetch_trades` | partial: polled every few rounds | no | no | no | no |
 
 The exchange API's other gRPC streams carry one thing each and say so:
 drop copy and trade capture carry fills, position and position-change carry
