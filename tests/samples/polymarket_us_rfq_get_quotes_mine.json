@@ -1,0 +1,22 @@
+{
+  "quotes": [
+    {
+      "id": "quote_09",
+      "rfqId": "rfq_02",
+      "creatorRfqUserId": "rfquser_me",
+      "symbol": "crossd-example",
+      "status": "QUOTE_STATUS_ACTIVE",
+      "createdTime": "2026-07-29T14:00:00.200Z",
+      "buyPrice": "0.615",
+      "sellPrice": "0.585",
+      "restRemainder": false,
+      "postOnly": true,
+      "rfqCreatorUserId": "rfquser_other",
+      "rfqCashOrderQty": null,
+      "buyQtyDecimal": "25",
+      "sellQtyDecimal": "25",
+      "updatedTime": "2026-07-29T14:00:00.200Z"
+    }
+  ],
+  "cursor": ""
+}

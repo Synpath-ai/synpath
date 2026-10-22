@@ -119,8 +119,9 @@ from .trading import (
     Account, Balance, EditRequest, FeeEstimate, Fill, HeldBy, Liquidity,
     Order, OrderRequest, OrderStatus, OrderType, Position, PositionSide,
     Precision, Settlement, SettlementState, Side, TimeInForce, TriggerSource,
+    Rfq, RfqQuote, RfqStatus, RfqCloseReason, QuoteStatus, Combo, ComboLeg, ComboMarket, AcceptQuote, MakerQuote,
     CredentialsMissing, DuplicateClientOrderId, InsufficientFunds, InvalidOrder,
-    MarketHalted, OrderNotFound, OrderRejected, PermissionDenied,
+    MarketHalted, OrderNotFound, OrderRejected, RfqNotFound, PermissionDenied,
     RateBudgetExceeded, RiskRejected, CancelUnconfirmed, SubmissionInDoubt, SubmissionPending,
 )
 from .trading.credentials import load_credentials, require
@@ -188,8 +189,9 @@ __all__ = [
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",
+    "Rfq", "RfqQuote", "RfqStatus", "RfqCloseReason", "QuoteStatus", "Combo", "ComboLeg", "ComboMarket", "AcceptQuote", "MakerQuote",
     "CredentialsMissing", "DuplicateClientOrderId", "InsufficientFunds", "InvalidOrder",
-    "MarketHalted", "OrderNotFound", "OrderRejected", "PermissionDenied",
+    "MarketHalted", "OrderNotFound", "OrderRejected", "RfqNotFound", "PermissionDenied",
     "RateBudgetExceeded", "RiskRejected", "CancelUnconfirmed", "SubmissionInDoubt", "SubmissionPending",
     "load_credentials", "require", "Client",
     # live streams

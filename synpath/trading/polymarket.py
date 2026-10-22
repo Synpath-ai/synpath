@@ -30,6 +30,10 @@ EOA (0). Orders work for all four. Approvals, split, merge and redeem go
 through the gasless relayer for a Deposit Wallet and as the EOA's own
 Polygon transactions for an EOA; the legacy proxy and Safe payloads are not
 built here.
+
+Combo RFQs (requester and quoter) and combos live in `polymarket_rfq`,
+signed with Exchange v3 orders from `polymarket_v3_signing`; the requester
+side needs a Deposit Wallet, proxy or Safe (EOAs are refused).
 """
 from __future__ import annotations
 
@@ -53,6 +57,7 @@ from ..polymarket import parse_ts
 from ..types import FeeSchedule, Page
 from . import polymarket_signing as sig
 from .base import TradingExchange
+from .polymarket_rfq import REQUESTER_URL, RFQ_API_URL, PolymarketRfqMixin, is_combo_id, parse_rfq_order_id
 from .credentials import SYNPATH_BUILDER_CODE, PolymarketCredentials
 from .errors import CredentialsMissing, InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected
 from .limiter import BudgetLimiter, Priority
@@ -547,7 +552,7 @@ def error_of(message: str, *, body: Any = None, status: int | None = None) -> Ex
 # Adapter
 # ---------------------------------------------------------------------------
 
-class PolymarketTrading(TradingExchange):
+class PolymarketTrading(PolymarketRfqMixin, TradingExchange):
     """Polymarket CLOB V2 order entry.
 
     ```python
@@ -584,6 +589,12 @@ class PolymarketTrading(TradingExchange):
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
         "rfq": False,
+        # Combo RFQs through the requester and quoter gateways, signed as
+        # Exchange v3 orders (polymarket_rfq, docs/rfq-combo.md P7). Combos
+        # are RFQ-only: there is no create or lookup endpoint.
+        "rfq_taker": True,
+        "rfq_quoter": True,
+        "combos": True,
         # Deposit Wallets through the relayer and EOAs on-chain; the legacy
         # proxy and Safe wallet payloads are not built.
         "split_merge": "partial",
@@ -606,6 +617,8 @@ class PolymarketTrading(TradingExchange):
         timeout: float = 30.0,
         client: Any = None,
         builder_signer_url: str | None = None,
+        rfq_requester_url: str = REQUESTER_URL,
+        rfq_api_url: str = RFQ_API_URL,
     ):
         import httpx
         import os
@@ -638,6 +651,7 @@ class PolymarketTrading(TradingExchange):
         self.heartbeat_error: BaseException | None = None
         self.clock_offset_s = 0
         self._default_builder_refused = False
+        self._init_rfq(shared, requester_url=rfq_requester_url, rfq_api_url=rfq_api_url)
         """Set once the venue refuses Synpath's default builder code; orders
         are then signed without it for the rest of this session."""
 
@@ -931,6 +945,8 @@ class PolymarketTrading(TradingExchange):
         return len((raw or {}).get("canceled") or [])
 
     async def fetch_order(self, order_id: str) -> Order:
+        if parse_rfq_order_id(order_id) is not None:
+            return await self.fetch_rfq_order(order_id)
         raw = await self._private("GET", f"/data/order/{order_id}")
         if not raw or not isinstance(raw, dict) or not raw.get("id"):
             raise OrderNotFound(f"polymarket: no order {order_id}")
@@ -954,7 +970,12 @@ class PolymarketTrading(TradingExchange):
         since: int | None = None, limit: int | None = None, cursor: str | None = None,
     ) -> Page[Fill]:
         """This account's fills, one page. `order_id` narrows the page to
-        fills of that order; the venue itself filters by market."""
+        fills of that order; the venue itself filters by market. A combo, or
+        an RFQ trade's order (`rfq:...`), reads the RFQ trades this adapter
+        holds: they settle on chain, not on the CLOB."""
+        if (market_id and is_combo_id(market_id)) or (order_id and parse_rfq_order_id(order_id)):
+            fills = self.rfq_fills(market_id=market_id, order_id=order_id)
+            return Page(fills[:limit] if limit else fills, next_cursor=None)
         condition = (await self.market_tokens(market_id)).condition_id if market_id else None
         raw = await self._private("GET", "/data/trades", params={
             "market": condition,
@@ -1381,6 +1402,7 @@ class PolymarketTrading(TradingExchange):
         return {"transaction_hashes": hashes, "receipts": receipts}
 
     async def close(self) -> None:
+        await self.stop_rfq_session()
         await self.stop_heartbeat()
         await self._http.aclose()
 

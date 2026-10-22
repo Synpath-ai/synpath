@@ -1,0 +1,44 @@
+{
+  "rfqs": [
+    {
+      "id": "5b0e3c1e-8c0f-4c7e-9d1a-2f6a0c3b9e11",
+      "creator_id": "comm-self-7f3a",
+      "market_ticker": "KXMVECROSSCATEGORY-S2026GBYNMLIOB4P5GM6R-6TO3QWLMW",
+      "contracts_fp": "5.00",
+      "status": "open",
+      "created_ts": "2026-10-21T15:02:11.482Z",
+      "updated_ts": "2026-10-21T15:02:11.482Z",
+      "mve_collection_ticker": "KXMVECROSSCATEGORY-R",
+      "mve_selected_legs": [
+        {
+          "event_ticker": "KXNFLGAME-26OCT25KCDEN",
+          "market_ticker": "KXNFLGAME-26OCT25KCDEN-KC",
+          "side": "yes"
+        },
+        {
+          "event_ticker": "KXNBAGAME-26OCT25LALBOS",
+          "market_ticker": "KXNBAGAME-26OCT25LALBOS-BOS",
+          "side": "no"
+        }
+      ],
+      "rest_remainder": false,
+      "creator_user_id": "488e312d-cc17-405c-9961-d389284068e2",
+      "creator_subaccount": 0
+    },
+    {
+      "id": "e8d7c6b5-a4f3-4e2d-9c1b-0a9f8e7d6c5b",
+      "creator_id": "comm-other-22de",
+      "market_ticker": "KXNFLGAME-26OCT25KCDEN-KC",
+      "contracts_fp": "20.00",
+      "status": "open",
+      "created_ts": "2026-10-21T15:02:11.482Z",
+      "updated_ts": "2026-10-21T15:02:11.482Z",
+      "mve_collection_ticker": "",
+      "mve_selected_legs": [],
+      "rest_remainder": false,
+      "creator_user_id": "",
+      "creator_subaccount": 0
+    }
+  ],
+  "cursor": ""
+}

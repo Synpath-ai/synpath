@@ -23,6 +23,9 @@ price, sizes in contracts.
 whole venue's tape of taker bets and `markets:global` every market change; the
 stream filters both down to the markets asked for (or passes everything when
 asked for none).
+
+**Parlay requests** arrive on `parlay_markets:global` (`SxBetParlayStream`):
+each is a parlay market a bettor just asked for, open to makers for 60 s.
 """
 from __future__ import annotations
 
@@ -497,3 +500,53 @@ class SxBetUserStream(_CentrifugoStream):
             fill = fill_of_row(data["fill"], account=self.account)
             return [FillEvent(venue=VENUE, fill=fill)] if fill else []
         return []
+
+
+PARLAY_CHANNEL = "parlay_markets:global"
+
+
+class SxBetParlayStream(_CentrifugoStream):
+    """Parlay requests as they are made: the venue's `parlay_markets:global`
+    channel. Each request is a new parlay market a bettor asked for, open to
+    makers' orders for 60 seconds; it arrives as
+    `VenueEvent(name="parlay_request")` whose payload holds the venue's row
+    (`row`) and the request as an incoming `Rfq` (`rfq`, `mine=False`, with
+    the legs as a `Combo`), or `None` where the row cannot be read as one.
+    Needs an SX Bet API key, as every channel on this venue does.
+
+    The venue replays nothing: a request published while the stream was down
+    is gone, and there is no REST listing of open requests to catch up from.
+
+    ```python
+    async with SxBetParlayStream(api_key="...") as stream:
+        await stream.watch_parlays()
+        async for event in stream:
+            ...
+    ```
+    """
+
+    name = "parlays"
+
+    async def watch_parlays(self) -> None:
+        """Every parlay request, venue-wide."""
+        await self.add_channels([PARLAY_CHANNEL])
+
+    def on_publication(self, channel: str, data: Any) -> list[Event]:
+        if channel != PARLAY_CHANNEL:
+            return []
+        from ..trading.sx_bet import rfq_of_parlay
+        from .base import VenueEvent
+
+        events: list[Event] = []
+        for row in data if isinstance(data, list) else [data]:
+            if not isinstance(row, dict) or not row.get("marketHash"):
+                continue
+            received = now_ms()
+            try:
+                rfq = rfq_of_parlay(row, received_at=received)
+            except ValueError as exc:
+                self.status("error", f"unreadable parlay request {row.get('marketHash')}: {exc}")
+                rfq = None
+            events.append(VenueEvent(venue=VENUE, name="parlay_request", payload={"row": row, "rfq": rfq},
+                                     timestamp=received))
+        return events

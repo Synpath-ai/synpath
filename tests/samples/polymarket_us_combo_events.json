@@ -1,0 +1,185 @@
+{
+  "events": [
+    {
+      "id": "167436",
+      "ticker": "lal-fcb-rma-2026-10-25",
+      "slug": "lal-fcb-rma-2026-10-25",
+      "title": "FC Barcelona vs. Real Madrid CF",
+      "startDate": "2026-10-25T20:00:00Z",
+      "endDate": "2026-10-26T03:59:00Z",
+      "active": true,
+      "closed": false,
+      "archived": false,
+      "category": "sports",
+      "seriesSlug": "lal-2025",
+      "gameId": 90117211,
+      "startTime": "2026-10-25T20:00:00Z",
+      "markets": [
+        {
+          "id": "1532970",
+          "question": "Will FC Barcelona win against Real Madrid CF in the La Liga match scheduled for Oct 25, 2026?",
+          "slug": "atc-lal-fcb-rma-2026-10-25-fcb",
+          "category": "sports",
+          "active": true,
+          "closed": true,
+          "marketType": "drawable_outcome",
+          "sportsMarketType": "soccer_team_full_time_winner",
+          "status": "MARKET_STATUS_HALTED",
+          "orderPriceMinTickSize": 0.01,
+          "outcomes": "[\"Yes\",\"No\"]",
+          "outcomePrices": "[\"0\",\"0\"]",
+          "comboEnabled": true,
+          "gameStartTime": "2026-10-25T20:00:00Z"
+        },
+        {
+          "id": "1532971",
+          "question": "Will the La Liga match FC Barcelona vs Real Madrid CF scheduled for Oct 25, 2026 end in a draw?",
+          "slug": "atc-lal-fcb-rma-2026-10-25-draw",
+          "category": "sports",
+          "active": true,
+          "closed": true,
+          "marketType": "drawable_outcome",
+          "sportsMarketType": "soccer_team_full_time_winner",
+          "status": "MARKET_STATUS_HALTED",
+          "orderPriceMinTickSize": 0.01,
+          "outcomes": "[\"Yes\",\"No\"]",
+          "outcomePrices": "[\"0\",\"0\"]",
+          "comboEnabled": true,
+          "gameStartTime": "2026-10-25T20:00:00Z"
+        }
+      ],
+      "tags": [
+        {
+          "id": "2",
+          "label": "Sports",
+          "slug": "sports"
+        },
+        {
+          "id": "12",
+          "label": "Soccer",
+          "slug": "soccer"
+        },
+        {
+          "id": "27",
+          "label": "La Liga",
+          "slug": "lal"
+        },
+        {
+          "id": "1833",
+          "label": "El Cl\u00e1sico",
+          "slug": "el-clasico"
+        }
+      ]
+    },
+    {
+      "id": "148649",
+      "ticker": "nfl-ne-chi-2026-10-22",
+      "slug": "nfl-ne-chi-2026-10-22",
+      "title": "NE Patriots vs. CHI Bears",
+      "startDate": "2026-10-23T00:15:00Z",
+      "endDate": "2026-10-23T03:59:00Z",
+      "active": true,
+      "closed": false,
+      "archived": false,
+      "category": "sports",
+      "seriesSlug": "nfl-2025",
+      "gameId": 19548,
+      "startTime": "2026-10-23T00:15:00Z",
+      "markets": [
+        {
+          "id": "1288608",
+          "question": "Who will win in the upcoming football event New England Patriots vs Chicago Bears scheduled for October 23, 2026 at 12:15 AM UTC?",
+          "slug": "aec-nfl-ne-chi-2026-10-22",
+          "category": "sports",
+          "active": true,
+          "closed": true,
+          "marketType": "moneyline",
+          "sportsMarketType": "football_team_full_game_winner",
+          "status": "MARKET_STATUS_HALTED",
+          "orderPriceMinTickSize": 0.0025,
+          "outcomes": "[\"Patriots\",\"Bears\"]",
+          "outcomePrices": "[\"0\",\"0\"]",
+          "comboEnabled": true,
+          "gameStartTime": "2026-10-23T00:15:00Z"
+        }
+      ],
+      "tags": [
+        {
+          "id": "1",
+          "label": "NFL",
+          "slug": "nfl"
+        },
+        {
+          "id": "2",
+          "label": "Sports",
+          "slug": "sports"
+        },
+        {
+          "id": "3",
+          "label": "Games",
+          "slug": "games"
+        },
+        {
+          "id": "13",
+          "label": "Football",
+          "slug": "football"
+        },
+        {
+          "id": "1790",
+          "label": "Week 7",
+          "slug": "week-7"
+        }
+      ]
+    },
+    {
+      "id": "8349",
+      "ticker": "usho-midterms-2026-11-03",
+      "slug": "usho-midterms-2026-11-03",
+      "title": "U.S House Midterm Winner",
+      "startDate": "2026-11-03T00:00:00Z",
+      "endDate": "2026-11-04T04:59:00Z",
+      "active": true,
+      "closed": false,
+      "archived": false,
+      "category": "politics",
+      "seriesSlug": "us-midterms-2026",
+      "gameId": null,
+      "startTime": "2026-11-03T00:00:00Z",
+      "markets": [
+        {
+          "id": "11325",
+          "question": "U.S House Midterm Winner",
+          "slug": "paccc-usho-midterms-2026-11-03-dem",
+          "category": "politics",
+          "active": true,
+          "closed": false,
+          "marketType": "election",
+          "sportsMarketType": "election",
+          "status": "MARKET_STATUS_OPEN",
+          "orderPriceMinTickSize": 0.001,
+          "outcomes": "[\"Yes\",\"No\"]",
+          "outcomePrices": "[\"0.9080\",\"0.9090\"]",
+          "comboEnabled": false,
+          "gameStartTime": "2026-11-03T00:00:00Z"
+        }
+      ],
+      "tags": [
+        {
+          "id": "30",
+          "label": "Politics",
+          "slug": "politics"
+        },
+        {
+          "id": "31",
+          "label": "Midterms",
+          "slug": "midterms"
+        },
+        {
+          "id": "1783",
+          "label": "US Politics",
+          "slug": "us-politics"
+        }
+      ]
+    }
+  ]
+}

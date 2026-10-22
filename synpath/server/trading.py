@@ -46,7 +46,8 @@ from ..bucket import (
 )
 from ..engine.engine import Engine
 from ..errors import (
-    AuthenticationError, BadRequest, ExchangeError, NetworkError, RateLimitExceeded, RequestTimeout, SynpathError,
+    AuthenticationError, BadRequest, ExchangeError, NetworkError, NotSupported, RateLimitExceeded, RequestTimeout,
+    SynpathError,
 )
 from ..engine.risk import RiskConfig
 from ..trading.errors import (
@@ -71,6 +72,7 @@ TRADING_STATUS: dict[type[Exception], int] = {
     OrderRejected: 400,
     InvalidOrder: 400,
     BadRequest: 400,
+    NotSupported: 501,
     MarketHalted: 409,
     RiskRejected: 409,
     RateBudgetExceeded: 429,
@@ -185,6 +187,9 @@ class HaltResult(BaseModel):
     canceled: dict[str, Any] = Field(default_factory=dict)
     remaining: dict[str, Any] = Field(default_factory=dict)
     managed: int = 0
+    rfq: dict[str, Any] = Field(default_factory=dict, description="With the `cancel` policy: the RFQs we asked "
+                                "(`rfqs`) and the quotes we made (`quotes`) cancelled, per venue: a count, or "
+                                "what failed")
 
 
 class PnlRow(BaseModel):
@@ -902,6 +907,11 @@ def create_trading_router() -> APIRouter:
         require(principal, "manage_credentials")
         return {"revoked": await store.revoke_key(key_id)}
 
+    # -- RFQs, quotes and combos (docs/rfq-combo.md; synpath.server.rfq_routes) --
+
+    from .rfq_routes import add_rfq_routes
+    add_rfq_routes(router)
+
     @router.get("/audit", tags=["members"], summary="The audit log, append-only", responses=RESPONSES)
     async def audit(
         principal: Caller,
@@ -942,6 +952,8 @@ def add_event_socket(app: FastAPI) -> None:
         subscription = engine.bus.subscribe(*(wanted or ()))
         try:
             async for event in engine.bus.replay(since):
+                if wanted and not subscription.wants(event):
+                    continue
                 await socket.send_text(json.dumps({
                     "seq": event.seq, "ts": event.ts, "kind": event.kind, "key": event.key, "payload": event.payload,
                 }, default=str))

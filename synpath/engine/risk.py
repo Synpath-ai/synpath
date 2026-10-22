@@ -345,6 +345,35 @@ class RiskEngine:
                 )
         return self._ok()
 
+    def check_offer(
+        self,
+        market_id: str,
+        *,
+        venue: str,
+        book: str | None = None,
+        quantity: Decimal | None = None,
+        notional: Decimal | None = None,
+    ) -> Decision:
+        """The rules for an offer that commits nothing yet: an RFQ asked or a
+        maker quote sent (docs/rfq-combo.md §5). Halted, a paused book, the
+        restricted list, and the order size limits on the size the offer
+        could trade. The rest (positions, the daily loss) apply when it
+        trades: an accept or a confirm goes through `check` like an order."""
+        config = self.config
+        if not config.enabled:
+            return self._ok()
+        if self.kill.blocks(venue, now=self.clock()):
+            return self._no("kill_switch", f"trading is halted: {self.kill.reason or 'kill switch engaged'}")
+        if config.paused(book):
+            return self._no("book_paused", f"strategy {book!r} is paused; it may cancel but not open")
+        if (pattern := config.restricts(market_id)):
+            return self._no("restricted", f"{market_id} matches the restricted entry {pattern!r}")
+        if quantity is not None and config.max_order_contracts is not None and quantity > config.max_order_contracts:
+            return self._no("max_order_contracts", f"{quantity} contracts is over the {config.max_order_contracts} limit")
+        if notional is not None and config.max_order_notional is not None and notional > config.max_order_notional:
+            return self._no("max_order_notional", f"{notional} is over the {config.max_order_notional} order limit")
+        return self._ok()
+
     # -- bookkeeping ----------------------------------------------------------
 
     def record_sent(self, request: OrderRequest) -> None:

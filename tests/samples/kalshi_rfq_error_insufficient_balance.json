@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "insufficient_balance",
+    "message": "insufficient balance",
+    "service": "communications"
+  }
+}

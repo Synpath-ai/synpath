@@ -17,6 +17,7 @@ What is worth an alert, and why:
 * **the daily loss is approaching its limit** — at the warning fraction,
   while there is still time to decide;
 * **a stream went quiet or reconnected with reconciliation required**;
+* **a venue reported the other side of an RFQ trade** (`rfq.side_mismatch`);
 * **a venue rejected orders repeatedly** — the count in a window, not each
   one, because a rejection storm is one problem, not fifty.
 
@@ -98,6 +99,11 @@ class Alerts:
                              f"{payload.get('reason', 'unknown')}; it may be live and unmanaged", payload)
         elif kind == "intent.swept":
             self.raise_alert("info", "swept", f"an unanswered order was swept: {payload.get('client_order_id')}", payload)
+        elif kind == "rfq.side_mismatch":
+            self.raise_alert("critical", "rfq_side",
+                             f"{payload.get('venue')} reports the {payload.get('reported')} side on quote "
+                             f"{payload.get('quote_id')}, the engine asked for {payload.get('expected')}; "
+                             "the venue's side was booked", payload)
         elif kind == "engine.halted":
             self.raise_alert("critical", "halt", f"trading halted ({payload.get('policy')}): {payload.get('reason')}", payload)
         elif kind == "reconcile.orphan":

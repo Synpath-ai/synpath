@@ -50,6 +50,8 @@ BOOK_BATCH = 500
 
 MARKET_BATCH = 100
 """Gamma enforces this: 200 ids returns `422 expected array length <= 100`."""
+EVENT_BATCH = 20
+"""Gamma events per `GET /events?id=` read: each carries every market of its event."""
 
 TRADE_PAGE = 500
 """Rows per Data API `/trades` call, its maximum."""
@@ -667,6 +669,26 @@ class Polymarket(Exchange):
                     if raw.get("id") is not None:
                         found[str(raw["id"])] = self._remember(normalize_market(raw))
         return [found[market_id] for market_id in natives if market_id in found]
+
+    def fetch_events_by_ids(self, event_ids: list[str]) -> list[Event]:
+        """Many events with their markets, in the order asked for (Gamma
+        `GET /events?id=`, batched; `info` keeps the event's own fields, such
+        as a game's `teams`). Ids Gamma does not serve are left out. The
+        combo board reads its games' teams this way."""
+        natives = [self.native(event_id) for event_id in event_ids]
+        found: dict[str, Event] = {}
+        unique = list(dict.fromkeys(natives))
+        for start in range(0, len(unique), EVENT_BATCH):
+            batch = unique[start:start + EVENT_BATCH]
+            payload = self.gamma.get("/events", [("id", event_id) for event_id in batch] + [("limit", len(batch))])
+            for raw in payload if isinstance(payload, list) else []:
+                if raw.get("id") is None:
+                    continue
+                try:
+                    found[str(raw["id"])] = normalize_event(raw)
+                except BadRequest:
+                    continue
+        return [found[event_id] for event_id in natives if event_id in found]
 
     def fetch_market(self, market_id: str) -> Market:
         native = self.native(market_id)

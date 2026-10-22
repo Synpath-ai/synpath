@@ -25,6 +25,7 @@ from .storage import JournalStore, create_journal
 from .ledger import Ledger, PositionState, Rollup
 from .orders import ManagedOrder, ManagedOrderController
 from .risk import Decision, KillSwitch, RiskConfig, RiskEngine
+from .rfq import RfqDesk
 
 __all__ = [
     "Engine", "EngineConfig", "Recovery",
@@ -33,4 +34,5 @@ __all__ = [
     "Ledger", "PositionState", "Rollup",
     "RiskConfig", "RiskEngine", "Decision", "KillSwitch",
     "ManagedOrder", "ManagedOrderController",
+    "RfqDesk",
 ]

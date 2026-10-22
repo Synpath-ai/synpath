@@ -114,6 +114,72 @@ def validate_quantity(quantity: Decimal, precision: Precision) -> Decimal:
     return quantity
 
 
+# -- sizing by amount ------------------------------------------------------------
+
+FALLBACK_QUANTITY_STEP = Decimal("0.000001")
+"""The grid a venue with no quantity step is sized on: six decimals, the
+finest any venue in VENUE_RULES uses."""
+
+
+def outcome_price(yes_price: Decimal, outcome: str, *, face_value: Decimal = ONE) -> Decimal:
+    """What one contract of `outcome` costs at a YES price: the YES price
+    itself, or its complement for NO."""
+    if outcome not in ("yes", "no"):
+        raise InvalidOrder(f"outcome must be yes or no, got {outcome!r}")
+    return yes_price if outcome == "yes" else complement(yes_price, face_value=face_value)
+
+
+def contracts_for_amount(
+    amount: Decimal,
+    price: Decimal,
+    precision: Precision,
+    *,
+    action: str = "buy",
+    worst_price: Decimal | None = None,
+) -> Decimal:
+    """How many contracts `amount` of money buys (or, selling, raises) at
+    `price`, rounded down to the venue's quantity step.
+
+    `price` and `worst_price` are prices of the token traded, not YES prices:
+    pass `outcome_price(...)` for NO. Rounding is always down, so the money
+    spent never exceeds `amount`. `worst_price` caps the spend: a buy at a
+    price above it (a sell below it) is refused, so `contracts * worst_price`
+    is at most `amount` too. Refused with `InvalidOrder` when the result is
+    below the venue's minimum quantity or minimum notional, rather than
+    rounded up into an order bigger than asked.
+    """
+    amount, price = D(amount), D(price)
+    if amount <= 0:
+        raise InvalidOrder(f"amount must be positive, got {amount}")
+    if price <= 0 or price >= precision.face_value:
+        raise InvalidOrder(f"price {price} is outside (0, {precision.face_value})")
+    if action not in ("buy", "sell"):
+        raise InvalidOrder(f"action must be buy or sell, got {action!r}")
+    if worst_price is not None:
+        worst_price = D(worst_price)
+        worse = price > worst_price if action == "buy" else price < worst_price
+        if worse:
+            raise InvalidOrder(f"price {price} is worse than the worst price {worst_price} for a {action}")
+    step = ONE if precision.whole_contracts else (precision.quantity_step or FALLBACK_QUANTITY_STEP)
+    contracts = round_to(amount / price, step, "down")
+    if contracts <= 0 or contracts < precision.min_quantity:
+        raise InvalidOrder(f"amount {amount} at {price} is {contracts} contracts, below the minimum "
+                           f"{precision.min_quantity}")
+    if precision.min_notional is not None and contracts * price < precision.min_notional:
+        raise InvalidOrder(f"amount {amount} at {price} is {contracts * price} after rounding, below the "
+                           f"minimum order of {precision.min_notional}")
+    return contracts
+
+
+def amount_for_contracts(contracts: Decimal, price: Decimal) -> Decimal:
+    """What `contracts` cost (or raise) at `price`, the token's own price:
+    the inverse of `contracts_for_amount`, for display."""
+    contracts, price = D(contracts), D(price)
+    if contracts < 0:
+        raise InvalidOrder(f"contracts must not be negative, got {contracts}")
+    return contracts * price
+
+
 # -- Kalshi --------------------------------------------------------------------
 
 KALSHI_PRICE_PLACES = Decimal("0.0001")

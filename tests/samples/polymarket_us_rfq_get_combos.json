@@ -1,0 +1,20 @@
+{
+  "combos": [
+    {
+      "id": "caoc-example",
+      "legs": [
+        {
+          "symbol": "tec-mlb-nlchamp-2026-09-27-atl",
+          "side": "SIDE_BUY"
+        },
+        {
+          "symbol": "tec-mlb-alchamp-2026-09-27-nyy",
+          "side": "SIDE_SELL"
+        }
+      ],
+      "state": "INSTRUMENT_STATE_OPEN",
+      "createdTime": "2026-07-29T14:00:00Z",
+      "tickSize": 0.001
+    }
+  ]
+}

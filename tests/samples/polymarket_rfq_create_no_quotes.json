@@ -1,0 +1,8 @@
+{
+  "rfq_id": "rfq_none_1",
+  "status": "FAILED",
+  "error": {
+    "code": "NO_QUOTES",
+    "message": "no quotes"
+  }
+}

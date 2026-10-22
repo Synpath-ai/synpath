@@ -69,7 +69,9 @@ bound) and the children of engine-held orders are not collared.
 adapter's cancel-all, reads the book back, and cancels anything still resting
 one order at a time. New orders are refused from the moment it engages.
 Policies are `cancel`, `hold` (leave them resting, refuse new ones) and
-`rearm` (refuse, then lift itself after a timer).
+`rearm` (refuse, then lift itself after a timer). With `cancel` it first
+cancels every open cross-venue RFQ group's members, then every open RFQ the
+engine asked and every quote it made.
 
 ## The pieces
 
@@ -81,7 +83,9 @@ Policies are `cancel`, `hold` (leave them resting, refuse new ones) and
 | `risk.py` | the rules, the kill switch, the strategy pause |
 | `ledger.py` | positions netted on the YES leg, average cost, realized and unrealized profit, rolled up by market, book and account |
 | `reconcile.py` | orphans, ghosts, drift, position and balance differences |
-| `paper.py` | a venue that fills against a real book with queue position and the venue's fee model |
+| `rfq.py` | RFQs and combos, both sides: accept and confirm through risk and the journal, the quote follower, recovery, halt |
+| `rfq_group.py` | cross-venue RFQ: one RFQ per venue that lists a market, bucket or combo, one ranked list after fees, one accept per group (claimed in the journal), the rest cancelled |
+| `paper.py` | a venue that fills against a real book with queue position and the venue's fee model; `PaperRfqVenue` adds RFQs with configurable makers |
 | `alerts.py` | the few events worth waking someone for |
 | `eod.py` | settlements, the daily report, rolling the risk day |
 | `__main__.py` | daemon mode, `status`, `halt`, `resume`, `eod` |
@@ -287,6 +291,112 @@ Ids are UUIDs made locally, so a definition made offline stays unique when
 it later moves to a hosted account. Nothing here judges whether the members
 are really the same question.
 
+## RFQs and combos
+
+`engine.rfq` (`rfq.py`) runs both sides of an RFQ on the venues that declare
+`rfq_taker` / `rfq_quoter`; [`rfq-combo.md`](rfq-combo.md) has the design and
+the venue facts.
+
+```python
+rfq = await engine.create_rfq("polymarket_us:caoc-...", quantity=Decimal("10"), book="parlays")
+# quotes arrive as quote.received events
+quote = await engine.accept_quote(AcceptQuote(quote_id=q.id, rfq_id=rfq.id, outcome="yes", action="buy",
+                                              worst_price=Decimal("0.30")))     # returns at once: accepted
+# then quote.confirmed, quote.executed, order.accepted, order.closed, fill.booked
+```
+
+- **An accept is an order.** The quote is re-read; a price worse than
+  `worst_price` is refused (rule `worst_price`); an `amount` becomes contracts
+  rounded down to the venue's step; the `rfq_taker` request runs every risk
+  rule. Then the intent `rfq-accept:{venue}:{quote_id}` is written and the
+  venue called. `wait=True` follows the quote to its end.
+- **Results are events.** The intent stays `sending` through the maker's last
+  look. The `rfq` loop (or a venue's quote stream, or the sweep) reads the
+  quote; when it executes, the order is recorded through the normal order
+  path and its fills booked, and the intent becomes `sent`; when it ends
+  without a trade, `failed` with `quote.failed`.
+- **Recovery** reads the quote back: an accept that never reached the venue
+  is `rejected` after `lost_after_s` and may be retried; one that did is
+  followed and adopted; nothing is sent twice.
+- **The side the venue reports is booked.** A mismatch with the intent
+  publishes `rfq.side_mismatch` and a critical alert.
+- **Quoter.** `send_quote`, `replace_quote`, `cancel_quote` are journaled and
+  checked against the halt, a paused book, the restricted list and the size
+  limits; `confirm_quote` runs every rule on our side of the trade and is
+  followed like an accept (`rfq_maker` order). The engine holds a quote's
+  `expires_at` and cancels it when it passes. `rfq.incoming` announces others'
+  RFQs.
+- **Quoting in time.** Register a callback with `engine.rfq.on_incoming_rfq`;
+  it runs the moment an incoming RFQ is recorded and `rfq.incoming` is out.
+  Polymarket global's quoter session and SX Bet's parlay channel push their
+  requests (`subscribe_incoming_rfqs`), so there the callback runs as the
+  stream delivers, with no poll in between (well under a millisecond in
+  process; the Polymarket window is 400 ms). Kalshi and Polymarket US have
+  no RFQ stream here and are polled every `rfq_incoming_interval_s` (2 s).
+  The streams start with the `rfq` loop (`rfq_stream_incoming`, on by
+  default); `send_quote` finds the RFQ in `engine.rfq.incoming` and makes
+  no venue read before its own call.
+
+  ```python
+  async def quoter(rfq):                     # runs inside the venue's window
+      if rfq.combo is None or len(rfq.combo.legs) > 4:
+          return
+      await engine.send_quote(MakerQuote(rfq_id=rfq.id, bid=Decimal("0.18"), ask=Decimal("0.22"),
+                                         book="mm"), venue=rfq.venue)
+
+  stop = engine.rfq.on_incoming_rfq(quoter)  # stop() unsubscribes
+  ```
+- **Restarts on a venue that lists nothing.** Polymarket global's gateway
+  has no list of a requester's RFQs, so at start (`recover()`) the engine
+  hands each adapter its open RFQs from the working set and the quotes whose
+  accept or confirm is in doubt (`TradingExchange.restore_rfqs`, a no-op
+  elsewhere). An accept in flight is then followed to executed or failed,
+  and an open RFQ can still be cancelled.
+- **A combo is an instrument.** Its own market id carries the order, fills,
+  position, P&L and reconciliation; its legs are kept as `combo.saved` events
+  and shown in `Position.info["combo"]`.
+
+### Cross-venue RFQ
+
+`engine.rfq_groups` (`rfq_group.py`) asks every venue that lists the same
+thing at once and ranks every answer as one list
+([design](rfq-combo.md#10-cross-venue-rfq)).
+
+```python
+group = await engine.create_rfq_group("bucket:9f2c...", quantity=Decimal("10"), book="arb")
+group = await engine.create_rfq_group("kalshi:KXFOO-25", amount=Decimal("100"), cross_venue=True)
+group = await engine.create_rfq_group(legs=[ComboLeg(market_id="kalshi:KXA-26-X", outcome="yes"),
+                                            ComboLeg(market_id="kalshi:KXB-26-Y", outcome="no")],
+                                      quantity=Decimal("10"))
+group.members, group.skipped          # one RFQ per venue; the venues left out, with reasons
+best = group.best()                   # ranked by effective price after each venue's taker fee
+done = await engine.accept_group_quote(group.id, best.quote_id, venue=best.venue, worst_price=Decimal("0.45"), wait=True)
+```
+
+- **Members.** A bucket's enabled members (with `flip`); a combo's legs
+  mapped onto each combo venue (by the leg's own venue, a bucket member, or
+  hosted matching with its `side_map`), checked for eligibility (Kalshi
+  collections, the Polymarket lists) and built there; a market and, with
+  `cross_venue=True`, its matches. Each member is a desk RFQ. Matching is
+  `Engine(..., matcher=...)`, by default `synpath.matching.match_market`.
+- **Ranking.** Every quote in the group's YES terms (a flipped member's bid
+  `b` is the group's ask `1 - b`), plus the venue's taker fee for the size
+  (`fetch_fee_estimate`), as the router prices a bucket. An amount ranks by
+  the contracts it buys after the fee. `rfq_group.quote` then
+  `rfq_group.updated` as quotes arrive.
+- **One accept.** `accept_group_quote` checks the accept first (nothing
+  written on a refusal), claims the group with the intent
+  `rfq-group-accept:{group}:{n}` (refused while an earlier attempt still
+  holds it), cancels every other member (Polymarket global's lapse instead),
+  then accepts through `accept_quote`. An accept that does not trade frees
+  the group for another quote; cancelled venues stay cancelled. A member's
+  quote cannot be accepted around the group.
+- **Recovery and halt.** Groups not final are in the cursor `rfq:groups`
+  and come back at `recover()`, with their member RFQs re-seeded
+  (`restore_rfqs`). A claim whose accept was never sent is released after a
+  restart, nothing traded. The halt (`cancel` policy) cancels every open
+  group's members; any halt refuses a new accept.
+
 ## The ledger
 
 Positions net on the YES leg, which is the leg every fill arrives on: a
@@ -423,6 +533,18 @@ its process.
   fire early, a TWAP whose slices are real orders, a parent that survives a
   restart without sending a second child, a halt, and a Day order the venue
   holds the expiry for.
+- **RFQ and combos, 26 offline tests against `PaperRfqVenue`** (each on
+  SQLite and PostgreSQL): accept to order, fill and position with the events
+  in order; accept by amount; the worst-price, risk and kill-switch refusals
+  sending nothing; a partial fill; a maker letting the last look lapse; a
+  stream and a fill poll moving the accept; a crash between the intent and
+  the call, and between the call and its result, on both sides; the side
+  guard; a combo position reconciled on its own instrument; the quoter flow,
+  confirm through risk, expiry, replace; a halt cancelling every RFQ and
+  quote; and a pushed incoming RFQ reaching the quoting callback, which
+  quotes it, with no poll (`TestIncomingPush`). The Polymarket global tests
+  add a restart that follows an accept to a position, one whose accept never
+  landed, a cancel after a restart, and a confirm in doubt.
 - **On Kalshi's demo, four tests, twice in a row:** a submitted order is
   found at the venue with the client order id the journal wrote; the restart
   path adopts a real order rather than sending a second one; a halt cancels
@@ -432,7 +554,7 @@ its process.
 Run them with:
 
 ```bash
-pytest tests/test_engine.py tests/test_engine_orders.py
+pytest tests/test_engine.py tests/test_engine_orders.py tests/test_engine_rfq.py
 pytest -m demo tests/test_engine_demo.py tests/test_engine_orders_demo.py
 ```
 

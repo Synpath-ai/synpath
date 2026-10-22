@@ -1,0 +1,772 @@
+{
+ "source": "GET gateway.polymarket.us/v1/events?active=true&closed=false&orderBy=id&orderDirection=desc (public); read 2026-10-22, trimmed",
+ "events": [
+  {
+   "id": "178416",
+   "slug": "setkamecz-akoart-mulpat-2026-10-22",
+   "title": "Akopyan Artur vs. Muller Patrik",
+   "startTime": "2026-10-22T13:05:00Z",
+   "seriesSlug": "setka-cup-czechia-men-2026",
+   "category": "sports",
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports"
+    },
+    {
+     "id": "3",
+     "label": "Games",
+     "slug": "games"
+    },
+    {
+     "id": "655",
+     "label": "Table Tennis",
+     "slug": "table-tennis"
+    },
+    {
+     "id": "721",
+     "label": "Setka Cup Czechia Men",
+     "slug": "setkamecz"
+    },
+    {
+     "id": "726",
+     "label": "Setka",
+     "slug": "setka"
+    }
+   ],
+   "teams": [
+    {
+     "id": 19814,
+     "name": "Akopyan Artur",
+     "abbreviation": "akoart",
+     "displayAbbreviation": "Artur",
+     "alias": "Akopyan Artur"
+    },
+    {
+     "id": 31434,
+     "name": "M\u00fcller Patrik",
+     "abbreviation": "mulpat",
+     "displayAbbreviation": "Patrik",
+     "alias": "M\u00fcller Patrik"
+    }
+   ],
+   "markets": [
+    {
+     "id": "1679301",
+     "slug": "aec-setkamecz-akoart-mulpat-2026-10-22",
+     "question": "Who will win in the upcoming table-tennis event Akopyan Artur vs Muller Patrik scheduled for October 22, 2026 at 1:05 PM UTC?",
+     "title": "Akopyan Artur vs M\u00fcller Patrik",
+     "titleShort": "Artur vs Patrik",
+     "marketType": "moneyline",
+     "sportsMarketType": "table_tennis_match_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_MONEYLINE",
+     "outcomes": "[\"Akopyan Artur\",\"M\u00fcller Patrik\"]",
+     "outcomePrices": "[\"0.5100\",\"0.5500\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-22T13:05:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "bestBidQuote": {
+      "value": "0.5100",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.5500",
+      "currency": "USD"
+     },
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "Akopyan Artur",
+       "long": true,
+       "team": {
+        "id": 19814,
+        "name": "Akopyan Artur",
+        "abbreviation": "akoart",
+        "displayAbbreviation": "Artur",
+        "alias": "Akopyan Artur",
+        "ordering": "home"
+       }
+      },
+      {
+       "description": "M\u00fcller Patrik",
+       "long": false,
+       "team": {
+        "id": 31434,
+        "name": "M\u00fcller Patrik",
+        "abbreviation": "mulpat",
+        "displayAbbreviation": "Patrik",
+        "alias": "M\u00fcller Patrik",
+        "ordering": "away"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "178368",
+   "slug": "dota2-nemiga-icxi-2026-10-25",
+   "title": "Nemiga Gaming vs. Inner Circle x Insanity  Game 2",
+   "startTime": "2026-10-25T12:00:00Z",
+   "seriesSlug": "dota-2",
+   "category": "sports",
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports"
+    },
+    {
+     "id": "39",
+     "label": "Esports",
+     "slug": "esports"
+    },
+    {
+     "id": "258",
+     "label": "Dota 2",
+     "slug": "dota2"
+    }
+   ],
+   "teams": [
+    {
+     "id": 7786,
+     "name": "Nemiga Gaming",
+     "abbreviation": "nemiga",
+     "displayAbbreviation": "NEMIGA",
+     "alias": ""
+    },
+    {
+     "id": 9302,
+     "name": "Inner Circle x Insanity",
+     "abbreviation": "icxi",
+     "displayAbbreviation": "ICXI",
+     "alias": ""
+    }
+   ],
+   "markets": [
+    {
+     "id": "1679182",
+     "slug": "aec-dota2-nemiga-icxi-2026-10-25",
+     "question": "Who will win in the upcoming esports event Nemiga Gaming vs Inner Circle x Insanity scheduled for October 25, 2026 at 12:00 PM UTC?",
+     "title": "Nemiga Gaming vs Inner Circle x Insanity",
+     "titleShort": "NEMIGA vs ICXI",
+     "marketType": "moneyline",
+     "sportsMarketType": "esports_match_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_MONEYLINE",
+     "outcomes": "[\"Nemiga Gaming\",\"Inner Circle x Insanity\"]",
+     "outcomePrices": "[\"0.0200\",\"0.9800\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-25T12:00:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "Nemiga Gaming",
+       "long": true,
+       "team": {
+        "id": 7786,
+        "name": "Nemiga Gaming",
+        "abbreviation": "nemiga",
+        "displayAbbreviation": "NEMIGA",
+        "alias": "",
+        "ordering": "home"
+       }
+      },
+      {
+       "description": "Inner Circle x Insanity",
+       "long": false,
+       "team": {
+        "id": 9302,
+        "name": "Inner Circle x Insanity",
+        "abbreviation": "icxi",
+        "displayAbbreviation": "ICXI",
+        "alias": "",
+        "ordering": "away"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "178333",
+   "slug": "cba-sdk-tia-2026-10-25",
+   "title": "Shandong Hi-Speed Kirin vs. Tianjin Pioneers",
+   "startTime": "2026-10-25T11:35:00Z",
+   "seriesSlug": "cba-2026",
+   "category": "sports",
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports"
+    },
+    {
+     "id": "3",
+     "label": "Games",
+     "slug": "games"
+    },
+    {
+     "id": "11",
+     "label": "Basketball",
+     "slug": "basketball"
+    },
+    {
+     "id": "612",
+     "label": "International Basketball",
+     "slug": "international-basketball"
+    },
+    {
+     "id": "1494",
+     "label": "China",
+     "slug": "china"
+    },
+    {
+     "id": "1495",
+     "label": "CBA",
+     "slug": "cba"
+    }
+   ],
+   "teams": [
+    {
+     "id": 36492,
+     "name": "Shandong Hi-Speed Kirin",
+     "abbreviation": "sdk",
+     "displayAbbreviation": "SDK",
+     "alias": ""
+    },
+    {
+     "id": 36502,
+     "name": "Tianjin Pioneers",
+     "abbreviation": "tia",
+     "displayAbbreviation": "TIA",
+     "alias": ""
+    }
+   ],
+   "markets": [
+    {
+     "id": "1677885",
+     "slug": "aec-cba-sdk-tia-2026-10-25",
+     "question": "Who will win in the upcoming basketball event Shandong Hi-Speed Kirin vs Tianjin Pioneers scheduled for October 25, 2026 at 11:35 AM UTC?",
+     "title": "Shandong Hi-Speed Kirin vs Tianjin Pioneers",
+     "titleShort": "SDK vs TIA",
+     "marketType": "moneyline",
+     "sportsMarketType": "basketball_team_full_game_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_MONEYLINE",
+     "outcomes": "[\"Shandong Hi-Speed Kirin\",\"Tianjin Pioneers\"]",
+     "outcomePrices": "[\"0.1000\",\"0.9000\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-25T11:35:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "Shandong Hi-Speed Kirin",
+       "long": true,
+       "team": {
+        "id": 36492,
+        "name": "Shandong Hi-Speed Kirin",
+        "abbreviation": "sdk",
+        "displayAbbreviation": "SDK",
+        "alias": "",
+        "ordering": "home"
+       }
+      },
+      {
+       "description": "Tianjin Pioneers",
+       "long": false,
+       "team": {
+        "id": 36502,
+        "name": "Tianjin Pioneers",
+        "abbreviation": "tia",
+        "displayAbbreviation": "TIA",
+        "alias": "",
+        "ordering": "away"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "178113",
+   "slug": "khl-amr-adm-2026-10-25",
+   "title": "Amur Khabarovsk vs. Admiral Vladivostok",
+   "startTime": "2026-10-25T07:00:00Z",
+   "seriesSlug": "khl-2026",
+   "category": "sports",
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports"
+    },
+    {
+     "id": "3",
+     "label": "Games",
+     "slug": "games"
+    },
+    {
+     "id": "14",
+     "label": "Hockey",
+     "slug": "ice-hockey"
+    },
+    {
+     "id": "1356",
+     "label": "International Hockey",
+     "slug": "international-hockey"
+    },
+    {
+     "id": "1357",
+     "label": "KHL",
+     "slug": "khl"
+    }
+   ],
+   "teams": [
+    {
+     "id": 33998,
+     "name": "Amur Khabarovsk",
+     "abbreviation": "amr",
+     "displayAbbreviation": "AMR",
+     "alias": ""
+    },
+    {
+     "id": 34001,
+     "name": "Admiral Vladivostok",
+     "abbreviation": "adm",
+     "displayAbbreviation": "ADM",
+     "alias": ""
+    }
+   ],
+   "markets": [
+    {
+     "id": "1674964",
+     "slug": "aec-khl-amr-adm-2026-10-25",
+     "question": "Who will win in the upcoming hockey event Amur Khabarovsk vs Admiral Vladivostok scheduled for October 25, 2026 at 7:00 AM UTC?",
+     "title": "Amur Khabarovsk vs Admiral Vladivostok",
+     "titleShort": "AMR vs ADM",
+     "marketType": "moneyline",
+     "sportsMarketType": "hockey_team_full_game_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_MONEYLINE",
+     "outcomes": "[\"Amur Khabarovsk\",\"Admiral Vladivostok\"]",
+     "outcomePrices": "[\"0.5800\",\"0.6400\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-25T07:00:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "bestBidQuote": {
+      "value": "0.5800",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.6400",
+      "currency": "USD"
+     },
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "Amur Khabarovsk",
+       "long": true,
+       "team": {
+        "id": 33998,
+        "name": "Amur Khabarovsk",
+        "abbreviation": "amr",
+        "displayAbbreviation": "AMR",
+        "alias": "",
+        "ordering": "home"
+       }
+      },
+      {
+       "description": "Admiral Vladivostok",
+       "long": false,
+       "team": {
+        "id": 34001,
+        "name": "Admiral Vladivostok",
+        "abbreviation": "adm",
+        "displayAbbreviation": "ADM",
+        "alias": "",
+        "ordering": "away"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "177819",
+   "slug": "lco-tol-adp-2026-10-25",
+   "title": "CD Tolima vs. AD Pasto",
+   "startTime": "2026-10-26T01:15:00Z",
+   "seriesSlug": "lco",
+   "category": "sports",
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports"
+    },
+    {
+     "id": "12",
+     "label": "Soccer",
+     "slug": "soccer"
+    },
+    {
+     "id": "675",
+     "label": "Liga Colombia",
+     "slug": "lco"
+    }
+   ],
+   "teams": [
+    {
+     "id": 17077,
+     "name": "CD Tolima",
+     "abbreviation": "tol",
+     "displayAbbreviation": "TOL",
+     "alias": ""
+    },
+    {
+     "id": 17075,
+     "name": "AD Pasto",
+     "abbreviation": "adp",
+     "displayAbbreviation": "ADP",
+     "alias": ""
+    }
+   ],
+   "markets": [
+    {
+     "id": "1668037",
+     "slug": "atc-lco-tol-adp-2026-10-25-tol",
+     "question": "Will CD Tolima win against AD Pasto in the Liga Colombia match scheduled for Oct 25, 2026?",
+     "title": "CD Tolima (Reg. Time)",
+     "titleShort": "TOL (Reg. Time)",
+     "marketType": "drawable_outcome",
+     "sportsMarketType": "soccer_team_full_time_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_DRAWABLE_OUTCOME",
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.6000\",\"0.6800\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-26T01:15:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "bestBidQuote": {
+      "value": "0.6000",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.6800",
+      "currency": "USD"
+     },
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "Yes",
+       "long": true,
+       "team": {
+        "id": 17077,
+        "name": "CD Tolima",
+        "abbreviation": "tol",
+        "displayAbbreviation": "TOL",
+        "alias": "",
+        "ordering": "home"
+       }
+      },
+      {
+       "description": "No",
+       "long": false,
+       "team": {
+        "id": 17077,
+        "name": "CD Tolima",
+        "abbreviation": "tol",
+        "displayAbbreviation": "TOL",
+        "alias": "",
+        "ordering": "away"
+       }
+      }
+     ]
+    },
+    {
+     "id": "1668038",
+     "slug": "atc-lco-tol-adp-2026-10-25-draw",
+     "question": "Will the Liga Colombia match CD Tolima vs AD Pasto scheduled for Oct 25, 2026 end in a draw?",
+     "title": "Tie (Reg. Time)",
+     "titleShort": "Tie (Reg. Time)",
+     "marketType": "drawable_outcome",
+     "sportsMarketType": "soccer_team_full_time_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_DRAWABLE_OUTCOME",
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.1800\",\"0.2500\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-26T01:15:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "bestBidQuote": {
+      "value": "0.1800",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.2500",
+      "currency": "USD"
+     },
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "Yes",
+       "long": true,
+       "team": null
+      },
+      {
+       "description": "No",
+       "long": false,
+       "team": null
+      }
+     ]
+    },
+    {
+     "id": "1668040",
+     "slug": "atc-lco-tol-adp-2026-10-25-adp",
+     "question": "Will AD Pasto win against CD Tolima in the Liga Colombia match scheduled for Oct 25, 2026?",
+     "title": "AD Pasto (Reg. Time)",
+     "titleShort": "ADP (Reg. Time)",
+     "marketType": "drawable_outcome",
+     "sportsMarketType": "soccer_team_full_time_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_DRAWABLE_OUTCOME",
+     "outcomes": "[\"Yes\",\"No\"]",
+     "outcomePrices": "[\"0.0800\",\"0.1500\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-26T01:15:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "bestBidQuote": {
+      "value": "0.0800",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.1500",
+      "currency": "USD"
+     },
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "Yes",
+       "long": true,
+       "team": {
+        "id": 17075,
+        "name": "AD Pasto",
+        "abbreviation": "adp",
+        "displayAbbreviation": "ADP",
+        "alias": "",
+        "ordering": "home"
+       }
+      },
+      {
+       "description": "No",
+       "long": false,
+       "team": {
+        "id": 17075,
+        "name": "AD Pasto",
+        "abbreviation": "adp",
+        "displayAbbreviation": "ADP",
+        "alias": "",
+        "ordering": "away"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "178310",
+   "slug": "t20icr-nze-india-2026-10-24",
+   "title": "New Zealand vs. India",
+   "startTime": "2026-10-24T07:00:00Z",
+   "seriesSlug": "t20i-cr-2026",
+   "category": "sports",
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports"
+    },
+    {
+     "id": "3",
+     "label": "Games",
+     "slug": "games"
+    },
+    {
+     "id": "36",
+     "label": "Cricket",
+     "slug": "cricket"
+    },
+    {
+     "id": "696",
+     "label": "T20 Intl",
+     "slug": "t20icr"
+    }
+   ],
+   "teams": [
+    {
+     "id": 41777,
+     "name": "New Zealand",
+     "abbreviation": "nze",
+     "displayAbbreviation": "NZE",
+     "alias": "New Zealand"
+    },
+    {
+     "id": 20953,
+     "name": "India",
+     "abbreviation": "india",
+     "displayAbbreviation": "INDIA",
+     "alias": "India"
+    }
+   ],
+   "markets": [
+    {
+     "id": "1677809",
+     "slug": "aec-t20icr-nze-india-2026-10-24",
+     "question": "Who will win in the upcoming cricket event New Zealand vs India scheduled for October 24, 2026 at 7:00 AM UTC?",
+     "title": "New Zealand vs India",
+     "titleShort": "NZE vs INDIA",
+     "marketType": "moneyline",
+     "sportsMarketType": "cricket_match_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_MONEYLINE",
+     "outcomes": "[\"New Zealand\",\"India\"]",
+     "outcomePrices": "[\"0.1000\",\"0.5200\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-24T07:00:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "bestBidQuote": {
+      "value": "0.1000",
+      "currency": "USD"
+     },
+     "bestAskQuote": {
+      "value": "0.5200",
+      "currency": "USD"
+     },
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "New Zealand",
+       "long": true,
+       "team": {
+        "id": 41777,
+        "name": "New Zealand",
+        "abbreviation": "nze",
+        "displayAbbreviation": "NZE",
+        "alias": "New Zealand",
+        "ordering": "home"
+       }
+      },
+      {
+       "description": "India",
+       "long": false,
+       "team": {
+        "id": 20953,
+        "name": "India",
+        "abbreviation": "india",
+        "displayAbbreviation": "INDIA",
+        "alias": "India",
+        "ordering": "away"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "178257",
+   "slug": "npb-ybo-fsh-2026-10-25",
+   "title": "Yokohama BayStars vs. Fukuoka SoftBank Hawks",
+   "startTime": "2026-10-25T09:00:00Z",
+   "seriesSlug": "npb-2026",
+   "category": "sports",
+   "tags": [
+    {
+     "id": "2",
+     "label": "Sports",
+     "slug": "sports"
+    },
+    {
+     "id": "3",
+     "label": "Games",
+     "slug": "games"
+    },
+    {
+     "id": "15",
+     "label": "Baseball",
+     "slug": "baseball"
+    },
+    {
+     "id": "544",
+     "label": "NPB",
+     "slug": "npb"
+    }
+   ],
+   "teams": [
+    {
+     "id": 11388,
+     "name": "Yokohama BayStars",
+     "abbreviation": "ybo",
+     "displayAbbreviation": "YBO",
+     "alias": ""
+    },
+    {
+     "id": 11384,
+     "name": "Fukuoka SoftBank Hawks",
+     "abbreviation": "fsh",
+     "displayAbbreviation": "FSH",
+     "alias": ""
+    }
+   ],
+   "markets": [
+    {
+     "id": "1676661",
+     "slug": "aec-npb-ybo-fsh-2026-10-25",
+     "question": "Who will win in the upcoming baseball event Yokohama BayStars vs Fukuoka SoftBank Hawks scheduled for October 25, 2026 at 9:00 AM UTC?",
+     "title": "Yokohama BayStars vs Fukuoka SoftBank Hawks",
+     "titleShort": "YBO vs FSH",
+     "marketType": "moneyline",
+     "sportsMarketType": "baseball_team_full_game_winner",
+     "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_MONEYLINE",
+     "outcomes": "[\"Yokohama BayStars\",\"Fukuoka SoftBank Hawks\"]",
+     "outcomePrices": "[\"0.1000\",\"0.8900\"]",
+     "comboEnabled": true,
+     "gameStartTime": "2026-10-25T09:00:00Z",
+     "status": "MARKET_STATUS_OPEN",
+     "active": true,
+     "closed": false,
+     "marketSides": [
+      {
+       "description": "Yokohama BayStars",
+       "long": true,
+       "team": {
+        "id": 11388,
+        "name": "Yokohama BayStars",
+        "abbreviation": "ybo",
+        "displayAbbreviation": "YBO",
+        "alias": "",
+        "ordering": "home"
+       }
+      },
+      {
+       "description": "Fukuoka SoftBank Hawks",
+       "long": false,
+       "team": {
+        "id": 11384,
+        "name": "Fukuoka SoftBank Hawks",
+        "abbreviation": "fsh",
+        "displayAbbreviation": "FSH",
+        "alias": "",
+        "ordering": "away"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
