@@ -21,17 +21,18 @@ grant is checked on that venue's account before anything is sent.
 """
 from __future__ import annotations
 
+import time
 from decimal import Decimal
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Awaitable, Callable, Literal
 
-from fastapi import APIRouter, HTTPException, Path, Query, Response
+from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 from pydantic import BaseModel, Field, model_validator
 
 from .. import ids
 from ..engine.engine import Engine
 from ..errors import SynpathError
 from ..trading.types import (
-    AcceptQuote, Account, Action, Combo, ComboLeg, MakerQuote, Outcome, QuoteStatus, Rfq, RfqQuote, RfqStatus,
+    AcceptQuote, Account, Action, Combo, ComboLeg, ComboMarket, MakerQuote, Outcome, QuoteStatus, Rfq, RfqQuote, RfqStatus,
 )
 from .errors import http_error
 from .models import ErrorBody, PageResponse
@@ -111,6 +112,16 @@ class ComboBody(BaseModel):
 
     legs: list[ComboLeg] = Field(min_length=2)
     venue: str | None = None
+
+
+class CreateComboBody(ComboBody):
+    """`ComboBody`, plus where to build the combo."""
+
+    collection_id: str | None = Field(
+        default=None, description="Kalshi: the multivariate event collection to build the combo in "
+        "(`collection_ticker`, e.g. `KXMVECROSSCATEGORY-R`; see `GET /combos/collections`). Without it the one "
+        "open collection that takes every leg's event is used, and several are a `400` naming them in "
+        "`details.collections`. Refused (`400`) on a venue without collections (Polymarket, Polymarket US).")
 
 
 class QuoteResult(BaseModel):
@@ -217,12 +228,50 @@ async def quote_result(engine: Engine, quote: RfqQuote, key: str, venue: str) ->
                        order_id=(intent.order_id if intent else None) or None)
 
 
+COMBO_LIST_TTL_S = 15.0
+"""How long a combo list read (eligible markets, collections) is served from
+memory: the terminal polls them, and they change on the scale of minutes."""
+COMBO_LIST_CACHE_SIZE = 256
+COMBO_BOARD_TTL_S = 30.0
+"""How long a venue's combo board is served from memory: it reads several
+pages of the venue's list (and, on Kalshi, every collection event's markets)."""
+PREVIEW_TTL_S = 10.0
+"""How long a group preview is reused: the slip asks again on every pick."""
+
+
+class TtlCache:
+    """A small in-process cache of venue reads, by key, for `ttl_s` seconds.
+    Only answers are kept; an error is never cached."""
+
+    def __init__(self, ttl_s: float = COMBO_LIST_TTL_S, size: int = COMBO_LIST_CACHE_SIZE,
+                 clock: Callable[[], float] = time.monotonic):
+        self.ttl_s, self.size, self.clock = ttl_s, size, clock
+        self.rows: dict[Any, tuple[float, Any]] = {}
+
+    async def get(self, key: Any, read: Callable[[], Awaitable[Any]]) -> Any:
+        now = self.clock()
+        held = self.rows.get(key)
+        if held is not None and held[0] > now:
+            return held[1]
+        value = await read()
+        if len(self.rows) >= self.size:
+            for stale in [k for k, (until, _) in self.rows.items() if until <= now] or [next(iter(self.rows))]:
+                self.rows.pop(stale, None)
+        self.rows[key] = (now + self.ttl_s, value)
+        return value
+
+
+from ..engine.rfq_group import lists_combo_markets  # noqa: E402  (shared with the engine's groups)
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
 def add_rfq_routes(router: APIRouter) -> None:
     """RFQs (taker and quoter sides), quotes and combos."""
+
+    combo_lists = TtlCache()
 
     # -- taker: RFQs ----------------------------------------------------------
 
@@ -407,13 +456,14 @@ def add_rfq_routes(router: APIRouter) -> None:
 
     @router.post("/combos", tags=["rfq"], summary="Create or look up the combo for these legs",
                  responses=RFQ_RESPONSES)
-    async def create_combo(principal: Caller, engine: EngineDep, body: ComboBody) -> Combo:
+    async def create_combo(principal: Caller, engine: EngineDep, body: CreateComboBody) -> Combo:
         """Idempotent: the same legs give the same combo (an existing one
         costs no venue quota). A signed write, so `trade`. The legs are kept
-        by the engine (`combo.saved`) and shown on the combo's position."""
+        by the engine (`combo.saved`) and shown on the combo's position.
+        On Kalshi, `collection_id` names the collection to build it in."""
         name = rfq_venue(engine, body.venue, market_id=body.legs[0].market_id, capability="combos")
         require(principal, "trade", account_key(None, engine, name))
-        return await tagged(name, engine.create_combo(body.legs, venue=name))
+        return await tagged(name, engine.create_combo(body.legs, venue=name, collection_id=body.collection_id))
 
     @router.post("/combos/lookup", tags=["rfq"], summary="The combo for these legs, if it exists",
                  responses=RFQ_RESPONSES)
@@ -436,8 +486,10 @@ def add_rfq_routes(router: APIRouter) -> None:
         cursor: Annotated[str | None, Query()] = None,
     ) -> PageResponse[dict[str, Any]]:
         """The venue's own collection objects (Kalshi's multivariate event
-        collections: `collection_ticker`, `associated_events`, `size_min`,
-        `size_max`...). `501` on a venue without collections."""
+        collections: `collection_ticker`, `associated_event_tickers` (always
+        present: every event a leg may come from), `associated_events`,
+        `size_min`, `size_max`...). `501` on a venue without collections.
+        Served from memory for 15 s."""
         if venue is None:
             with_collections = [v for v, a in engine.adapters.items() if hasattr(a, "fetch_combo_collections")]
             venue = with_collections[0] if len(with_collections) == 1 else None
@@ -447,9 +499,74 @@ def add_rfq_routes(router: APIRouter) -> None:
         if fetch is None:
             from ..errors import NotSupported
             raise NotSupported(f"{name}: combo collections")
-        page = await tagged(name, fetch(status=status, event_id=event_id, limit=limit, cursor=cursor))
+        page = await combo_lists.get(
+            ("collections", name, status, event_id, limit, cursor),
+            lambda: tagged(name, fetch(status=status, event_id=event_id, limit=limit, cursor=cursor)))
         rows = list(page)
         return PageResponse[dict[str, Any]](data=rows, next_cursor=page.next_cursor, count=len(rows))
+
+    @router.get("/combos/markets", tags=["rfq"], summary="Markets a combo may take as legs (Polymarket, Polymarket US)",
+                responses=RFQ_RESPONSES)
+    async def combo_markets(
+        principal: Caller,
+        engine: EngineDep,
+        venue: Annotated[str | None, Query(description="`polymarket` or `polymarket_us`; defaults to the only "
+                                                       "venue with such a list")] = None,
+        event_id: Annotated[str | None, Query(description="Polymarket US: only this event's markets "
+                                                          "(`polymarket_us:<event slug>`). Polymarket: `400`")] = None,
+        tag: Annotated[str | None, Query(description="Only this tag: Polymarket US's tag slug (`nfl`, `soccer`); "
+                                                     "on Polymarket a catalogue tag, applied to each page")] = None,
+        limit: Annotated[int | None, Query(ge=1, le=500, description="Polymarket: markets per page. Polymarket "
+                                                                     "US: events read per page (default 50)")] = None,
+        cursor: Annotated[str | None, Query()] = None,
+    ) -> PageResponse[ComboMarket]:
+        """The venue's own list of combo-eligible markets, as `ComboMarket`
+        rows: `market_id` (the leg's), `title`, `event_id`/`event_title`
+        where listed, `position_ids` (Polymarket: per outcome, the leg's
+        `info.position_id`), `min_legs`/`max_legs`, the venue's `status` and
+        `tags`, and the venue's row in `info`. A page can be short or empty
+        with a `next_cursor`: the venues filter after paging. Served from
+        memory for 15 s, so it can be polled. `501` on a venue without such
+        a list (Kalshi: `GET /combos/collections`)."""
+        if venue is None:
+            listing = [v for v, a in engine.adapters.items() if lists_combo_markets(a)]
+            venue = listing[0] if len(listing) == 1 else None
+        name = rfq_venue(engine, venue, capability="combos")
+        require_view(principal, engine, name)
+        fetch = getattr(engine.adapters[name], "fetch_combo_eligible_markets", None)
+        if fetch is None:
+            from ..errors import NotSupported
+            raise NotSupported(f"{name}: combo-eligible markets")
+        page = await combo_lists.get(
+            ("markets", name, event_id, tag, limit, cursor),
+            lambda: tagged(name, fetch(event_id=event_id, tag=tag, limit=limit, cursor=cursor)))
+        rows = list(page)
+        return PageResponse[ComboMarket](data=rows, next_cursor=page.next_cursor, count=len(rows))
+
+    boards = TtlCache(ttl_s=COMBO_BOARD_TTL_S, size=16)
+
+    @router.get("/combos/board", tags=["rfq"], summary="A venue's combo-eligible markets as games and questions",
+                responses=RFQ_RESPONSES)
+    async def combo_board(
+        principal: Caller,
+        engine: EngineDep,
+        request: Request,
+        venue: Annotated[str, Query(description="A venue with `combos`: `kalshi`, `polymarket`, `polymarket_us`")],
+        pages: Annotated[int, Query(ge=1, le=20, description="Pages of the venue's list to read")] = 5,
+    ) -> ComboBoard:
+        """What a combo builder draws (`synpath/engine/combo_board.py`):
+        games (participants, and moneyline / spread / total picks where the
+        venue lists those types), YES / NO questions for everything else,
+        and categories (leagues, kinds) with counts. Each pick is a leg:
+        `market_id` and `outcome`, with the catalogue's prices. Kalshi's
+        board is its open collections' events (their markets read from the
+        server's catalogue); Polymarket's and Polymarket US's, their own
+        eligible lists. Served from memory for 30 s."""
+        name = rfq_venue(engine, venue, capability="combos")
+        require_view(principal, engine, name)
+        reader = catalogue_reader(request, name)
+        return await boards.get(("board", name, pages),
+                                lambda: tagged(name, board_for(name, engine.adapters[name], reader, pages=pages)))
 
     @router.get("/combos/{market_id}", tags=["rfq"], summary="One combo and its legs", responses=RFQ_RESPONSES)
     async def get_combo(principal: Caller, engine: EngineDep, market_id: Annotated[str, Path()],
@@ -461,3 +578,294 @@ def add_rfq_routes(router: APIRouter) -> None:
         if combo is not None:
             return combo
         return await tagged(name, engine.adapters[name].fetch_combo(market_id))
+
+    add_rfq_group_routes(router)
+
+
+# ---------------------------------------------------------------------------
+# Cross-venue RFQ groups (docs/rfq-combo.md, "Cross-venue RFQ")
+# ---------------------------------------------------------------------------
+
+from ..engine.combo_board import ComboBoard, board_for  # noqa: E402
+from ..engine.rfq_group import GroupPreview, RfqGroup  # noqa: E402
+
+
+def catalogue_reader(request: Request, venue: str) -> Any | None:
+    """The server's read adapter for a venue (serve's market-data registry),
+    or None where this app has none (a bare `create_trading_app`)."""
+    registry = getattr(request.app.state, "registry", None)
+    if registry is None:
+        return None
+    try:
+        return registry.get(venue)
+    except Exception:
+        return None
+
+
+async def preview_prices(request: Request, preview: GroupPreview) -> None:
+    """Each offered venue's leg prices from the catalogue (YES ask for a YES
+    leg, 1 - YES bid for a NO leg) and their product, best effort."""
+    import asyncio
+
+    for venue in preview.offered:
+        if not venue.legs:
+            continue
+        reader = catalogue_reader(request, venue.venue)
+        found: dict[str, Any] = {}
+        if reader is not None:
+            try:
+                found = {m.id: m for m in await asyncio.to_thread(reader.fetch_markets_by_ids,
+                                                                   [leg.market_id for leg in venue.legs])}
+            except Exception:
+                found = {}
+        prices: list[Decimal | None] = []
+        for leg in venue.legs:
+            market = found.get(leg.market_id)
+            quote = market.yes.quote if market is not None else None
+            raw = (quote.ask if leg.outcome == "yes" else (1 - quote.bid if quote.bid is not None else None)) \
+                if quote is not None else None
+            price = Decimal(str(raw)).quantize(Decimal("0.0001")) if raw is not None and 0 < raw < 1 else None
+            prices.append(price)
+        venue.leg_prices = prices
+        if prices and all(p is not None for p in prices):
+            combined = Decimal(1)
+            for price in prices:
+                combined *= price  # type: ignore[operator]
+            venue.combined_price = combined.quantize(Decimal("0.000001"))
+
+
+class RfqGroupBody(BaseModel):
+    """One RFQ on every venue that lists the instrument, ranked as one."""
+
+    instrument_id: str | None = Field(
+        default=None, description="A market (`venue:native`), a bucket (`bucket:<id>`), or a combo's own market id "
+                                  "the engine holds the legs of. Exactly one of this and `legs`")
+    legs: list[ComboLeg] | None = Field(
+        default=None, min_length=2, description="A combo's legs: each a market on any venue (or a bucket) and the "
+                                                "outcome it needs; mapped onto each combo venue by matching")
+    quantity: Decimal | None = Field(default=None, gt=0, description="Contracts. Exactly one of this and `amount`")
+    amount: Decimal | None = Field(default=None, gt=0, description="Money: quotes rank by the contracts it buys "
+                                                                   "after each venue's taker fee")
+    outcome: Outcome = Field(default="yes", description="The outcome the requester trades, in the instrument's terms")
+    action: Action = "buy"
+    cross_venue: bool = Field(default=False, description="A plain market: also ask every other RFQ venue's "
+                                                         "matched market. Buckets and combos always fan out")
+    venues: list[str] | None = Field(default=None, description="Only these venues")
+    exclude_venues: list[str] = Field(default_factory=list, description="Not these venues")
+    book: str | None = None
+    trader: str | None = None
+    tags: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "RfqGroupBody":
+        if (self.quantity is None) == (self.amount is None):
+            raise ValueError("size an RFQ group by quantity (contracts) or amount (money), exactly one")
+        if (self.instrument_id is None) == (self.legs is None):
+            raise ValueError("give instrument_id or legs, exactly one")
+        return self
+
+
+class RfqGroupPreviewBody(BaseModel):
+    """`POST /rfq-groups` without creating anything: the size is optional."""
+
+    instrument_id: str | None = Field(default=None, description="A market, a bucket or a combo's own id. Exactly "
+                                                                "one of this and `legs`")
+    legs: list[ComboLeg] | None = Field(default=None, min_length=2)
+    quantity: Decimal | None = Field(default=None, gt=0)
+    amount: Decimal | None = Field(default=None, gt=0, description="Unsized, a buy by amount is planned")
+    outcome: Outcome = "yes"
+    action: Action = "buy"
+    cross_venue: bool = False
+    venues: list[str] | None = None
+    exclude_venues: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "RfqGroupPreviewBody":
+        if self.quantity is not None and self.amount is not None:
+            raise ValueError("size a preview by quantity or amount, at most one")
+        if (self.instrument_id is None) == (self.legs is None):
+            raise ValueError("give instrument_id or legs, exactly one")
+        return self
+
+
+class GroupAcceptBody(BaseModel):
+    quote_id: str = Field(description="A quote from the group's ranked list")
+    venue: str | None = Field(default=None, description="The quote's venue. Required when the group spans more "
+                                                        "than one venue: quote ids are the venues' own, so two "
+                                                        "venues may return the same one (`400 venue_required`)")
+    worst_price: Decimal | None = Field(default=None, gt=0, lt=1, description="The worst YES price accepted, in the "
+                                                                              "group's terms (a flipped member's is "
+                                                                              "turned over)")
+    wait: bool = Field(default=False, description="Follow the accept until the quote is final, up to `timeout_s`")
+    timeout_s: float = Field(default=30.0, gt=0, le=120)
+    tags: dict[str, str] = Field(default_factory=dict)
+
+
+class GroupAcceptResult(BaseModel):
+    """What an accept on a group did, as far as it is known yet."""
+
+    group: RfqGroup
+    quote: RfqQuote = Field(description="The member quote, as its venue answered")
+    venue: str
+    client_order_id: str = Field(description="The member accept's intent key")
+    claim_key: str = Field(description="The group's claim intent: one live claim per group")
+    final: bool
+    intent_state: str | None = None
+    order_id: str | None = None
+
+
+GROUP_ACCEPT_RESPONSES: dict[int | str, dict[str, Any]] = {
+    **RFQ_RESPONSES,
+    200: {"model": GroupAcceptResult, "description": "`wait` was true and the quote is final"},
+    202: {"description": "Claimed, the other venues cancelled, the accept sent; the rest arrives as `rfq_group.*` "
+                         "and `quote.*` events. Also `submission_in_doubt` when the venue gave no answer"},
+    409: {"model": ErrorBody, "description": "A risk rule or the halt (`details.rule`), or the group already has an "
+                                             "accept in flight (`rfq_group_accept_in_flight`) or done "
+                                             "(`rfq_group_accepted`)"},
+}
+
+
+def group_accounts(engine: Engine, group: RfqGroup) -> list[str]:
+    return [account_key(None, engine, venue) for venue in sorted(group.venues())]
+
+
+def require_group(principal: Principal, engine: Engine, group: RfqGroup, permission: str) -> None:
+    """A group is seen by a key that may see every venue it asks, and changed
+    (accepted, cancelled) by one that may trade every one: an accept cancels
+    the others."""
+    for account in group_accounts(engine, group):
+        if permission == "view":
+            if not visible(principal, account):
+                raise HTTPException(status_code=403, detail=f"this key may not view {account}")
+        else:
+            require(principal, "trade", account)
+
+
+def add_rfq_group_routes(router: APIRouter) -> None:
+    @router.post("/rfq-groups", tags=["rfq"], summary="Ask every venue that lists it", responses=RFQ_RESPONSES,
+                 status_code=201)
+    async def create_rfq_group(principal: Caller, engine: EngineDep, body: RfqGroupBody) -> RfqGroup:
+        """One RFQ per venue: a bucket's members, a combo's legs mapped onto
+        each combo venue, or a market and (with `cross_venue`) its matches.
+        Venues this key may not trade are skipped (`forbidden`), like those
+        missing a leg or refusing one, each with its reason in `skipped`.
+        `400 no_venue` (with `details.skipped`) when none is left. Quotes
+        arrive as `rfq_group.quote` and `rfq_group.updated` events."""
+        capable = [v for v, a in engine.adapters.items() if a.has.get("rfq_taker")]
+        for name in [*(body.venues or []), *body.exclude_venues]:
+            if name not in engine.adapters:
+                raise http_error(404, "unknown_venue", f"this server does not trade {name}", venue=name)
+        refused = {v: f"this key may not trade {account_key(None, engine, v)}" for v in capable
+                   if not principal.may("trade", account_key(None, engine, v))}
+        for name in body.venues or []:
+            if name in refused:
+                raise HTTPException(status_code=403, detail=refused[name])
+        if capable and len(refused) == len(capable):
+            raise HTTPException(status_code=403, detail="this key may not trade on any RFQ venue")
+        from ..errors import BadRequest
+        try:
+            return await engine.create_rfq_group(
+                body.instrument_id, legs=body.legs, quantity=body.quantity, amount=body.amount,
+                outcome=body.outcome, action=body.action, cross_venue=body.cross_venue, venues=body.venues,
+                exclude_venues=body.exclude_venues, refused_venues=refused, book=body.book, trader=body.trader,
+                tags=body.tags)
+        except BadRequest as exc:
+            skipped = getattr(exc, "skipped", None)
+            if skipped is not None:
+                raise http_error(400, "no_venue", str(exc), skipped=skipped) from None
+            raise
+
+    previews = TtlCache(ttl_s=PREVIEW_TTL_S, size=128)
+
+    @router.post("/rfq-groups/preview", tags=["rfq"], summary="Which venues a group would ask, without creating it",
+                 responses=RFQ_RESPONSES)
+    async def preview_rfq_group(principal: Caller, engine: EngineDep, request: Request,
+                                body: RfqGroupPreviewBody) -> GroupPreview:
+        """A dry run of `POST /rfq-groups`: each venue's mapped market or
+        legs (matching, eligibility, Kalshi's collection) in `offered`, with
+        the legs' catalogue prices and their product (an estimate, not a
+        quote), or the reason it would be skipped. Nothing is created,
+        journaled or sent to a venue's RFQ desk; the matching service and
+        the venues' eligibility lists are read. Served from memory for 10 s."""
+        capable = [v for v, a in engine.adapters.items() if a.has.get("rfq_taker")]
+        for name in [*(body.venues or []), *body.exclude_venues]:
+            if name not in engine.adapters:
+                raise http_error(404, "unknown_venue", f"this server does not trade {name}", venue=name)
+        refused = {v: f"this key may not trade {account_key(None, engine, v)}" for v in capable
+                   if not principal.may("trade", account_key(None, engine, v))}
+
+        async def read() -> GroupPreview:
+            preview = await engine.preview_rfq_group(
+                body.instrument_id, legs=body.legs, quantity=body.quantity, amount=body.amount,
+                outcome=body.outcome, action=body.action, cross_venue=body.cross_venue, venues=body.venues,
+                exclude_venues=body.exclude_venues, refused_venues=refused)
+            await preview_prices(request, preview)
+            return preview
+
+        key = ("preview", body.model_dump_json(), tuple(sorted(refused)))
+        return (await previews.get(key, read)).model_copy(deep=True)
+
+    @router.get("/rfq-groups", tags=["rfq"], summary="Cross-venue RFQ groups", responses=RFQ_RESPONSES)
+    async def list_rfq_groups(
+        principal: Caller,
+        engine: EngineDep,
+        status: Annotated[str | None, Query(description="Only groups in this state")] = None,
+        limit: Annotated[int | None, Query(ge=1, le=500)] = None,
+    ) -> PageResponse[RfqGroup]:
+        """The groups the engine holds (open ones, and those finished since
+        it started), newest first, that this key may see every venue of."""
+        rows = [g for g in engine.rfq_groups.list(status=status)
+                if all(visible(principal, a) for a in group_accounts(engine, g))]
+        rows = rows[:limit] if limit else rows
+        return PageResponse[RfqGroup](data=rows, next_cursor=None, count=len(rows))
+
+    @router.get("/rfq-groups/{group_id}", tags=["rfq"], summary="One group: members, skipped venues, ranked quotes",
+                responses=RFQ_RESPONSES)
+    async def get_rfq_group(principal: Caller, engine: EngineDep, group_id: Annotated[str, Path()],
+                            refresh: Annotated[bool, Query(description="Read every open member's quotes from its "
+                                                                       "venue first")] = False) -> RfqGroup:
+        group = await engine.rfq_group(group_id)
+        require_group(principal, engine, group, "view")
+        if refresh and not group.final:
+            group = await engine.rfq_groups.refresh(group_id)
+        return group
+
+    @router.post("/rfq-groups/{group_id}/accept", tags=["rfq"], summary="Take one quote; cancel the other venues",
+                 responses=GROUP_ACCEPT_RESPONSES, status_code=202)
+    async def accept_rfq_group(principal: Caller, engine: EngineDep, response: Response,
+                               group_id: Annotated[str, Path()], body: GroupAcceptBody) -> GroupAcceptResult:
+        """Checked like any accept (risk, `worst_price`) before anything is
+        written; then the group is claimed in the journal, every other
+        member RFQ is cancelled (Polymarket global's are left to expire), and
+        the quote is accepted. One accept per group: a second is `409`. The
+        quote is named by `{quote_id, venue}`; `venue` may be left out only
+        on a one-venue group (`400 venue_required`)."""
+        group = await engine.rfq_group(group_id)
+        require_group(principal, engine, group, "trade")
+        from ..errors import BadRequest
+        try:
+            done = await engine.accept_group_quote(group_id, body.quote_id, venue=body.venue,
+                                                   worst_price=body.worst_price, wait=body.wait,
+                                                   timeout_s=body.timeout_s, tags=body.tags)
+        except BadRequest as exc:
+            reason = getattr(exc, "reason", None)
+            if reason in ("venue_required", "venue_not_in_group"):
+                raise http_error(400, reason, str(exc), venues=sorted(group.venues())) from None
+            raise
+        intent = await engine.journal.intent(done.client_order_id)
+        result = GroupAcceptResult(group=done.group, quote=done.quote, venue=done.venue,
+                                   client_order_id=done.client_order_id, claim_key=done.claim_key,
+                                   final=done.quote.is_terminal, intent_state=intent.state if intent else None,
+                                   order_id=(intent.order_id if intent else None) or None)
+        if body.wait and result.final:
+            response.status_code = 200
+        return result
+
+    @router.delete("/rfq-groups/{group_id}", tags=["rfq"], summary="Cancel every venue's RFQ in a group",
+                   responses=RFQ_RESPONSES)
+    async def cancel_rfq_group(principal: Caller, engine: EngineDep, group_id: Annotated[str, Path()]) -> RfqGroup:
+        """Never refused by risk, so it works while halted. `409` while an
+        accept is in flight (the others are cancelled already)."""
+        group = await engine.rfq_group(group_id)
+        require_group(principal, engine, group, "trade")
+        return await engine.cancel_rfq_group(group_id)

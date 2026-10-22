@@ -683,6 +683,31 @@ class Combo(_Base):
         return legs
 
 
+class ComboMarket(_Base):
+    """One market the venue lets a combo take as a leg, from its own list of
+    combo-eligible markets (Polymarket's catalogue, Polymarket US's
+    `comboEnabled`). Kalshi lists eligibility by collection instead."""
+
+    market_id: str
+    """Synpath id, `venue:native`: the leg's `ComboLeg.market_id`."""
+    venue: str
+    title: str | None = None
+    event_id: str | None = None
+    """The market's event, where the venue's list names it (Polymarket US)."""
+    event_title: str | None = None
+    position_ids: dict[str, str] | None = None
+    """Per outcome (`yes`, `no`), where a leg is named by a position id
+    (Polymarket: `leg.info["position_id"]`)."""
+    min_legs: int = 2
+    max_legs: int | None = None
+    """The most legs a combo may have on this venue, where documented."""
+    status: str | None = None
+    """The venue's own market status, as listed."""
+    tags: list[str] = Field(default_factory=list)
+    info: dict[str, Any] = Field(default_factory=dict)
+    """The venue's own row."""
+
+
 class Rfq(_Base):
     """A request for quote: one market or one combo, sized by contracts or by
     money, never both."""

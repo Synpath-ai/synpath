@@ -264,11 +264,16 @@ venue's parsed `body` and HTTP `status`.
 created in a multivariate event collection: an ordinary binary market with a
 `KXMVE…` ticker, its own book, positions and settlement, so its id is
 `kalshi:KXMVE…`. `fetch_combo_collections()` lists the collections (which
-events each takes, `size_min`/`size_max`, `active_quoters`).
+events each takes, always as `associated_event_tickers`, plus
+`associated_events`, `size_min`/`size_max`, `active_quoters`).
 `create_combo([ComboLeg(market_id=..., outcome="yes"|"no", event_id=...), ...], collection_id=...)`
 returns the combo market for those legs, creating it if needed; without
 `collection_id` the one open collection that takes every leg's event is used,
-and a leg without `event_id` has its market read for it. Creation is signed
+and a leg without `event_id` has its market read for it. Several fitting
+collections are `InvalidOrder` naming them (and listing them on
+`exc.collections`); pass one as `collection_id`. Today's three open
+collections (`KXMVESPORTSMULTIGAMEEXTENDED-R`, `KXMVECROSSCATEGORY-R`,
+`KXMVECROSSCATEGORY-SHARD1-R`) take the same events, so name one. Creation is signed
 and capped at 5,000 a week, and a combo must be created once before it can
 be traded or read. `fetch_combo(id)` reads one, legs from `mve_selected_legs`;
 there is no lookup by legs that does not create.
@@ -421,7 +426,13 @@ spends pUSD, a SELL moves combo positions) is UNVERIFIED.
   `polymarket:combo-legs-<hex>.<hex>`, which spells out its legs. The first
   RFQ's answer gives the combo's real id, `polymarket:combo-<condition_id>`;
   `create_combo` and `fetch_combo` return that id from then on, and positions
-  and fills live on it.
+  and fills live on it. A `collection_id` is refused (no collections).
+- **Eligible markets.** `fetch_combo_eligible_markets(tag=, limit=, cursor=)`
+  is the catalogue as `ComboMarket` rows (`market_id`, `title`,
+  `position_ids={"yes", "no"}`, `max_legs` 50, `tags`, the row in `info`), by
+  volume. The catalogue takes no filter, so `tag` is applied to each page
+  (a page can be short); `event_id` is `BadRequest` (the catalogue names no
+  events). `fetch_combo_markets()` stays the raw rows.
 - **One side per RFQ.** `create_rfq(combo_id, outcome="yes", action="buy", amount=...)`
   sizes a buy in pUSD, fees included. `action="sell", quantity=...` sizes a
   sell in shares. The venue quotes the combo's YES only. The call returns
@@ -504,7 +515,14 @@ settles like any market. `create_combo([ComboLeg(market_id=..., outcome="yes"|"n
 returns the venue's canonical combo for those legs (`no` sells the leg); the
 same legs always give the same symbol, so it is safe to call again.
 `fetch_combo(id)` reads one by symbol; there is no lookup by legs that does
-not create.
+not create. A `collection_id` is refused before anything is sent.
+`fetch_combo_eligible_markets(event_id=, tag=, limit=, cursor=)` lists the
+`comboEnabled` markets of the public gateway's open events (`GET /v1/events`,
+no auth), newest event first, as `ComboMarket` rows with `event_id`
+(`polymarket_us:<event slug>`), `event_title`, `max_legs` 50 and the venue's
+`status`. `event_id` and `tag` (a tag slug: `nfl`, `soccer`) are the venue's
+filters; `limit` counts events read (default 50), so a page can hold no
+markets yet carry a cursor (an offset).
 
 An RFQ is two-sided: `create_rfq(combo_id, quantity=...)` or `amount=` (USD,
 sent as `cashOrderQty`; the venue sizes each side to it, taker fee

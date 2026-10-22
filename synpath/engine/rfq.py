@@ -79,9 +79,11 @@ log = logging.getLogger("synpath.engine.rfq")
 ZERO = Decimal("0")
 ONE = Decimal("1")
 
+GROUP_OPERATIONS = frozenset({"rfq_group_create", "rfq_group_accept"})
+"""The cross-venue group's own intents (`synpath.engine.rfq_group`)."""
 RFQ_OPERATIONS = frozenset({
     "create_rfq", "cancel_rfq", "accept_quote", "send_quote", "replace_quote", "cancel_quote", "confirm_quote",
-})
+}) | GROUP_OPERATIONS
 """Intent operations this module owns; `Engine._resolve` hands them here."""
 FOLLOWED = frozenset({"accept_quote", "confirm_quote"})
 """Operations whose intent stays `sending` until the quote is final."""
@@ -98,6 +100,10 @@ STATUS_EVENT = {
 }
 NO_TRADE = (QuoteStatus.CANCELED, QuoteStatus.EXPIRED, QuoteStatus.FAILED)
 RECENT_MS = 5_000
+RFQ_STATUS_INTERVAL_S = 10.0
+"""How often the follower re-reads one of our open RFQs from its venue, to
+see it close there (a venue's own expiry, often unstated, as Kalshi's); at
+once when the venue's `expires_at` for it has passed."""
 """How far before an in-doubt create an RFQ or quote may be stamped and still be its result."""
 
 
@@ -127,6 +133,7 @@ class RfqDesk:
         self._last_quote: dict[str, RfqQuote] = {}
         self._subscribed: set[str] = set()
         self._incoming_ts = 0.0
+        self._rfq_read: dict[str, float] = {}
         self.pushed: set[str] = set()
         """Venues whose incoming RFQs arrive on a stream (`subscribe_incoming_rfqs`):
         not polled, and their quoting callbacks run as each RFQ lands."""
@@ -260,6 +267,18 @@ class RfqDesk:
             if inferred:
                 payload["inferred"] = True
             await self._publish(STATUS_EVENT[status], payload, key=key)
+        await self._groups_hear(venue, quote)
+
+    async def _groups_hear(self, venue: str, quote: RfqQuote) -> None:
+        """Hand a quote on one of our RFQs to the cross-venue groups, which
+        rank it if the RFQ is a group member. Never fails the caller."""
+        groups = getattr(self.engine, "rfq_groups", None)
+        if groups is None or quote.mine:
+            return
+        try:
+            await groups.on_quote(venue, quote)
+        except Exception:
+            log.exception("synpath.engine: ranking quote %s at %s for its group failed", quote.id, venue)
 
     async def _guard_side(self, key: str, venue: str, *, expected: Side, reported: Side | None,
                           quote_id: str, where: str) -> bool:
@@ -278,9 +297,15 @@ class RfqDesk:
 
     # -- combos ---------------------------------------------------------------
 
-    async def create_combo(self, legs: list[ComboLeg], *, venue: str | None = None) -> Combo:
+    async def create_combo(self, legs: list[ComboLeg], *, venue: str | None = None,
+                           collection_id: str | None = None) -> Combo:
+        """The venue's combo for these legs (`create_combo` on its adapter),
+        kept with the engine. `collection_id` is passed only when given, so
+        an adapter without the keyword still works without it."""
         venue = self._venue_for(venue, market_id=legs[0].market_id if legs else None)
-        combo = await self._adapter(venue, "combos").create_combo(legs)
+        adapter = self._adapter(venue, "combos")
+        combo = await (adapter.create_combo(legs, collection_id=collection_id) if collection_id is not None
+                       else adapter.create_combo(legs))
         await self.save_combo(combo)
         return combo
 
@@ -309,9 +334,12 @@ class RfqDesk:
         outcome: str | None = None, action: str | None = None, rest_remainder: bool = False,
         combo: Combo | None = None, venue: str | None = None, account: Account | None = None,
         book: str | None = None, trader: str | None = None, tags: dict[str, str] | None = None,
+        key: str | None = None,
     ) -> Rfq:
         """Ask for quotes on a market or a combo. Journaled; refused while
-        halted, on a paused book, a restricted market or over the size limits."""
+        halted, on a paused book, a restricted market or over the size limits.
+        `key` names the intent (a cross-venue group names its members' so a
+        restart can find them); by default one is made."""
         await self._lease()
         if (quantity is None) == (amount is None):
             raise BadRequest("size an RFQ by quantity (contracts) or amount (money), exactly one")
@@ -323,7 +351,7 @@ class RfqDesk:
             raise await self._refused(decision, operation="create_rfq", market_id=instrument_id, book=book)
         if combo is not None:
             await self.save_combo(combo)
-        key = f"rfq-create:{venue}:{uuid.uuid4().hex[:16]}"
+        key = key or f"rfq-create:{venue}:{uuid.uuid4().hex[:16]}"
         request = self._record(market_id=instrument_id, key=key, account=account, type=OrderType.RFQ_TAKER,
                                quantity=quantity, book=book, trader=trader, tags=tags,
                                params={"amount": str(amount) if amount is not None else None,
@@ -381,15 +409,23 @@ class RfqDesk:
         if key is not None:
             await self.engine.journal.mark_intent(key, IntentState.SETTLED, order_id=rfq_id, detail=detail or None)
         held = self.rfqs.pop(f"{venue}:{rfq_id}", None)
+        self._rfq_read.pop(f"{venue}:{rfq_id}", None)
         await self._save_working_set(venue)
-        if reason == "canceled":
+        if reason in ("canceled", "expired"):
+            status = QuoteStatus.CANCELED if reason == "canceled" else QuoteStatus.EXPIRED
             for qkey, quote in list(self._last_quote.items()):
                 if qkey.startswith(f"{venue}:quote:") and quote.rfq_id == rfq_id and not quote.mine \
                         and quote.status == QuoteStatus.OPEN:
-                    await self._observe(venue, quote.model_copy(update={"status": QuoteStatus.CANCELED}),
+                    await self._observe(venue, quote.model_copy(update={"status": status}),
                                         extra={"reason": "rfq_closed"})
         await self._publish("rfq.closed", {"rfq_id": rfq_id, "venue": venue, "reason": reason, "detail": detail,
                                            "book": held.get("book") if held else None}, key=f"{venue}:rfq:{rfq_id}")
+        groups = getattr(self.engine, "rfq_groups", None)
+        if groups is not None:
+            try:
+                await groups.on_rfq_closed(venue, rfq_id, reason=reason)
+            except Exception:
+                log.exception("synpath.engine: closing RFQ %s at %s in its group failed", rfq_id, venue)
 
     def _rfq_market(self, rfq_id: str) -> str | None:
         for key, held in self.rfqs.items():
@@ -403,11 +439,15 @@ class RfqDesk:
     # -- taker: accept --------------------------------------------------------
 
     async def accept_quote(self, accept: AcceptQuote, *, venue: str | None = None, wait: bool = False,
-                           timeout_s: float = 30.0) -> RfqQuote:
+                           timeout_s: float = 30.0, _group: str | None = None) -> RfqQuote:
         """Take one side of a quote. Returns at once with the quote as the
         venue answered (`accepted`); the confirm, the execution, the order and
         its fills arrive as events. `wait=True` follows the quote until it is
-        final or `timeout_s` passes and returns it as it then stands."""
+        final or `timeout_s` passes and returns it as it then stands.
+
+        A quote on an RFQ that belongs to a cross-venue group is refused
+        here: it is accepted through the group (`accept_group_quote`), which
+        is what keeps a group to one accept."""
         await self._lease()
         held = None
         if venue is None and accept.account is None:
@@ -429,14 +469,36 @@ class RfqDesk:
                     or await adapter.fetch_quote(accept.quote_id, rfq_id=accept.rfq_id)
                 result = quote
             else:
-                result = await self._accept_once(accept, venue=venue, adapter=adapter, account=account, key=key, held=held)
+                result = await self._accept_once(accept, venue=venue, adapter=adapter, account=account, key=key, held=held,
+                                                 group=_group)
         if wait:
             return await self.wait(key, venue=venue, timeout_s=timeout_s)
         return result
 
-    async def _accept_once(self, accept: AcceptQuote, *, venue: str, adapter: TradingExchange, account: Account,
-                           key: str, held: dict[str, Any] | None) -> RfqQuote:
+    async def check_accept(self, accept: AcceptQuote, *, venue: str) -> OrderRequest:
+        """Everything an accept checks before anything is written or sent
+        (the quote re-read, its price against `worst_price`, the sizing,
+        every order risk rule), without writing or sending: the order it
+        would be. Raises as the accept itself would."""
+        adapter = self._adapter(venue, "rfq_taker")
+        account = self._account(venue, accept.account)
+        held = self._rfq_held(venue, accept.rfq_id)
+        key = accept.client_order_id or f"rfq-accept:{venue}:{accept.quote_id}"
+        groups = getattr(self.engine, "rfq_groups", None)
+        group = groups.group_of(venue, accept.rfq_id) if groups is not None else None
+        _, request = await self._prepare_accept(accept, venue=venue, adapter=adapter, account=account, key=key,
+                                                held=held, group=group)
+        return request
+
+    async def _prepare_accept(self, accept: AcceptQuote, *, venue: str, adapter: TradingExchange, account: Account,
+                              key: str, held: dict[str, Any] | None,
+                              group: str | None = None) -> tuple[tuple[RfqQuote, Decimal | None], OrderRequest]:
         quote = await adapter.fetch_quote(accept.quote_id, rfq_id=accept.rfq_id)
+        groups = getattr(self.engine, "rfq_groups", None)
+        owner = groups.group_of(venue, quote.rfq_id) if groups is not None else None
+        if owner is not None and owner != group:
+            raise BadRequest(f"{venue}: quote {quote.id} is on RFQ {quote.rfq_id} of cross-venue group {owner}; "
+                             "accept it through the group (accept_group_quote), which cancels the other venues")
         if quote.status != QuoteStatus.OPEN:
             raise OrderRejected(f"{venue}: quote {quote.id} is {quote.status.value}, not open", reason="quote_not_open")
         price = quote.price_for(accept.outcome, accept.action)
@@ -470,6 +532,13 @@ class RfqDesk:
         if not decision.ok:
             raise await self._refused(decision, operation="rfq_taker", market_id=market_id, book=book,
                                       extra={"quote_id": quote.id, "client_order_id": key})
+        return (quote, send_size), request
+
+    async def _accept_once(self, accept: AcceptQuote, *, venue: str, adapter: TradingExchange, account: Account,
+                           key: str, held: dict[str, Any] | None, group: str | None = None) -> RfqQuote:
+        (quote, send_size), request = await self._prepare_accept(accept, venue=venue, adapter=adapter,
+                                                                 account=account, key=key, held=held, group=group)
+        book = request.book
         await self._begin(request, key=key, venue=venue, account=account, operation="accept_quote", target=quote.id)
         self.engine.risk.record_sent(request)
         self.following[self._quote_key(venue, quote.id)] = key
@@ -539,6 +608,8 @@ class RfqDesk:
             return base | {"result": "unresolved", "reason": "no adapter"}
         if intent.operation in FOLLOWED:
             return await self._resolve_followed(intent)
+        if intent.operation in GROUP_OPERATIONS:
+            return await self.engine.rfq_groups.resolve(intent)
         try:
             return await self._resolve_offer(adapter, intent, base)
         except Exception as exc:
@@ -1000,6 +1071,12 @@ class RfqDesk:
         every venue in scope: the ones the engine holds and any the venue
         lists. One venue failing does not stop the others."""
         out: dict[str, Any] = {"rfqs": {}, "quotes": {}}
+        groups = getattr(self.engine, "rfq_groups", None)
+        if groups is not None:
+            # Groups first, so each records why its members went.
+            halted = await groups.on_halt(scope)
+            if halted:
+                out["groups"] = halted
         for venue, adapter in self.engine.adapters.items():
             if scope not in ("*", venue):
                 continue
@@ -1288,6 +1365,9 @@ class RfqDesk:
         await self.follow()
         await self.watch_rfqs()
         await self.watch_maker_quotes()
+        groups = getattr(self.engine, "rfq_groups", None)
+        if groups is not None:
+            await groups.tick()
         self._prune_pushed()
         interval = self.config.rfq_incoming_interval_s
         if interval is not None and time.monotonic() - self._incoming_ts >= interval:
@@ -1323,6 +1403,37 @@ class RfqDesk:
                 await self._observe(venue, quote, extra={"book": held.get("book")})
                 if quote.status == QuoteStatus.EXECUTED and key in self.rfqs:
                     await self._rfq_closed(venue, rfq_id, key=None, reason="executed", detail=quote.id)
+            if key in self.rfqs:
+                await self._watch_rfq_status(venue, rfq_id, key, held, adapter)
+
+    async def _watch_rfq_status(self, venue: str, rfq_id: str, key: str, held: dict[str, Any], adapter: Any) -> None:
+        """Close our RFQ here when its venue has closed it (its expiry, or
+        any close the quotes do not show): read every
+        `RFQ_STATUS_INTERVAL_S`, and at once past its `expires_at`."""
+        expires = (held.get("rfq") or {}).get("expires_at")
+        due = expires is not None and int(expires) <= _now_ms()
+        now = time.monotonic()
+        if not due and now - self._rfq_read.get(key, 0.0) < RFQ_STATUS_INTERVAL_S:
+            return
+        if not callable(getattr(adapter, "fetch_rfq", None)):
+            if due:
+                await self._rfq_closed(venue, rfq_id, key=None, reason="expired", detail="past its expires_at")
+            return
+        self._rfq_read[key] = now
+        try:
+            rfq = await adapter.fetch_rfq(rfq_id)
+        except RfqNotFound:
+            await self._rfq_closed(venue, rfq_id, key=None, reason="expired")
+            return
+        except Exception as exc:
+            log.info("synpath.engine: reading RFQ %s at %s failed: %s", rfq_id, venue, exc)
+            return
+        if rfq.status == RfqStatus.CLOSED:
+            reason = rfq.closed_reason.value if rfq.closed_reason is not None else "expired"
+            await self._rfq_closed(venue, rfq_id, key=None, reason=reason if reason != "replaced" else "canceled",
+                                   detail="closed at the venue")
+        elif rfq.expires_at is not None and held.get("rfq", {}).get("expires_at") != rfq.expires_at:
+            held["rfq"]["expires_at"] = rfq.expires_at
 
     async def watch_maker_quotes(self) -> None:
         now = _now_ms()

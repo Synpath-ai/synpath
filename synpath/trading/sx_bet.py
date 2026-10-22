@@ -1004,7 +1004,7 @@ class SxBetTrading(TradingExchange):
                 return rfq.combo
         return None
 
-    async def create_combo(self, legs: list[ComboLeg]) -> Combo:
+    async def create_combo(self, legs: list[ComboLeg], *, collection_id: str | None = None) -> Combo:
         raise NotSupported(f"{VENUE}: a parlay market is made only by a bettor's request on sx.bet; the API has no "
                            "way to request one (docs.sx.bet/developers/parlays), so combos are read, not created")
 

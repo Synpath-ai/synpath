@@ -23,7 +23,7 @@ from ..types import Page
 from .types import (
     Side,
     Account, Balance, EditRequest, FeeEstimate, Fill, Order, OrderRequest, Position, Precision, Settlement,
-    AcceptQuote, Action, Combo, ComboLeg, MakerQuote, Outcome, QuoteStatus, Rfq, RfqQuote, RfqStatus,
+    AcceptQuote, Action, Combo, ComboLeg, ComboMarket, MakerQuote, Outcome, QuoteStatus, Rfq, RfqQuote, RfqStatus,
 )
 
 
@@ -127,11 +127,23 @@ class TradingExchange(ABC):
     # Answered where `has["combos"]` is True. A combo is an instrument with
     # its own market id; its position, P&L and settlement live there.
 
-    async def create_combo(self, legs: list[ComboLeg]) -> Combo:
+    async def create_combo(self, legs: list[ComboLeg], *, collection_id: str | None = None) -> Combo:
         """The venue's combo for these legs, created if it does not exist.
         Where the venue keeps one canonical combo per set of legs (Kalshi,
-        Polymarket US) this is idempotent: the same legs return the same id."""
+        Polymarket US) this is idempotent: the same legs return the same id.
+        `collection_id` names where to build it, on a venue that builds combos
+        in collections (Kalshi); a venue without collections refuses it."""
         raise NotSupported(f"{self.id}: create_combo")
+
+    async def fetch_combo_eligible_markets(
+        self, *, event_id: str | None = None, tag: str | None = None,
+        limit: int | None = None, cursor: str | None = None,
+    ) -> Page[ComboMarket]:
+        """The markets the venue lets a combo take as legs, from its own list,
+        one page at a time. `event_id` and `tag` narrow it where the venue can
+        (each adapter says how). Kalshi lists collections instead
+        (`fetch_combo_collections`)."""
+        raise NotSupported(f"{self.id}: fetch_combo_eligible_markets")
 
     async def fetch_combo(self, combo_id: str) -> Combo:
         """One combo by its own market id, with its legs."""

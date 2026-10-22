@@ -1247,3 +1247,17 @@ class TestArchivedListings:
                                     search={"/v1/search/series": hits})
         assert kalshi.search_markets("old", status="open") == []
         assert all(path != "/historical/markets" for path, _ in calls)
+
+
+class TestEventsByIds:
+    """`fetch_events_by_ids`: one batched `/events?tickers=` read, markets nested, in the order asked."""
+
+    def test_in_the_order_asked_with_markets_and_unknown_ids_left_out(self):
+        listings = TestArchivedListings()
+        rows = {"events": [{"event_ticker": "B", "title": "B", "markets": [listings.market("B-1", "B", "active")]},
+                           {"event_ticker": "A", "title": "A", "markets": [listings.market("A-1", "A", "active")]}]}
+        kalshi, calls = listings.kalshi({"/events": rows})
+        found = kalshi.fetch_events_by_ids(["kalshi:A", "B", "kalshi:GONE"])
+        assert [e.venue_event_id for e in found] == ["A", "B"]
+        assert [m.venue_market_id for m in found[0].markets] == ["A-1"]
+        assert calls == [("/events", {"tickers": "A,B,GONE", "with_nested_markets": "true", "limit": 3})]

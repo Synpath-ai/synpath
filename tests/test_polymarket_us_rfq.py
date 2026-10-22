@@ -89,7 +89,7 @@ def accept(**kw) -> AcceptQuote:
 
 class TestInterface:
     NAMES = (
-        "create_combo", "fetch_combo", "lookup_combo",
+        "create_combo", "fetch_combo", "lookup_combo", "fetch_combo_eligible_markets",
         "create_rfq", "fetch_rfq", "fetch_rfqs", "cancel_rfq", "fetch_quotes", "fetch_quote", "accept_quote",
         "fetch_incoming_rfqs", "send_quote", "replace_quote", "cancel_quote", "confirm_quote", "fetch_my_quotes",
     )
@@ -113,6 +113,8 @@ class TestInterface:
             await Bare().accept_quote(accept())
         with pytest.raises(NotSupported, match="bare: create_combo"):
             await Bare().create_combo([])
+        with pytest.raises(NotSupported, match="bare: fetch_combo_eligible_markets"):
+            await Bare().fetch_combo_eligible_markets()
 
     def test_capability_keys(self):
         has = retail.PolymarketUSTrading.has
@@ -169,6 +171,13 @@ class TestCombos:
         venue.get("/v1/combos").respond(json=sample("get_combos_empty"))
         with pytest.raises(RfqNotFound, match="no combo"):
             await us.fetch_combo("caoc-nope")
+
+    async def test_a_collection_is_refused_before_sending(self, us, venue):
+        route = venue.post("/v1/combos")
+        with pytest.raises(InvalidOrder, match="not built in collections"):
+            await us.create_combo([ComboLeg(market_id=ATL, outcome="yes"), ComboLeg(market_id=NYY, outcome="no")],
+                                  collection_id="KXMVECROSSCATEGORY-R")
+        assert not route.called
 
     async def test_no_read_only_lookup(self, us):
         with pytest.raises(NotSupported, match="create_combo returns the existing combo"):
@@ -611,3 +620,56 @@ class TestPacing:
         assert us.pacers == {}
         assert set(retail.PACED_ENDPOINTS) == {("GET", "/v1/rfqs"), ("GET", "/v1/rfqs/quotes"),
                                                ("POST", "/v1/rfqs"), ("POST", "/v1/combos")}
+
+
+# -- combo-eligible markets (public gateway) ---------------------------------------
+
+
+class TestEligibleMarkets:
+    """`GET /v1/events` on the public gateway, markets nested; a trimmed real
+    sample (`polymarket_us_combo_events.json`, read unauthenticated
+    2026-10-22): one event with two combo-enabled markets, one with one,
+    and one with none."""
+
+    @pytest.fixture
+    def gateway(self):
+        with respx.mock(base_url=retail.GATEWAY_URL, assert_all_called=False) as mock:
+            yield mock
+
+    def events(self) -> dict:
+        return json.loads((SAMPLES / "polymarket_us_combo_events.json").read_text())
+
+    async def test_rows_and_query(self, us, gateway):
+        route = gateway.get("/v1/events").respond(json=self.events())
+        page = await us.fetch_combo_eligible_markets(limit=3)
+        assert query(route) == {"limit": "3", "active": "true", "closed": "false", "orderBy": "id",
+                                "orderDirection": "desc"}
+        assert "X-PM-Signature" not in route.calls.last.request.headers, "the gateway is public"
+        assert [r.market_id for r in page] == ["polymarket_us:atc-lal-fcb-rma-2026-10-25-fcb",
+                                              "polymarket_us:atc-lal-fcb-rma-2026-10-25-draw",
+                                              "polymarket_us:aec-nfl-ne-chi-2026-10-22"]
+        first = page[0]
+        assert first.event_id == "polymarket_us:lal-fcb-rma-2026-10-25" and first.event_title
+        assert first.title.startswith("Will FC Barcelona win") and first.venue == "polymarket_us"
+        assert (first.min_legs, first.max_legs) == (2, retail.MAX_COMBO_LEGS) and first.position_ids is None
+        assert "lal" in first.tags and first.status == "MARKET_STATUS_HALTED"
+        assert first.info["comboEnabled"] is True and first.info["event"]["slug"] == "lal-fcb-rma-2026-10-25"
+        assert page.next_cursor == "3", "a full page of events has a next one"
+
+    async def test_filters_and_cursor(self, us, gateway):
+        route = gateway.get("/v1/events").respond(json={"events": self.events()["events"][:1]})
+        page = await us.fetch_combo_eligible_markets(tag="lal", limit=5, cursor="10")
+        assert query(route)["tagSlug"] == "lal" and query(route)["offset"] == "10"
+        assert len(page) == 2 and page.next_cursor is None, "a short page of events is the last"
+        await us.fetch_combo_eligible_markets(event_id="polymarket_us:lal-fcb-rma-2026-10-25")
+        assert query(route)["slug"] == "lal-fcb-rma-2026-10-25" and query(route)["limit"] == "50"
+
+    async def test_an_empty_page_can_carry_a_cursor(self, us, gateway):
+        gateway.get("/v1/events").respond(json={"events": self.events()["events"][2:]})
+        page = await us.fetch_combo_eligible_markets(limit=1)
+        assert list(page) == [] and page.next_cursor == "1"
+
+    async def test_a_foreign_cursor_is_refused(self, us, gateway):
+        from synpath.errors import BadRequest
+        with pytest.raises(BadRequest, match="not a cursor"):
+            await us.fetch_combo_eligible_markets(cursor="abc")

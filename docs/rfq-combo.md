@@ -1,6 +1,6 @@
 # RFQ and combos: research and plan
 
-Status: **P1 (models), P2 (Polymarket US adapter), P3 (engine, taker), P4 (engine, quoter) and P5 (serve routes) built; P6 (Kalshi adapter) built; P7 (Polymarket global combos, RFQ and Exchange v3 signing) built; P8 (SX Bet parlay quoter) built; the two engine gaps (pushed incoming RFQs, Polymarket global restarts) closed** (2026-10-21, "Gaps closed" below). Decisions from Yuki are in §2 and §9. Experimental line only (base
+Status: **P1 (models), P2 (Polymarket US adapter), P3 (engine, taker), P4 (engine, quoter) and P5 (serve routes) built; P6 (Kalshi adapter) built; P7 (Polymarket global combos, RFQ and Exchange v3 signing) built; P8 (SX Bet parlay quoter) built; the two engine gaps (pushed incoming RFQs, Polymarket global restarts) closed** (2026-10-21, "Gaps closed" below); **cross-venue RFQ built** (2026-10-22, §10). Decisions from Yuki are in §2 and §9. Experimental line only (base
 `origin/codex/order-lifecycle-storage`, never merged into `main`). Nothing here
 has been run against a live or demo account. Anything marked UNVERIFIED is
 not confirmed by a venue document or a public read.
@@ -40,6 +40,7 @@ not confirmed by a venue document or a public read.
 
 ### Polymarket US (retail API, the same Ed25519 key as orders)
 - **Combos:** `POST /v1/combos {legs:[{symbol, side: SIDE_BUY|SIDE_SELL}]}` is canonical: the same legs always give the same `caoc-…`/`crossd-…` symbol, with a quota of 1,000 a week. `GET /v1/combos?symbol=`.
+- **Eligibility:** no combo-markets list. Each gateway market carries `comboEnabled` (public `GET /v1/events`, markets nested; no filter on it, so it is read per event), and the docs say there is no way to validate legs before `POST /v1/combos`. Read 2026-10-22: 54 of 862 markets in the top 100 open events were combo-enabled, all sports.
 - **RFQ:** `GET/POST /v1/rfqs` (`qtyDecimal` or `cashOrderQty`, `restRemainder`), `DELETE /v1/rfqs/{id}`, `GET/POST /v1/rfqs/quotes`, `DELETE …/quotes/{q}`, `PUT …/accept {acceptedSide}`, `PUT …/confirm`, `GET /v1/rfqs/trades`, `GET /v1/rfqs/user-id`. Combo and RFQ creation share a limit of 10 per 10 s.
 - **Unambiguous sides:** `buyPrice` is the price for a requester BUY, and `acceptedSide=SIDE_BUY` takes it.
 - **Execution:** the exchange submits two ordinary orders, the maker's first. The requester's `clord_id` is `rfq1.…` and deterministic, so a retried accept cannot make a second order. `rfqCreatorOrderId` is ours. EXECUTED means submitted, not filled. With `restRemainder: false` the order is IOC, so it can fill partly. Last look is 3 s, then 1 s before submission. A combo settles on its own symbol at the product of its leg values, and shows up in positions like any instrument.
@@ -164,7 +165,8 @@ in the body or query where the venue addresses a quote under its RFQ):
 | `GET /rfqs/incoming`, `GET /quotes` (quoter) | `view` |
 | `POST /quotes`, `PUT /quotes/{id}`, `DELETE /quotes/{id}`, `POST /quotes/{id}/confirm` (quoter) | `trade` |
 | `GET /combos/{market_id}`, `POST /combos/lookup`, `GET /combos/collections` (Kalshi, P6) | `view` |
-| `POST /combos` | `trade` (a signed write against a weekly quota) |
+| `GET /combos/markets` (Polymarket, Polymarket US; `event_id`, `tag`, `limit`, `cursor`) | `view`; cached 15 s with collections |
+| `POST /combos` (`collection_id` on Kalshi) | `trade` (a signed write against a weekly quota) |
 
 - Grants apply on the account of the venue the route names.
 - `/ws/events` carries `rfq.created`, `rfq.closed`, `quote.received`, `quote.accepted`, `quote.confirmed`, `quote.executed`, `quote.failed`, `quote.canceled`, `rfq.side_mismatch`, and the ordinary `order.*`/`fill.*` events of the resulting order.
@@ -173,7 +175,7 @@ in the body or query where the venue addresses a quote under its RFQ):
 ## 7. What the terminal needs (separate terminal PRs, Richard OK'd)
 
 - **T1, RFQ ticket and blotter** (after P5): the ticket's RFQ type ("Max price", "Quote window", contracts or amount) maps to `POST /rfqs`, the `quote.*` events, then accept with `worst_price` = Max price. The quote window is a client timer plus `DELETE /rfqs/{id}`. The blotter (product plan G10) reads `GET /rfqs` and `GET /rfqs/{id}/quotes`.
-- **T2, combo builder and combo positions** (after P5 and P2/P6): reads collections (P6) and lookup, then `POST /combos`; Positions and Fills show a combo as one row with its legs from `GET /combos/{id}`.
+- **T2, combo builder and combo positions** (after P5 and P2/P6): reads collections (P6; each with `associated_event_tickers`) or `GET /combos/markets` (Polymarket, Polymarket US) to decide which legs are eligible, then `POST /combos` (naming `collection_id` on Kalshi, where today's three collections take the same events); Positions and Fills show a combo as one row with its legs from `GET /combos/{id}`.
 - **T3, quoter panel** (after P4): incoming RFQs, quote entry, confirm, and a cancel-all wired to halt.
 
 ## 8. Phases and exit criteria
@@ -409,12 +411,16 @@ and the P0 shapes; nothing captured live). `rfq_taker`, `rfq_quoter` and
   `event_ticker`). `create_combo(legs, collection_id=None)` posts
   `selected_markets` with `with_market_payload`; without `collection_id` it
   picks the one open collection whose `associated_events` take every leg's
-  event at that size (several or none is `InvalidOrder`), and reads a leg's
-  market when `event_id` is missing. 5,000 creations a week; a 400 on legs is
+  event at that size (none is `InvalidOrder`; several is `InvalidOrder`
+  naming them, on `exc.collections` and served as `details.collections`), and
+  reads a leg's market when `event_id` is missing. `engine.create_combo` and
+  `POST /combos` pass `collection_id` through. 5,000 creations a week; a 400 on legs is
   `InvalidOrder`. `fetch_combo` reads `GET /markets/{ticker}`; a market
   without selected legs is `RfqNotFound`. `lookup_combo` is `NotSupported`
   (no lookup endpoint left). `fetch_combo_collections` (Kalshi only) lists
-  collections as the venue's objects, served at `GET /combos/collections`.
+  collections as the venue's objects, each with `associated_event_tickers`
+  (filled from `associated_events` if the venue leaves it out), served at
+  `GET /combos/collections`.
 - **Taker.** `create_rfq` sends `contracts_fp` or `target_cost_dollars`
   (`target_cost_excludes_fees` optional, amount only; `replace_existing`
   optional) and refuses `outcome`/`action`. An RFQ with a target cost reads
@@ -508,7 +514,8 @@ the documented shapes; one engine run from create to position). `rfq_taker`,
   returned it. Before that, it is the provisional `polymarket:combo-legs-<hex>.<hex>`
   (the leg position ids, ascending), which `create_rfq` reads with no state.
   `create_combo` is offline and uses no quota. Leg position ids are not CLOB
-  token ids. They come from the public catalogue (`fetch_combo_markets`),
+  token ids. They come from the public catalogue (`fetch_combo_markets`, and
+  typed as `fetch_combo_eligible_markets`, served at `GET /combos/markets`),
   `leg.info["position_id"]`, Gamma `/markets/{id}` `positionIds`, and, in
   reverse, Gamma `/markets/keyset?position_ids=`. `lookup_combo` is
   `NotSupported`.
@@ -709,3 +716,255 @@ stop = engine.rfq.on_incoming_rfq(quoter)   # stop() unsubscribes
 5. Polymarket global: yes, including Exchange v3 signing (P7).
 6. Accept returns at once; `wait` is optional.
 7. Limitless Packs: deferred (not in scope).
+
+## 10. Cross-venue RFQ
+
+Built 2026-10-22, offline (Yuki approved, Richard OK'd). One request goes to
+every venue that lists the same market or combo, every quote lands in one
+ranked list, and an accept cancels the rest. Code:
+`synpath/engine/rfq_group.py` (`engine.rfq_groups`), routes in
+`synpath/server/rfq_routes.py`. Each member is an ordinary RFQ of the desk
+(§5): created, watched, accepted, followed and recovered exactly as one
+asked directly.
+
+### Instrument resolution
+
+| Asked on | Members |
+|---|---|
+| `bucket:<id>` | one per enabled bucket member, on its market, with its `flip`; a switched-off member is skipped (`member_disabled`) |
+| `legs` (a combo of propositions; each leg any venue's market or a bucket), or a combo's own id the engine holds legs for | every venue with `combos` and `rfq_taker`: each leg mapped (itself on its own venue, a bucket's member there with its flip, else hosted matching with its `side_map`), then checked, then that venue's combo created (Kalshi with the `collection_id` the check chose) |
+| a plain market | its own venue; with `cross_venue=True` also every other RFQ venue's match (`match_market(anchor, venue=v)`), its `side_map` giving `flip`. Without it, a group of one |
+
+- **Matching** is `engine.rfq_groups.matcher(anchor, venue)`, by default the
+  hosted service (`synpath.matching.match_market`, run in a thread). `Engine(...,
+  matcher=...)` replaces it. A leg whose venue `side_map` swaps YES and NO is
+  asked on the other outcome there.
+- **Eligibility.** Kalshi (an adapter with `fetch_combo_collections`): the leg
+  events (`event_id`, else the market's own `event_ticker`) must all be in
+  one open collection's `associated_event_tickers`, within `size_min` and
+  `size_max`; the first such collection (sorted) is the `collection_id`.
+  Polymarket and Polymarket US (an adapter with its own
+  `fetch_combo_eligible_markets`): every mapped leg must be on the list, read
+  up to 20 pages and kept 60 s; Polymarket legs get their
+  `info.position_id` from it. A venue with neither is `unchecked`.
+- **Skipped venues**, each with `venue`, `code`, `reason` and the leg:
+  `excluded` (`venues`, `exclude_venues`), `forbidden` (the HTTP key may not
+  trade it), `not_configured`, `no_rfq`, `no_combos`, `no_match`,
+  `matching_error`, `missing_leg`, `ineligible_leg`, `duplicate_leg`,
+  `one_sided_size` (Polymarket global asks a YES buy by amount and a YES
+  sell by quantity), `member_disabled`. No venue left is `BadRequest` with the
+  list on `exc.skipped` (`400 no_venue` over HTTP), and nothing is journaled.
+- **One-sided venues.** An adapter with `rfq_one_sided = True` (Polymarket
+  global) is asked the YES side the group takes there; two-sided venues are
+  asked no side.
+
+### The model: `RfqGroup`
+
+`id`, `instrument` (`kind` market/bucket/combo, `market_id`, `legs`),
+`quantity` or `amount`, `outcome` and `action` (the requester's, in the
+instrument's terms), `cross_venue`, `book`, `trader`, `tags`, `members`,
+`skipped`, `quotes` (ranked), `status`, `accept_attempts`, `claim_key`,
+`accepted_quote_id`, `accepted_venue`, `order_id`, `failures` (venue,
+stage, error), `expires_at` (the soonest venue expiry among the quotes that
+can be accepted now), `created_at`, `updated_at`.
+
+- `GroupMember`: `venue`, `instrument_id`, `flip`, `via`
+  (anchor/bucket/matching/combo), the mapped `legs`, `combo`,
+  `collection_id`, `eligibility`, `create_key`, `rfq_id`, `rfq`, `status`,
+  `detail`, `accept_key`. Status: `creating` (also an in-doubt create),
+  `open`, `failed`, `canceled`, `lapsing` (no requester cancel: left to
+  expire), `closed`, `accepting`, `accepted`, `executed`.
+- Group status: `creating` → `open` → `accepting` (claimed, cancelling) →
+  `accepted` (sent, followed) → `executed`; or `canceled`, `expired` (no
+  member left), `failed` (every create failed). A failed accept goes back to
+  `open`.
+
+**Journal.** The intent `rfq-group:{id}` (`rfq_group_create`) is written
+before any venue call, then each member's create under its own key
+`rfq-create:{venue}:{group}-{n}` (passed to `create_rfq(key=...)`). The
+group is saved to the cursor `rfq:groups` before each venue call and after
+each answer, and published as `rfq_group.*` events with the whole group in
+`payload.group`. A create that fails marks that member `failed`; the group
+stays open with the rest, and the create intent is `sent` (`rejected` when
+no member stands).
+
+### Ranking
+
+Every quote becomes a `GroupQuote` in the group's terms. With `S` the
+group's YES side (`yes_side(outcome, action)`) and a member's side `S'`
+(`S`, or the opposite for a flipped member):
+
+```
+raw     = quote.ask if S' is buy else quote.bid          # the member's own YES price
+price   = raw, or 1 - raw for a flipped member            # the group's YES price
+token   = price for outcome yes, 1 - price for outcome no
+fee     = the venue's taker fee for one order of `quantity` at `raw` on `S'`
+          (adapter.fetch_fee_estimate: the venue's fee schedule; unknown counts as 0)
+per     = fee / quantity
+effective_price         = price + per (YES buy) | price - per (YES sell)
+effective_outcome_price = token + per (action buy) | token - per (action sell)
+```
+
+- Quantity-sized: `quantity` is the group's (the quote's size if smaller:
+  `partial`). Rank by `effective_outcome_price`, lowest first for a buy,
+  highest first for a sell.
+- Amount-sized buy: `quantity` is the most contracts with
+  `quantity * token + fee(quantity) <= amount`, on the venue's step (sized,
+  then re-sized net of the fee until it fits). Rank by `quantity`, most
+  first, then by `effective_outcome_price`. An amount-sized sell ranks as a
+  quantity-sized one.
+- Quotes that cannot be accepted now (not open, their member not open, no
+  price on the side asked, no size) follow, with `rank: null`.
+- Each change to a member's quote (from the desk's follower, a venue
+  stream, or `refresh`) publishes `rfq_group.quote` (the `GroupQuote`, with
+  `group_id`) and then `rfq_group.updated`.
+
+### Quote lifetime (2026-10-22)
+
+There is no window of the engine's or of a caller's. A `GroupQuote` carries
+the venue's own deadlines: `expires_at` (the quote's `expires_at`, else its
+member RFQ's; `expires_from` says which), `confirm_by` and `execute_by`
+(after an accept). Where the venue gives none, it is null and the quote is
+live until the venue closes it:
+
+| Venue | Quote expiry | RFQ expiry |
+|---|---|---|
+| Polymarket global | `expires_at` (the gateway's) | `expires_at` |
+| Kalshi | none in the API (`Quote` has no expiry field) | none (`RFQ` has no expiry field; the venue closes RFQs itself, `cancellation_reason: expired`) |
+| Polymarket US | none (`confirmationDeadline` / `executionDeadline` after an accept) | none |
+
+- The desk's follower re-reads each open RFQ of ours from its venue every
+  `RFQ_STATUS_INTERVAL_S` (10 s), and at once once its `expires_at` has
+  passed; an RFQ the venue has closed is closed here (`rfq.closed` with the
+  venue's reason), its open quotes `expired` (or `canceled`).
+- A group is `expired` when every member RFQ has closed or expired on its
+  venue; a caller cancels it at any time (`DELETE`).
+- Quotes and status changes reach a caller as `rfq_group.*` (and the members'
+  `quote.*`) events on `/ws/events`; polling is only a fallback.
+- `PaperRfqVenue(rfq_ttl_s=...)` and `PaperMaker(ttl_s=..., delay_s=...)`
+  give paper RFQs and quotes an expiry and a delay, for tests and demos.
+
+### Accept: one per group, the rest cancelled
+
+`engine.accept_group_quote(group_id, quote_id, venue=None, worst_price=None, wait=False)`:
+
+0. The quote is named by `(venue, quote_id)`: quote ids are the venues' own,
+   and two venues may return the same one. `venue` is required when the group
+   spans more than one venue (`BadRequest`, reason `venue_required`; over HTTP
+   `400 venue_required`); a venue outside the group is `venue_not_in_group`.
+   The claim's journal row records the venue, and is read back against it.
+1. Under the group's lock, the group is reconciled with the journal and
+   refused if an accept is in flight or done (`RiskRejected`, rule
+   `rfq_group_accept_in_flight` or `rfq_group_accepted`).
+2. `RfqDesk.check_accept` runs everything the accept will check (the quote
+   re-read, `worst_price` turned over for a flipped member, the size, every
+   order risk rule, the halt) without writing or sending. A refusal leaves
+   every venue's RFQ standing.
+3. **The claim**: the intent `rfq-group-accept:{group}:{n}`
+   (`rfq_group_accept`, `target_order_id` the quote). Attempt `n` is written
+   only when every earlier one is `failed`, `rejected` or `lost`, and is
+   read back after the write (an insert that loses a race reads the
+   winner's quote and is refused). Its params name the member accept's key
+   and the other members to cancel.
+4. **Cancel every other member first** (`RfqDesk.cancel_rfq`, journaled).
+   A venue whose requester cannot cancel (`rfq_requester_cancel = False`,
+   Polymarket global) is dropped and left to lapse at its expiry: member
+   `lapsing`, with the reason. A cancel that fails is recorded in
+   `failures`; nothing trades on an RFQ that is never accepted.
+5. The claim is marked `sending`, and the quote accepted through
+   `RfqDesk.accept_quote(..., _group=id)` under the key
+   `rfq-accept:{venue}:{quote_id}`: risk, the journal, following, recovery.
+6. The group follows the member accept's intent: `sent` (executed) makes the
+   group `executed` and the claim `sent`; `failed`/`rejected` releases the
+   claim (`failed`), and the group is `open` again on what is still open
+   (`expired` if nothing is). What was cancelled stays cancelled.
+
+**Guarantees.**
+
+- At most one claim per group is ever live, by the journal (step 3), not by
+  memory: a restarted engine, or one whose in-memory group is wrong, still
+  refuses a second accept.
+- A quote on a member RFQ cannot be accepted around the group:
+  `RfqDesk.accept_quote` (and `POST /quotes/{id}/accept`) refuses it.
+- The other venues are cancelled before the accept is sent.
+
+### Restarts, halt
+
+- `recover()`: `RfqDesk.restore()`, then `RfqGroupDesk.restore()` reads
+  `rfq:groups` and re-seeds any open member RFQ the desk's working set lacks
+  (`restore_rfqs`); then the in-doubt intents (group intents included); then
+  every group is reconciled. A member create in doubt joins its group when
+  the desk adopts it (it is cancelled at once if the group was accepted
+  elsewhere meanwhile). A claim whose member accept was never written (the
+  process died between the cancels and the accept) finishes the cancels it
+  listed and is released: nothing traded, the group is open, a retry is
+  attempt `n + 1`. A claim whose accept was sent is followed by the desk.
+- `halt()` with the `cancel` policy cancels the members in scope of every
+  open group first (`result["rfq"]["groups"]`); a group left with no open
+  member is `canceled`. An accept in flight is left to finish. Under any
+  policy, a new group accept is refused at step 2.
+- A group every venue refuses before sending (the halt, a paused book, a
+  size limit) is journaled `failed` and the refusal raised (`409` over
+  HTTP).
+
+### Preview and the combo board (2026-10-22, for the terminal's Combos screen)
+
+- `engine.preview_rfq_group(...)` (`RfqGroupDesk.preview`) runs a create's planning (instrument,
+  matching, eligibility, one-sided sizes, refusals) and returns `GroupPreview` (`offered`
+  `PreviewVenue`s and `skipped`) without a lease, a journal write or a venue RFQ call. Matching
+  answers are kept 60 s (`MATCH_TTL_S`), shared with creates. `POST /trading/rfq-groups/preview`
+  adds each offered venue's leg prices from the server's catalogue and their product (cached 10 s).
+- A Kalshi collection's `size_max` of 0 (or none) is no maximum; it was read as a maximum of 0,
+  which refused every Kalshi combo in such a collection.
+- `GET /trading/combos/board` (`synpath/engine/combo_board.py`): a combo venue's eligible markets
+  as games and questions with categories ([server](server.md#the-combo-board)); Kalshi's needs the
+  read adapter's new `fetch_events_by_ids` (one batched `/events?tickers=` read). Serve's trading
+  app now holds the read registry (`app.state.registry`) for both.
+- **From the venues' own fields (2026-10-22, checked on live data).** Team codes and labels no
+  longer come from URL slugs, nor types from titles ([server](server.md#the-combo-board)):
+  - Polymarket: the catalogue row has no type, team or line (`id`, `slug`, `title`, `outcomes`,
+    `outcome_prices`, `tags`, `volume` only), so the board reads Gamma's market
+    (`sportsMarketType`: `moneyline`, `spreads`, `totals`, and many others such as
+    `soccer_exact_score`, `child_moneyline`, `second_half_spreads`; `line`, signed for the first
+    outcome; `groupItemTitle`, which names a soccer result's team or `Draw (...)`) and the game's
+    Gamma event (`teams`: `name`, `abbreviation` in lower case, `alias`, `ordering`). The read
+    adapter's new `fetch_events_by_ids` (Gamma `/events?id=`, 20 a call) gives the teams. A gamma
+    market has no team fields; outcomes are matched to the event's teams by name or alias.
+  - Kalshi: the event's `product_metadata` (`competition`, `competition_scope`: `Game`, `Spread`,
+    `Point Total`, `1st Half Winner`, `Team Total`, `BTTS`...) and `sub_title` (`NE vs CHI (Oct
+    22)`: the codes); the market's `yes_sub_title` (`Chicago`, `Tie`, `Chicago wins by over 16.5
+    points`, `Over 27.5 points`), `custom_strike` (`{"football_team": <uuid>}`, the same id on the
+    team's winner and spread markets) and `floor_strike` (the line). Kalshi has no team
+    abbreviation field other than the `sub_title`, and no game start time on the event (the board
+    keeps the market's close).
+  - Polymarket US: `marketType` (`moneyline`, `drawable_outcome`; every combo-enabled market read
+    was one of these: no spreads or totals were combo-enabled), `sportsMarketTypeV2`,
+    `marketSides[].team` (`name`, `displayAbbreviation`, `alias`) and the event's `teams`; there is
+    no `line` field on the markets read.
+- Tests: `tests/test_combo_board.py` (19) on `tests/samples/polymarket_combo_board_live.json`,
+  `polymarket_us_combo_board_live.json` and `kalshi_combo_board_live.json` (trimmed live reads:
+  4 Polymarket games, 7 Polymarket US games, 5 Kalshi games and Kalshi's other scopes), the readers
+  and Gamma's events by id; `TestPreview` in `tests/test_engine_rfq_group.py` and
+  `tests/test_server_rfq_group.py`, `TestEventsByIds` in `tests/test_kalshi.py`.
+
+### Over HTTP
+
+`POST /trading/rfq-groups`, `POST /trading/rfq-groups/preview`, `GET /trading/combos/board`, `GET /trading/rfq-groups`,
+`GET /trading/rfq-groups/{id}`, `POST /trading/rfq-groups/{id}/accept`,
+`DELETE /trading/rfq-groups/{id}` ([server](server.md#cross-venue-rfq-groups)).
+
+### Tests and what is unverified
+
+`tests/test_engine_rfq_group.py` (25: accept by venue with colliding quote
+ids, expiry) and `tests/test_server_rfq_group.py` (16: `400 venue_required`): paper RFQ venues under the names `kalshi` (collections, quadratic 7 %
+fee), `polymarket` (eligible list, no fee, no requester cancel),
+`polymarket_us` (eligible list, 2c a contract) and `limitless`, with the
+hosted matching service mocked under the real `match_market`
+(`httpx.MockTransport`).
+
+UNVERIFIED against a venue: combo fee estimates (`fetch_fee_estimate` on a
+combo market id; unknown counts as zero); Polymarket global's
+`rfq_one_sided` sizing in a group; how fast each venue's combo-eligible list
+finds a leg beyond its first pages; whether the matching service's
+`side_map` holds for every combo leg; a Kalshi collection choice when
+several fit (the group takes the first, sorted).
