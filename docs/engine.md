@@ -506,6 +506,12 @@ price_collar = "0.10"
 daily_loss_limit = 500
 max_open_orders = 50
 self_trade_prevention = "firm"
+
+# synpath serve only: the combo boards it keeps warm (docs/server.md, "The combo board").
+[combo_board]
+warm = true                # false: build a board on request (5 pages, kept 30 s)
+refresh_interval_s = 60    # rebuild each board this long after its last build ended
+pause_s = 0.1              # between two reads of one venue during a build
 ```
 
 Credentials never appear in the configuration: they come from the

@@ -747,12 +747,19 @@ asked directly.
   `fetch_combo_eligible_markets`): every mapped leg must be on the list, read
   up to 20 pages and kept 60 s; Polymarket legs get their
   `info.position_id` from it. A venue with neither is `unchecked`.
-- **Skipped venues**, each with `venue`, `code`, `reason` and the leg:
+- **Skipped venues**, each with `venue`, `code`, `reason` and the first leg:
   `excluded` (`venues`, `exclude_venues`), `forbidden` (the HTTP key may not
   trade it), `not_configured`, `no_rfq`, `no_combos`, `no_match`,
-  `matching_error`, `missing_leg`, `ineligible_leg`, `duplicate_leg`,
-  `one_sided_size` (Polymarket global asks a YES buy by amount and a YES
-  sell by quantity), `member_disabled`. No venue left is `BadRequest` with the
+  `matching_error`, `missing_leg`, `ineligible_leg`, `outside_collections`,
+  `duplicate_leg`, `one_sided_size` (Polymarket global asks a YES buy by
+  amount and a YES sell by quantity), `member_disabled`. A combo venue names
+  every leg it lacks in `missing_legs` (`market_id`, `label`, `code`,
+  `mapped_id`, `detail`) and its `reason` names them by label
+  ([server](server.md#combo-skip-reasons)): no match (`missing_leg`),
+  matching unavailable (`matching_error`), matched but not combo-eligible
+  there (`ineligible_leg`), or outside the venue's combo collections
+  (`outside_collections`, Kalshi). Labels come from
+  `engine.rfq_groups.labeler` (serve sets its combo board warmer's). No venue left is `BadRequest` with the
   list on `exc.skipped` (`400 no_venue` over HTTP), and nothing is journaled.
 - **One-sided venues.** An adapter with `rfq_one_sided = True` (Polymarket
   global) is asked the YES side the group takes there; two-sided venues are
@@ -947,9 +954,32 @@ live until the venue closes it:
   and Gamma's events by id; `TestPreview` in `tests/test_engine_rfq_group.py` and
   `tests/test_server_rfq_group.py`, `TestEventsByIds` in `tests/test_kalshi.py`.
 
+### Warm boards and skip reasons (2026-10-22)
+
+- **Skip reasons name every leg.** Yuki's Polymarket combo "Will Al Fayha Saudi Club win on
+  2026-10-22?" (`polymarket:5441701`: hosted matching lists it on Polymarket US as
+  `polymarket_us:atc-spl-haz-fay-2026-10-22-fay`, not on Kalshi) and "Will the U.S. invade Iran
+  before 2027?" (`polymarket:665374`: matched nowhere) was skipped correctly on both venues, but a
+  skip named only its first leg, by id, and the terminal showed the leg's outcome (`no "YES"`). Now
+  `_plan_combo` maps every leg before deciding, eligibility names every leg it refuses, and
+  `SkippedVenue.missing_legs` carries each with a label: Kalshi "no match for “Al Fayha to win”,
+  “U.S. invades Iran”", Polymarket US "no match for “U.S. invades Iran”". A Kalshi leg whose event
+  is in no open collection is its own code, `outside_collections` (it was `ineligible_leg`).
+- **The board is warm** (`synpath/server/combo_warmer.py`, [server](server.md#the-combo-board)):
+  built at serve's start and every minute after, through the venue's whole list (the board read on
+  request stopped at 5 pages: 5,000 rows, `complete: false`; the whole catalogue is about 214,000
+  rows, so a first build serves its board so far as it goes, and Gamma's reads are kept between
+  builds); requests answer from it at once
+  (`status: "building"` until the first build ends) and read it in parts:
+  `GET /trading/combos/board/categories` and `GET /trading/combos/board?category=&cursor=&limit=`.
+- Tests: `tests/test_combo_warmer.py` (the warmer, the routes, the skip reasons on both real legs
+  with Gamma's real rows in `tests/samples/polymarket_combo_skip_legs_live.json` and matching
+  mocked from its real answers, and serve's wiring).
+
 ### Over HTTP
 
-`POST /trading/rfq-groups`, `POST /trading/rfq-groups/preview`, `GET /trading/combos/board`, `GET /trading/rfq-groups`,
+`POST /trading/rfq-groups`, `POST /trading/rfq-groups/preview`, `GET /trading/combos/board`,
+`GET /trading/combos/board/categories`, `GET /trading/rfq-groups`,
 `GET /trading/rfq-groups/{id}`, `POST /trading/rfq-groups/{id}/accept`,
 `DELETE /trading/rfq-groups/{id}` ([server](server.md#cross-venue-rfq-groups)).
 

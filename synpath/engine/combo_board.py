@@ -31,9 +31,13 @@ with live books where it has them.
 """
 from __future__ import annotations
 
+import asyncio
+import gc
+import inspect
 import re
+import time
 from decimal import Decimal
-from typing import Any, Iterable, Literal
+from typing import Any, Awaitable, Callable, Iterable, Literal
 
 from pydantic import Field
 
@@ -94,6 +98,8 @@ class BoardRow(_Base):
 
     name: str
     abbr: str | None = None
+    alias: str | None = Field(default=None, description="The venue's short name for the participant, where it has "
+                                                        "one (Gamma's team `alias`: `Al Fayha`)")
     picks: dict[str, BoardPick | None] = Field(default_factory=dict, description="By `moneyline`, `spread`, `total`")
 
 
@@ -123,8 +129,12 @@ class BoardCategory(_Base):
     count: int = Field(description="Events on the board in this category")
 
 
+BoardStatus = Literal["building", "ready"]
+
+
 class ComboBoard(_Base):
-    """A venue's combo-eligible markets, grouped for a builder."""
+    """A venue's combo-eligible markets, grouped for a builder: the whole
+    board, or one page of one category of it (`category`, `next_cursor`)."""
 
     venue: str
     count: int = Field(description="Combo-eligible markets read")
@@ -132,6 +142,27 @@ class ComboBoard(_Base):
     categories: list[BoardCategory] = Field(default_factory=list, description="By count, sports first")
     complete: bool = Field(default=True, description="Every page of the venue's list was read")
     as_of: int | None = None
+    status: BoardStatus = Field(default="ready", description="`building` while serve's first build of this venue's "
+                                                             "board runs (no events yet), else `ready`")
+    built_at: int | None = Field(default=None, description="When the board served was built, ms")
+    category: str | None = Field(default=None, description="A page: the category it is of (`all` for every one)")
+    total: int | None = Field(default=None, description="A page: the events in its category (and search)")
+    next_cursor: str | None = Field(default=None, description="A page: the cursor of the next one; null at the end")
+    error: str | None = Field(default=None, description="Why serve's last build of this board failed, while the "
+                                                        "board served is an older one (or none yet)")
+
+
+class ComboBoardCategories(_Base):
+    """A board's rail: its categories with counts, without the events."""
+
+    venue: str
+    status: BoardStatus = "ready"
+    built_at: int | None = None
+    complete: bool = True
+    count: int = Field(default=0, description="Combo-eligible markets read")
+    events: int = Field(default=0, description="Events on the board")
+    categories: list[BoardCategory] = Field(default_factory=list, description="By count, sports first")
+    error: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +176,7 @@ class Side(_Base):
                                  "one, else its name")
     name: str
     abbr: str | None = Field(default=None, description="The venue's own abbreviation, where it has one")
+    alias: str | None = Field(default=None, description="The venue's own short name, where it has one")
     draw: bool = False
 
 
@@ -175,6 +207,20 @@ class BoardMarket(_Base):
     volume: Decimal | None = None
 
 
+# The builders below run in worker threads beside serve's event loop
+# (`board_for`). Under the GIL a thread building the whole catalogue starves
+# the loop for seconds: health checks and order routes waited 1-6 s. Sleeping
+# 1 ms every `LOCK_SHARE_EVERY` items hands the loop the lock on a fixed beat,
+# at the cost of a slower background build.
+LOCK_SHARE_EVERY = 100
+LOCK_SHARE_S = 0.001
+
+
+def share_the_lock(items_done: int) -> None:
+    if items_done % LOCK_SHARE_EVERY == 0:
+        time.sleep(LOCK_SHARE_S)
+
+
 def board_of(venue: str, markets: Iterable[BoardMarket], *, complete: bool = True,
              as_of: int | None = None) -> ComboBoard:
     """Games and questions from a venue's eligible markets (already
@@ -185,7 +231,8 @@ def board_of(venue: str, markets: Iterable[BoardMarket], *, complete: bool = Tru
     for market in rows:
         by_event.setdefault(market.event_key, []).append(market)
     events: list[BoardEvent] = []
-    for key, members in by_event.items():
+    for events_done, (key, members) in enumerate(by_event.items(), 1):
+        share_the_lock(events_done)
         game = game_of(venue, key, members)
         if game is not None:
             events.append(game)
@@ -220,7 +267,7 @@ def game_of(venue: str, key: str, members: list[BoardMarket]) -> BoardEvent | No
         return None
     first = members[0]
     category, label, group = category_of([t for m in members for t in m.tags], first.series)
-    rows = [BoardRow(name=s.name, abbr=s.abbr) for s in sides]
+    rows = [BoardRow(name=s.name, abbr=s.abbr, alias=s.alias) for s in sides]
     used: list[str] = []
     for kind in KINDS:
         for row, pick in zip(rows, picks_for(kind, [m for m in typed if m.kind == kind], sides)):
@@ -354,7 +401,8 @@ def polymarket_markets(rows: Iterable[Any], details: dict[str, dict[str, Any]] |
     Without Gamma's market a row is a question: the catalogue names no type."""
     details, events = details or {}, events or {}
     out = []
-    for row in rows:
+    for rows_done, row in enumerate(rows, 1):
+        share_the_lock(rows_done)
         info = dict(getattr(row, "info", None) or {})
         native = str(row.market_id).partition(":")[2] or str(row.market_id)
         gamma = details.get(native) or {}
@@ -388,7 +436,8 @@ def polymarket_us_markets(rows: Iterable[Any]) -> list[BoardMarket]:
     `sportsMarketTypeV2`, each outcome's participant from `marketSides[].team`
     (`name`, `displayAbbreviation`), the event's `teams` in order."""
     out = []
-    for row in rows:
+    for rows_done, row in enumerate(rows, 1):
+        share_the_lock(rows_done)
         info = dict(getattr(row, "info", None) or {})
         event = info.get("event") if isinstance(info.get("event"), dict) else {}
         teams = teams_of(event.get("teams") or [], abbr_field="displayAbbreviation")
@@ -437,7 +486,8 @@ def kalshi_markets(events: Iterable[Event]) -> list[BoardMarket]:
     `sub_title`'s, side by side with the title's names (`New England vs
     Chicago`); a spread's and a total's line is the market's `floor_strike`."""
     out = []
-    for event in events:
+    for events_done, event in enumerate(events, 1):
+        share_the_lock(events_done)
         raw = dict(event.info or {})
         meta = raw.get("product_metadata") or {}
         kind = KALSHI_SCOPES.get(str(meta.get("competition_scope") or "").strip().lower())
@@ -520,8 +570,9 @@ def teams_of(raw: list[Any], *, abbr_field: str = "abbreviation") -> list[Side]:
         if not isinstance(team, dict) or not team.get("name"):
             continue
         abbr = team.get(abbr_field) or team.get("abbreviation") or None
+        alias = str(team.get("alias") or "").strip() or None
         out.append(Side(key=f"team:{team.get('id') or team['name']}", name=str(team["name"]),
-                        abbr=str(abbr).upper() if abbr else None))
+                        abbr=str(abbr).upper() if abbr else None, alias=alias if alias != team["name"] else None))
     return out
 
 
@@ -662,77 +713,374 @@ def millis(value: Any) -> int | None:
 
 
 # ---------------------------------------------------------------------------
+# Leg labels: a short name for each market on a board
+# ---------------------------------------------------------------------------
+
+LABEL_LENGTH = 60
+"""A label longer than this is cut, with an ellipsis."""
+
+
+def market_labels(board: ComboBoard) -> dict[str, str]:
+    """A short readable name for every market on the board, for a person to
+    recognise a leg by (`Al Fayha to win`, `Patriots -2.5`, `Patriots vs.
+    Bears over 41.5`, `U.S. invades Iran`): keyed by market id, and by
+    `market_id|outcome` where the two outcomes back different participants
+    (a two-sided moneyline or spread, a total). `label_of` reads it."""
+    labels: dict[str, str] = {}
+    for events_done, event in enumerate(board.events, 1):
+        share_the_lock(events_done)
+        if event.kind == "game":
+            game_labels(event, labels)
+        else:
+            for pick in (event.yes, event.no):
+                if pick is not None:
+                    labels.setdefault(pick.market_id, short_question(pick.title or event.title))
+    return labels
+
+
+def game_labels(event: BoardEvent, labels: dict[str, str]) -> None:
+    """A game's picks: the participant (by its short name) and what it backs."""
+    for row in event.rows:
+        name = row.alias or row.name
+        for kind, pick in row.picks.items():
+            if pick is None:
+                continue
+            if kind == "moneyline":
+                text = f"Draw in {event.title}" if name == "Draw" else f"{name} to win"
+            elif kind == "spread":
+                # The button says `CHI -2.5`: the signed line is its last word.
+                text = f"{name} {pick.label.rsplit(' ', 1)[-1]}" if " " in pick.label else name
+            else:
+                text = f"{event.title} {'over' if pick.outcome == 'yes' else 'under'} {pick.line or ''}".strip()
+            labels[f"{pick.market_id}|{pick.outcome}"] = text
+            two_sided = kind == "total" or any(
+                other is not row and (other.picks.get(kind) or None) is not None
+                and other.picks[kind].market_id == pick.market_id for other in event.rows)   # type: ignore[union-attr]
+            labels.setdefault(pick.market_id, f"{event.title} {kind}" if two_sided else text)
+
+
+def label_of(labels: dict[str, str], market_id: str, outcome: str | None = None) -> str | None:
+    """A leg's label from `market_labels`: its outcome's where the outcomes
+    differ, else its market's."""
+    return (labels.get(f"{market_id}|{outcome}") if outcome else None) or labels.get(market_id)
+
+
+_WHEN = re.compile(
+    r"\s+(?:on|by|before|after|in|during|at|through|until|ending)\s+(?:the\s+end\s+of\s+)?"
+    r"(?:\d{4}-\d{2}-\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?"
+    r"(?:,?\s+\d{4})?|(?:q[1-4]\s+)?\d{4}|today|tonight|tomorrow|this\s+(?:week|month|year))$", re.I)
+_IRREGULAR = {"be": "is", "have": "has", "do": "does", "go": "goes"}
+
+
+def short_question(title: str, *, length: int = LABEL_LENGTH) -> str:
+    """A market's question as a short statement: `Will the U.S. invade Iran
+    before 2027?` -> `U.S. invades Iran`; `Will Al Fayha Saudi Club win on
+    2026-10-22?` -> `Al Fayha Saudi Club wins`. The question's own words,
+    without its `Will`, its question mark and a trailing date; anything else
+    is kept as it is, cut to `length`."""
+    text = " ".join(str(title or "").split()).rstrip("?").strip()
+    text = _WHEN.sub("", text).strip()
+    if text.lower().startswith("will "):
+        words = text[5:].split(" ")
+        if len(words) > 1 and words[0].lower() == "the" and words[1][:1].isupper():
+            words = words[1:]
+        for at, word in enumerate(words):
+            if at and word.isalpha() and word.islower():
+                if word != "not":
+                    words[at] = third_person(word)
+                break
+        text = " ".join(words)
+    if len(text) > length:
+        text = text[:length - 1].rstrip() + "…"
+    return text or str(title)
+
+
+def third_person(verb: str) -> str:
+    """`win` -> `wins`, `reach` -> `reaches`, `carry` -> `carries`, `be` -> `is`."""
+    if verb in _IRREGULAR:
+        return _IRREGULAR[verb]
+    if verb.endswith(("s", "sh", "ch", "x", "z", "o")):
+        return verb + "es"
+    if verb.endswith("y") and len(verb) > 1 and verb[-2] not in "aeiou":
+        return verb[:-1] + "ies"
+    return verb + "s"
+
+
+# ---------------------------------------------------------------------------
+# Serving a board in parts: the rail, and one category a page at a time
+# ---------------------------------------------------------------------------
+
+PAGE_LIMIT = 50
+MAX_PAGE_LIMIT = 500
+BoardSort = Literal["board", "volume", "start"]
+
+
+def categories_view(board: ComboBoard) -> ComboBoardCategories:
+    return ComboBoardCategories(venue=board.venue, status=board.status, built_at=board.built_at,
+                                complete=board.complete, count=board.count, events=len(board.events),
+                                categories=board.categories, error=board.error)
+
+
+def board_page(board: ComboBoard, *, category: str | None = None, cursor: str | None = None,
+               limit: int = PAGE_LIMIT, query: str | None = None, sort: BoardSort = "board") -> ComboBoard:
+    """One page of the board: the events of `category` (`all` or none: every
+    one) whose title, category or participants hold every word of `query`,
+    in board order (sports first, the most events first, by start), or by
+    `volume` (largest first) or `start` within each category; from `cursor`
+    (an offset from the last page), `limit` events. The categories are the
+    whole board's, for the rail."""
+    events = [e for e in board.events if category in (None, "", "all") or e.category == category]
+    words = [w for w in (query or "").lower().split() if w]
+    if words:
+        events = [e for e in events if all(w in searchable(e) for w in words)]
+    if sort != "board":
+        order = {c.key: index for index, c in enumerate(board.categories)}
+
+        def key(e: BoardEvent) -> tuple:
+            within = -(e.volume or Decimal(0)) if sort == "volume" else Decimal(e.start_time or 2**62)
+            return (order.get(e.category, len(order)), within, e.title)
+        events = sorted(events, key=key)
+    start = page_offset(cursor)
+    limit = max(1, min(int(limit), MAX_PAGE_LIMIT))
+    page = events[start:start + limit]
+    more = start + limit < len(events)
+    return board.model_copy(update={"events": page, "category": category or "all", "total": len(events),
+                                    "next_cursor": str(start + limit) if more else None})
+
+
+def searchable(event: BoardEvent) -> str:
+    return " ".join([event.title, event.category_label,
+                     *(f"{r.name} {r.abbr or ''} {r.alias or ''}" for r in event.rows)]).lower()
+
+
+def page_offset(cursor: str | None) -> int:
+    if not cursor:
+        return 0
+    try:
+        return max(0, int(cursor))
+    except ValueError:
+        from ..errors import BadRequest
+        raise BadRequest(f"not a cursor of this board: {cursor!r}") from None
+
+
+# ---------------------------------------------------------------------------
 # Reading a venue
 # ---------------------------------------------------------------------------
 
 BOARD_PAGES = 5
-"""Pages of a venue's eligible list (or of Kalshi's collections) a board reads."""
+"""Pages of a venue's eligible list (or of Kalshi's collections) a board read
+on request reads. serve's warmer (`synpath.server.combo_warmer`) reads every
+page (`pages=None`)."""
 BOARD_EVENTS = 150
-"""Kalshi: the most collection events whose markets a board reads."""
-PRICE_BATCH = 50
+"""Kalshi: the most collection events whose markets a board read on request
+reads (`max_events=None`: every one)."""
+PRICE_BATCH = 100
+"""Gamma's largest batch."""
+KALSHI_EVENT_BATCH = 100
+EVENT_BATCH = 20
 
 
-async def board_for(venue: str, adapter: Any, reader: Any | None = None, *, pages: int = BOARD_PAGES,
-                    max_events: int = BOARD_EVENTS) -> ComboBoard:
+FIRST_PUBLISH_PAGES = 5
+"""A whole-list build with `progress` publishes its board after this many
+pages (the venue lists by volume, so the busiest markets come first)..."""
+PUBLISH_EVERY_PAGES = 40
+"""...and again every this many pages, until the list ends."""
+
+
+class BoardCache:
+    """What a board keeps between builds of one venue: Polymarket's Gamma
+    markets (their type, line, label and event: fields that do not change;
+    prices are left out, so each build takes the catalogue's own) and the
+    games' events (their teams). A rebuild reads Gamma only for markets it
+    has not seen; what a build no longer lists is dropped."""
+
+    def __init__(self) -> None:
+        self.markets: dict[str, dict[str, Any]] = {}
+        self.events: dict[str, dict[str, Any]] = {}
+
+    def prune(self, market_natives: set[str], event_ids: set[str]) -> None:
+        self.markets = {k: v for k, v in self.markets.items() if k in market_natives}
+        self.events = {k: v for k, v in self.events.items() if k in event_ids}
+
+
+GAMMA_FIELDS = ("question", "sportsMarketType", "line", "groupItemTitle", "gameStartTime", "endDate", "outcomes")
+GAMMA_EVENT_FIELDS = ("id", "title", "seriesSlug", "startTime", "teams")
+
+
+def static_gamma(info: dict[str, Any]) -> dict[str, Any]:
+    """A Gamma market's fields a board reads that do not move with the market."""
+    out = {k: info[k] for k in GAMMA_FIELDS if info.get(k) is not None}
+    events = info.get("events")
+    if isinstance(events, list) and events and isinstance(events[0], dict):
+        out["events"] = [{k: events[0][k] for k in GAMMA_EVENT_FIELDS if events[0].get(k) is not None}]
+    return out
+
+
+async def board_for(venue: str, adapter: Any, reader: Any | None = None, *, pages: int | None = BOARD_PAGES,
+                    max_events: int | None = BOARD_EVENTS, pause_s: float = 0.0, cache: BoardCache | None = None,
+                    progress: Callable[[ComboBoard], None | Awaitable[None]] | None = None) -> ComboBoard:
     """The board of one combo venue. `adapter` is the engine's trading
     adapter (its eligibility: Kalshi's collections, or the venue's eligible
     list); `reader` is the server's read adapter for the venue, where there is
     one: Kalshi's event markets come from it (`fetch_events_by_ids`);
     Polymarket's rows get its Gamma markets (types, lines, labels, quotes) and
-    the games' events (teams); Polymarket US's rows carry their own."""
-    import asyncio
+    the games' events (teams); Polymarket US's rows carry their own.
+
+    `pages` (None: until the venue's list ends) and `max_events` (None: no
+    limit) bound the read; `pause_s` is slept between two venue reads, so a
+    whole-catalogue build stays polite to the venue. `cache` keeps
+    Polymarket's Gamma reads between builds (`BoardCache`). `progress`, where
+    given, is handed the board so far (`complete: false`) after the first
+    `FIRST_PUBLISH_PAGES` pages of a listed venue and every
+    `PUBLISH_EVERY_PAGES` after: Polymarket lists about 214,000 markets.
+
+    The CPU-heavy steps (rows into board markets, markets into the board) run
+    in worker threads: on the whole catalogue they take seconds, and serve's
+    event loop must keep answering the terminal's health checks meanwhile."""
     import time
 
     from .rfq_group import lists_combo_markets
 
     now = int(time.time() * 1000)
     if callable(getattr(adapter, "fetch_combo_collections", None)):
-        tickers, complete = await collection_events(adapter, pages)
+        tickers, complete = await collection_events(adapter, pages, pause_s)
         fetch = getattr(reader, "fetch_events_by_ids", None)
         if fetch is None or not tickers:
             return ComboBoard(venue=venue, count=0, complete=complete and not tickers, as_of=now)
-        events = await asyncio.to_thread(fetch, [f"{venue}:{t}" for t in tickers[:max_events]])
-        return board_of(venue, kalshi_markets(events), complete=complete and len(tickers) <= max_events, as_of=now)
+        wanted = tickers if max_events is None else tickers[:max_events]
+        events = await kalshi_events_of(venue, wanted, fetch, pause_s)
+        markets = await asyncio.to_thread(kalshi_markets, events)
+        return await asyncio.to_thread(board_of, venue, markets, complete=complete and len(wanted) == len(tickers),
+                                       as_of=now)
     if not lists_combo_markets(adapter):
         return ComboBoard(venue=venue, count=0, complete=True, as_of=now)
-    rows: list[Any] = []
+    return await listed_board(venue, adapter, reader, pages=pages, pause_s=pause_s, cache=cache, progress=progress,
+                              now=now)
+
+
+async def listed_board(venue: str, adapter: Any, reader: Any | None, *, pages: int | None, pause_s: float,
+                       cache: BoardCache | None, progress: Callable[[ComboBoard], None | Awaitable[None]] | None,
+                       now: int) -> ComboBoard:
+    """A listed venue's board (Polymarket, Polymarket US): its eligible list
+    page by page, each chunk of rows turned into board markets as it comes,
+    the board so far handed to `progress` along the way."""
+    cache = cache if cache is not None else BoardCache()
+    markets: list[BoardMarket] = []
+    seen: set[str] = set()
+    pending: list[Any] = []
     cursor: str | None = None
+    read = 0
     complete = False
-    for _ in range(pages):
+    while pages is None or read < pages:
+        if read:
+            await pause(pause_s)
         page = await adapter.fetch_combo_eligible_markets(cursor=cursor)
-        rows.extend(page)
+        read += 1
+        for row in page:
+            if row.market_id not in seen:
+                seen.add(row.market_id)
+                pending.append(row)
         cursor = page.next_cursor
         if not cursor:
             complete = True
             break
-    if venue == "polymarket_us" or all(getattr(r, "venue", "") == "polymarket_us" for r in rows if rows):
-        markets = polymarket_us_markets(rows)
-        if reader is not None and callable(getattr(reader, "fetch_markets_by_ids", None)):
-            await with_catalogue_quotes(markets, reader)
-        return board_of(venue, markets, complete=complete, as_of=now)
-    details: dict[str, dict[str, Any]] = {}
+        if progress is not None and (read == FIRST_PUBLISH_PAGES or read % PUBLISH_EVERY_PAGES == 0):
+            markets += await listed_markets_of(venue, pending, reader, pause_s, cache)
+            pending = []
+            # The board so far is long-lived: keep the cyclic collector from
+            # rescanning it on every full collection (`share_the_lock`).
+            gc.freeze()
+            published = progress(await asyncio.to_thread(board_of, venue, markets, complete=False, as_of=now))
+            if inspect.isawaitable(published):
+                await published
+    markets += await listed_markets_of(venue, pending, reader, pause_s, cache)
+    if complete:
+        cache.prune({m.market_id.partition(":")[2] for m in markets},
+                    {m.event_key.partition(":")[2] for m in markets if m.event_key.startswith("polymarket-event:")})
+    return await asyncio.to_thread(board_of, venue, markets, complete=complete, as_of=now)
+
+
+async def listed_markets_of(venue: str, rows: list[Any], reader: Any | None, pause_s: float,
+                            cache: BoardCache) -> list[BoardMarket]:
+    """Board markets for a chunk of a listed venue's rows: Polymarket US's
+    carry their own fields; Polymarket's take Gamma's market (from `cache`,
+    else read now, with its prices) and their game's event (teams)."""
+    if not rows:
+        return []
+    can_read = reader is not None and callable(getattr(reader, "fetch_markets_by_ids", None))
+    if venue == "polymarket_us" or all(getattr(r, "venue", "") == "polymarket_us" for r in rows):
+        markets = await asyncio.to_thread(polymarket_us_markets, rows)
+        if can_read:
+            await with_catalogue_quotes(markets, reader, pause_s)
+        return markets
+    natives, unseen = await asyncio.to_thread(natives_not_cached, rows, cache)
     quotes: dict[str, Market] = {}
-    if reader is not None and callable(getattr(reader, "fetch_markets_by_ids", None)):
-        quotes = await catalogue_markets([r.market_id for r in rows], reader)
-        details = {m.venue_market_id: dict(m.info or {}) for m in quotes.values()}
-    events: dict[str, dict[str, Any]] = {}
+    if can_read and unseen:
+        quotes = await catalogue_markets(unseen, reader, pause_s)
+    details = await asyncio.to_thread(remember_gamma_markets, natives, unseen if can_read else [], quotes, cache)
     fetch_events = getattr(reader, "fetch_events_by_ids", None)
     if callable(fetch_events):
-        wanted = list(dict.fromkeys(
-            str((d.get("events") or [{}])[0].get("id")) for d in details.values()
-            if POLYMARKET_KINDS.get(str(d.get("sportsMarketType") or "")) and d.get("events")))
-        events = await game_events(wanted, fetch_events)
-    markets = polymarket_markets(rows, details, events)
-    apply_quotes(markets, quotes)
-    return board_of(venue, markets, complete=complete, as_of=now)
+        missing = await asyncio.to_thread(game_events_not_cached, details, cache)
+        for event_id, info in (await game_events(missing, fetch_events, pause_s)).items():
+            cache.events[event_id] = {"teams": info.get("teams") or []}
+    markets = await asyncio.to_thread(polymarket_markets, rows, details, cache.events)
+    await asyncio.to_thread(apply_quotes, markets, quotes)
+    return markets
 
 
-async def collection_events(adapter: Any, pages: int) -> tuple[list[str], bool]:
+# The bookkeeping of one chunk of Polymarket rows (about 40,000 markets), kept
+# off serve's event loop like the builders above (`share_the_lock`).
+
+def natives_not_cached(rows: list[Any], cache: BoardCache) -> tuple[dict[str, str], list[str]]:
+    """Each row's native Gamma id, by market id, and the market ids whose
+    Gamma market the cache does not hold yet."""
+    natives: dict[str, str] = {}
+    for rows_done, row in enumerate(rows, 1):
+        share_the_lock(rows_done)
+        natives[row.market_id] = str(row.market_id).partition(":")[2] or str(row.market_id)
+    return natives, [m for m, n in natives.items() if n not in cache.markets]
+
+
+def remember_gamma_markets(natives: dict[str, str], unseen: list[str], quotes: dict[str, Market],
+                           cache: BoardCache) -> dict[str, dict[str, Any]]:
+    """Gamma's market for each row, by native id: the one just read (with
+    its prices), else the cache's. What was just read goes into the cache;
+    a market Gamma did not serve is cached empty, so it is not asked for again."""
+    for market_id in unseen:
+        cache.markets.setdefault(natives[market_id], {})
+    fresh: dict[str, dict[str, Any]] = {}
+    for quotes_done, market in enumerate(quotes.values(), 1):
+        share_the_lock(quotes_done)
+        info = dict(market.info or {})
+        fresh[market.venue_market_id] = info
+        cache.markets[market.venue_market_id] = static_gamma(info)
+    return {n: fresh.get(n) or cache.markets[n] for n in natives.values() if n in fresh or n in cache.markets}
+
+
+def game_events_not_cached(details: dict[str, dict[str, Any]], cache: BoardCache) -> list[str]:
+    """The Gamma event ids of the chunk's games whose teams the cache lacks."""
+    wanted = list(dict.fromkeys(
+        str((d.get("events") or [{}])[0].get("id")) for d in details.values()
+        if POLYMARKET_KINDS.get(str(d.get("sportsMarketType") or "")) and d.get("events")))
+    return [e for e in wanted if e not in cache.events]
+
+
+async def pause(seconds: float) -> None:
+    if seconds > 0:
+        import asyncio
+        await asyncio.sleep(seconds)
+
+
+async def collection_events(adapter: Any, pages: int | None, pause_s: float = 0.0) -> tuple[list[str], bool]:
     """Every event ticker an open collection takes, in the venue's order."""
     tickers: list[str] = []
     cursor: str | None = None
-    for _ in range(pages):
+    read = 0
+    while pages is None or read < pages:
+        if read:
+            await pause(pause_s)
         page = await adapter.fetch_combo_collections(status="open", limit=200, cursor=cursor)
+        read += 1
         for row in page:
             tickers.extend(str(t) for t in row.get("associated_event_tickers") or [])
         cursor = page.next_cursor
@@ -741,12 +1089,26 @@ async def collection_events(adapter: Any, pages: int) -> tuple[list[str], bool]:
     return list(dict.fromkeys(tickers)), False
 
 
-async def catalogue_markets(wanted: list[str], reader: Any) -> dict[str, Market]:
+async def kalshi_events_of(venue: str, tickers: list[str], fetch: Any, pause_s: float) -> list[Event]:
+    """Kalshi's collection events with their markets, in batches."""
+    import asyncio
+
+    out: list[Event] = []
+    for start in range(0, len(tickers), KALSHI_EVENT_BATCH):
+        if start:
+            await pause(pause_s)
+        out.extend(await asyncio.to_thread(fetch, [f"{venue}:{t}" for t in tickers[start:start + KALSHI_EVENT_BATCH]]))
+    return out
+
+
+async def catalogue_markets(wanted: list[str], reader: Any, pause_s: float = 0.0) -> dict[str, Market]:
     """The catalogue's markets for these ids, best effort, by id."""
     import asyncio
 
     found: dict[str, Market] = {}
     for start in range(0, len(wanted), PRICE_BATCH):
+        if start:
+            await pause(pause_s)
         try:
             batch = await asyncio.to_thread(reader.fetch_markets_by_ids, wanted[start:start + PRICE_BATCH])
         except Exception:
@@ -755,12 +1117,14 @@ async def catalogue_markets(wanted: list[str], reader: Any) -> dict[str, Market]
     return found
 
 
-async def game_events(event_ids: list[str], fetch: Any) -> dict[str, dict[str, Any]]:
+async def game_events(event_ids: list[str], fetch: Any, pause_s: float = 0.0) -> dict[str, dict[str, Any]]:
     """Polymarket's game events (their `teams`), by event id, best effort."""
     import asyncio
 
     out: dict[str, dict[str, Any]] = {}
     for start in range(0, len(event_ids), EVENT_BATCH):
+        if start:
+            await pause(pause_s)
         try:
             batch = await asyncio.to_thread(fetch, [f"polymarket:{e}" for e in event_ids[start:start + EVENT_BATCH]])
         except Exception:
@@ -768,9 +1132,6 @@ async def game_events(event_ids: list[str], fetch: Any) -> dict[str, dict[str, A
         for event in batch:
             out[event.venue_event_id] = dict(event.info or {})
     return out
-
-
-EVENT_BATCH = 20
 
 
 def apply_quotes(markets: list[BoardMarket], quotes: dict[str, Market]) -> None:
@@ -783,6 +1144,6 @@ def apply_quotes(markets: list[BoardMarket], quotes: dict[str, Market]) -> None:
             market.yes_bid, market.yes_ask = to_decimal(quote.bid), to_decimal(quote.ask)
 
 
-async def with_catalogue_quotes(markets: list[BoardMarket], reader: Any) -> None:
+async def with_catalogue_quotes(markets: list[BoardMarket], reader: Any, pause_s: float = 0.0) -> None:
     """Replace listed prices with the catalogue's quotes, best effort."""
-    apply_quotes(markets, await catalogue_markets([m.market_id for m in markets], reader))
+    apply_quotes(markets, await catalogue_markets([m.market_id for m in markets], reader, pause_s))

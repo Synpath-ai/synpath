@@ -96,6 +96,20 @@ MATCH_TTL_S = 60.0
 """How long a matching answer (a listing, or none) is reused: a preview and
 the group it leads to ask the same legs within seconds."""
 
+Labeler = Callable[[list[ComboLeg]], Awaitable[dict[str, str]]]
+"""`labeler(legs)` -> a short readable name for each leg's market, by market
+id (`Al Fayha to win`, `U.S. invades Iran`). serve's combo board warmer is
+one (`synpath.server.combo_warmer`); without one a leg is named by its
+`info["label"]`, else its market id."""
+
+VENUE_NAMES = {"kalshi": "Kalshi", "polymarket": "Polymarket", "polymarket_us": "Polymarket US",
+               "limitless": "Limitless", "opinion": "Opinion", "predict_fun": "predict.fun", "sx_bet": "SX Bet"}
+COLLECTION_SCOPES = {"kalshi": "Kalshi combos are sports and cross-category only"}
+"""What a collection venue's combos take, said when a leg's event is in none
+of its open collections."""
+LEG_CODES = ("missing_leg", "matching_error", "ineligible_leg", "outside_collections")
+"""Why a venue lacks a leg, in the order a skip reason names them."""
+
 Matcher = Callable[[str, str], Awaitable[MarketLink | None]]
 """`matcher(anchor, venue)` -> the other venue's listing of the same
 proposition, or `None` when it has none. Raises `MarketNotFound` when the
@@ -179,15 +193,34 @@ class GroupMember(_Base):
         return f"{self.venue}:{self.rfq_id}"
 
 
+class SkippedLeg(_Base):
+    """One leg a venue lacks, and why."""
+
+    market_id: str = Field(description="The leg, as given")
+    label: str = Field(description="A short readable name for the leg's market (`Al Fayha to win`, `U.S. invades "
+                                   "Iran`), never just its outcome")
+    code: str = Field(description="`missing_leg`: no matching market there; `matching_error`: the matching service "
+                                  "could not be asked; `ineligible_leg`: matched, but the venue's combos do not take "
+                                  "that market; `outside_collections`: matched, but its event is in none of the "
+                                  "venue's open combo collections (Kalshi)")
+    mapped_id: str | None = Field(default=None, description="The venue's matched market, where there is one")
+    detail: str | None = Field(default=None, description="What matching or the venue said")
+
+
 class SkippedVenue(_Base):
     """A venue the group does not ask, and why."""
 
     venue: str
     code: str = Field(description="`excluded`, `forbidden`, `not_configured`, `no_rfq`, `no_combos`, `no_match`, "
-                                  "`matching_error`, `missing_leg`, `ineligible_leg`, `duplicate_leg`, "
-                                  "`one_sided_size`, `member_disabled`")
-    reason: str
-    leg: str | None = Field(default=None, description="The leg (as given) that could not be placed here")
+                                  "`matching_error`, `missing_leg`, `ineligible_leg`, `outside_collections`, "
+                                  "`duplicate_leg`, `one_sided_size`, `member_disabled`. A combo venue lacking legs "
+                                  "has the code of the first reason in `missing_legs`, in that order")
+    reason: str = Field(description="For a person: a combo venue's names every leg it lacks (`no match for “Al "
+                                    "Fayha to win”, “U.S. invades Iran”`)")
+    leg: str | None = Field(default=None, description="The first leg (as given) that could not be placed here")
+    missing_legs: list[SkippedLeg] = Field(default_factory=list, description="A combo: every leg this venue lacks, "
+                                                                             "each with its label and reason")
+    detail: str | None = Field(default=None, description="What matching or the venue said, for a log")
 
 
 class GroupQuote(_Base):
@@ -333,6 +366,8 @@ class RfqGroupDesk:
     def __init__(self, engine: "Engine", *, matcher: Matcher | None = None):
         self.engine = engine
         self.matcher: Matcher = matcher or hosted_matcher()
+        self.labeler: Labeler | None = None
+        """Names each leg's market in a skip reason (`Labeler`); set by serve."""
         self.groups: dict[str, RfqGroup] = {}
         self._by_rfq: dict[str, str] = {}
         """`venue:rfq_id` -> the group it is a member of."""
@@ -663,7 +698,11 @@ class RfqGroupDesk:
 
     async def _plan_combo(self, group: RfqGroup, candidates: list[str],
                           skipped: list[SkippedVenue]) -> list[GroupMember]:
+        """Each combo venue's legs (mapped, then checked eligible), or every
+        leg it lacks and why: no match, matching unavailable, matched but not
+        combo-eligible there, or outside its combo collections."""
         legs = group.instrument.legs or []
+        labels: dict[str, str] | None = None
         members = []
         for venue in candidates:
             adapter = self.engine.adapters[venue]
@@ -671,28 +710,44 @@ class RfqGroupDesk:
                 skipped.append(SkippedVenue(venue=venue, code="no_combos", reason=f"{venue} has no combos"))
                 continue
             mapped: list[ComboLeg] = []
-            missing: SkippedVenue | None = None
+            lacking: list[tuple[ComboLeg, str, str, str | None]] = []
             for leg in legs:
                 found, reason, code = await self._map_leg(leg, venue)
                 if found is None:
-                    missing = SkippedVenue(venue=venue, code=code, reason=reason, leg=leg.market_id)
-                    break
-                mapped.append(found)
-            if missing is not None:
-                skipped.append(missing)
-                continue
-            if len({leg.market_id for leg in mapped}) != len(mapped):
+                    lacking.append((leg, code, reason, None))
+                else:
+                    mapped.append(found)
+            if not lacking and len({leg.market_id for leg in mapped}) != len(mapped):
                 skipped.append(SkippedVenue(venue=venue, code="duplicate_leg",
                                             reason=f"two legs are the same market on {venue}"))
                 continue
-            try:
-                mapped, collection, how = await self._eligible(venue, adapter, mapped, legs)
-            except _Ineligible as exc:
-                skipped.append(SkippedVenue(venue=venue, code="ineligible_leg", reason=str(exc), leg=exc.leg))
+            collection = how = None
+            together = False
+            if not lacking:
+                try:
+                    mapped, collection, how = await self._eligible(venue, adapter, mapped, legs)
+                except _Ineligible as exc:
+                    together = exc.together
+                    lacking = exc.legs or [(next(g for g in legs if g.market_id == exc.leg) if exc.leg else legs[-1],
+                                            exc.code, str(exc), None)]
+            if lacking:
+                labels = labels if labels is not None else await self._labels(legs)
+                skipped.append(skipped_combo_venue(venue, lacking, labels, together=together))
                 continue
             members.append(GroupMember(venue=venue, via="combo", legs=mapped, collection_id=collection,
                                        eligibility=how))
         return members
+
+    async def _labels(self, legs: list[ComboLeg]) -> dict[str, str]:
+        """A short name for each leg's market (`Labeler`), best effort."""
+        found: dict[str, str] = {}
+        if self.labeler is not None:
+            try:
+                found = dict(await self.labeler(legs))
+            except Exception as exc:   # a label is for reading; a skip must still be reported
+                log.info("synpath.engine: labelling combo legs failed: %s", exc)
+        return {leg.market_id: found.get(leg.market_id) or str(leg.info.get("label") or "") or leg.market_id
+                for leg in legs}
 
     # -- eligibility -----------------------------------------------------------
 
@@ -741,13 +796,19 @@ class RfqGroupDesk:
                 fits.append(str(row.get("collection_ticker")))
         if not fits:
             if not rows:
-                raise _Ineligible(f"no open collection on {venue} takes event {wanted[0]}", leg=given[0].market_id)
-            for leg, mine, event in zip(given, legs, events):
-                if event not in seen:
-                    raise _Ineligible(f"event {event} ({mine.market_id}) is in no open collection on {venue} with "
-                                      f"event {wanted[0]}", leg=leg.market_id)
-            raise _Ineligible(f"no open collection on {venue} takes these {len(legs)} legs together "
-                              f"(events {', '.join(wanted)})", leg=given[-1].market_id)
+                raise _Ineligible(f"no open collection on {venue} takes event {wanted[0]}", leg=given[0].market_id,
+                                  code="outside_collections",
+                                  legs=[(given[0], "outside_collections",
+                                         f"event {wanted[0]} is in no open collection on {venue}", legs[0].market_id)])
+            outside = [(leg, "outside_collections", f"event {event} is in no open collection on {venue} with event "
+                        f"{wanted[0]}", mine.market_id)
+                       for leg, mine, event in zip(given, legs, events) if event not in seen]
+            if outside:
+                raise _Ineligible(outside[0][2], leg=outside[0][0].market_id, code="outside_collections", legs=outside)
+            together = f"no open collection on {venue} takes these {len(legs)} legs together (events {', '.join(wanted)})"
+            raise _Ineligible(together, leg=given[-1].market_id, code="outside_collections",
+                              legs=[(leg, "outside_collections", together, mine.market_id)
+                                    for leg, mine in zip(given, legs)], together=True)
         fits = sorted(set(fits))
         how = f"collection {fits[0]}" + (f" (of {len(fits)}: {', '.join(fits)})" if len(fits) > 1 else "")
         return legs, fits[0], how
@@ -775,11 +836,13 @@ class RfqGroupDesk:
                     break
             self._eligible_lists[venue] = (now, known, complete)
         out = []
+        where = "is not on" if complete else f"is not in the first {ELIGIBLE_PAGES} pages of"
+        absent = [(original, "ineligible_leg", f"{leg.market_id} {where} {venue}'s combo-eligible list", leg.market_id)
+                  for leg, original in zip(legs, given) if leg.market_id not in known]
+        if absent:
+            raise _Ineligible(absent[0][2], leg=absent[0][0].market_id, code="ineligible_leg", legs=absent)
         for leg, original in zip(legs, given):
-            row = known.get(leg.market_id)
-            if row is None:
-                where = "is not on" if complete else f"is not in the first {ELIGIBLE_PAGES} pages of"
-                raise _Ineligible(f"{leg.market_id} {where} {venue}'s combo-eligible list", leg=original.market_id)
+            row = known[leg.market_id]
             position = (row.position_ids or {}).get(leg.outcome)
             if position and not leg.info.get("position_id"):
                 leg = leg.model_copy(update={"info": {**leg.info, "position_id": position}})
@@ -1387,9 +1450,56 @@ def find_quote(group: RfqGroup, venue: str, quote_id: str) -> GroupQuote | None:
 
 
 class _Ineligible(Exception):
-    def __init__(self, message: str, *, leg: str | None = None):
+    """The venue's combos do not take these legs: each `(given leg, code,
+    detail, the venue's market)`, the code `ineligible_leg` or
+    `outside_collections`; `together` when each is in a collection, but no
+    one collection takes them all."""
+
+    def __init__(self, message: str, *, leg: str | None = None, code: str = "ineligible_leg",
+                 legs: list[tuple[ComboLeg, str, str, str | None]] | None = None, together: bool = False):
         super().__init__(message)
-        self.leg = leg
+        self.leg, self.code, self.legs, self.together = leg, code, list(legs or []), together
+
+
+def skipped_combo_venue(venue: str, lacking: list[tuple[ComboLeg, str, str, str | None]],
+                        labels: Mapping[str, str], *, together: bool = False) -> SkippedVenue:
+    """A combo venue skipped for the legs it lacks: each leg by its label,
+    with its reason, and one sentence naming them all."""
+    missing = [SkippedLeg(market_id=leg.market_id, label=labels.get(leg.market_id) or leg.market_id, code=code,
+                          detail=detail or None, mapped_id=mapped)
+               for leg, code, detail, mapped in lacking]
+    codes = [c for c in LEG_CODES if any(m.code == c for m in missing)] or [missing[0].code]
+    return SkippedVenue(venue=venue, code=codes[0], reason=skip_reason(venue, missing, together=together),
+                        leg=missing[0].market_id, missing_legs=missing,
+                        detail="; ".join(dict.fromkeys(m.detail for m in missing if m.detail)) or None)
+
+
+def skip_reason(venue: str, missing: list[SkippedLeg], *, together: bool = False) -> str:
+    """`no match for “Al Fayha to win”, “U.S. invades Iran”`, one clause per
+    reason, in `LEG_CODES` order."""
+    name = VENUE_NAMES.get(venue, venue)
+
+    def quoted(code: str) -> str:
+        return ", ".join(f"“{m.label}”" for m in missing if m.code == code)
+
+    clauses = []
+    for code in [*LEG_CODES, *sorted({m.code for m in missing} - set(LEG_CODES))]:
+        if not any(m.code == code for m in missing):
+            continue
+        if code == "missing_leg":
+            clauses.append(f"no match for {quoted(code)}")
+        elif code == "matching_error":
+            clauses.append(f"matching unavailable for {quoted(code)}")
+        elif code == "ineligible_leg":
+            clauses.append(f"not combo-eligible on {name}: {quoted(code)}")
+        elif code == "outside_collections" and together:
+            clauses.append(f"no open {name} combo collection takes {quoted(code)} together")
+        elif code == "outside_collections":
+            scope = COLLECTION_SCOPES.get(venue, f"{name} combos take only the events of its open collections")
+            clauses.append(f"{scope}: {quoted(code)} is in none")
+        else:
+            clauses.append(f"{code.replace('_', ' ')}: {quoted(code)}")
+    return "; ".join(clauses)
 
 
 def _params(intent: Intent) -> dict[str, Any]:

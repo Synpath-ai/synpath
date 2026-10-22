@@ -13,6 +13,9 @@ One process, one event loop:
   streams, so stops see prices and parents hear their children fill;
 * **reconciliation**, the **end-of-day** close, **halt/resume** requests
   written by `synpath halt`, and a periodic status line;
+* the **combo boards** (`synpath.server.combo_warmer`): every combo venue's
+  board built at start-up and rebuilt each minute, so `/trading/combos/board`
+  never waits on a venue;
 * the **HTTP API**: the read app at `/` (with batch reads and search),
   matching and tick history from Synpath's hosted services at `/matching`
   and `/history` (serve holds the Synpath API key), live market data at
@@ -82,6 +85,8 @@ class Stack:
     extra_tasks: dict[str, Any] = field(default_factory=dict)
     market_streams: Any | None = None
     """The `/ws/market` hub: venue market connections shared with the feeds."""
+    combo_boards: Any | None = None
+    """Every combo venue's board, kept warm (`synpath.server.combo_warmer`); None with `[combo_board] warm = false`."""
 
 
 async def build(
@@ -192,10 +197,29 @@ async def build(
     # The combo board and group previews read leg markets and quotes from the
     # same catalogue as the read app.
     trading_app.state.registry = app.state.registry
+    combo_boards = combo_board_warmer(engine, app.state.registry, config)
+    if combo_boards is not None:
+        # The board routes answer from it, never waiting on a build; the RFQ
+        # groups name the legs a venue lacks by its boards' picks.
+        trading_app.state.combo_boards = combo_boards
+        engine.rfq_groups.labeler = combo_boards.labels_for
     app.mount("/trading", trading_app)
     app.state.trading_path = "/trading"
     return Stack(engine=engine, feeds=feeds, store=store, app=app, reconciler=reconciler, eod=eod,
-                 config=config, owner_key=owner_key, local_key=stack_key, market_streams=market_streams)
+                 config=config, owner_key=owner_key, local_key=stack_key, market_streams=market_streams,
+                 combo_boards=combo_boards)
+
+
+def combo_board_warmer(engine: Any, registry: Any, config: dict[str, Any]) -> Any | None:
+    """The combo board warmer `[combo_board]` configures (on by default)."""
+    from .combo_warmer import PAUSE_S, REFRESH_INTERVAL_S, ComboBoardWarmer
+
+    section = dict(config.get("combo_board") or {})
+    if not section.get("warm", True):
+        return None
+    return ComboBoardWarmer(engine, registry,
+                            refresh_interval_s=float(section.get("refresh_interval_s", REFRESH_INTERVAL_S)),
+                            pause_s=float(section.get("pause_s", PAUSE_S)))
 
 
 def background(stack: Stack) -> dict[str, Any]:
@@ -210,6 +234,8 @@ def background(stack: Stack) -> dict[str, Any]:
     loops["control"] = _control_loop(engine, asyncio.Event())
     loops["eod"] = stack.eod.loop()
     loops["status"] = _status_loop(engine, float(stack.config.get("status_interval_s", 60)))
+    if stack.combo_boards is not None and stack.combo_boards.venues():
+        loops["combo_boards"] = stack.combo_boards.loop()
     return loops
 
 
@@ -220,6 +246,8 @@ async def shutdown(stack: Stack) -> None:
             await engine.halt("the server is shutting down", policy=engine.config.halt_policy)
         except Exception:
             log.exception("synpath serve: halting on exit failed")
+    if stack.combo_boards is not None:
+        await stack.combo_boards.close()
     if stack.market_streams is not None:
         await stack.market_streams.close()
     if stack.feeds is not None:

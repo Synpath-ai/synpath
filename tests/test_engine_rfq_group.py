@@ -215,12 +215,15 @@ class TestCombo:
         skipped = {s.venue: s for s in group.skipped}
         assert skipped["polymarket_us"].code == "missing_leg" and skipped["polymarket_us"].leg == K_B
         assert skipped["limitless"].code == "ineligible_leg" and skipped["limitless"].leg == K_B
-        assert "combo-eligible list" in skipped["limitless"].reason
+        assert skipped["limitless"].reason == f"not combo-eligible on Limitless: “{K_B}”"
+        assert "combo-eligible list" in skipped["limitless"].detail
+        assert [(m.market_id, m.code, m.mapped_id) for m in skipped["limitless"].missing_legs] == [
+            (K_B, "ineligible_leg", L_B)]
         assert all(auth == "Bearer spk_test" for *_, auth in seen)
         assert len(group.quotes) == 2
         await engine.stop()
 
-    async def test_a_kalshi_leg_in_no_collection_is_an_ineligible_leg(self, tmp_path):
+    async def test_a_kalshi_leg_in_no_collection_is_outside_its_collections(self, tmp_path):
         adapters = venues()
         adapters["kalshi"].collections = [{"collection_ticker": "KXMVE-1", "associated_event_tickers": ["KXA-26"]}]
         engine = await started(tmp_path, adapters)
@@ -228,8 +231,9 @@ class TestCombo:
             legs=[ComboLeg(market_id=K_A, outcome="yes"), ComboLeg(market_id=K_B, outcome="no")], quantity=D("10"),
             venues=["kalshi", "polymarket"])
         skipped = {s.venue: s for s in group.skipped}
-        assert skipped["kalshi"].code == "ineligible_leg" and skipped["kalshi"].leg == K_B
-        assert "KXB-26" in skipped["kalshi"].reason
+        assert skipped["kalshi"].code == "outside_collections" and skipped["kalshi"].leg == K_B
+        assert skipped["kalshi"].reason == f"Kalshi combos are sports and cross-category only: “{K_B}” is in none"
+        assert "KXB-26" in skipped["kalshi"].detail
         assert skipped["polymarket_us"].code == "excluded"
         assert [m.venue for m in group.members] == ["polymarket"]
         await engine.stop()
