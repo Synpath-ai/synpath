@@ -76,9 +76,9 @@ instructions silently. Unattributed venue observations with no original request
 are preserved in `historical_order_records`, with their original identity and
 snapshot still available through `typed_order`.
 
-Back up and verify restore before upgrading an existing store. These revisions
-refuse destructive downgrade; rollback requires compatible code and a verified
-schema/data backup. Migrations are application-managed because they require
+Back up and verify restore before upgrading an existing store. The owner migration refuses downgrade; later revision downgrades may remove
+fields or recreate dropped tables empty. Rollback requires compatible code and
+a verified schema/data backup. Migrations are application-managed because they require
 owner selection and locking; standalone/offline Alembic without that context is
 refused. Selecting PostgreSQL creates a new store. Importing an existing SQLite
 journal, including armed orders, is a separate operation and is not automatic.
