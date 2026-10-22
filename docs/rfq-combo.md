@@ -140,7 +140,7 @@ An RFQ is sized by contracts (`quantity`) **or** money (`amount`), never both.
 
 1. **Accept is an order, and returns at once.**
    - Re-read the quote (it must be `open`), take the price for the requested outcome and action, and refuse if it is worse than `worst_price`. Size an `amount` here (§3).
-   - Build an `OrderRequest(type=rfq_taker, outcome, action, quantity, price, params={rfq_id, quote_id})` and run `engine.check`: the kill switch, a paused book, the restricted list, size and notional, position caps, closing soon, daily loss. The price collar is skipped, as for market orders, because combos rarely have a mark.
+   - Build an `OrderRequest(type=rfq_taker, outcome, action, quantity, price, params={rfq_id, quote_id})` and run `engine.evaluate_order_risk`: the kill switch, a paused book, the restricted list, size and notional, position caps, closing soon, daily loss. The price collar is skipped, as for market orders, because combos rarely have a mark.
    - Journal the intent (`operation="accept_quote"`, `target_order_id=quote_id`, key `rfq-accept:{venue}:{quote_id}`), mark it `sending`, call the venue, and return the intent. A network error raises `SubmissionInDoubt` and leaves the intent `sending`.
    - An optional `wait` (with `timeout_s`) blocks until the quote is terminal; the default does not wait.
 2. **Results arrive as events.** A follower polls the quote (or reads the venue's stream):

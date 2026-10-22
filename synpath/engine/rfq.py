@@ -41,7 +41,7 @@ the journal as `combo.saved` events and shown on the position
 
 **Offers commit nothing.** Creating an RFQ and sending a maker quote are
 journaled and checked against the halt, a paused book, the restricted list
-and the order size limits (`RiskEngine.evaluate_order_risk_offer`), not the position
+and the order size limits (`RiskEngine.check_offer`), not the position
 rules, which apply when the offer trades. A maker quote's `expires_at` is
 held by the engine, which cancels the quote when it passes. A halt with the
 `cancel` policy cancels every open RFQ we asked and every quote we made, on
