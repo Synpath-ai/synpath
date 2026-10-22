@@ -78,13 +78,13 @@ class EndOfDay:
         if book_settlements:
             report.settlements, report.settled_realized = await self._settle()
 
-        since = engine.risk.day_start_ms
+        since = engine.order_risk_checks.day_start_ms
         for fill in await engine.journal.fills(since_ts=since):
             report.fills += 1
             report.volume += fill.quantity
             report.fees += fill.fee or ZERO
 
-        marks = engine.fair_values.marks()
+        marks = engine.marks()
         for level, target in (("book", report.by_book), ("account", report.by_account)):
             for key, row in engine.ledger.rollup(level, marks).items():  # type: ignore[arg-type]
                 target[key] = {
@@ -106,7 +106,7 @@ class EndOfDay:
 
         report.ended_ms = int(engine.clock() * 1000)
         await engine.bus.publish("eod.report", report.summary(), key=day)
-        engine.risk.roll_day(realized_now=total.realized)
+        engine.order_risk_checks.roll_day(realized_now=total.realized)
         await engine.journal.set_cursor("eod:last", day)
         return report
 

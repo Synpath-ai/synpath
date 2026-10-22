@@ -120,7 +120,7 @@ class MarketOrder(_Taker):
         if not await self.take(ctx, self.remaining):
             await self.finish(ctx, "canceled", "nothing on the book inside the price bound")
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         if self.state != "working" or not order.is_terminal:
             return
         if self.remaining <= 0:
@@ -169,7 +169,7 @@ class SmartTaker(_Taker):
             return
         await self.clip_now(ctx)
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         if self.state == "working" and self.remaining <= 0 and not self.live_children:
             await self.finish(ctx, "done", "filled")
 

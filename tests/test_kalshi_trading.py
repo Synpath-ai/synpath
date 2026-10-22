@@ -132,7 +132,7 @@ class TestTranslate:
         body = translate_order(req())
         assert body["time_in_force"] == "good_till_canceled"
         assert body["self_trade_prevention_type"] == "taker_at_cross"
-        assert body["post_only"] is False and body["reduce_only"] is False
+        assert body["post_only"] is False and "reduce_only" not in body
         assert len(body["client_order_id"]) == 36
         assert "expiration_time" not in body and "subaccount" not in body
 
@@ -575,3 +575,34 @@ class TestAdapter:
     async def test_context_manager_closes(self, creds, venue):
         async with KalshiTrading(creds, client=venue.client()) as k:
             assert repr(k) == "<KalshiTrading kalshi>"
+
+
+@pytest.mark.parametrize("outcome,side,book_side,cost,expected", [
+    ("no", "yes", "ask", "0.53", "0.47"),  # captured native close read-back
+    ("yes", "yes", "bid", "0.49", "0.49"),
+    (None, "yes", "ask", "0.47", "0.47"),  # legacy YES sale
+    (None, "no", "ask", "0.53", "0.47"),   # legacy NO-priced order
+])
+def test_read_projection_normalizes_priced_outcome_to_yes_average(outcome, side, book_side, cost, expected):
+    raw = {"order_id": "captured-close", "ticker": "KXNHLGAME-TEST", "book_side": book_side,
+           "side": side, "action": "sell", "fill_count_fp": "1.00", "initial_count_fp": "1.00",
+           "remaining_count_fp": "0", "status": "executed", "yes_price_dollars": "0.01",
+           "taker_fill_cost_dollars": cost, "outcome_side": outcome}
+    order = order_of(raw)
+    assert order.average_price == D(expected)
+    assert order.cost == D(cost), "retain the venue's native outcome notional separately"
+    assert order.price == D("0.01"), "the submitted limit is not the fill average"
+
+
+def test_no_average_combines_partial_maker_and_taker_costs():
+    order = order_of({"book_side": "ask", "outcome_side": "no", "fill_count_fp": "3",
+                      "remaining_count_fp": "2", "maker_fill_cost_dollars": "0.53",
+                      "taker_fill_cost_dollars": "1.06"})
+    assert order.average_price == D("0.47") and order.filled == D("3")
+
+
+def test_create_response_average_stays_on_yes_leg_for_an_ask():
+    order = order_from_response({"order_id": "close", "fill_count": "1", "remaining_count": "0",
+                                 "average_fill_price": "0.47"},
+                                body={"ticker": "KXNHLGAME-TEST", "side": "ask", "price": "0.01"})
+    assert order.average_price == D("0.47") and order.side == Side.SELL

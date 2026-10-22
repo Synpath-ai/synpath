@@ -20,7 +20,7 @@ A parent that wants ten contracts in slices of one submits ten orders, each
 of which can be refused on its own.
 
 **Events arrive, the parent decides.** `on_book`, `on_trade`, `on_fill`,
-`on_child`, `on_timer` and `on_halt` are the only ways in. A type that needs
+`on_child_order_updated`, `on_timer` and `on_halt` are the only ways in. A type that needs
 the touch reads it from the book the engine keeps; one that needs a clock
 gets `on_timer` about once a second, which is also what makes a restart
 harmless: the timer does not care how long it has been away.
@@ -40,8 +40,9 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, Iterable, Literal, Mapping
 
+from ..storage_types import Intent, IntentState
 from ...trading.types import (
-    Account, Fill, HeldBy, Order, OrderRequest, OrderStatus, OrderType, Side, TimeInForce,
+    Account, Fill, HeldBy, Order, OrderRequest, OrderStatus, OrderType, Precision, Side, TimeInForce,
 )
 
 log = logging.getLogger("synpath.engine.orders")
@@ -86,6 +87,7 @@ class Child:
     venue: str
     quantity: Decimal
     price: Decimal | None = None
+    average_price: Decimal | None = None
     filled: Decimal = ZERO
     fee: Decimal = ZERO
     status: str = "open"
@@ -98,7 +100,8 @@ class Child:
     def to_dict(self) -> dict[str, Any]:
         return {
             "order_id": self.order_id, "venue": self.venue, "quantity": str(self.quantity),
-            "price": str(self.price) if self.price is not None else None, "filled": str(self.filled),
+            "price": str(self.price) if self.price is not None else None,
+            "average_price": str(self.average_price) if self.average_price is not None else None, "filled": str(self.filled),
             "fee": str(self.fee),
             "status": self.status, "created_ms": self.created_ms,
         }
@@ -107,7 +110,7 @@ class Child:
     def of(cls, row: Mapping[str, Any]) -> "Child":
         return cls(
             order_id=row["order_id"], venue=row["venue"], quantity=D(row["quantity"]), price=D(row.get("price")),
-            filled=D(row.get("filled"), ZERO), fee=D(row.get("fee"), ZERO), status=row.get("status", "open"),
+            average_price=D(row.get("average_price")), filled=D(row.get("filled"), ZERO), fee=D(row.get("fee"), ZERO), status=row.get("status", "open"),
             created_ms=int(row.get("created_ms") or now_ms()),
         )
 
@@ -136,6 +139,9 @@ class Context:
         book = self.engine.books.get(market_id or self.parent.market_id)
         if book is not None and getattr(book, "ready", True) is False:
             return None
+        if book is not None and book.best_bid is not None and book.best_ask is not None:
+            if book.best_bid > book.best_ask:
+                return None
         return book
 
     def touch(self, side: Side, market_id: str | None = None) -> Decimal | None:
@@ -156,8 +162,7 @@ class Context:
 
     def mark(self, market_id: str | None = None) -> Decimal | None:
         instrument = market_id or self.parent.market_id
-        return (self.engine.fair_values.get(self.parent.account_key, instrument)
-                or self.mid(instrument) or self.last(instrument))
+        return self.mid(instrument) or self.last(instrument)
 
     def levels(self, side: Side, market_id: str | None = None) -> list[tuple[Decimal, Decimal]]:
         """The far side of the book, best first: what a taker would eat."""
@@ -167,6 +172,37 @@ class Context:
         bids, asks = book.levels()
         rows = asks if side == Side.BUY else bids
         return [(level.price, level.size) for level in rows]
+
+    def defer_pending_action(self) -> bool:
+        if self.engine.dispatch_running and self.engine.dispatch_parent != self.parent.id:
+            self.engine.queue_managed_action(self.parent.id)
+            return True
+        return False
+
+    def registered_precision(self) -> Precision | None:
+        specification = self.engine.market_master.find(self.parent.market_id)
+        return specification.precision if specification else None
+
+    def last_trade_timestamp(self, market_id: str) -> int | None:
+        return self.engine.last_trade_timestamps.get(market_id)
+
+    async def plan_child(self, request: OrderRequest) -> None:
+        await self.engine.journal.plan_managed_child(self.parent.snapshot(), request,
+                                                     venue=self.parent.venue, account=self.parent.account)
+
+    async def observe_pending_child(self, client_order_id: str) -> tuple[Order | None, Intent | None]:
+        order = await self.engine.journal.order_by_client_id(client_order_id)
+        intent = await self.engine.journal.intent(client_order_id)
+        if order is None and intent is not None and intent.state == IntentState.SENDING:
+            await self.engine._resolve(intent)
+            order = await self.engine.journal.order_by_client_id(client_order_id)
+            intent = await self.engine.journal.intent(client_order_id)
+        return order, intent
+
+    async def settle_unsent_child(self, client_order_id: str) -> Intent:
+        await self.engine.journal.mark_intent(client_order_id, IntentState.SETTLED,
+                                             detail="parent ended before dispatch")
+        return await self.engine.journal.intent(client_order_id)
 
     async def submit_child(self, request: OrderRequest, **kw: Any) -> Order:
         return await self.engine.submit_child(self.parent, request, **kw)
@@ -178,7 +214,7 @@ class Context:
         await self.engine.bus.publish(kind, {"parent_id": self.parent.id, **(payload or {})}, key=self.parent.id)
 
     async def save(self) -> None:
-        await self.engine.orders.save(self.parent)
+        await self.engine.managed_order_controller.save(self.parent)
 
 
 class ManagedOrder:
@@ -275,8 +311,13 @@ class ManagedOrder:
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         """One of this parent's children filled, wholly or in part."""
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
-        """A child's status changed (cancelled, rejected, expired, closed)."""
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
+        """React to a child order update after its local record has been updated.
+
+        `order` is the venue result; `child` is this parent's tracked child.
+        Implementations decide whether that change means waiting, replanning
+        or finishing the parent. This callback does not fetch the venue order.
+        """
 
     async def on_timer(self, ctx: Context) -> None:
         """About once a second, whatever else happened."""
@@ -289,16 +330,25 @@ class ManagedOrder:
 
     async def cancel(self, ctx: Context, reason: str = "cancelled", *, end: State = "canceled") -> None:
         """Pull every live child, then end as `end`: `canceled`, or `expired`
-        when it is the order's own expiry doing it."""
+        when it is the order's own expiry doing it. A parent whose children
+        turn out to have filled everything ends `done` (`closed`) instead:
+        a cancel never relabels a fill."""
         self.detail = reason
         if not self.live:
             return
         self.state = "cancelling"
-        await self.pull_children(ctx)
-        if not self.live_children:
-            await self.finish(ctx, end, reason)
-        else:
+        await ctx.save()
+        await self.cancel_live_children_without_waiting(ctx)
+        if not self.live:
+            # A child's final venue record, read while pulling it, ended the
+            # parent already (a fill that won the race closes it).
+            return
+        if self.live_children:
             await ctx.save()
+        elif self.remaining <= 0:
+            await self.finish(ctx, "done", "filled before cancellation completed")
+        else:
+            await self.finish(ctx, end, reason)
 
     async def expire(self, ctx: Context) -> None:
         """The order's own `expires_at` passed: the whole order ends
@@ -307,20 +357,31 @@ class ManagedOrder:
         is tried again."""
         await self.cancel(ctx, "expired", end="expired")
 
-    async def pull_children(self, ctx: Context) -> None:
-        """Cancel every live child.
+    async def cancel_live_children_without_waiting(self, ctx: Context) -> None:
+        """Request cancellation of each live child once and record each response.
 
-        A cancel the venue accepted counts, whatever status it echoes back:
-        Kalshi's demo answers a cancel with the order still `resting`, and a
-        parent that believed that would wait for ever to stand down. A cancel
-        that fails is a different matter, and the child stays live so the
-        parent keeps saying it is still cancelling.
+        Await each request's response, but do not poll or wait for every child
+        to reach a final status. This is not a background task launcher.
+        A venue can accept the cancellation request while its response still
+        reports the order open. That is not a confirmed cancellation: record
+        the returned status and leave the child live. The caller must keep
+        processing updates or retry cancellation; this helper does not wait
+        for confirmation and does not itself schedule retries.
         """
         for child in self.live_children:
             try:
                 result = await ctx.cancel_child(child.order_id, child.venue)
-                child.status = result.status.value if result is not None and result.is_terminal else "canceled"
+                if result is not None:
+                    # Copy what the venue actually reported. A fill may have won
+                    # the race, or the cancellation may still be pending.
+                    self.update_child_from_venue_order(result, child)
+                else:
+                    # The existing cancel-child contract treats no returned
+                    # order as canceled; this is distinct from an open response.
+                    child.status = "canceled"
             except Exception as exc:
+                # Failure to obtain a result is not proof of cancellation.
+                # Preserve the last child status for subsequent processing.
                 log.debug("synpath.engine.orders: cancelling %s failed: %s", child.order_id, exc)
 
     async def finish(self, ctx: Context, state: State, detail: str = "") -> None:
@@ -330,17 +391,30 @@ class ManagedOrder:
         await ctx.save()
         await ctx.publish(f"managed.{state}", {"kind": self.kind, "filled": str(self.filled), "detail": self.detail})
 
-    def note_order(self, order: Order, child: Child) -> Fill | None:
-        """Take the venue's latest record of a child. Returns the progress
-        since the last record as a `Fill`-shaped step for the `on_fill`
-        hook, or `None` if nothing more filled. Built from the order record
-        alone: the venue's fill events go to the ledger, never here."""
+    def update_child_from_venue_order(self, order: Order, child: Child) -> Fill | None:
+        """Update the tracked child from an already-obtained venue order result.
+
+        This method makes no venue request. Its caller supplies an order from
+        a submission/cancellation response, stream update or explicit status read.
+        Return newly filled quantity as a `Fill`-shaped step for `on_fill`, or
+        None if no additional quantity filled. Separate venue fill events go
+        to the ledger, not directly to this parent's progress.
+        """
+        # Ignore a result that would move known fills backwards.
+        if order.filled < child.filled:
+            return None
         before, fee_before = child.filled, child.fee
+        # Replace cumulative totals and status; do not add the same fills again
+        # when a stream repeats a result already seen in a placement or cancel response.
         child.filled = order.filled or ZERO
+        if order.average_price is not None or child.filled > before:
+            child.average_price = order.average_price
         child.fee = order.fee or ZERO
         child.status = order.status.value
         self.updated_ms = now_ms()
         delta = child.filled - before
+        # No new fill does not mean no change: the child status above may
+        # have changed from open to canceled. Only the fill-progress return is None.
         if delta <= 0:
             return None
         return Fill(
@@ -369,20 +443,24 @@ class ManagedOrder:
         time_in_force: TimeInForce | None = None,
         post_only: bool = False,
         expires_at: int | None = None,
-        reduce_only: bool | None = None,
         market_id: str | None = None,
         side: Side | None = None,
         params: dict[str, Any] | None = None,
     ) -> OrderRequest:
-        """A venue order in this parent's name, carrying its book and trader."""
+        """A venue order in this parent's name, carrying its book and trader,
+        and doing what the parent does: a child on the parent's side has its
+        outcome and action (a Sell YES stop sells YES held, never buys NO);
+        one on the other side (a flipped bucket member) trades the other
+        outcome the same way."""
+        child_side = side or self.side
+        outcome, action = self.request.outcome, self.request.action
+        if outcome is not None and child_side != self.side:
+            outcome = "no" if outcome == "yes" else "yes"
         return OrderRequest(
-            market_id=market_id or self.market_id, side=side or self.side, quantity=quantity, type=type,
+            market_id=market_id or self.market_id, side=child_side, outcome=outcome, action=action,
+            quantity=quantity, type=type,
             price=price, time_in_force=time_in_force or TimeInForce.GTC, post_only=post_only, expires_at=expires_at,
-            # A parent that may only reduce a position must not open one
-            # through its children: on Polymarket a reduce-only sell sells the
-            # YES held instead of buying NO.
-            reduce_only=self.request.reduce_only if reduce_only is None else reduce_only,
-            account=self.account, book=self.request.book, trader=self.request.trader,
+            user_id=self.request.user_id, account=self.account, book=self.request.book, trader=self.request.trader,
             tags={**self.request.tags, "parent": self.id}, params=params or {},
         )
 
@@ -391,7 +469,7 @@ class ManagedOrder:
         order that crossed on the way in comes back closed, and a parent that
         recorded it as resting would wait for a fill that has happened."""
         child = Child(order_id=order.id, venue=order.venue, quantity=quantity, price=price,
-                      filled=order.filled, status=order.status.value)
+                      average_price=order.average_price, filled=order.filled, fee=order.fee or ZERO, status=order.status.value)
         self.children.append(child)
         self.updated_ms = now_ms()
         return child
@@ -417,7 +495,7 @@ class ManagedOrder:
 
     @classmethod
     def from_snapshot(cls, snapshot: Mapping[str, Any]) -> "ManagedOrder":
-        request = OrderRequest.model_validate(snapshot["request"])
+        request = OrderRequest.stored(snapshot["request"])
         parent = cls(request, id=snapshot["id"], venue=snapshot["venue"],
                      account=Account.model_validate(snapshot["account"]), state=snapshot["state"])
         parent.children = [Child.of(row) for row in snapshot.get("children") or []]
@@ -433,15 +511,16 @@ class ManagedOrder:
     def as_order(self) -> Order:
         """The parent as an `Order`, so callers see one order, not a scheme."""
         average = None
-        spent = sum((c.filled * (c.price or ZERO) for c in self.children), ZERO)
-        if self.filled > 0 and spent > 0:
-            average = spent / self.filled
+        filled_children = [child for child in self.children if child.filled > 0]
+        if filled_children and all(child.average_price is not None for child in filled_children):
+            average = sum((child.filled * child.average_price for child in filled_children), ZERO) / self.filled
         return Order(
-            id=self.id, client_order_id=self.request.client_order_id, venue=self.venue, account=self.account,
+            user_id=self.request.user_id, id=self.id, client_order_id=self.request.client_order_id, venue=self.venue, account=self.account,
             market_id=self.market_id, side=self.side, type=self.order_type,
             time_in_force=self.request.time_in_force, status=STATUS_OF[self.state], held_by=HeldBy.ENGINE,
             price=self.request.price, stop_price=self.request.stop_price, quantity=self.quantity, filled=self.filled,
             remaining=self.remaining, average_price=average, book=self.request.book, trader=self.request.trader,
+            outcome=self.request.outcome, action=self.request.action, expires_at=self.request.expires_at,
             tags=dict(self.request.tags), created_at=self.created_ms, updated_at=self.updated_ms,
             info={"kind": self.kind, "state": self.state, "detail": self.detail,
                   "children": [c.order_id for c in self.children], "params": self.params},

@@ -1,0 +1,733 @@
+{
+ "source": "GET combos-rfq-api.polymarket.com/v1/rfq/combo-markets (rows), gamma /markets?id= (details), gamma /events?id= (teams); read 2026-10-22, trimmed",
+ "catalogue": [
+  {
+   "id": "5014980",
+   "condition_id": "0x3e4d20cb627ab0bcfab0e7fb48753765b3436dd121999befd2596572a6d2dc36",
+   "position_ids": [
+    "1239457920713117704534553494506711257917271190281025660857141456714128687616",
+    "1239457920713117704534553494506711257917271190281025660857141456714128687617"
+   ],
+   "slug": "lal-ray-bil-2026-10-10-bil",
+   "title": "Will Athletic Club win on 2026-10-10?",
+   "outcomes": [
+    "Yes",
+    "No"
+   ],
+   "outcome_prices": [
+    "0.5",
+    "0.5"
+   ],
+   "volume": 764387.5188169999,
+   "tags": [
+    "sports",
+    "la-liga",
+    "soccer",
+    "games"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5014977",
+   "condition_id": "0xa0996a2e100ea502040335bf116a5ce635fa214d25b8ecd6e8eeb0d1541575de",
+   "position_ids": [
+    "1239457920713117704534553494506711257917271190281025660857141456714128687104",
+    "1239457920713117704534553494506711257917271190281025660857141456714128687105"
+   ],
+   "slug": "lal-ray-bil-2026-10-10-ray",
+   "title": "Will Rayo Vallecano de Madrid win on 2026-10-10?",
+   "outcomes": [
+    "Yes",
+    "No"
+   ],
+   "outcome_prices": [
+    "0.32",
+    "0.68"
+   ],
+   "volume": 205964.87766600004,
+   "tags": [
+    "sports",
+    "la-liga",
+    "soccer",
+    "games"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5967419",
+   "condition_id": "0x995bb030524039762f8d337f0b0a3f20cbaf244fdbfb67983ba034e40e10bee9",
+   "position_ids": [
+    "812191587312213181417248947560128116875892949840435554144929469083613659136",
+    "812191587312213181417248947560128116875892949840435554144929469083613659137"
+   ],
+   "slug": "atp-medvede-shimabu-2026-10-21",
+   "title": "Almaty Open: Daniil Medvedev vs Sho Shimabukuro",
+   "outcomes": [
+    "Daniil Medvedev",
+    "Sho Shimabukuro"
+   ],
+   "outcome_prices": [
+    "0.9515",
+    "0.0485"
+   ],
+   "volume": 171434.457155,
+   "tags": [
+    "sports",
+    "tennis",
+    "games"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5765067",
+   "condition_id": "0x3b9b2e4526991af7bbad2425c277b70c74dde43ca61967932ed014610f1335cb",
+   "position_ids": [
+    "658798547295106558391642696230774514472965554575455656445630441708624805888",
+    "658798547295106558391642696230774514472965554575455656445630441708624805889"
+   ],
+   "slug": "nba-cle-phi-2026-10-22-spread-home-3pt5",
+   "title": "Spread: 76ers (-3.5)",
+   "outcomes": [
+    "76ers",
+    "Cavaliers"
+   ],
+   "outcome_prices": [
+    "0.495",
+    "0.505"
+   ],
+   "volume": 133226.919217,
+   "tags": [
+    "sports",
+    "basketball",
+    "nba",
+    "games",
+    "nba-tip-off"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5765055",
+   "condition_id": "0xfa657d6b58e1b7cb79969d206b46093a17d6b16b8789c9308f46e4b87d7da056",
+   "position_ids": [
+    "494432088026114895012896450180472548395277809254358325375579591193263079424",
+    "494432088026114895012896450180472548395277809254358325375579591193263079425"
+   ],
+   "slug": "nba-cle-phi-2026-10-22",
+   "title": "Cavaliers vs. 76ers",
+   "outcomes": [
+    "Cavaliers",
+    "76ers"
+   ],
+   "outcome_prices": [
+    "0.415",
+    "0.585"
+   ],
+   "volume": 130031.30335100002,
+   "tags": [
+    "sports",
+    "basketball",
+    "nba",
+    "games",
+    "nba-tip-off"
+   ],
+   "pending": false
+  },
+  {
+   "id": "4465810",
+   "condition_id": "0x3274464d5a09edb00cdb2f4e9243531eb9bb0a7a1003d6190f42f2f6a9f1f6c5",
+   "position_ids": [
+    "780470464588271762802508174418332605074779093285886628669634290926548418560",
+    "780470464588271762802508174418332605074779093285886628669634290926548418561"
+   ],
+   "slug": "nfl-ne-chi-2026-10-23",
+   "title": "Patriots vs. Bears",
+   "outcomes": [
+    "Patriots",
+    "Bears"
+   ],
+   "outcome_prices": [
+    "0.405",
+    "0.595"
+   ],
+   "volume": 50173.165697000004,
+   "tags": [
+    "sports",
+    "nfl",
+    "games"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5377525",
+   "condition_id": "0xf8f233c9e72b352ec90537beee7a0decfac312ee822cbbd02bcae59da1266807",
+   "position_ids": [
+    "895370965712402838845075814655491244110382657687787990890177830914696937472",
+    "895370965712402838845075814655491244110382657687787990890177830914696937473"
+   ],
+   "slug": "nfl-ne-chi-2026-10-23-total-50pt5",
+   "title": "Patriots vs. Bears: O/U 50.5",
+   "outcomes": [
+    "Over",
+    "Under"
+   ],
+   "outcome_prices": [
+    "0.515",
+    "0.485"
+   ],
+   "volume": 48026.659222,
+   "tags": [
+    "sports",
+    "nfl",
+    "games"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5014978",
+   "condition_id": "0x5a5587793833810ba3e06d42174c0adfacf00c63037a2a10a487096b8c206eaf",
+   "position_ids": [
+    "1239457920713117704534553494506711257917271190281025660857141456714128687360",
+    "1239457920713117704534553494506711257917271190281025660857141456714128687361"
+   ],
+   "slug": "lal-ray-bil-2026-10-10-draw",
+   "title": "Will Rayo Vallecano de Madrid vs. Athletic Club end in a draw?",
+   "outcomes": [
+    "Yes",
+    "No"
+   ],
+   "outcome_prices": [
+    "0.41",
+    "0.59"
+   ],
+   "volume": 28728.108336999994,
+   "tags": [
+    "sports",
+    "la-liga",
+    "soccer",
+    "games"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5377302",
+   "condition_id": "0x9737a2f03e3ebe8e9ec95bfb4d68739f67a3532a326b6ff2f95d68dcb21508e2",
+   "position_ids": [
+    "635425323029397911853511026829601424252347407657425360521560022597454790656",
+    "635425323029397911853511026829601424252347407657425360521560022597454790657"
+   ],
+   "slug": "nfl-ne-chi-2026-10-23-spread-home-3pt5",
+   "title": "Spread: Bears (-3.5)",
+   "outcomes": [
+    "Bears",
+    "Patriots"
+   ],
+   "outcome_prices": [
+    "0.445",
+    "0.555"
+   ],
+   "volume": 25097.824566000003,
+   "tags": [
+    "sports",
+    "nfl",
+    "games"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5377299",
+   "condition_id": "0x5d68e8a797b3aed418b2f7a51d3f98b0bf3db39c04bdbdd0d46c102f005dba91",
+   "position_ids": [
+    "790206486744213347314617173665270136520900268061448387742451571526845071360",
+    "790206486744213347314617173665270136520900268061448387742451571526845071361"
+   ],
+   "slug": "nfl-ne-chi-2026-10-23-spread-home-2pt5",
+   "title": "Spread: Bears (-2.5)",
+   "outcomes": [
+    "Bears",
+    "Patriots"
+   ],
+   "outcome_prices": [
+    "0.545",
+    "0.455"
+   ],
+   "volume": 20394.626246,
+   "tags": [
+    "sports",
+    "nfl",
+    "games"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5910788",
+   "condition_id": "0xa4b27f1811e93f2ebb2c8c67a90cd5541a87da483468b7caffea2d2220943b0e",
+   "position_ids": [
+    "499188492896739380518319807727139595744760227720852297402384515454587633664",
+    "499188492896739380518319807727139595744760227720852297402384515454587633665"
+   ],
+   "slug": "nba-cle-phi-2026-10-22-total-235pt5",
+   "title": "Cavaliers vs. 76ers: O/U 235.5",
+   "outcomes": [
+    "Over",
+    "Under"
+   ],
+   "outcome_prices": [
+    "0.515",
+    "0.485"
+   ],
+   "volume": 11532.613890999999,
+   "tags": [
+    "sports",
+    "basketball",
+    "nba",
+    "games",
+    "nba-tip-off"
+   ],
+   "pending": false
+  },
+  {
+   "id": "5765056",
+   "condition_id": "0x3faa9080a057b17670e3281d6a1c6a7ed990611f835bba7e5b89b666d63fd330",
+   "position_ids": [
+    "836715131547659060669121644089886404503232887056217848539681828502704750592",
+    "836715131547659060669121644089886404503232887056217848539681828502704750593"
+   ],
+   "slug": "nba-cle-phi-2026-10-22-spread-home-2pt5",
+   "title": "Spread: 76ers (-2.5)",
+   "outcomes": [
+    "76ers",
+    "Cavaliers"
+   ],
+   "outcome_prices": [
+    "0.535",
+    "0.465"
+   ],
+   "volume": 9671.510871,
+   "tags": [
+    "sports",
+    "basketball",
+    "nba",
+    "games",
+    "nba-tip-off"
+   ],
+   "pending": false
+  },
+  {
+   "id": "665374",
+   "condition_id": "0x5db999fad322cea2914535aae5517060c3f80ad6d8c0231cde2124a434d16846",
+   "position_ids": [
+    "798559951534518479645224261511384773234863312866932338530531601041078616064",
+    "798559951534518479645224261511384773234863312866932338530531601041078616065"
+   ],
+   "slug": "will-the-us-invade-iran-before-2027",
+   "title": "Will the U.S. invade Iran before 2027?",
+   "outcomes": [
+    "Yes",
+    "No"
+   ],
+   "outcome_prices": [
+    "0.165",
+    "0.835"
+   ],
+   "volume": 74992158.89709401,
+   "tags": [
+    "politics",
+    "iran",
+    "trump",
+    "middle-east",
+    "israel",
+    "geopolitics",
+    "world",
+    "military-strikes"
+   ],
+   "pending": false
+  }
+ ],
+ "gamma_markets": [
+  {
+   "id": "5014980",
+   "question": "Will Athletic Club win on 2026-10-10?",
+   "slug": "lal-ray-bil-2026-10-10-bil",
+   "outcomes": "[\"Yes\", \"No\"]",
+   "outcomePrices": "[\"0.5\", \"0.5\"]",
+   "sportsMarketType": "moneyline",
+   "groupItemTitle": "Athletic Club",
+   "gameStartTime": "2026-10-10 12:00:00+00",
+   "bestBid": 0.43,
+   "bestAsk": 0.57,
+   "volume": "764387.5188169999",
+   "endDate": "2026-10-10T12:00:00Z",
+   "events": [
+    {
+     "id": "1089916",
+     "title": "Rayo Vallecano de Madrid vs. Athletic Club",
+     "slug": "lal-ray-bil-2026-10-10",
+     "startTime": "2026-10-10T12:00:00Z",
+     "seriesSlug": "la-liga-2025"
+    }
+   ]
+  },
+  {
+   "id": "5014977",
+   "question": "Will Rayo Vallecano de Madrid win on 2026-10-10?",
+   "slug": "lal-ray-bil-2026-10-10-ray",
+   "outcomes": "[\"Yes\", \"No\"]",
+   "outcomePrices": "[\"0.32\", \"0.68\"]",
+   "sportsMarketType": "moneyline",
+   "groupItemTitle": "Rayo Vallecano de Madrid",
+   "gameStartTime": "2026-10-10 12:00:00+00",
+   "bestBid": 0.27,
+   "bestAsk": 0.37,
+   "volume": "205964.87766600004",
+   "endDate": "2026-10-10T12:00:00Z",
+   "events": [
+    {
+     "id": "1089916",
+     "title": "Rayo Vallecano de Madrid vs. Athletic Club",
+     "slug": "lal-ray-bil-2026-10-10",
+     "startTime": "2026-10-10T12:00:00Z",
+     "seriesSlug": "la-liga-2025"
+    }
+   ]
+  },
+  {
+   "id": "5967419",
+   "question": "Almaty Open: Daniil Medvedev vs Sho Shimabukuro",
+   "slug": "atp-medvede-shimabu-2026-10-21",
+   "outcomes": "[\"Daniil Medvedev\", \"Sho Shimabukuro\"]",
+   "outcomePrices": "[\"0.9655\", \"0.0345\"]",
+   "sportsMarketType": "moneyline",
+   "gameStartTime": "2026-10-22 12:40:00+00",
+   "bestBid": 0.965,
+   "bestAsk": 0.966,
+   "volume": "171434.457155",
+   "endDate": "2026-10-28T06:00:00Z",
+   "events": [
+    {
+     "id": "1223267",
+     "title": "Almaty Open: Daniil Medvedev vs Sho Shimabukuro",
+     "slug": "atp-medvede-shimabu-2026-10-21",
+     "startTime": "2026-10-22T12:40:00Z",
+     "seriesSlug": "atp"
+    }
+   ]
+  },
+  {
+   "id": "5765067",
+   "question": "Spread: 76ers (-3.5)",
+   "slug": "nba-cle-phi-2026-10-22-spread-home-3pt5",
+   "outcomes": "[\"76ers\", \"Cavaliers\"]",
+   "outcomePrices": "[\"0.495\", \"0.505\"]",
+   "sportsMarketType": "spreads",
+   "line": -3.5,
+   "groupItemTitle": "Spread -3.5",
+   "gameStartTime": "2026-10-22 23:00:00+00",
+   "bestBid": 0.49,
+   "bestAsk": 0.5,
+   "volume": "133226.919217",
+   "endDate": "2026-10-22T23:00:00Z",
+   "events": [
+    {
+     "id": "1197295",
+     "title": "Cavaliers vs. 76ers",
+     "slug": "nba-cle-phi-2026-10-22",
+     "startTime": "2026-10-22T23:00:00Z",
+     "seriesSlug": "nba-2026"
+    }
+   ]
+  },
+  {
+   "id": "5765055",
+   "question": "Cavaliers vs. 76ers",
+   "slug": "nba-cle-phi-2026-10-22",
+   "outcomes": "[\"Cavaliers\", \"76ers\"]",
+   "outcomePrices": "[\"0.415\", \"0.585\"]",
+   "sportsMarketType": "moneyline",
+   "gameStartTime": "2026-10-22 23:00:00+00",
+   "bestBid": 0.41,
+   "bestAsk": 0.42,
+   "volume": "130031.30335100002",
+   "endDate": "2026-10-22T23:00:00Z",
+   "events": [
+    {
+     "id": "1197295",
+     "title": "Cavaliers vs. 76ers",
+     "slug": "nba-cle-phi-2026-10-22",
+     "startTime": "2026-10-22T23:00:00Z",
+     "seriesSlug": "nba-2026"
+    }
+   ]
+  },
+  {
+   "id": "4465810",
+   "question": "Patriots vs. Bears",
+   "slug": "nfl-ne-chi-2026-10-23",
+   "outcomes": "[\"Patriots\", \"Bears\"]",
+   "outcomePrices": "[\"0.405\", \"0.595\"]",
+   "sportsMarketType": "moneyline",
+   "gameStartTime": "2026-10-23 00:15:00+00",
+   "bestBid": 0.4,
+   "bestAsk": 0.41,
+   "volume": "50173.165697000004",
+   "endDate": "2026-10-23T00:15:00Z",
+   "events": [
+    {
+     "id": "1004101",
+     "title": "Patriots vs. Bears",
+     "slug": "nfl-ne-chi-2026-10-23",
+     "startTime": "2026-10-23T00:15:00Z",
+     "seriesSlug": "nfl-2026"
+    }
+   ]
+  },
+  {
+   "id": "5377525",
+   "question": "Patriots vs. Bears: O/U 50.5",
+   "slug": "nfl-ne-chi-2026-10-23-total-50pt5",
+   "outcomes": "[\"Over\", \"Under\"]",
+   "outcomePrices": "[\"0.515\", \"0.485\"]",
+   "sportsMarketType": "totals",
+   "line": 50.5,
+   "groupItemTitle": "O/U 50.5",
+   "gameStartTime": "2026-10-23 00:15:00+00",
+   "bestBid": 0.51,
+   "bestAsk": 0.52,
+   "volume": "48026.659222",
+   "endDate": "2026-10-23T00:15:00Z",
+   "events": [
+    {
+     "id": "1004101",
+     "title": "Patriots vs. Bears",
+     "slug": "nfl-ne-chi-2026-10-23",
+     "startTime": "2026-10-23T00:15:00Z",
+     "seriesSlug": "nfl-2026"
+    }
+   ]
+  },
+  {
+   "id": "5014978",
+   "question": "Will Rayo Vallecano de Madrid vs. Athletic Club end in a draw?",
+   "slug": "lal-ray-bil-2026-10-10-draw",
+   "outcomes": "[\"Yes\", \"No\"]",
+   "outcomePrices": "[\"0.41\", \"0.59\"]",
+   "sportsMarketType": "moneyline",
+   "groupItemTitle": "Draw (Rayo Vallecano de Madrid vs. Athletic Club)",
+   "gameStartTime": "2026-10-10 12:00:00+00",
+   "bestBid": 0.31,
+   "bestAsk": 0.51,
+   "volume": "28728.108336999994",
+   "endDate": "2026-10-10T12:00:00Z",
+   "events": [
+    {
+     "id": "1089916",
+     "title": "Rayo Vallecano de Madrid vs. Athletic Club",
+     "slug": "lal-ray-bil-2026-10-10",
+     "startTime": "2026-10-10T12:00:00Z",
+     "seriesSlug": "la-liga-2025"
+    }
+   ]
+  },
+  {
+   "id": "5377302",
+   "question": "Spread: Bears (-3.5)",
+   "slug": "nfl-ne-chi-2026-10-23-spread-home-3pt5",
+   "outcomes": "[\"Bears\", \"Patriots\"]",
+   "outcomePrices": "[\"0.445\", \"0.555\"]",
+   "sportsMarketType": "spreads",
+   "line": -3.5,
+   "groupItemTitle": "Spread -3.5",
+   "gameStartTime": "2026-10-23 00:15:00+00",
+   "bestBid": 0.44,
+   "bestAsk": 0.45,
+   "volume": "25097.824566000003",
+   "endDate": "2026-10-23T00:15:00Z",
+   "events": [
+    {
+     "id": "1004101",
+     "title": "Patriots vs. Bears",
+     "slug": "nfl-ne-chi-2026-10-23",
+     "startTime": "2026-10-23T00:15:00Z",
+     "seriesSlug": "nfl-2026"
+    }
+   ]
+  },
+  {
+   "id": "5377299",
+   "question": "Spread: Bears (-2.5)",
+   "slug": "nfl-ne-chi-2026-10-23-spread-home-2pt5",
+   "outcomes": "[\"Bears\", \"Patriots\"]",
+   "outcomePrices": "[\"0.545\", \"0.455\"]",
+   "sportsMarketType": "spreads",
+   "line": -2.5,
+   "groupItemTitle": "Spread -2.5",
+   "gameStartTime": "2026-10-23 00:15:00+00",
+   "bestBid": 0.54,
+   "bestAsk": 0.55,
+   "volume": "20394.626246",
+   "endDate": "2026-10-23T00:15:00Z",
+   "events": [
+    {
+     "id": "1004101",
+     "title": "Patriots vs. Bears",
+     "slug": "nfl-ne-chi-2026-10-23",
+     "startTime": "2026-10-23T00:15:00Z",
+     "seriesSlug": "nfl-2026"
+    }
+   ]
+  },
+  {
+   "id": "5910788",
+   "question": "Cavaliers vs. 76ers: O/U 235.5",
+   "slug": "nba-cle-phi-2026-10-22-total-235pt5",
+   "outcomes": "[\"Over\", \"Under\"]",
+   "outcomePrices": "[\"0.515\", \"0.485\"]",
+   "sportsMarketType": "totals",
+   "line": 235.5,
+   "groupItemTitle": "O/U 235.5",
+   "gameStartTime": "2026-10-22 23:00:00+00",
+   "bestBid": 0.51,
+   "bestAsk": 0.52,
+   "volume": "11532.613890999999",
+   "endDate": "2026-10-22T23:00:00Z",
+   "events": [
+    {
+     "id": "1197295",
+     "title": "Cavaliers vs. 76ers",
+     "slug": "nba-cle-phi-2026-10-22",
+     "startTime": "2026-10-22T23:00:00Z",
+     "seriesSlug": "nba-2026"
+    }
+   ]
+  },
+  {
+   "id": "5765056",
+   "question": "Spread: 76ers (-2.5)",
+   "slug": "nba-cle-phi-2026-10-22-spread-home-2pt5",
+   "outcomes": "[\"76ers\", \"Cavaliers\"]",
+   "outcomePrices": "[\"0.535\", \"0.465\"]",
+   "sportsMarketType": "spreads",
+   "line": -2.5,
+   "gameStartTime": "2026-10-22 23:00:00+00",
+   "bestBid": 0.53,
+   "bestAsk": 0.54,
+   "volume": "9671.510871",
+   "endDate": "2026-10-22T23:00:00Z",
+   "events": [
+    {
+     "id": "1197295",
+     "title": "Cavaliers vs. 76ers",
+     "slug": "nba-cle-phi-2026-10-22",
+     "startTime": "2026-10-22T23:00:00Z",
+     "seriesSlug": "nba-2026"
+    }
+   ]
+  },
+  {
+   "id": "665374",
+   "question": "Will the U.S. invade Iran before 2027?",
+   "slug": "will-the-us-invade-iran-before-2027",
+   "outcomes": "[\"Yes\", \"No\"]",
+   "outcomePrices": "[\"0.165\", \"0.835\"]",
+   "groupItemTitle": "",
+   "bestBid": 0.16,
+   "bestAsk": 0.17,
+   "volume": "74992158.89709401",
+   "endDate": "2027-01-01T04:59:00Z",
+   "events": [
+    {
+     "id": "73130",
+     "title": "Will the U.S. invade Iran before 2027?",
+     "slug": "will-the-us-invade-iran-before-2027",
+     "startTime": null,
+     "seriesSlug": "us-to-invade-iran"
+    }
+   ]
+  }
+ ],
+ "gamma_events": [
+  {
+   "id": "1004101",
+   "title": "Patriots vs. Bears",
+   "slug": "nfl-ne-chi-2026-10-23",
+   "teams": [
+    {
+     "id": 100020,
+     "name": "New England Patriots",
+     "abbreviation": "ne",
+     "alias": "Patriots",
+     "ordering": "away"
+    },
+    {
+     "id": 100036,
+     "name": "Chicago Bears",
+     "abbreviation": "chi",
+     "alias": "Bears",
+     "ordering": "home"
+    }
+   ]
+  },
+  {
+   "id": "1089916",
+   "title": "Rayo Vallecano de Madrid vs. Athletic Club",
+   "slug": "lal-ray-bil-2026-10-10",
+   "teams": [
+    {
+     "id": 101046,
+     "name": "Rayo Vallecano de Madrid",
+     "abbreviation": "ray",
+     "alias": "Rayo Vallecano",
+     "ordering": "home"
+    },
+    {
+     "id": 101047,
+     "name": "Athletic Club",
+     "abbreviation": "bil",
+     "alias": "Athletic",
+     "ordering": "away"
+    }
+   ]
+  },
+  {
+   "id": "1197295",
+   "title": "Cavaliers vs. 76ers",
+   "slug": "nba-cle-phi-2026-10-22",
+   "teams": [
+    {
+     "id": 100513,
+     "name": "Cavaliers",
+     "abbreviation": "cle",
+     "alias": "Cavaliers",
+     "ordering": "away"
+    },
+    {
+     "id": 100510,
+     "name": "76ers",
+     "abbreviation": "phi",
+     "alias": "76ers",
+     "ordering": "home"
+    }
+   ]
+  },
+  {
+   "id": "1223267",
+   "title": "Almaty Open: Daniil Medvedev vs Sho Shimabukuro",
+   "slug": "atp-medvede-shimabu-2026-10-21",
+   "teams": [
+    {
+     "id": 147120,
+     "name": "Daniil Medvedev",
+     "abbreviation": "medvede",
+     "alias": "D. Medvedev",
+     "ordering": "home"
+    },
+    {
+     "id": 147152,
+     "name": "Sho Shimabukuro",
+     "abbreviation": "shimabu",
+     "alias": "S. Shimabukuro",
+     "ordering": "away"
+    }
+   ]
+  }
+ ]
+}

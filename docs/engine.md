@@ -23,6 +23,9 @@ async with Engine({"kalshi": KalshiTrading(credentials)},
     ))
 ```
 
+The experimental storage branch adds [per-type records, migrations and storage configuration](../synpath/engine/README.md).
+Normal shutdown preserves orders by default; an operator halt is explicit.
+
 ## What it promises
 
 **Nothing is sent that was not written down first.** `submit` runs risk,
@@ -35,7 +38,15 @@ SQLite's `synchronous=FULL`, so this survives a power cut, not only a crash.
 **An order is never declared lost early.** Venues do not list an order the
 instant they accept it: Kalshi's demo takes a few hundred milliseconds. An
 intent the venue cannot account for stays in doubt until `lost_after_s`
-(default a minute) has passed, and only then is swept.
+(default a minute) has passed, and only then is swept. The caller of a send
+with no verdict gets `SubmissionInDoubt` with the `client_order_id`; a retry
+under it reconciles first and gets the order, or `SubmissionPending` while the
+venue cannot say yet, never a second order.
+
+**A cancel never relabels a fill.** A venue's "not found" to a cancel is not
+a cancellation: the engine reads the order back and records what the venue
+says, `closed` with its fills if it filled first. A venue with no record of
+it at all raises `CancelUnconfirmed` and changes nothing.
 
 **One engine per journal.** Starting takes a lease. A second engine on the
 same file refuses to trade and says who holds it. The lease is renewed while
@@ -50,13 +61,17 @@ configuration is versioned in the journal, and a rejection records the
 version that refused it. `duplicate` refuses a repeat of the same market,
 side, price and size inside `duplicate_window_ms`; it skips the children the
 engine's own order types place, and any order whose `client_order_id` the
-caller set.
+caller set. `price_collar` refuses a limit order priced further than the
+collar from the book midpoint; market orders (their price is a protection
+bound) and the children of engine-held orders are not collared.
 
 **Halting uses the venue's own mechanism, then checks.** `halt()` calls each
 adapter's cancel-all, reads the book back, and cancels anything still resting
 one order at a time. New orders are refused from the moment it engages.
 Policies are `cancel`, `hold` (leave them resting, refuse new ones) and
-`rearm` (refuse, then lift itself after a timer).
+`rearm` (refuse, then lift itself after a timer). With `cancel` it first
+cancels every open cross-venue RFQ group's members, then every open RFQ the
+engine asked and every quote it made.
 
 ## The pieces
 
@@ -67,9 +82,10 @@ Policies are `cancel`, `hold` (leave them resting, refuse new ones) and
 | `engine.py` | submit, cancel, edit, recovery, the sweep, halting, polling |
 | `risk.py` | the rules, the kill switch, the strategy pause |
 | `ledger.py` | positions netted on the YES leg, average cost, realized and unrealized profit, rolled up by market, book and account |
-| `fair_values.py` | the mark per account and market, and when it goes stale |
 | `reconcile.py` | orphans, ghosts, drift, position and balance differences |
-| `paper.py` | a venue that fills against a real book with queue position and the venue's fee model |
+| `rfq.py` | RFQs and combos, both sides: accept and confirm through risk and the journal, the quote follower, recovery, halt |
+| `rfq_group.py` | cross-venue RFQ: one RFQ per venue that lists a market, bucket or combo, one ranked list after fees, one accept per group (claimed in the journal), the rest cancelled |
+| `paper.py` | a venue that fills against a real book with queue position and the venue's fee model; `PaperRfqVenue` adds RFQs with configurable makers |
 | `alerts.py` | the few events worth waking someone for |
 | `eod.py` | settlements, the daily report, rolling the risk day |
 | `__main__.py` | daemon mode, `status`, `halt`, `resume`, `eod` |
@@ -98,7 +114,7 @@ ledger's alone.
 | Type | `params` | What it does |
 |---|---|---|
 | `stop_market` | none | fires once at `stop_price`; the child is a `market` order, `ioc`, priced by the engine |
-| `stop_limit` | none | fires once at `stop_price`; the child is a `limit` at `price` with the order's time in force |
+| `stop_limit` | none | fires once at `stop_price`; the child is a `limit` at `price` that inherits the order's time in force and expiry |
 | `trailing_stop` | `trail` or `trail_percent` | the stop follows the market one way and never back |
 | `iceberg` | `display`, `reload_delay_s`, `jitter_s`, `follow` | shows one slice; reloads after the delay, at the back of the queue |
 | `oco` | `legs` (two specifications) | one cancels the other, and a partial fill resizes the other |
@@ -118,12 +134,12 @@ child goes out for the remaining quantity and names the parent in
 
 | Field | Stop market | Stop limit |
 |---|---|---|
-| `market_id`, `side`, `quantity`, `client_order_id`, `reduce_only` | as on any order (`buy` is YES, `sell` is NO) | the same |
+| `market_id`, `side` or `outcome` + `action`, `quantity`, `client_order_id` | as on any order (`buy` is YES, `sell` is NO; or buy/sell YES/NO) | the same |
 | `type` | `stop_market` | `stop_limit` |
 | `stop_price` | the trigger level | the trigger level |
 | `price` | not used | the child's limit: at or below `stop_price` for a sell, at or above it for a buy |
 | `trigger_source` | `touch` (default), `last` or `mid` | the same |
-| `time_in_force` | how long the stop stays armed: `gtc` (default), `gtd`, `day`. `ioc` and `fok` are refused | what the limit child carries once triggered: `gtc` (default), `gtd`, `ioc`, `fok` |
+| `time_in_force` | how long the whole order lives: `gtc` (default), `gtd`, `day`. `ioc` and `fok` are refused. It bounds the armed period; the child is `ioc` | the same, and the limit child inherits it: `gtc` stays `gtc`, `gtd` and `day` go as `gtd` at the order's `expires_at` |
 | `expires_at` | with `gtd` only | with `gtd` only |
 
 **A stop watches the price that would fill it.** `trigger_source="touch"`,
@@ -132,10 +148,23 @@ stop. Not the last trade, which on a prediction market can be hours stale,
 and not the mid, which between a 0.30 bid and a 0.70 ask is a number nobody
 can trade at. `last` and `mid` are there for callers who disagree.
 
+**A stop reads the book it is handed.** A new stop is checked against the
+book the engine already holds, and again when its market is subscribed: a
+venue sends no fresh snapshot for a market its connection already carries (a
+screen's `/ws/market`, say), so a quiet market whose ask already meets the
+stop triggers it at once rather than at the next change. A `last` stop waits
+for a print made after it.
+
+**One time in force for the whole order**, as IBKR and FIX use it: a stop's
+`time_in_force` is how long the order lives, armed and after it triggers.
+A stop limit's child carries the same expiry, so a `day` stop limit whose
+child still rests at the session end has the child canceled and ends
+`expired`.
+
 **A stop market's child is priced by the engine.** No venue here takes a
 market order without a worst price, so at the trigger the engine sends the
-`market` child, `ioc`, with the touch plus 0.05 for a buy (minus 0.05 for a
-sell), on the venue's tick and inside the price range. There is no parameter
+`market` child, `ioc`, at the legal venue bound for the side, on the market's supplied tick
+(or the conservative venue grid when no market precision is registered). There is no parameter
 for it. With no book to price against at that moment, the stop ends
 `rejected` rather than send at any price.
 
@@ -144,8 +173,8 @@ of: `closed` (filled; for a stop market, also when the IOC child's remainder
 did not fill, with the unfilled quantity on the order and in its detail),
 `canceled` (cancelled while waiting, or for a stop limit after the trigger
 too, which pulls the resting child), `expired` (a `gtd` or `day` stop whose
-time ran out before it triggered, or a stop limit whose child was still
-resting), or `rejected` (no book for a stop market's child, or the venue
+time ran out before it triggered, or a `gtd` or `day` stop limit whose child
+was still resting), or `rejected` (no book for a stop market's child, or the venue
 refused the child).
 
 **Day is not one of these.** All three venues run nearly around the clock, so
@@ -154,11 +183,11 @@ process. A `day` order is rewritten to `gtd` at the end of the configured
 session (`session_timezone`, `session_end`) before it reaches the adapter, so
 the venue holds the expiry; the journal keeps `day` alongside it.
 
-**The order's own fields still apply.** `reduce_only` passes to every child.
+**The order's own fields still apply.** The outcome and action pass to every child: a Sell YES stop's child sells YES held.
 `expires_at` expires the whole order, children included, and the parent
 ends `expired`. `post_only` is
 accepted only by types that rest on the book (`iceberg`, `peg`, a `twap` with
-`style="limit"`); an `oco` or `bracket` takes it on its legs, and a type that
+`style="limit"`, and a `stop_limit`); an `oco` or `bracket` takes it on its legs, and a type that
 takes liquidity refuses it rather than ignoring it.
 
 **Everything survives a restart.** Each parent's whole state is written on
@@ -174,6 +203,15 @@ single market does. An order names `bucket:<id>` the way it names
 `kalshi:KXX`, and the engine holds it as a `routed_limit` parent whose
 children are one leg per member venue.
 
+A member can be switched off without removing it: `BucketMember(...,
+enabled=False)`. It stays in the definition (and in `bucket_position`, so
+anything already held there still nets in), but the router leaves it out:
+no leg goes to it, its book is not merged, and the merged book in `synpath
+serve` does not stream it. An order placed while a member is off carries the
+bucket with only its enabled members. A definition needs at least two members
+and at least one of them enabled; members default to `enabled=True`, so
+definitions stored before the field existed route as before.
+
 ```python
 from synpath import Bucket, BucketMember, OrderRequest, Side
 
@@ -185,7 +223,7 @@ parent = await engine.submit(OrderRequest(
     market_id=bucket.market_id, side=Side.BUY, quantity=Decimal("500"), type="market", price=Decimal("0.42"),
     book="alpha", params={"min_stay_s": 5, "max_rounds": 20},
 ))
-engine.orders.get(parent.id).report()          # filled, average, per venue, why it stopped
+engine.managed_order_controller.get(parent.id).report()          # filled, average, per venue, why it stopped
 await engine.bucket_position(bucket.id)        # the ledger's positions, netted in bucket terms
 ```
 
@@ -243,10 +281,121 @@ assigns the id and refuses a caller without `trade` on every member venue.
 The client also has `fetch_buckets`, `fetch_bucket`, `archive_bucket`,
 `fetch_bucket_orders`, `fetch_bucket_order` (the `report()` above, typed as
 `BucketOrderReport`, rebuilt from the journal for an order that finished
-before a restart) and `fetch_bucket_position`.
+before a restart) and `fetch_bucket_position`. Over HTTP the server also
+renames, edits and restores a bucket (`PATCH /trading/buckets/{id}`), keeps a
+client-made UUID id when one is given, streams the merged book in bucket
+terms (`bucket:<id>` on `/ws/market`) and previews `router.plan` for an order
+without placing it (`POST /trading/buckets/{id}/plan`); see
+[the server](server.md#a-buckets-merged-book).
 Ids are UUIDs made locally, so a definition made offline stays unique when
 it later moves to a hosted account. Nothing here judges whether the members
 are really the same question.
+
+## RFQs and combos
+
+`engine.rfq` (`rfq.py`) runs both sides of an RFQ on the venues that declare
+`rfq_taker` / `rfq_quoter`; [`rfq-combo.md`](rfq-combo.md) has the design and
+the venue facts.
+
+```python
+rfq = await engine.create_rfq("polymarket_us:caoc-...", quantity=Decimal("10"), book="parlays")
+# quotes arrive as quote.received events
+quote = await engine.accept_quote(AcceptQuote(quote_id=q.id, rfq_id=rfq.id, outcome="yes", action="buy",
+                                              worst_price=Decimal("0.30")))     # returns at once: accepted
+# then quote.confirmed, quote.executed, order.accepted, order.closed, fill.booked
+```
+
+- **An accept is an order.** The quote is re-read; a price worse than
+  `worst_price` is refused (rule `worst_price`); an `amount` becomes contracts
+  rounded down to the venue's step; the `rfq_taker` request runs every risk
+  rule. Then the intent `rfq-accept:{venue}:{quote_id}` is written and the
+  venue called. `wait=True` follows the quote to its end.
+- **Results are events.** The intent stays `sending` through the maker's last
+  look. The `rfq` loop (or a venue's quote stream, or the sweep) reads the
+  quote; when it executes, the order is recorded through the normal order
+  path and its fills booked, and the intent becomes `sent`; when it ends
+  without a trade, `failed` with `quote.failed`.
+- **Recovery** reads the quote back: an accept that never reached the venue
+  is `rejected` after `lost_after_s` and may be retried; one that did is
+  followed and adopted; nothing is sent twice.
+- **The side the venue reports is booked.** A mismatch with the intent
+  publishes `rfq.side_mismatch` and a critical alert.
+- **Quoter.** `send_quote`, `replace_quote`, `cancel_quote` are journaled and
+  checked against the halt, a paused book, the restricted list and the size
+  limits; `confirm_quote` runs every rule on our side of the trade and is
+  followed like an accept (`rfq_maker` order). The engine holds a quote's
+  `expires_at` and cancels it when it passes. `rfq.incoming` announces others'
+  RFQs.
+- **Quoting in time.** Register a callback with `engine.rfq.on_incoming_rfq`;
+  it runs the moment an incoming RFQ is recorded and `rfq.incoming` is out.
+  Polymarket global's quoter session and SX Bet's parlay channel push their
+  requests (`subscribe_incoming_rfqs`), so there the callback runs as the
+  stream delivers, with no poll in between (well under a millisecond in
+  process; the Polymarket window is 400 ms). Kalshi and Polymarket US have
+  no RFQ stream here and are polled every `rfq_incoming_interval_s` (2 s).
+  The streams start with the `rfq` loop (`rfq_stream_incoming`, on by
+  default); `send_quote` finds the RFQ in `engine.rfq.incoming` and makes
+  no venue read before its own call.
+
+  ```python
+  async def quoter(rfq):                     # runs inside the venue's window
+      if rfq.combo is None or len(rfq.combo.legs) > 4:
+          return
+      await engine.send_quote(MakerQuote(rfq_id=rfq.id, bid=Decimal("0.18"), ask=Decimal("0.22"),
+                                         book="mm"), venue=rfq.venue)
+
+  stop = engine.rfq.on_incoming_rfq(quoter)  # stop() unsubscribes
+  ```
+- **Restarts on a venue that lists nothing.** Polymarket global's gateway
+  has no list of a requester's RFQs, so at start (`recover()`) the engine
+  hands each adapter its open RFQs from the working set and the quotes whose
+  accept or confirm is in doubt (`TradingExchange.restore_rfqs`, a no-op
+  elsewhere). An accept in flight is then followed to executed or failed,
+  and an open RFQ can still be cancelled.
+- **A combo is an instrument.** Its own market id carries the order, fills,
+  position, P&L and reconciliation; its legs are kept as `combo.saved` events
+  and shown in `Position.info["combo"]`.
+
+### Cross-venue RFQ
+
+`engine.rfq_groups` (`rfq_group.py`) asks every venue that lists the same
+thing at once and ranks every answer as one list
+([design](rfq-combo.md#10-cross-venue-rfq)).
+
+```python
+group = await engine.create_rfq_group("bucket:9f2c...", quantity=Decimal("10"), book="arb")
+group = await engine.create_rfq_group("kalshi:KXFOO-25", amount=Decimal("100"), cross_venue=True)
+group = await engine.create_rfq_group(legs=[ComboLeg(market_id="kalshi:KXA-26-X", outcome="yes"),
+                                            ComboLeg(market_id="kalshi:KXB-26-Y", outcome="no")],
+                                      quantity=Decimal("10"))
+group.members, group.skipped          # one RFQ per venue; the venues left out, with reasons
+best = group.best()                   # ranked by effective price after each venue's taker fee
+done = await engine.accept_group_quote(group.id, best.quote_id, venue=best.venue, worst_price=Decimal("0.45"), wait=True)
+```
+
+- **Members.** A bucket's enabled members (with `flip`); a combo's legs
+  mapped onto each combo venue (by the leg's own venue, a bucket member, or
+  hosted matching with its `side_map`), checked for eligibility (Kalshi
+  collections, the Polymarket lists) and built there; a market and, with
+  `cross_venue=True`, its matches. Each member is a desk RFQ. Matching is
+  `Engine(..., matcher=...)`, by default `synpath.matching.match_market`.
+- **Ranking.** Every quote in the group's YES terms (a flipped member's bid
+  `b` is the group's ask `1 - b`), plus the venue's taker fee for the size
+  (`fetch_fee_estimate`), as the router prices a bucket. An amount ranks by
+  the contracts it buys after the fee. `rfq_group.quote` then
+  `rfq_group.updated` as quotes arrive.
+- **One accept.** `accept_group_quote` checks the accept first (nothing
+  written on a refusal), claims the group with the intent
+  `rfq-group-accept:{group}:{n}` (refused while an earlier attempt still
+  holds it), cancels every other member (Polymarket global's lapse instead),
+  then accepts through `accept_quote`. An accept that does not trade frees
+  the group for another quote; cancelled venues stay cancelled. A member's
+  quote cannot be accepted around the group.
+- **Recovery and halt.** Groups not final are in the cursor `rfq:groups`
+  and come back at `recover()`, with their member RFQs re-seeded
+  (`restore_rfqs`). A claim whose accept was never sent is released after a
+  restart, nothing traded. The halt (`cancel` policy) cancels every open
+  group's members; any halt refuses a new accept.
 
 ## The ledger
 
@@ -256,9 +405,12 @@ neither. What was actually bought is kept per side as well, because on
 Polymarket those are real tokens.
 
 Realized profit is taken on the way out against average cost, with fees
-realized when charged. Unrealized profit needs a mark, and a mark is a
-choice: it comes from `fair_values`, and a stale one is reported as no mark
-rather than as a number.
+realized when charged. Unrealized profit needs a mark: the
+price the position could be closed at on the engine's live book, the best bid
+for a long YES and the best ask for a short (a long NO). The engine subscribes
+the book of every market it holds. With no ready book, or nobody on that side,
+the mark is the last trade; with no trade either, the position has no mark and
+no unrealized number.
 
 Three levels roll up:
 
@@ -309,7 +461,9 @@ synpath serve --config engine.toml   # the venues, risk rules and journal the fi
 (`Engine.background()`: lease, in-doubt sweep, poll, the managed-order clock),
 subscribes each venue's market and account streams (`synpath.engine.feeds`),
 runs reconciliation and the end-of-day close, and serves the HTTP API: market
-data at `/`, trading at `/trading`. The first start on a new control database
+data at `/`, live books, trades and quotes at `/ws/market` (on the same venue
+connections the stops read), trading at `/trading`. Every route but `/`,
+`/health` and the API docs needs the access token. The first start on a new control database
 makes an owner access token and leaves it in `~/.synpath/servers.json` (readable by you
 only), where `synpath.Client(server=...)` and the TypeScript client on the
 same machine find it; a server bound to a network address prints the token
@@ -352,6 +506,12 @@ price_collar = "0.10"
 daily_loss_limit = 500
 max_open_orders = 50
 self_trade_prevention = "firm"
+
+# synpath serve only: the combo boards it keeps warm (docs/server.md, "The combo board").
+[combo_board]
+warm = true                # false: build a board on request (5 pages, kept 30 s)
+refresh_interval_s = 60    # rebuild each board this long after its last build ended
+pause_s = 0.1              # between two reads of one venue during a build
 ```
 
 Credentials never appear in the configuration: they come from the
@@ -379,6 +539,18 @@ its process.
   fire early, a TWAP whose slices are real orders, a parent that survives a
   restart without sending a second child, a halt, and a Day order the venue
   holds the expiry for.
+- **RFQ and combos, 26 offline tests against `PaperRfqVenue`** (each on
+  SQLite and PostgreSQL): accept to order, fill and position with the events
+  in order; accept by amount; the worst-price, risk and kill-switch refusals
+  sending nothing; a partial fill; a maker letting the last look lapse; a
+  stream and a fill poll moving the accept; a crash between the intent and
+  the call, and between the call and its result, on both sides; the side
+  guard; a combo position reconciled on its own instrument; the quoter flow,
+  confirm through risk, expiry, replace; a halt cancelling every RFQ and
+  quote; and a pushed incoming RFQ reaching the quoting callback, which
+  quotes it, with no poll (`TestIncomingPush`). The Polymarket global tests
+  add a restart that follows an accept to a position, one whose accept never
+  landed, a cancel after a restart, and a confirm in doubt.
 - **On Kalshi's demo, four tests, twice in a row:** a submitted order is
   found at the venue with the client order id the journal wrote; the restart
   path adopts a real order rather than sending a second one; a halt cancels
@@ -388,7 +560,7 @@ its process.
 Run them with:
 
 ```bash
-pytest tests/test_engine.py tests/test_engine_orders.py
+pytest tests/test_engine.py tests/test_engine_orders.py tests/test_engine_rfq.py
 pytest -m demo tests/test_engine_demo.py tests/test_engine_orders_demo.py
 ```
 

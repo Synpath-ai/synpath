@@ -45,7 +45,7 @@ from typing import Any, Iterable, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from .. import ids
-from ..trading.types import Account, Order, OrderRequest, Side
+from ..trading.types import Account, Order, OrderRequest, OrderType, Side
 from .ledger import Ledger
 
 ZERO = Decimal("0")
@@ -68,7 +68,7 @@ class RiskConfig(BaseModel):
     priced 0 to 1, so 0.10 is ten cents). `None` disables the check."""
     max_order_contracts: Decimal | None = None
     max_order_notional: Decimal | None = None
-    """Price times contracts, in account currency."""
+    """Priced outcome cost times contracts, in account currency, excluding fees."""
     min_price: Decimal = Decimal("0")
     max_price: Decimal = Decimal("1")
     duplicate_window_ms: int = 2_000
@@ -212,24 +212,24 @@ class RiskEngine:
 
     # -- the check ------------------------------------------------------------
 
-    def check(
+    def evaluate_order_risk(
         self,
         request: OrderRequest,
         *,
         venue: str,
         account: Account,
         open_orders: Iterable[Order] = (),
-        mark: Decimal | None = None,
+        risk_reference_price: Decimal | None = None,
         market_close_ts: int | None = None,
         event_id: str | None = None,
         venue_notional: Decimal | None = None,
-        deliberate: bool = False,
+        caller_supplied_order_id: bool = False,
     ) -> Decision:
         """Everything that must be true before this order is signed.
 
-        `deliberate` is true when the caller named the order's
-        `client_order_id` itself: the duplicate window is for an accidental
-        second click, and a caller that names each order is not clicking."""
+        `risk_reference_price` is the reference for the limit-price risk check.
+        `caller_supplied_order_id` skips the accidental-duplicate check when true;
+        retries with the same ID remain subject to the engine's submission checks."""
         config = self.config
         if not config.enabled:
             return self._ok()
@@ -246,16 +246,26 @@ class RiskEngine:
         if price is not None:
             if not (config.min_price <= price <= config.max_price):
                 return self._no("price_bounds", f"price {price} is outside {config.min_price}-{config.max_price}")
-            if config.price_collar is not None and mark is not None:
-                away = abs(price - mark)
+            # The collar is for a limit a caller sends. A market order's price
+            # is only its protection bound (Kalshi's 0.99 / 0.01), and an
+            # engine-held order's child (a stop that fired) trades at the
+            # market on purpose: neither is a quote to check against the risk reference price.
+            collared = request.type == OrderType.LIMIT and not request.tags.get("parent")
+            if config.price_collar is not None and risk_reference_price is not None and collared:
+                away = abs(price - risk_reference_price)
                 if away > config.price_collar:
                     return self._no(
-                        "price_collar", f"price {price} is {away} from the mark {mark}, over the collar {config.price_collar}",
-                        detail={"mark": str(mark), "away": str(away)},
+                        "price_collar", f"price {price} is {away} from the mark {risk_reference_price}, over the collar {config.price_collar}",
+                        detail={"mark": str(risk_reference_price), "away": str(away)},
                     )
         if config.max_order_contracts is not None and request.quantity > config.max_order_contracts:
             return self._no("max_order_contracts", f"{request.quantity} contracts is over the {config.max_order_contracts} limit")
-        notional = (price or ONE) * request.quantity
+        # Prices are always YES prices; a contract is worth its outcome's
+        # price, YES at the price and NO at the complement, bought or sold.
+        value_per_contract = ONE
+        if price is not None:
+            value_per_contract = price if request.leg[0] == "yes" else ONE - price
+        notional = value_per_contract * request.quantity
         if config.max_order_notional is not None and notional > config.max_order_notional:
             return self._no("max_order_notional", f"{notional} is over the {config.max_order_notional} order limit")
 
@@ -263,7 +273,7 @@ class RiskEngine:
         # An engine-held order's children are sliced on purpose and often look
         # alike (an iceberg's reloads, a TWAP's slices, two parents on one
         # market), so the window applies to orders sent from outside only.
-        if config.duplicate_window_ms and not deliberate and not request.tags.get("parent"):
+        if config.duplicate_window_ms and not caller_supplied_order_id and not request.tags.get("parent"):
             signature = (market_id, request.side.value, str(price), str(request.quantity))
             cutoff = now - config.duplicate_window_ms / 1000
             for stamp, seen in reversed(self._recent):
@@ -280,7 +290,7 @@ class RiskEngine:
             if len(self._sent) >= config.max_orders_per_minute:
                 return self._no("order_rate", f"{len(self._sent)} orders in the last minute, at the {config.max_orders_per_minute} limit")
 
-        if config.closing_soon_s is not None and market_close_ts is not None and not request.reduce_only:
+        if config.closing_soon_s is not None and market_close_ts is not None and request.leg[1] != "sell":
             left = (market_close_ts - now * 1000) / 1000
             if left <= config.closing_soon_s:
                 return self._no(
@@ -333,6 +343,35 @@ class RiskEngine:
                     "max_venue_notional",
                     f"{venue} would hold {venue_notional + notional} of notional, over {config.max_venue_notional}",
                 )
+        return self._ok()
+
+    def check_offer(
+        self,
+        market_id: str,
+        *,
+        venue: str,
+        book: str | None = None,
+        quantity: Decimal | None = None,
+        notional: Decimal | None = None,
+    ) -> Decision:
+        """The rules for an offer that commits nothing yet: an RFQ asked or a
+        maker quote sent (docs/rfq-combo.md §5). Halted, a paused book, the
+        restricted list, and the order size limits on the size the offer
+        could trade. The rest (positions, the daily loss) apply when it
+        trades: an accept or a confirm goes through `check` like an order."""
+        config = self.config
+        if not config.enabled:
+            return self._ok()
+        if self.kill.blocks(venue, now=self.clock()):
+            return self._no("kill_switch", f"trading is halted: {self.kill.reason or 'kill switch engaged'}")
+        if config.paused(book):
+            return self._no("book_paused", f"strategy {book!r} is paused; it may cancel but not open")
+        if (pattern := config.restricts(market_id)):
+            return self._no("restricted", f"{market_id} matches the restricted entry {pattern!r}")
+        if quantity is not None and config.max_order_contracts is not None and quantity > config.max_order_contracts:
+            return self._no("max_order_contracts", f"{quantity} contracts is over the {config.max_order_contracts} limit")
+        if notional is not None and config.max_order_notional is not None and notional > config.max_order_notional:
+            return self._no("max_order_notional", f"{notional} is over the {config.max_order_notional} order limit")
         return self._ok()
 
     # -- bookkeeping ----------------------------------------------------------

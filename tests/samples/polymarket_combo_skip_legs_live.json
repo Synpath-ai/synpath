@@ -1,0 +1,160 @@
+{
+ "_source": "gamma-api.polymarket.com, no auth, 2026-10-22: GET /markets?id=... and GET /events?slug=spl-haz-fay-2026-10-22 (trimmed)",
+ "gamma_markets": [
+  {
+   "id": "665374",
+   "question": "Will the U.S. invade Iran before 2027?",
+   "conditionId": "0x5db999fad322cea2914535aae5517060c3f80ad6d8c0231cde2124a434d16846",
+   "slug": "will-the-us-invade-iran-before-2027",
+   "outcomes": "[\"Yes\", \"No\"]",
+   "outcomePrices": "[\"0.165\", \"0.835\"]",
+   "groupItemTitle": "",
+   "endDate": "2027-01-01T04:59:00Z",
+   "bestBid": 0.16,
+   "bestAsk": 0.17,
+   "volume": "74992514.50771101",
+   "active": true,
+   "closed": false,
+   "clobTokenIds": "[\"55115078421062885512539156303747803058407616201213034911037320915726138659123\", \"1910830010387565971650098373488592514702818137344973088263643820608151819241\"]",
+   "events": [
+    {
+     "id": "73130",
+     "title": "Will the U.S. invade Iran before 2027?",
+     "slug": "will-the-us-invade-iran-before-2027",
+     "seriesSlug": "us-to-invade-iran"
+    }
+   ]
+  },
+  {
+   "id": "5441699",
+   "question": "Will Al Hazem SC win on 2026-10-22?",
+   "conditionId": "0x018ec4ff84aa4be8dbc516f219330875b24d62f6de5d01322d28980f32ab9270",
+   "slug": "spl-haz-fay-2026-10-22-haz",
+   "outcomes": "[\"Yes\", \"No\"]",
+   "outcomePrices": "[\"0.055\", \"0.945\"]",
+   "groupItemTitle": "Al Hazem SC",
+   "sportsMarketType": "moneyline",
+   "gameStartTime": "2026-10-22 13:40:00+00",
+   "endDate": "2026-10-22T13:40:00Z",
+   "bestBid": 0.05,
+   "bestAsk": 0.06,
+   "volume": "34255.961589000006",
+   "active": true,
+   "closed": false,
+   "clobTokenIds": "[\"55820637656080051236779553744171718550430743317298849483643993923931369327674\", \"49887698749361420283253703773210173901670246597450902289338216286026577039943\"]",
+   "events": [
+    {
+     "id": "1155505",
+     "title": "Al Hazem SC vs. Al Fayha Saudi Club",
+     "slug": "spl-haz-fay-2026-10-22",
+     "seriesSlug": "saudi-professional-league",
+     "startTime": "2026-10-22T13:40:00Z"
+    }
+   ]
+  },
+  {
+   "id": "5441700",
+   "question": "Will Al Hazem SC vs. Al Fayha Saudi Club end in a draw?",
+   "conditionId": "0xcb917d0199f13258315a4d139a984b864cb9d69b958de0dff8e5e9260bc5182a",
+   "slug": "spl-haz-fay-2026-10-22-draw",
+   "outcomes": "[\"Yes\", \"No\"]",
+   "outcomePrices": "[\"0.245\", \"0.755\"]",
+   "groupItemTitle": "Draw (Al Hazem SC vs. Al Fayha Saudi Club)",
+   "sportsMarketType": "moneyline",
+   "gameStartTime": "2026-10-22 13:40:00+00",
+   "endDate": "2026-10-22T13:40:00Z",
+   "bestBid": 0.24,
+   "bestAsk": 0.25,
+   "volume": "4995.146306",
+   "active": true,
+   "closed": false,
+   "clobTokenIds": "[\"45724549326613598249462400116700482919332896353917976499269550515147661134216\", \"59241911495708626709881233002614477825022443457172355568157022255230177659246\"]",
+   "events": [
+    {
+     "id": "1155505",
+     "title": "Al Hazem SC vs. Al Fayha Saudi Club",
+     "slug": "spl-haz-fay-2026-10-22",
+     "seriesSlug": "saudi-professional-league",
+     "startTime": "2026-10-22T13:40:00Z"
+    }
+   ]
+  },
+  {
+   "id": "5441701",
+   "question": "Will Al Fayha Saudi Club win on 2026-10-22?",
+   "conditionId": "0x16532e62e59a43814d88904862e72f499e732564a12538eaff19bbe72ced22ee",
+   "slug": "spl-haz-fay-2026-10-22-fay",
+   "outcomes": "[\"Yes\", \"No\"]",
+   "outcomePrices": "[\"0.705\", \"0.295\"]",
+   "groupItemTitle": "Al Fayha Saudi Club",
+   "sportsMarketType": "moneyline",
+   "gameStartTime": "2026-10-22 13:40:00+00",
+   "endDate": "2026-10-22T13:40:00Z",
+   "bestBid": 0.7,
+   "bestAsk": 0.71,
+   "volume": "44744.349081",
+   "active": true,
+   "closed": false,
+   "clobTokenIds": "[\"89021557173236511193207323280147232960197796554895843150971900545567946374202\", \"72594579263945692457243696883608040759678572474107456550546424327901331244223\"]",
+   "events": [
+    {
+     "id": "1155505",
+     "title": "Al Hazem SC vs. Al Fayha Saudi Club",
+     "slug": "spl-haz-fay-2026-10-22",
+     "seriesSlug": "saudi-professional-league",
+     "startTime": "2026-10-22T13:40:00Z"
+    }
+   ]
+  }
+ ],
+ "gamma_events": [
+  {
+   "id": "1155505",
+   "title": "Al Hazem SC vs. Al Fayha Saudi Club",
+   "slug": "spl-haz-fay-2026-10-22",
+   "seriesSlug": "saudi-professional-league",
+   "startTime": "2026-10-22T13:40:00Z",
+   "teams": [
+    {
+     "id": 119066,
+     "name": "Al Hazem SC",
+     "abbreviation": "haz",
+     "alias": "Al Hazem",
+     "league": "spl",
+     "ordering": "home"
+    },
+    {
+     "id": 119054,
+     "name": "Al Fayha Saudi Club",
+     "abbreviation": "fay",
+     "alias": "Al Fayha",
+     "league": "spl",
+     "ordering": "away"
+    }
+   ],
+   "tags": [
+    {
+     "id": "1",
+     "label": "Sports",
+     "slug": "sports"
+    },
+    {
+     "id": "100639",
+     "label": "Games",
+     "slug": "games"
+    },
+    {
+     "id": "100350",
+     "label": "Soccer",
+     "slug": "soccer"
+    },
+    {
+     "id": "102650",
+     "label": "Saudi Professional League",
+     "slug": "saudi-professional-league"
+    }
+   ],
+   "markets": []
+  }
+ ]
+}

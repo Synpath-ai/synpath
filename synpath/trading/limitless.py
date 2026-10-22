@@ -11,9 +11,9 @@ trading mode -- an account that once enabled the web app's one-click smart
 wallet rejects self-signed orders until it is switched back
 (`LimitlessTrading.use_eoa_trading_mode()`).
 
-**YES and NO are separate tokens.** `buy` buys the YES token at the price
-given; `sell` buys the NO token at `1 - price`; with `reduce_only`, `sell`
-sells YES held and `buy` sells NO held. Everything the venue reports on the
+**YES and NO are separate tokens.** An order buys or sells the token its
+`outcome` and `action` name (with neither, `buy` buys YES and `sell` buys
+NO at `1 - price`). Everything the venue reports on the
 NO token comes back on the YES leg.
 
 **Limits rest; market orders take.** A limit is `GTC`, post-only on request.
@@ -450,6 +450,10 @@ class LimitlessTrading(TradingExchange):
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
         "rfq": False,
+        # Typed RFQ and combos arrive phase by phase (docs/rfq-combo.md).
+        "rfq_taker": False,
+        "rfq_quoter": False,
+        "combos": False,
         "split_merge": False,
         "watch_orders": False,
         "watch_my_trades": False,
@@ -585,7 +589,8 @@ class LimitlessTrading(TradingExchange):
             quantity=contracts,
             filled=filled,
             remaining=max(Decimal("0"), contracts - filled) if status == OrderStatus.OPEN else Decimal("0"),
-            reduce_only=request.reduce_only,
+            outcome=request.leg[0],
+            action=request.leg[1],
             post_only=request.post_only,
             created_at=int(time.time() * 1000),
             book=request.book,

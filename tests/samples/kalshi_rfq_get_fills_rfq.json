@@ -1,0 +1,23 @@
+{
+  "cursor": "",
+  "fills": [
+    {
+      "action": "buy",
+      "book_side": "bid",
+      "count_fp": "5.00",
+      "created_time": "2026-10-21T15:02:22.501Z",
+      "fee_cost": "0.090000",
+      "fill_id": "f1e2d3c4-b5a6-4798-8a9b-0c1d2e3f4a5b",
+      "is_taker": true,
+      "market_ticker": "KXMVECROSSCATEGORY-S2026GBYNMLIOB4P5GM6R-6TO3QWLMW",
+      "no_price_dollars": "0.5500",
+      "order_id": "01a1b2c3-d4e5-7f60-8a9b-0c1d2e3f4a5b",
+      "outcome_side": "yes",
+      "side": "yes",
+      "ticker": "KXMVECROSSCATEGORY-S2026GBYNMLIOB4P5GM6R-6TO3QWLMW",
+      "trade_id": "f1e2d3c4-b5a6-4798-8a9b-0c1d2e3f4a5b",
+      "ts": 1792594942,
+      "yes_price_dollars": "0.4500"
+    }
+  ]
+}

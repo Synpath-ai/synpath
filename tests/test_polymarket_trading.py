@@ -300,17 +300,18 @@ DOC_POSITION = {
 
 
 class TestLegs:
-    """One rule for the four intents: buy takes YES, sell takes NO, and
-    reduce_only turns either into selling the tokens held."""
+    """The four intents, each its own token and venue side: the order's
+    outcome and action, sent as they are (YES-leg side and price beside)."""
 
-    @pytest.mark.parametrize("side,reduce_only,outcome,venue_side,wire_price", [
-        (Side.BUY, False, "yes", "BUY", "0.52"),
-        (Side.SELL, False, "no", "BUY", "0.48"),
-        (Side.SELL, True, "yes", "SELL", "0.52"),
-        (Side.BUY, True, "no", "SELL", "0.48"),
+    @pytest.mark.parametrize("side,leg,outcome,venue_side,wire_price", [
+        (Side.BUY, ("yes", "buy"), "yes", "BUY", "0.52"),
+        (Side.SELL, ("no", "buy"), "no", "BUY", "0.48"),
+        (Side.SELL, ("yes", "sell"), "yes", "SELL", "0.52"),
+        (Side.BUY, ("no", "sell"), "no", "SELL", "0.48"),
+        (Side.SELL, None, "no", "BUY", "0.48"),  # neither given: a sell buys NO
     ])
-    def test_wire_leg_and_price(self, side, reduce_only, outcome, venue_side, wire_price):
-        request = req(side=side, reduce_only=reduce_only)
+    def test_wire_leg_and_price(self, side, leg, outcome, venue_side, wire_price):
+        request = req(side=side, **({"outcome": leg[0], "action": leg[1]} if leg else {}))
         assert wire_leg(request) == (outcome, venue_side)
         info = token(token_id=TOKENS.token(outcome))
         entry, _ = build(request, info=info)

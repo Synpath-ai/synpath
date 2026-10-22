@@ -151,6 +151,12 @@ Because results are ranked by relevance, paging deep into a large result set
 is best effort. To enumerate every market, walk `fetch_markets()` without a
 query.
 
+Over HTTP, `synpath serve` answers one venue's search at
+`GET /venues/{venue}/markets?query=`, and several venues' at once at
+`GET /search/markets` and `GET /search/events`, each venue's page reported
+separately; `GET /markets?ids=` and `GET /books?ids=` are the batch reads
+([server](server.md#batch-reads-and-search)).
+
 ### Sort
 
 `volume`, `liquidity` or `newest`, on every venue -- but not the same way on
@@ -240,6 +246,11 @@ synpath.match_event("kalshi:KXHIGHTATL-26SEP23")
 # EventMatch(anchor=..., event_ids=["weather:atlanta:temperature:max:at:2026-09-23"],
 #            events={"polymarket": ["polymarket:1003798"]})
 ```
+
+`synpath serve` makes these calls for its clients, with its own key, at
+`GET /matching/market`, `GET /matching/event` and (the hosted cross-venue
+scan) `GET /matching/arbitrage`; tick history is at `GET /history/...`
+([server](server.md#hosted-services-matching-and-tick-history)).
 
 ### Status
 

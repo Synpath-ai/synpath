@@ -26,6 +26,7 @@ limiter so the adapter paces to what the account actually has.
 from __future__ import annotations
 
 import base64
+import logging
 import time
 import uuid
 from decimal import Decimal
@@ -40,6 +41,7 @@ from .base import TradingExchange
 from .credentials import KalshiCredentials
 from .errors import (
     DuplicateClientOrderId, InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected,
+    RfqNotFound,
 )
 from .limiter import BudgetLimiter, Priority
 from .money import D, kalshi_count, kalshi_dollars, validate_quantity, validate_price
@@ -47,7 +49,10 @@ from .types import (
     Account, Balance, EditRequest, FeeEstimate, Fill, HeldBy, Liquidity, Order, OrderRequest,
     OrderStatus, OrderType, Position, PositionSide, Precision, Settlement, SettlementState, Side,
     TimeInForce, VENUE_ORDER_TYPES,
+    AcceptQuote, Combo, ComboLeg, MakerQuote, QuoteStatus, Rfq, RfqCloseReason, RfqQuote, RfqStatus,
 )
+
+log = logging.getLogger("synpath.trading.kalshi")
 
 VENUE = "kalshi"
 
@@ -202,7 +207,6 @@ def translate_order(request: OrderRequest, *, precision: Precision | None = None
         "time_in_force": tif,
         "self_trade_prevention_type": params.pop("self_trade_prevention_type", "taker_at_cross"),
         "post_only": request.post_only,
-        "reduce_only": request.reduce_only,
     }
     if request.time_in_force == TimeInForce.GTD and request.expires_at is not None:
         body["expiration_time"] = int(request.expires_at // 1000)
@@ -240,6 +244,20 @@ def _side_of(raw: dict[str, Any]) -> Side:
     return Side.BUY if (action == "buy") == (side == "yes") else Side.SELL
 
 
+def _execution_average(raw: dict[str, Any], *, filled: Decimal, cost: Decimal) -> Decimal | None:
+    if filled <= 0 or cost <= 0:
+        return None
+    # Read projections report cost in their priced outcome. The new API can
+    # say side=yes while outcome_side=no; only the latter identifies the cost
+    # leg. Create responses already supply a YES average and bypass this path.
+    outcome = str(raw.get("outcome_side") or raw.get("side") or
+                  ("no" if raw.get("book_side") == "ask" else "yes")).lower()
+    average = cost / filled
+    if outcome == "no":
+        average = 1 - average
+    return average.quantize(Decimal("0.0001"))
+
+
 def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
     """A venue order row as an `Order`, on the YES leg."""
     ticker = str(raw.get("ticker") or "")
@@ -267,7 +285,7 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order:
         quantity=quantity,
         filled=filled,
         remaining=remaining,
-        average_price=(cost / filled).quantize(Decimal("0.0001")) if filled > 0 and cost > 0 else None,
+        average_price=_execution_average(raw, filled=filled, cost=cost),
         cost=cost if filled > 0 else None,
         fee=fee if filled > 0 else None,
         fee_currency="USD",
@@ -314,7 +332,6 @@ def order_from_response(
         fee=D(raw["average_fee_paid"]) * filled if raw.get("average_fee_paid") not in (None, "") and filled > 0 else None,
         fee_currency="USD",
         post_only=bool(body.get("post_only")),
-        reduce_only=bool(body.get("reduce_only")),
         expires_at=int(body["expiration_time"]) * 1000 if body.get("expiration_time") else None,
         created_at=int(ts_ms) if ts_ms is not None else None,
         updated_at=int(ts_ms) if ts_ms is not None else None,
@@ -423,6 +440,8 @@ def map_error(exc: ExchangeError, *, path: str = "") -> ExchangeError:
     if "insufficient" in text and ("balance" in text or "fund" in text):
         return InsufficientFunds(message, body=exc.body, status=exc.status)
     missing = "not_found" in text or "not found" in text or "no such" in text or isinstance(exc, MarketNotFound)
+    if missing and path.startswith(RFQ_PATHS):
+        return RfqNotFound(message, body=exc.body, status=exc.status)
     if missing and ("/orders" in path or "order" in text):
         return OrderNotFound(message, body=exc.body, status=exc.status)
     if "client_order_id" in text and ("duplicate" in text or "already" in text or "exists" in text):
@@ -434,6 +453,288 @@ def map_error(exc: ExchangeError, *, path: str = "") -> ExchangeError:
     if isinstance(exc, BadRequest):
         return OrderRejected(message, reason=code or None, info=exc.body if isinstance(exc.body, dict) else {}, body=exc.body, status=exc.status)
     return exc
+
+
+# ---------------------------------------------------------------------------
+# RFQ and combos (docs/rfq-combo.md, P6)
+# ---------------------------------------------------------------------------
+#
+# Source: https://docs.kalshi.com/openapi.yaml (v3.34.0) and
+# https://docs.kalshi.com/getting_started/rfqs.md.
+#
+# **Sides.** A Kalshi quote is two bids for the RFQ's full size: `yes_bid`
+# (the maker buys YES) and `no_bid` (the maker buys NO), either one "0" (the
+# side declined), their sum at most $1. In YES prices the requester sells YES
+# at `yes_bid` (our `bid`) and buys YES at `1 - no_bid` (our `ask`).
+# `accepted_side` names the maker's bid being taken, not the requester's
+# outcome, which the P0 demo run settled: to buy YES send `no` (the price is
+# `1 - no_bid`), to buy NO send `yes` (the price is `1 - yes_bid`, i.e. YES
+# sold at `yes_bid`). So a reported `accepted_side` of `no` is a YES buy by
+# the requester and `yes` a YES sell.
+#
+# **Combos.** A combo is a market created in a multivariate event collection,
+# with a `KXMVE...` ticker, its own book, positions and settlement: an
+# ordinary binary market, so its Synpath id is `kalshi:<ticker>`. Its legs
+# are the market's `mve_selected_legs`.
+
+RFQ_PATHS = ("/communications", "/multivariate_event_collections")
+"""Paths whose 404 names an RFQ, a quote or a combo collection."""
+
+COMBO_PREFIX = "KXMVE"
+"""Every multivariate market's ticker starts so; the fallback when an RFQ
+carries no `mve_collection_ticker`."""
+
+WEEKLY_COMBO_QUOTA = 5000
+"""`POST /multivariate_event_collections/{t}`: creations per user per week."""
+
+QUOTE_STATUS_FROM_WIRE = {
+    "open": QuoteStatus.OPEN,
+    "accepted": QuoteStatus.ACCEPTED,
+    "confirmed": QuoteStatus.CONFIRMED,
+    "executed": QuoteStatus.EXECUTED,
+    # Withdrawn by the maker, closed with its RFQ, or lapsed in the last look:
+    # the venue has no expired or failed quote status, and none of these traded.
+    "cancelled": QuoteStatus.CANCELED,
+    "canceled": QuoteStatus.CANCELED,
+}
+QUOTE_STATUS_TO_WIRE = {
+    QuoteStatus.OPEN: "open", QuoteStatus.ACCEPTED: "accepted", QuoteStatus.CONFIRMED: "confirmed",
+    QuoteStatus.EXECUTED: "executed", QuoteStatus.CANCELED: "cancelled",
+}
+
+ACCEPTED_SIDE_TO_WIRE = {Side.BUY: "no", Side.SELL: "yes"}
+"""The requester's YES-leg side -> the maker's bid it takes (P0, settled)."""
+ACCEPTED_SIDE_FROM_WIRE = {wire: side for side, wire in ACCEPTED_SIDE_TO_WIRE.items()}
+
+MARKET_STATUS_TO_COMBO = {
+    "active": "open",
+    "determined": "settled",
+    "finalized": "settled",
+    "amended": "settled",
+}
+"""A combo market's lifecycle in `Combo.status`; every other state
+(initialized, inactive, closed, disputed) reads `closed`."""
+
+
+def _dollars(value: Any) -> Decimal | None:
+    return D(str(value)) if value not in (None, "") else None
+
+
+def _positive(value: Any) -> Decimal | None:
+    """A price or size, `None` for "0" (a declined side) or an absent one."""
+    number = _dollars(value)
+    return number if number is not None and number > 0 else None
+
+
+def is_combo_ticker(ticker: str) -> bool:
+    return ticker.upper().startswith(COMBO_PREFIX)
+
+
+def leg_of(raw: dict[str, Any]) -> ComboLeg:
+    """One `MveSelectedLeg` (`event_ticker`, `market_ticker`, `side`)."""
+    side = str(raw.get("side") or "yes").lower()
+    return ComboLeg(
+        market_id=ids.qualify(VENUE, str(raw.get("market_ticker") or "")),
+        outcome="no" if side == "no" else "yes",
+        event_id=raw.get("event_ticker") or None,
+        info=raw,
+    )
+
+
+def leg_to_wire(leg: ComboLeg, event_ticker: str) -> dict[str, str]:
+    """A `TickerPair` for `selected_markets`."""
+    return {"market_ticker": ticker_of(leg.market_id), "event_ticker": event_ticker, "side": leg.outcome}
+
+
+def with_event_tickers(collection: dict[str, Any]) -> dict[str, Any]:
+    """A collection row with `associated_event_tickers` always present: the
+    venue sends it beside `associated_events`, and it is filled from those
+    when it is missing."""
+    row = dict(collection)
+    if not row.get("associated_event_tickers"):
+        row["associated_event_tickers"] = [str(e.get("ticker")) for e in row.get("associated_events") or []
+                                           if e.get("ticker")]
+    return row
+
+
+def combo_of(market: dict[str, Any]) -> Combo:
+    """A multivariate market (`GET /markets/{ticker}`, or the `market` of the
+    create answer) as a `Combo`; its legs are `mve_selected_legs`."""
+    ticker = str(market.get("ticker") or "")
+    legs = market.get("mve_selected_legs") or []
+    if len(legs) < 2:
+        raise RfqNotFound(f"kalshi: {ticker or 'the market'} is not a combo (no selected legs)")
+    status = str(market.get("status") or "").lower()
+    return Combo(
+        market_id=ids.qualify(VENUE, ticker),
+        venue=VENUE,
+        collection_id=market.get("mve_collection_ticker") or None,
+        legs=[leg_of(leg) for leg in legs],
+        status=MARKET_STATUS_TO_COMBO.get(status, "closed") if status else None,
+        created_at=parse_ts(market.get("created_time")),
+        info=market,
+    )
+
+
+def _closed_reason(raw: dict[str, Any]) -> RfqCloseReason | None:
+    """`cancellation_reason` is free text on the venue; read what it plainly says."""
+    if str(raw.get("status") or "").lower() != "closed":
+        return None
+    text = str(raw.get("cancellation_reason") or "").lower()
+    if "expire" in text:
+        return RfqCloseReason.EXPIRED
+    if "execut" in text or "fill" in text:
+        return RfqCloseReason.EXECUTED
+    if "replace" in text:
+        return RfqCloseReason.REPLACED
+    if "cancel" in text or "delete" in text or "user" in text:
+        return RfqCloseReason.CANCELED
+    return None
+
+
+def rfq_of(raw: dict[str, Any], *, me: str | None = None, mine: bool | None = None,
+           account: Account | None = None) -> Rfq:
+    """A venue `RFQ`. Sized by `target_cost_dollars` when it has one (the
+    venue still reports a `contracts_fp`, kept in `info`), else by
+    `contracts_fp`. `mine` is whether `creator_id` is `me`, this account's
+    communications id, unless the caller already knows."""
+    ticker = str(raw.get("market_ticker") or "")
+    instrument = ids.qualify(VENUE, ticker)
+    legs = raw.get("mve_selected_legs") or []
+    combo = None
+    if len(legs) >= 2:
+        combo = Combo(market_id=instrument, venue=VENUE, collection_id=raw.get("mve_collection_ticker") or None,
+                      legs=[leg_of(leg) for leg in legs], info={"mve_selected_legs": legs})
+    on_combo = combo is not None or bool(raw.get("mve_collection_ticker")) or is_combo_ticker(ticker)
+    if mine is None:
+        mine = me is not None and raw.get("creator_id") == me
+    amount = _positive(raw.get("target_cost_dollars"))
+    status = RfqStatus.CLOSED if str(raw.get("status") or "").lower() == "closed" else RfqStatus.OPEN
+    return Rfq(
+        id=str(raw.get("id") or ""),
+        venue=VENUE,
+        account=account if mine else None,
+        market_id=None if on_combo else instrument,
+        combo_id=instrument if on_combo else None,
+        combo=combo,
+        quantity=None if amount is not None else _positive(raw.get("contracts_fp")),
+        amount=amount,
+        rest_remainder=bool(raw.get("rest_remainder")),
+        status=status,
+        closed_reason=_closed_reason(raw),
+        mine=mine,
+        created_at=parse_ts(raw.get("created_ts")),
+        updated_at=parse_ts(raw.get("updated_ts") or raw.get("cancelled_ts")),
+        info=raw,
+    )
+
+
+def quote_of(raw: dict[str, Any], *, me: str | None = None, mine: bool | None = None,
+             account: Account | None = None) -> RfqQuote:
+    """A venue `Quote` on the YES leg: `bid` = `yes_bid_dollars`, `ask` =
+    `1 - no_bid_dollars`, a "0" bid a declined side (`None`).
+
+    Sizes: `yes_contracts_fp` is read as the YES contracts the requester can
+    buy (the `ask` side) and `no_contracts_fp` as the NO contracts it can buy
+    (the `bid` side); both fall back to `contracts_fp`. They differ only on an
+    RFQ sized by target cost (UNVERIFIED which is which; P10 checks)."""
+    if mine is None:
+        mine = me is not None and raw.get("creator_id") == me
+    yes_bid = _positive(raw.get("yes_bid_dollars"))
+    no_bid = _positive(raw.get("no_bid_dollars"))
+    full = _positive(raw.get("contracts_fp"))
+    ticker = raw.get("market_ticker")
+    quote = RfqQuote.from_venue(dict(
+        id=str(raw.get("id") or ""),
+        rfq_id=str(raw.get("rfq_id") or ""),
+        venue=VENUE,
+        account=account if mine else None,
+        market_id=ids.qualify(VENUE, str(ticker)) if ticker else None,
+        bid=yes_bid,
+        ask=(1 - no_bid) if no_bid is not None else None,
+        bid_quantity=(_positive(raw.get("no_contracts_fp")) or full) if yes_bid is not None else None,
+        ask_quantity=(_positive(raw.get("yes_contracts_fp")) or full) if no_bid is not None else None,
+        status=QUOTE_STATUS_FROM_WIRE.get(str(raw.get("status") or "").lower(), QuoteStatus.OPEN),
+        accepted_side=ACCEPTED_SIDE_FROM_WIRE.get(str(raw.get("accepted_side") or "").lower()),
+        taker_order_id=raw.get("rfq_creator_order_id") or None,
+        maker_order_id=raw.get("creator_order_id") or None,
+        mine=mine,
+        created_at=parse_ts(raw.get("created_ts")),
+        updated_at=parse_ts(raw.get("updated_ts")),
+        info=raw,
+    ))
+    if quote.crossed:
+        log.warning("kalshi: quote %s on RFQ %s is crossed (yes_bid %s above 1 - no_bid %s); kept and flagged",
+                    quote.id, quote.rfq_id, quote.bid, quote.ask)
+    return quote
+
+
+def tolerant(rows: Any, build: Any, what: str) -> list[Any]:
+    """Normalise a venue list row by row: a row the model refuses is logged
+    and skipped, so one bad record does not break the whole list."""
+    out = []
+    for row in rows or []:
+        try:
+            out.append(build(row))
+        except (ValueError, TypeError) as exc:
+            log.warning("kalshi: skipped a %s the venue sent that does not validate (%s): %r", what, exc, row)
+    return out
+
+
+def translate_rfq(
+    instrument_id: str, *, quantity: Decimal | None, amount: Decimal | None, rest_remainder: bool,
+    target_cost_excludes_fees: bool = False, replace_existing: bool = False, subaccount: int | None = None,
+) -> dict[str, Any]:
+    """The `POST /communications/rfqs` body: `contracts_fp` for contracts
+    (0.01 steps), `target_cost_dollars` for money. By default the target cost
+    caps principal plus Kalshi's fees and the venue shrinks each quote's size
+    to make room for them; `target_cost_excludes_fees=True` makes it principal
+    only, with the taker fee charged on top."""
+    if (quantity is None) == (amount is None):
+        raise InvalidOrder("kalshi: size an RFQ by quantity (contracts) or amount (USD), exactly one")
+    body: dict[str, Any] = {"market_ticker": ticker_of(instrument_id), "rest_remainder": bool(rest_remainder)}
+    if quantity is not None:
+        body["contracts_fp"] = kalshi_count(validate_quantity(D(quantity), DEFAULT_PRECISION))
+    else:
+        if D(amount) <= 0:  # type: ignore[arg-type]
+            raise InvalidOrder(f"kalshi: amount must be positive, got {amount}")
+        body["target_cost_dollars"] = kalshi_dollars(D(amount))  # type: ignore[arg-type]
+        if target_cost_excludes_fees:
+            body["target_cost_excludes_fees"] = True
+    if target_cost_excludes_fees and amount is None:
+        raise InvalidOrder("kalshi: target_cost_excludes_fees applies only to an RFQ sized by amount")
+    if replace_existing:
+        body["replace_existing"] = True
+    if subaccount is not None:
+        body["subaccount"] = int(subaccount)
+    return body
+
+
+def translate_quote(quote: MakerQuote, *, subaccount: int | None = None) -> dict[str, Any]:
+    """The `POST /communications/quotes` body. Our `bid` (the YES price we
+    buy at) is `yes_bid`; our `ask` (the YES price we sell at) is buying NO
+    at `1 - ask`, so `no_bid = 1 - ask`. A missing side is "0". The venue
+    takes no quantity, expiry or client id: a quote is for the RFQ's size."""
+    if quote.quantity is not None:
+        raise InvalidOrder("kalshi: a quote is for the RFQ's full size; the venue takes no quantity")
+    if quote.expires_at is not None:
+        raise InvalidOrder("kalshi: a quote has no expiry on this venue; cancel it instead")
+    zero = kalshi_dollars(Decimal("0"))
+    body: dict[str, Any] = {
+        "rfq_id": quote.rfq_id,
+        "yes_bid": kalshi_dollars(quote.bid) if quote.bid is not None else zero,
+        "no_bid": kalshi_dollars(1 - quote.ask) if quote.ask is not None else zero,
+        "rest_remainder": bool(quote.rest_remainder),
+        "post_only": bool(quote.post_only),
+    }
+    if subaccount is not None:
+        body["subaccount"] = int(subaccount)
+    return body
+
+
+def accept_key(quote_id: str) -> str:
+    """The engine's idempotency key for an accept (docs/rfq-combo.md §5)."""
+    return f"rfq-accept:{VENUE}:{quote_id}"
 
 
 # ---------------------------------------------------------------------------
@@ -471,7 +772,13 @@ class KalshiTrading(TradingExchange):
         "fetch_settlements": True,
         "fetch_queue_position": True,
         "fetch_fee_estimate": True,
+        # The older key, kept for one release: the adapter has Kalshi's RFQ
+        # methods. Since P6 they are the typed shared interface below.
         "rfq": True,
+        # docs/rfq-combo.md (P6): both RFQ sides and the multivariate combos.
+        "rfq_taker": True,
+        "rfq_quoter": True,
+        "combos": True,
         # Kalshi nets YES against NO in one account; there are no token
         # inventories to split or merge.
         "split_merge": False,
@@ -504,6 +811,7 @@ class KalshiTrading(TradingExchange):
         self.http = AsyncHttpClient(self.base_url, limiter=None, timeout=timeout, client=client, venue=VENUE)
         self.default_cost = DEFAULT_COST
         self.endpoint_costs: dict[tuple[str, str], int] = dict(KNOWN_COSTS)
+        self._communications_id: str | None = None
 
     # -- transport ------------------------------------------------------------
 
@@ -551,6 +859,9 @@ class KalshiTrading(TradingExchange):
         raw = await self._call("POST", "/portfolio/events/orders", json=body, kind="write")
         order = order_from_response(raw, body=body, account=request.account or self.account)
         return order.model_copy(update={"book": request.book, "trader": request.trader, "tags": request.tags})
+
+    async def create_order_with_precision(self, request: OrderRequest, precision: Precision) -> Order:
+        return await self.create_order(request, precision=precision)
 
     async def create_orders(
         self, requests: list[OrderRequest], *, precision: Precision | None = None,
@@ -895,45 +1206,364 @@ class KalshiTrading(TradingExchange):
     async def delete_order_group(self, order_group_id: str) -> None:
         await self._call("DELETE", f"/portfolio/order_groups/{order_group_id}", kind="write", priority=Priority.HIGH)
 
-    # -- RFQ ------------------------------------------------------------------
+    # -- combos (multivariate event collections) -------------------------------
 
-    async def create_rfq(
-        self, market_id: str, contracts: Decimal | int, *, rest_remainder: bool = False,
-        target_cost: Decimal | None = None,
-    ) -> str:
-        """Ask market makers for a two-sided quote on `contracts` of a market.
-        `rest_remainder` leaves what a quote does not fill resting on the
-        book. Returns the RFQ id; quotes arrive through `fetch_quotes`."""
-        body: dict[str, Any] = {
-            "market_ticker": ticker_of(market_id), "contracts_fp": kalshi_count(D(contracts)), "rest_remainder": rest_remainder,
-        }
-        if target_cost is not None:
-            body["target_cost_dollars"] = kalshi_dollars(D(target_cost))
-        raw = await self._call("POST", "/communications/rfqs", json=body, kind="write")
-        return str((raw or {}).get("id") or "")
-
-    async def fetch_rfq(self, rfq_id: str) -> dict[str, Any]:
-        raw = await self._call("GET", f"/communications/rfqs/{rfq_id}")
-        return dict((raw or {}).get("rfq") or {})
-
-    async def fetch_quotes(self, rfq_id: str, *, status: str | None = "open") -> list[dict[str, Any]]:
-        """Quotes answering one of this account's RFQs. The venue filters by
-        the asking account, not by RFQ, so the RFQ is picked out here."""
-        raw = await self._call("GET", "/communications/quotes", params={
-            "rfq_user_filter": "self", "status": status, "limit": 500,
+    async def fetch_combo_collections(
+        self, *, status: str | None = "open", event_id: str | None = None, series_id: str | None = None,
+        limit: int | None = None, cursor: str | None = None,
+    ) -> Page[dict[str, Any]]:
+        """`GET /multivariate_event_collections`: the collections a combo can be
+        built in, as the venue's own `MultivariateEventCollection` objects
+        (`collection_ticker`, `associated_events` with `active_quoters`,
+        `size_min`/`size_max`, `price_ranges`...). `status` is `unopened`,
+        `open` or `closed`; `event_id` keeps those that take that event."""
+        raw = await self._call("GET", "/multivariate_event_collections", params={
+            "status": status, "associated_event_ticker": ids.native(VENUE, event_id) if event_id else None,
+            "series_ticker": series_id, "limit": limit, "cursor": cursor,
         })
-        return [q for q in ((raw or {}).get("quotes") or []) if str(q.get("rfq_id")) == rfq_id]
+        rows = [with_event_tickers(row) for row in (raw or {}).get("multivariate_contracts") or []]
+        return Page(rows, next_cursor=(raw or {}).get("cursor") or None)
 
-    async def accept_quote(self, rfq_id: str, quote_id: str, side: str) -> None:
-        """Take one side (`yes` or `no`) of a quote. The quoter then has a
-        last look and confirms; the trade prints on their confirmation."""
-        await self._call(
-            "PUT", f"/communications/rfqs/{rfq_id}/quotes/{quote_id}/accept",
-            json={"accepted_side": side}, kind="write",
+    async def fetch_combo_collection(self, collection_id: str) -> dict[str, Any]:
+        raw = await self._call("GET", f"/multivariate_event_collections/{collection_id}")
+        found = (raw or {}).get("multivariate_contract")
+        if not found:
+            raise RfqNotFound(f"kalshi: no collection {collection_id!r}")
+        return with_event_tickers(found)
+
+    async def _event_of(self, leg: ComboLeg) -> str:
+        """A leg's event ticker: `event_id` when given, else the market's own."""
+        if leg.event_id:
+            return ids.native(VENUE, leg.event_id)
+        raw = await self._call("GET", f"/markets/{ticker_of(leg.market_id)}")
+        event = ((raw or {}).get("market") or {}).get("event_ticker")
+        if not event:
+            raise InvalidOrder(f"kalshi: {leg.market_id} names no event; give the leg's event_id")
+        return str(event)
+
+    async def _collection_for(self, events: list[str], size: int) -> str:
+        """The one open collection that takes every leg's event at this size."""
+        fits: list[str] = []
+        cursor: str | None = None
+        while True:
+            page = await self.fetch_combo_collections(event_id=events[0], limit=200, cursor=cursor)
+            for row in page:
+                held = {str(e.get("ticker")) for e in row.get("associated_events") or []} \
+                    or set(row.get("associated_event_tickers") or [])
+                low, high = row.get("size_min"), row.get("size_max")
+                if set(events) <= held and (low is None or size >= int(low)) and (high is None or size <= int(high)):
+                    fits.append(str(row.get("collection_ticker")))
+            cursor = page.next_cursor
+            if not cursor or not page:
+                break
+        if len(fits) == 1:
+            return fits[0]
+        if not fits:
+            raise InvalidOrder(f"kalshi: no open collection takes events {', '.join(events)} as a {size}-leg combo")
+        exc = InvalidOrder(
+            f"kalshi: {len(fits)} open collections take these legs ({', '.join(fits)}); name one with "
+            "collection_id"
+        )
+        exc.collections = fits  # type: ignore[attr-defined]  # served as `details.collections`
+        raise exc
+
+    async def create_combo(self, legs: list[ComboLeg], *, collection_id: str | None = None) -> Combo:
+        """`POST /multivariate_event_collections/{collection}` with
+        `selected_markets`: the combo market for these legs, created if it does
+        not exist (the venue returns the same market for the same legs). It
+        must be called once before a combo can be traded or read. Signed, and
+        capped at 5,000 creations a user a week (`WEEKLY_COMBO_QUOTA`).
+
+        `collection_id` is the collection's ticker (`KXMVE...`); without it the
+        one open collection that takes every leg's event is used, and more
+        than one is refused. A leg without `event_id` has its market read for
+        it. Legs the collection refuses are `InvalidOrder`."""
+        if len(legs) < 2:
+            raise InvalidOrder(f"kalshi: a combo has at least two legs, got {len(legs)}")
+        if len({ticker_of(leg.market_id) for leg in legs}) != len(legs):
+            raise InvalidOrder("kalshi: a combo names each market once")
+        events = [await self._event_of(leg) for leg in legs]
+        collection = collection_id or await self._collection_for(list(dict.fromkeys(events)), len(legs))
+        body = {"selected_markets": [leg_to_wire(leg, event) for leg, event in zip(legs, events)],
+                "with_market_payload": True}
+        try:
+            raw = await self._call("POST", f"/multivariate_event_collections/{collection}", json=body, kind="write")
+        except OrderRejected as exc:
+            raise InvalidOrder(str(exc), body=exc.body, status=exc.status) from None
+        ticker = str((raw or {}).get("market_ticker") or "")
+        if not ticker:
+            raise ExchangeError("kalshi: create combo returned no market", body=raw)
+        market = (raw or {}).get("market") or {}
+        if market.get("mve_selected_legs"):
+            combo = combo_of(market)
+        else:
+            combo = Combo(
+                market_id=ids.qualify(VENUE, ticker), venue=VENUE, collection_id=collection,
+                legs=[leg.model_copy(update={"event_id": event}) for leg, event in zip(legs, events)],
+                info={"response": raw},
+            )
+        return combo.model_copy(update={"collection_id": combo.collection_id or collection,
+                                        "info": {**combo.info, "event_ticker": raw.get("event_ticker")}})
+
+    async def fetch_combo(self, combo_id: str) -> Combo:
+        """`GET /markets/{ticker}` on a combo's market ticker; legs from its
+        `mve_selected_legs`. A market that is not a combo is `RfqNotFound`."""
+        ticker = ticker_of(combo_id)
+        try:
+            raw = await self._call("GET", f"/markets/{ticker}")
+        except MarketNotFound as exc:
+            raise RfqNotFound(f"kalshi: no combo {ticker!r}", body=exc.body, status=exc.status) from None
+        return combo_of((raw or {}).get("market") or {"ticker": ticker})
+
+    async def lookup_combo(self, legs: list[ComboLeg]) -> Combo | None:
+        raise NotSupported(
+            "kalshi: no read-only lookup by legs (the lookup endpoint left the API); create_combo returns the "
+            "existing combo market for the same legs"
         )
 
-    async def delete_rfq(self, rfq_id: str) -> None:
+    # -- RFQ, both sides --------------------------------------------------------
+
+    async def fetch_communications_id(self) -> str:
+        """This account's public communications id (`GET /communications/id`),
+        which marks its own RFQs (`creator_id`) and quotes. Read once and kept."""
+        if self._communications_id is None:
+            raw = await self._call("GET", "/communications/id")
+            self._communications_id = str((raw or {}).get("communications_id") or "") or None
+        return self._communications_id or ""
+
+    async def _rfq_page(self, params: dict[str, Any], *, mine: bool | None) -> Page[Rfq]:
+        me = None if mine is not None else await self.fetch_communications_id()
+        raw = await self._call("GET", "/communications/rfqs", params=params)
+        rows = tolerant((raw or {}).get("rfqs"), lambda row: rfq_of(row, me=me, mine=mine, account=self.account), "RFQ")
+        return Page(rows, next_cursor=(raw or {}).get("cursor") or None)
+
+    async def _quote_list(self, params: dict[str, Any], *, mine: bool | None = None) -> list[RfqQuote]:
+        me = None if mine is not None else await self.fetch_communications_id()
+        quotes: list[RfqQuote] = []
+        cursor: str | None = None
+        while True:
+            raw = await self._call("GET", "/communications/quotes", params={**params, "cursor": cursor})
+            quotes.extend(tolerant((raw or {}).get("quotes"),
+                                   lambda row: quote_of(row, me=me, mine=mine, account=self.account), "quote"))
+            cursor = (raw or {}).get("cursor") or None
+            if not cursor:
+                return quotes
+
+    @staticmethod
+    def _quote_status(status: QuoteStatus | str | None) -> str | None:
+        if status is None:
+            return None
+        wire = QUOTE_STATUS_TO_WIRE.get(QuoteStatus(status))
+        if wire is None:
+            raise BadRequest(f"kalshi: quotes have no {QuoteStatus(status).value!r} status on this venue")
+        return wire
+
+    def _subaccount(self, account: Account | None = None) -> int | None:
+        target = account or self.account
+        return int(target.subaccount) if target.subaccount is not None else None
+
+    # -- RFQ, requester (taker) side --------------------------------------------
+
+    async def create_rfq(
+        self, instrument_id: str, *, quantity: Decimal | None = None, amount: Decimal | None = None,
+        outcome: str | None = None, action: str | None = None, rest_remainder: bool = False,
+        combo: Combo | None = None, target_cost_excludes_fees: bool = False, replace_existing: bool = False,
+    ) -> Rfq:
+        """`POST /communications/rfqs` on a market or a combo market. Two-sided:
+        the venue takes no side, so `outcome`/`action` are refused. `quantity`
+        is sent as `contracts_fp`; `amount` (USD) as `target_cost_dollars`,
+        which by default caps principal plus fees (quote sizes shrink to fit
+        the fees); `target_cost_excludes_fees=True` makes it principal only.
+        At most 100 open RFQs and one per market (409 otherwise, unless
+        `replace_existing`). An unanswered RFQ expires on the venue.
+        Returns the RFQ as sent, `open`; the venue answers with its id."""
+        if outcome is not None or action is not None:
+            raise InvalidOrder("kalshi: an RFQ is two-sided; pick the side when accepting a quote")
+        body = translate_rfq(instrument_id, quantity=quantity, amount=amount, rest_remainder=rest_remainder,
+                             target_cost_excludes_fees=target_cost_excludes_fees, replace_existing=replace_existing,
+                             subaccount=self._subaccount())
+        raw = await self._call("POST", "/communications/rfqs", json=body, kind="write")
+        rfq_id = str((raw or {}).get("id") or "")
+        if not rfq_id:
+            raise ExchangeError("kalshi: create RFQ returned no id", body=raw)
+        instrument = ids.qualify(VENUE, body["market_ticker"])
+        on_combo = combo is not None or is_combo_ticker(body["market_ticker"])
+        return Rfq(
+            id=rfq_id, venue=VENUE, account=self.account,
+            market_id=None if on_combo else instrument, combo_id=instrument if on_combo else None, combo=combo,
+            quantity=D(body["contracts_fp"]) if "contracts_fp" in body else None,
+            amount=D(amount) if amount is not None else None,
+            rest_remainder=rest_remainder, status=RfqStatus.OPEN, mine=True, created_at=int(time.time() * 1000),
+            info={"request": body, "response": raw},
+        )
+
+    async def fetch_rfq(self, rfq_id: str) -> Rfq:
+        me = await self.fetch_communications_id()
+        raw = await self._call("GET", f"/communications/rfqs/{rfq_id}")
+        found = (raw or {}).get("rfq")
+        if not found:
+            raise RfqNotFound(f"kalshi: no RFQ {rfq_id}")
+        return rfq_of(found, me=me, account=self.account)
+
+    async def fetch_rfqs(
+        self, *, status: RfqStatus | str | None = None, market_id: str | None = None,
+        limit: int | None = None, cursor: str | None = None,
+    ) -> Page[Rfq]:
+        """This account's RFQs (`user_filter=self`)."""
+        return await self._rfq_page({
+            "user_filter": "self", "status": RfqStatus(status).value if status else None,
+            "market_ticker": ticker_of(market_id) if market_id else None,
+            "subaccount": self._subaccount(), "limit": limit, "cursor": cursor,
+        }, mine=True)
+
+    async def cancel_rfq(self, rfq_id: str) -> None:
+        """`DELETE /communications/rfqs/{id}`."""
         await self._call("DELETE", f"/communications/rfqs/{rfq_id}", kind="write", priority=Priority.HIGH)
+
+    async def fetch_quotes(self, rfq_id: str, *, status: QuoteStatus | str | None = None) -> list[RfqQuote]:
+        """The makers' quotes on one of our RFQs: `rfq_user_filter=self` and
+        `rfq_id`. Rows for another RFQ are dropped here as well."""
+        rows = await self._quote_list({
+            "rfq_user_filter": "self", "rfq_id": rfq_id, "status": self._quote_status(status), "limit": 500,
+        })
+        return [q for q in rows if q.rfq_id == rfq_id]
+
+    async def fetch_quote(self, quote_id: str, *, rfq_id: str | None = None) -> RfqQuote:
+        """`GET /communications/rfqs/{rfq}/quotes/{q}`."""
+        if not rfq_id:
+            raise InvalidOrder("kalshi: a quote is read under its RFQ; give rfq_id")
+        me = await self.fetch_communications_id()
+        raw = await self._call("GET", f"/communications/rfqs/{rfq_id}/quotes/{quote_id}")
+        found = (raw or {}).get("quote")
+        if not found:
+            raise RfqNotFound(f"kalshi: no quote {quote_id} on RFQ {rfq_id}")
+        return quote_of(found, me=me, account=self.account)
+
+    async def accept_quote(self, accept: AcceptQuote) -> RfqQuote:
+        """`PUT /communications/rfqs/{rfq}/quotes/{q}/accept {accepted_side}`.
+
+        `accepted_side` names the maker's bid taken (P0, settled on the demo):
+        buying YES (or selling NO) sends `no`, at `1 - no_bid` (the quote's
+        `ask`); buying NO (or selling YES) sends `yes`, at `1 - yes_bid` a NO
+        contract, i.e. YES sold at `yes_bid` (the `bid`).
+
+        The quote is read first. Refused before anything is sent when it is
+        not open, the side was declined (its bid "0"), or the price is worse
+        than `worst_price`. REST accepts the full size only (`quantity` and
+        `amount` are refused; FIX takes a partial size). A retry is safe: a
+        quote already accepted on the same side is returned without sending
+        again. The venue takes no client id; the idempotency key defaults to
+        `rfq-accept:kalshi:{quote_id}` and is kept in `info`. Returns at once
+        with the quote `accepted`; the maker then confirms (30 s, 3 s on combo
+        and high-volume markets) and the orders follow (`taker_order_id` is
+        `rfq_creator_order_id`; its fills are in `fetch_my_trades`)."""
+        if not accept.rfq_id:
+            raise InvalidOrder("kalshi: a quote is accepted under its RFQ; give rfq_id")
+        if accept.quantity is not None or accept.amount is not None:
+            raise InvalidOrder("kalshi: a quote is accepted for its full size over REST; the venue takes no partial size")
+        side = accept.side
+        wire_side = ACCEPTED_SIDE_TO_WIRE[side]
+        key = accept.client_order_id or accept_key(accept.quote_id)
+        quote = await self.fetch_quote(accept.quote_id, rfq_id=accept.rfq_id)
+        if quote.status in (QuoteStatus.ACCEPTED, QuoteStatus.CONFIRMED, QuoteStatus.EXECUTED):
+            if quote.accepted_side == side:
+                return quote.model_copy(update={"info": {**quote.info, "accept": {
+                    "accepted_side": wire_side, "client_order_id": key, "resent": False}}})
+            raise OrderRejected(
+                f"kalshi: quote {quote.id} was already accepted on the {quote.accepted_side} side",
+                reason="already_accepted", info=quote.info,
+            )
+        if quote.status != QuoteStatus.OPEN:
+            raise OrderRejected(f"kalshi: quote {quote.id} is {quote.info.get('status') or quote.status.value}, not open",
+                                reason="quote_not_open", info=quote.info)
+        price = quote.price_for(accept.outcome, accept.action)
+        if price is None:
+            declined = "no_bid" if side == Side.BUY else "yes_bid"
+            raise InvalidOrder(f"kalshi: quote {quote.id} declines the {side.value} side ({declined} is 0)")
+        if accept.refuses(price):
+            raise InvalidOrder(
+                f"kalshi: quote {quote.id} {side.value}s YES at {price}, worse than the worst price {accept.worst_price}"
+            )
+        body = {"accepted_side": wire_side}
+        raw = await self._call(
+            "PUT", f"/communications/rfqs/{accept.rfq_id}/quotes/{accept.quote_id}/accept", json=body,
+            kind="write", priority=Priority.HIGH,
+        )
+        return quote.model_copy(update={
+            "status": QuoteStatus.ACCEPTED, "accepted_side": side,
+            "info": {**quote.info, "accept": {**body, "client_order_id": key, "response": raw, "resent": True}},
+        })
+
+    # -- RFQ, quoter (maker) side -----------------------------------------------
+
+    async def fetch_incoming_rfqs(
+        self, *, market_id: str | None = None, limit: int | None = None, cursor: str | None = None,
+    ) -> Page[Rfq]:
+        """Open RFQs from other accounts (ours are left out)."""
+        page = await self._rfq_page({
+            "status": "open", "market_ticker": ticker_of(market_id) if market_id else None,
+            "limit": limit, "cursor": cursor,
+        }, mine=None)
+        return Page([r for r in page if not r.mine], next_cursor=page.next_cursor)
+
+    async def send_quote(self, quote: MakerQuote) -> RfqQuote:
+        """`POST /communications/quotes`, both sides at once: `yes_bid` = our
+        `bid`, `no_bid` = `1 - ask`, a missing side "0", with `rest_remainder`
+        and `post_only`. The venue holds collateral for a quote when it is
+        sent (a demo quote with too little balance is a 400
+        `insufficient_balance`, `InsufficientFunds`). Returns the quote as
+        sent, `open`, under the venue's new id."""
+        body = translate_quote(quote, subaccount=self._subaccount(quote.account))
+        raw = await self._call("POST", "/communications/quotes", json=body, kind="write")
+        quote_id = str((raw or {}).get("id") or "")
+        if not quote_id:
+            raise ExchangeError("kalshi: create quote returned no id", body=raw)
+        return RfqQuote(
+            id=quote_id, rfq_id=quote.rfq_id, venue=VENUE, account=quote.account or self.account,
+            bid=quote.bid, ask=quote.ask, status=QuoteStatus.OPEN, mine=True, created_at=int(time.time() * 1000),
+            info={"request": body, "response": raw, "client_order_id": quote.client_order_id},
+        )
+
+    async def replace_quote(self, quote_id: str, quote: MakerQuote) -> RfqQuote:
+        """Kalshi has no replace: the old quote is deleted, then the new one is
+        sent. Between the two the RFQ has no quote of ours (one round trip).
+        An old quote already gone is not an error; if the send then fails,
+        nothing of ours is left on the RFQ."""
+        try:
+            await self.cancel_quote(quote_id, rfq_id=quote.rfq_id)
+        except RfqNotFound:
+            pass
+        new = await self.send_quote(quote)
+        return new.model_copy(update={"info": {**new.info, "replaces": quote_id}})
+
+    async def cancel_quote(self, quote_id: str, *, rfq_id: str | None = None) -> None:
+        """`DELETE /communications/rfqs/{rfq}/quotes/{q}`: withdraw a quote, so
+        it can no longer be accepted (or decline an accepted one before the
+        confirm)."""
+        if not rfq_id:
+            raise InvalidOrder("kalshi: a quote is deleted under its RFQ; give rfq_id")
+        await self._call("DELETE", f"/communications/rfqs/{rfq_id}/quotes/{quote_id}", kind="write",
+                         priority=Priority.HIGH)
+
+    async def confirm_quote(self, quote: RfqQuote) -> RfqQuote:
+        """`PUT /communications/rfqs/{rfq}/quotes/{q}/confirm`, the maker's last
+        look: within 30 s of the accept (3 s on combo and high-volume
+        markets). The venue then starts the execution timer and the two
+        orders reach the book after 15 s (1 s on high-volume markets)."""
+        raw = await self._call(
+            "PUT", f"/communications/rfqs/{quote.rfq_id}/quotes/{quote.id}/confirm", json={},
+            kind="write", priority=Priority.HIGH,
+        )
+        return quote.model_copy(update={"status": QuoteStatus.CONFIRMED, "info": {**quote.info, "confirm": raw}})
+
+    async def fetch_my_quotes(
+        self, *, rfq_id: str | None = None, status: QuoteStatus | str | None = None,
+    ) -> list[RfqQuote]:
+        """Quotes this account made (`user_filter=self`, the spec's filter for
+        "quotes created by the authenticated user"), on one RFQ or all."""
+        return await self._quote_list({
+            "user_filter": "self", "rfq_id": rfq_id, "status": self._quote_status(status), "limit": 500,
+        }, mine=True)
 
     async def close(self) -> None:
         await self.http.close()

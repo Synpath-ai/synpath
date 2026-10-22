@@ -1,0 +1,47 @@
+{
+  "multivariate_contracts": [
+    {
+      "collection_ticker": "KXMVECROSSCATEGORY-R",
+      "series_ticker": "KXMVECROSSCATEGORY",
+      "title": "Cross-category combos",
+      "description": "Combine markets across categories",
+      "open_date": "2026-01-01T00:00:00Z",
+      "close_date": "2027-01-01T00:00:00Z",
+      "associated_events": [
+        {
+          "ticker": "KXNFLGAME-26OCT25KCDEN",
+          "is_yes_only": false,
+          "active_quoters": [
+            "comm-maker-91bc"
+          ]
+        },
+        {
+          "ticker": "KXNBAGAME-26OCT25LALBOS",
+          "is_yes_only": false,
+          "active_quoters": [
+            "comm-maker-91bc"
+          ]
+        }
+      ],
+      "associated_event_tickers": [
+        "KXNFLGAME-26OCT25KCDEN",
+        "KXNBAGAME-26OCT25LALBOS"
+      ],
+      "is_ordered": false,
+      "is_single_market_per_event": true,
+      "is_all_yes": false,
+      "size_min": 2,
+      "size_max": 10,
+      "functional_description": "Pays $1 if every selected leg resolves on its selected side.",
+      "price_level_structure": "deci_cent",
+      "price_ranges": [
+        {
+          "start": "0.0000",
+          "end": "1.0000",
+          "step": "0.0010"
+        }
+      ]
+    }
+  ],
+  "cursor": ""
+}

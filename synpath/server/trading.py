@@ -1,7 +1,7 @@
 """The trading surface over HTTP, and the event stream beside it.
 
-The read app (`synpath.server.api`) has no accounts because reading a public
-market needs none. This one places orders, so it needs to know who is asking
+The read app (`synpath.server.api`) keeps no accounts because reading a public
+market needs none (`synpath serve` still puts it behind this app's token). This one places orders, so it needs to know who is asking
 and what they may touch, and both are checked on every route.
 
 What shapes it:
@@ -30,6 +30,7 @@ away. Events are the engine's own, filtered to the accounts the key may see.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 from decimal import Decimal
@@ -45,15 +46,17 @@ from ..bucket import (
 )
 from ..engine.engine import Engine
 from ..errors import (
-    AuthenticationError, BadRequest, ExchangeError, NetworkError, RateLimitExceeded, RequestTimeout, SynpathError,
+    AuthenticationError, BadRequest, ExchangeError, NetworkError, NotSupported, RateLimitExceeded, RequestTimeout,
+    SynpathError,
 )
 from ..engine.risk import RiskConfig
 from ..trading.errors import (
-    InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected, RateBudgetExceeded, RiskRejected,
+    CancelUnconfirmed, InsufficientFunds, InvalidOrder, MarketHalted, OrderNotFound, OrderRejected,
+    RateBudgetExceeded, RiskRejected, SubmissionInDoubt, SubmissionPending,
 )
 from .errors import install_error_handlers
 from ..trading.types import (
-    Account, Balance, EditRequest, Fill, Order, OrderRequest, Position, Settlement, TimeInForce,
+    Account, Balance, EditRequest, Fill, Order, OrderRequest, Position, Settlement, Side, TimeInForce,
 )
 from .models import ErrorBody, PageResponse
 from .store import ALL_ACCOUNTS, ControlStore, Grant, Permission, Principal
@@ -61,11 +64,15 @@ from .store import ALL_ACCOUNTS, ControlStore, Grant, Permission, Principal
 log = logging.getLogger("synpath.server")
 
 TRADING_STATUS: dict[type[Exception], int] = {
+    SubmissionInDoubt: 202,
+    SubmissionPending: 202,
+    CancelUnconfirmed: 409,
     OrderNotFound: 404,
     InsufficientFunds: 400,
     OrderRejected: 400,
     InvalidOrder: 400,
     BadRequest: 400,
+    NotSupported: 501,
     MarketHalted: 409,
     RiskRejected: 409,
     RateBudgetExceeded: 429,
@@ -75,9 +82,44 @@ TRADING_STATUS: dict[type[Exception], int] = {
     AuthenticationError: 502,
     ExchangeError: 502,
 }
-"""Library exception to status code on the trading routes. A venue refusing
-our own credentials is 502: the caller's token was fine, the server's venue
-key was not."""
+"""Library exception to status code on the trading routes, most specific
+class first. A venue refusing our own credentials is 502: the caller's token
+was fine, the server's venue key was not.
+
+An order whose outcome is not known yet is 202, not a 5xx: the instruction
+is recorded and the send may have happened, so it has not failed. The body
+is the usual error envelope (`submission_in_doubt` for this send,
+`submission_pending` for a retry while the first send is still being
+reconciled), with `retryable: true` and the `client_order_id` to retry
+under; the same id never sends twice. A cancel the venue neither performed
+nor recognises is 409 `cancel_unconfirmed`: the order exists here, and its
+last observed status stands."""
+
+
+DEFAULT_ORDERS_PAGE = 100
+MAX_ORDERS_PAGE = 1000
+
+
+def orders_cursor(key: tuple[int, str, str]) -> str:
+    """The paging key of a page's last order, `(created_ts, venue, id)`, as an opaque token."""
+    return base64.urlsafe_b64encode(json.dumps(list(key)).encode()).decode().rstrip("=")
+
+
+def orders_cursor_key(cursor: str | None) -> tuple[int, str, str] | None:
+    if not cursor:
+        return None
+    try:
+        created_ts, venue, order_id = json.loads(base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
+        return int(created_ts), str(venue), str(order_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="cursor is not one this server gave out") from None
+
+
+def current_view(engine: Engine, order: Order) -> Order:
+    """An engine-held parent this process runs is read from memory, which is
+    what its journal row was last written from; anything else is the row."""
+    parent = engine.managed_order_controller.get(order.id) if order.held_by.value == "engine" else None
+    return parent.as_order() if parent is not None else order
 
 
 def _tag_venue(exc: Exception, venue: str | None) -> None:
@@ -145,19 +187,9 @@ class HaltResult(BaseModel):
     canceled: dict[str, Any] = Field(default_factory=dict)
     remaining: dict[str, Any] = Field(default_factory=dict)
     managed: int = 0
-
-
-class FairValueBody(BaseModel):
-    account: str
-    market_id: str
-    value: Decimal
-    source: str = "manual"
-
-
-class FairValueView(BaseModel):
-    account: str
-    market_id: str
-    value: Decimal
+    rfq: dict[str, Any] = Field(default_factory=dict, description="With the `cancel` policy: the RFQs we asked "
+                                "(`rfqs`) and the quotes we made (`quotes`) cancelled, per venue: a count, or "
+                                "what failed")
 
 
 class PnlRow(BaseModel):
@@ -179,11 +211,74 @@ class PnlView(BaseModel):
 
 
 class BucketBody(BaseModel):
-    """A bucket to create. The server assigns the id."""
+    """A bucket to create. The server assigns the id unless one is given."""
 
     book: str = Field(description="The strategy book the bucket belongs to, as on orders")
     name: str = Field(description="A label for people; not unique")
-    members: list[BucketMember] = Field(description="Two or more Synpath market ids, each with `flip`")
+    members: list[BucketMember] = Field(description="Two or more Synpath market ids, each with `flip` and "
+                                                    "`enabled` (default true; at least one enabled)")
+    id: str | None = Field(default=None, description="A UUID made by the client (32 hex digits, or the dashed "
+                                                     "form, kept as given in lower case), so a bucket defined "
+                                                     "elsewhere keeps its id. Taken: 409")
+
+
+class BucketUpdate(BaseModel):
+    """A change to a bucket; fields left out are left alone. `members`
+    replaces the whole list, each member's `enabled` included (switching a
+    member off keeps it in the definition but out of routing and the merged
+    book). `status` archives or restores it."""
+
+    name: str | None = None
+    book: str | None = None
+    members: list[BucketMember] | None = None
+    status: Literal["active", "archived"] | None = None
+
+
+class BucketPlanBody(BaseModel):
+    """What to preview: an order on the bucket, as `POST /orders` would take it."""
+
+    side: Side = Field(description="`buy` takes the bucket's YES, `sell` its NO")
+    quantity: Decimal = Field(gt=0, description="Contracts, in bucket terms")
+    worst_price: Decimal = Field(gt=0, lt=1, description="The worst net price accepted, in bucket terms (an "
+                                                          "order's `price`)")
+
+
+class PlanLegView(BaseModel):
+    """One leg of a plan: what one member venue would receive."""
+
+    market_id: str
+    venue: str
+    flip: bool
+    side: str = Field(description="The member's own side, after `flip`")
+    price: Decimal = Field(description="The member's own YES price, after `flip` and tick rounding: what the "
+                                       "venue would receive")
+    quantity: Decimal
+    bucket_price: Decimal = Field(description="The worst level this leg reaches, in bucket terms, before fees")
+    net_price: Decimal = Field(description="Volume-weighted net price of the levels taken, in bucket terms, fee "
+                                           "floor included")
+    fee: Decimal = Field(description="The taker fee this leg is expected to pay, floor included")
+    fee_floor: Decimal = Field(description="How much of `fee` is the venue's per-order floor")
+
+
+class BucketPlanView(BaseModel):
+    """`synpath.engine.router.plan` on the members' current books. Nothing was placed."""
+
+    bucket_id: str
+    side: str
+    quantity: Decimal
+    worst_price: Decimal
+    legs: list[PlanLegView]
+    allocated: Decimal = Field(description="Contracts the legs add up to; never more than `quantity`")
+    unfilled: Decimal
+    stop_reason: Literal["worst_price", "liquidity", "min_quantity"] | None = Field(
+        description="Why the plan stops short of `quantity`; null when it fills it")
+    expected_net_price: Decimal | None = Field(description="Volume-weighted across legs, in bucket terms, net of fees")
+    fees: Decimal = Field(description="Every leg's expected taker fee")
+    books: dict[str, Literal["stream", "rest", "missing"]] = Field(
+        description="Per member, where its book came from: serve's live stream, a venue read for this request, "
+                    "or nowhere")
+    fees_unknown: list[str] = Field(description="Members whose taker fee the library cannot price; counted as free")
+    computed_at: int = Field(description="Milliseconds since the epoch")
 
 
 class EditBody(BaseModel):
@@ -288,6 +383,15 @@ async def caller(request: Request, store: Annotated[ControlStore, Depends(get_st
     return await principal_of(request, store)
 
 
+async def socket_principal(socket: WebSocket, store: ControlStore, key: str | None) -> Principal | None:
+    """Who an accepted WebSocket belongs to: the token from `?key=` (a browser
+    cannot set headers on a socket) or from `Authorization: Bearer`; `None`
+    without a valid one. The socket counterpart of `caller`."""
+    header = socket.headers.get("authorization") or ""
+    secret = key or (header[7:].strip() if header.lower().startswith("bearer ") else "")
+    return await store.principal(secret) if secret else None
+
+
 Caller = Annotated[Principal, Depends(caller)]
 EngineDep = Annotated[Engine, Depends(get_engine)]
 StoreDep = Annotated[ControlStore, Depends(get_store)]
@@ -333,6 +437,50 @@ def sees_bucket(principal: Principal, bucket: Bucket, engine: Engine) -> bool:
     return all(visible(principal, account) for account in bucket_accounts(bucket, engine))
 
 
+def client_bucket_id(value: str) -> str:
+    """A client-made bucket id: any UUID, kept as given (lower case) so the
+    client's references to `bucket:<id>` stay valid."""
+    import uuid
+
+    text = value[len("bucket:"):] if is_bucket_id(value) else value
+    try:
+        uuid.UUID(text)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="a bucket id is a UUID: 32 hex digits or the dashed form") from None
+    if len(text) not in (32, 36):
+        raise HTTPException(status_code=400, detail="a bucket id is a UUID: 32 hex digits or the dashed form")
+    return text.lower()
+
+
+def checked_definition(principal: Principal, engine: Engine, bucket: Bucket) -> None:
+    """The checks every stored definition passes: its shape, a venue this
+    server trades for every member, and a caller allowed to trade each of
+    them, since an order on the bucket will route there."""
+    try:
+        bucket.check()
+    except BadRequest as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    missing = sorted(bucket.venues() - set(engine.adapters))
+    if missing:
+        raise HTTPException(status_code=400, detail=f"this server does not trade {', '.join(missing)}: "
+                                                    "every member venue needs credentials here")
+    for member_venue in sorted(bucket.venues()):
+        require(principal, "trade", account_key(None, engine, member_venue))
+
+
+def plan_view(bucket: Bucket, body: "BucketPlanBody", result: Any) -> "BucketPlanView":
+    plan = result.plan
+    legs = [PlanLegView(market_id=leg.market_id, venue=ids.venue_of(leg.market_id), flip=leg.flip,
+                        side=leg.side.value, price=leg.price, quantity=leg.quantity, bucket_price=leg.bucket_price,
+                        net_price=leg.net_price, fee=leg.fee, fee_floor=leg.fee_floor) for leg in plan.legs]
+    return BucketPlanView(
+        bucket_id=bucket.id, side=body.side.value, quantity=body.quantity, worst_price=body.worst_price, legs=legs,
+        allocated=plan.allocated, unfilled=plan.unfilled, stop_reason=plan.reason or None,
+        expected_net_price=plan.expected_net_price, fees=sum((leg.fee for leg in plan.legs), Decimal("0")),
+        books=result.sources, fees_unknown=result.fees_unknown, computed_at=result.computed_at,
+    )
+
+
 def bucket_report(parent: Any) -> BucketOrderReport:
     report = {k: v for k, v in parent.report().items() if k in BucketOrderReport.model_fields}
     return BucketOrderReport.model_validate({**report, "stop_reason": report.get("stop_reason") or None,
@@ -376,15 +524,19 @@ def create_trading_router() -> APIRouter:
     async def status(principal: Caller, engine: EngineDep) -> EngineStatus:
         require(principal, "view")
         return EngineStatus(
-            owner=engine.journal.owner, running=engine.running, halted=engine.risk.kill.engaged,
-            halt_reason=engine.risk.kill.reason, open_orders=len(engine.open_orders()),
-            managed_orders=len(engine.orders.live()), positions=len(engine.ledger.open_positions()),
-            risk_version=engine.risk.config_version, journal_events=await engine.journal.last_seq(),
+            owner=engine.journal.owner, running=engine.running, halted=engine.order_risk_checks.kill.engaged,
+            halt_reason=engine.order_risk_checks.kill.reason, open_orders=len(engine.open_orders()),
+            managed_orders=len(engine.managed_order_controller.live()), positions=len(engine.ledger.open_positions()),
+            risk_version=engine.order_risk_checks.config_version, journal_events=await engine.journal.last_seq(),
         )
 
     # -- orders ---------------------------------------------------------------
 
-    @router.post("/orders", tags=["orders"], summary="Place an order", responses=RESPONSES, status_code=201)
+    @router.post("/orders", tags=["orders"], summary="Place an order", responses={
+        **RESPONSES, 202: {"model": ErrorBody, "description": "Outcome not known yet (`submission_in_doubt` or "
+                                                              "`submission_pending`): retry with the same "
+                                                              "client_order_id, which never sends twice"}},
+        status_code=201)
     async def create_order(principal: Caller, engine: EngineDep, body: OrderRequest) -> Order:
         if is_bucket_id(body.market_id):
             # A bucket order puts legs on every member venue: the caller must
@@ -410,21 +562,18 @@ def create_trading_router() -> APIRouter:
 
     # -- buckets --------------------------------------------------------------
 
-    @router.post("/buckets", tags=["buckets"], summary="Create a bucket", responses=RESPONSES, status_code=201)
+    @router.post("/buckets", tags=["buckets"], summary="Create a bucket", responses={
+        **RESPONSES, 409: {"model": ErrorBody, "description": "A bucket with that id already exists"}},
+        status_code=201)
     async def create_bucket(principal: Caller, engine: EngineDep, body: BucketBody) -> Bucket:
         bucket = Bucket(book=body.book, name=body.name, members=body.members)
-        try:
-            bucket.check()
-        except BadRequest as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from None
-        missing = sorted(bucket.venues() - set(engine.adapters))
-        if missing:
-            raise HTTPException(status_code=400, detail=f"this server does not trade {', '.join(missing)}: "
-                                                        "every member venue needs credentials here")
-        # Whoever defines a bucket must be able to trade every leg it will route to.
-        for member_venue in sorted(bucket.venues()):
-            require(principal, "trade", account_key(None, engine, member_venue))
-        return await engine.save_bucket(bucket)
+        if body.id is not None:
+            bucket.id = client_bucket_id(body.id)
+        checked_definition(principal, engine, bucket)
+        if body.id is not None and await engine.journal.bucket(bucket.id) is not None:
+            raise HTTPException(status_code=409, detail=f"bucket {bucket.id} already exists")
+        await engine.save_bucket(bucket)
+        return Bucket.model_validate(await engine.journal.bucket(bucket.id))   # with its stored times
 
     async def _bucket(principal: Principal, engine: Engine, bucket_id: str) -> Bucket:
         """The bucket a path names, as `<id>` or as its market id `bucket:<id>`."""
@@ -453,12 +602,50 @@ def create_trading_router() -> APIRouter:
         return await _bucket(principal, engine, bucket_id)
 
     @router.delete("/buckets/{bucket_id}", tags=["buckets"], summary="Archive a bucket", responses=RESPONSES)
-    async def archive_bucket(principal: Caller, engine: EngineDep, bucket_id: Annotated[str, Path()]) -> Bucket:
+    async def archive_bucket(principal: Caller, engine: EngineDep, request: Request,
+                             bucket_id: Annotated[str, Path()]) -> Bucket:
         bucket = await _bucket(principal, engine, bucket_id)
         for account in bucket_accounts(bucket, engine):
             require(principal, "trade", account)
         await engine.journal.archive_bucket(bucket.id)
-        return Bucket.model_validate(await engine.journal.bucket(bucket.id))
+        archived = Bucket.model_validate(await engine.journal.bucket(bucket.id))
+        hub = getattr(request.app.state, "market_streams", None)
+        if hub is not None:
+            await hub.refresh_bucket(archived)
+        return archived
+
+    @router.patch("/buckets/{bucket_id}", tags=["buckets"], summary="Change a bucket", responses=RESPONSES)
+    async def update_bucket(principal: Caller, engine: EngineDep, request: Request,
+                            bucket_id: Annotated[str, Path()], body: BucketUpdate) -> Bucket:
+        bucket = await _bucket(principal, engine, bucket_id)
+        for account in bucket_accounts(bucket, engine):
+            require(principal, "trade", account)
+        changed = bucket.model_copy(update={
+            **body.model_dump(exclude_none=True, exclude={"members"}),
+            **({"members": body.members} if body.members is not None else {}),
+            "updated_ms": None,
+        })
+        checked_definition(principal, engine, changed)
+        await engine.save_bucket(changed)
+        saved = Bucket.model_validate(await engine.journal.bucket(bucket.id))
+        hub = getattr(request.app.state, "market_streams", None)
+        if hub is not None:
+            await hub.refresh_bucket(saved)
+        return saved
+
+    @router.post("/buckets/{bucket_id}/plan", tags=["buckets"], summary="Preview how an order would route",
+                 responses=RESPONSES)
+    async def plan_bucket_order(principal: Caller, engine: EngineDep, request: Request,
+                                bucket_id: Annotated[str, Path()], body: BucketPlanBody) -> BucketPlanView:
+        """The router's plan for a market order on the bucket, on the members'
+        current books (serve's live streams where it holds them, else a venue
+        read) and their published taker fees. Nothing is placed."""
+        bucket = await _bucket(principal, engine, bucket_id)
+        books = getattr(request.app.state, "bucket_books", None)
+        if books is None:
+            raise HTTPException(status_code=503, detail="this server has no market data attached for buckets")
+        result = await books.plan(bucket, side=body.side, quantity=body.quantity, worst_price=body.worst_price)
+        return plan_view(bucket, body, result)
 
     @router.get("/buckets/{bucket_id}/position", tags=["buckets"], summary="Position in a bucket",
                 responses=RESPONSES)
@@ -489,20 +676,41 @@ def create_trading_router() -> APIRouter:
             raise HTTPException(status_code=404, detail=f"no order {order_id} on bucket {bucket_id}")
         return bucket_report(parent)
 
-    @router.get("/orders", tags=["orders"], summary="Open orders", responses=RESPONSES)
+    @router.get("/orders", tags=["orders"], summary="Orders: open ones, or every state", responses=RESPONSES)
     async def list_orders(
         principal: Caller,
         engine: EngineDep,
         venue: Annotated[str | None, Query(description="Only this venue")] = None,
         book: Annotated[str | None, Query(description="Only this strategy")] = None,
+        scope: Annotated[Literal["open", "all"], Query(
+            description="`open` (the default): resting venue orders and live engine-held parents "
+                        "(`waiting`, `triggered`, `pending_cancel`). `all`: every state, finished ones too")] = "open",
+        market_id: Annotated[str | None, Query(description="Only this market (`venue:native`)")] = None,
+        since: Annotated[int | None, Query(description="Only orders created at or after this time, "
+                                                       "milliseconds since the epoch")] = None,
+        limit: Annotated[int | None, Query(ge=1, le=MAX_ORDERS_PAGE, description=(
+            f"Rows per page, at most {MAX_ORDERS_PAGE}. Default: every open order for `open`, "
+            f"{DEFAULT_ORDERS_PAGE} for `all`"))] = None,
+        cursor: Annotated[str | None, Query(description="`next_cursor` from the previous page")] = None,
     ) -> PageResponse[Order]:
-        orders = [o for o in engine.open_orders(venue=venue, book=book)
-                  if visible(principal, (o.account.key if o.account else f"{o.venue}:default"))]
-        return PageResponse[Order](data=orders, next_cursor=None, count=len(orders))
+        """Newest first by creation. A child carries its parent's id in
+        `parent_id`, so children group under their engine-held parent. A page
+        may hold fewer rows than `limit` when some are on accounts this key may
+        not view: follow `next_cursor` until it is null."""
+        if limit is None and scope == "all":
+            limit = DEFAULT_ORDERS_PAGE
+        rows = await engine.journal.orders_page(
+            venue=venue, book=book, market_id=market_id, since_ts=since, before=orders_cursor_key(cursor),
+            open_only=scope == "open", limit=limit)
+        orders = [current_view(engine, order) for order, _ in rows
+                  if order.user_id in (None, engine.config.user_id)
+                  and visible(principal, (order.account.key if order.account else f"{order.venue}:default"))]
+        next_cursor = orders_cursor(rows[-1][1]) if limit is not None and len(rows) == limit else None
+        return PageResponse[Order](data=orders, next_cursor=next_cursor, count=len(orders))
 
     @router.get("/orders/{order_id}", tags=["orders"], summary="One order", responses=RESPONSES)
     async def get_order(principal: Caller, engine: EngineDep, order_id: Annotated[str, Path()]) -> Order:
-        parent = engine.orders.get(order_id)
+        parent = engine.managed_order_controller.get(order_id)
         order = parent.as_order() if parent is not None else None
         if order is None:
             for venue in engine.adapters:
@@ -542,7 +750,7 @@ def create_trading_router() -> APIRouter:
             raise
 
     async def _known(engine: Engine, order_id: str) -> Order:
-        parent = engine.orders.get(order_id)
+        parent = engine.managed_order_controller.get(order_id)
         if parent is not None:
             return parent.as_order()
         for venue in engine.adapters:
@@ -601,33 +809,52 @@ def create_trading_router() -> APIRouter:
                                     unrealized=total.unrealized, fees=total.fees, volume=total.volume,
                                     positions=total.positions, marked=total.marked))
 
-    # -- fair values ----------------------------------------------------------
 
-    @router.get("/fair-values", tags=["portfolio"], summary="The marks positions are valued at", responses=RESPONSES)
-    async def list_fair_values(principal: Caller, engine: EngineDep) -> list[FairValueView]:
+    # -- the order log ------------------------------------------------------
+
+    @router.get("/order-log", tags=["orders"], summary="Every action on orders, newest first", responses=RESPONSES)
+    async def get_order_log(
+        principal: Caller, engine: EngineDep,
+        order_id: Annotated[str | None, Query(description="One order and its family: its cancel, fills, children")] = None,
+        limit: Annotated[int, Query(ge=1, le=500)] = 200,
+        before: Annotated[int | None, Query(description="The `next` of the previous page")] = None,
+    ) -> dict[str, Any]:
+        """The journal's order events as a log (`synpath.engine.order_log`):
+        instructions saved, sends and their outcome, the venue's records,
+        engine-held parents' states, cancels, fills and risk refusals, with
+        repeats folded. Read only."""
         require(principal, "view")
-        return [FairValueView(account=account, market_id=market, value=value)
-                for (account, market), value in engine.fair_values.marks().items()
-                if visible(principal, account)]
+        from ..engine.order_log import order_log
+        rows, cursor = await order_log(engine, order_id=order_id, limit=limit, before=before)
+        return {"data": rows, "next": cursor}
 
-    @router.put("/fair-values", tags=["portfolio"], summary="Set a mark", responses=RESPONSES)
-    async def set_fair_value(principal: Caller, engine: EngineDep, body: FairValueBody) -> FairValueView:
-        require(principal, "trade", body.account)
-        mark = await engine.fair_values.set(body.account, body.market_id, body.value, source=body.source)
-        return FairValueView(account=body.account, market_id=body.market_id, value=mark.value)
+    @router.get("/journal", tags=["status"], summary="The engine's journal events, newest first", responses=RESPONSES)
+    async def get_journal(
+        principal: Caller, engine: EngineDep,
+        kind: Annotated[str | None, Query(description="Only kinds starting with this, e.g. `reconcile.` or `engine.`")] = None,
+        limit: Annotated[int, Query(ge=1, le=500)] = 200,
+        before: Annotated[int | None, Query(description="The `next` of the previous page")] = None,
+    ) -> dict[str, Any]:
+        """The append-only journal as it is, every kind (the order log reads
+        the order kinds of it, folded). Each event: `seq`, `ts`, `kind`, `key`
+        and its `payload`. Read only."""
+        require(principal, "view")
+        events = await engine.journal.events_page(prefixes=[kind] if kind else (), before=before, limit=limit)
+        rows = [{"seq": e.seq, "ts": e.ts, "kind": e.kind, "key": e.key, "payload": e.payload} for e in events]
+        return {"data": rows, "next": rows[-1]["seq"] if len(rows) == limit else None}
 
     # -- risk and the kill switch --------------------------------------------
 
     @router.get("/risk", tags=["risk"], summary="The rules in force", responses=RESPONSES)
     async def get_risk(principal: Caller, engine: EngineDep) -> RiskConfig:
         require(principal, "view")
-        return engine.risk.config
+        return engine.order_risk_checks.config
 
     @router.put("/risk", tags=["risk"], summary="Replace the rules", responses=RESPONSES)
     async def put_risk(principal: Caller, engine: EngineDep, body: RiskConfig) -> RiskConfig:
         require(principal, "manage_credentials")
         await engine.set_risk(body, author=principal.user_id)
-        return engine.risk.config
+        return engine.order_risk_checks.config
 
     @router.post("/halt", tags=["risk"], summary="Stop trading", responses=RESPONSES)
     async def halt(principal: Caller, engine: EngineDep, body: HaltRequest) -> HaltResult:
@@ -642,7 +869,7 @@ def create_trading_router() -> APIRouter:
                      scope: Annotated[str | None, Query()] = None) -> HaltState:
         require(principal, "trade")
         await engine.resume(scope=scope)
-        return HaltState(halted=engine.risk.kill.engaged, halt_reason=engine.risk.kill.reason)
+        return HaltState(halted=engine.order_risk_checks.kill.engaged, halt_reason=engine.order_risk_checks.kill.reason)
 
     # -- members, keys and the audit log --------------------------------------
 
@@ -680,6 +907,11 @@ def create_trading_router() -> APIRouter:
         require(principal, "manage_credentials")
         return {"revoked": await store.revoke_key(key_id)}
 
+    # -- RFQs, quotes and combos (docs/rfq-combo.md; synpath.server.rfq_routes) --
+
+    from .rfq_routes import add_rfq_routes
+    add_rfq_routes(router)
+
     @router.get("/audit", tags=["members"], summary="The audit log, append-only", responses=RESPONSES)
     async def audit(
         principal: Caller,
@@ -712,8 +944,7 @@ def add_event_socket(app: FastAPI) -> None:
         if store is None or engine is None:
             await socket.close(code=1011, reason="this server has no engine attached")
             return
-        secret = key or (socket.headers.get("authorization") or "")[7:].strip()
-        principal = await store.principal(secret) if secret else None
+        principal = await socket_principal(socket, store, key)
         if principal is None or not principal.may("view"):
             await socket.close(code=4401, reason="an access token with view permission is required")
             return
@@ -721,6 +952,8 @@ def add_event_socket(app: FastAPI) -> None:
         subscription = engine.bus.subscribe(*(wanted or ()))
         try:
             async for event in engine.bus.replay(since):
+                if wanted and not subscription.wants(event):
+                    continue
                 await socket.send_text(json.dumps({
                     "seq": event.seq, "ts": event.ts, "kind": event.kind, "key": event.key, "payload": event.payload,
                 }, default=str))

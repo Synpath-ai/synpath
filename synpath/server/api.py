@@ -1,4 +1,6 @@
-"""The HTTP surface over the library. No authentication, on purpose.
+"""The HTTP surface over the library. No authentication of its own, on purpose:
+a host passes its own as `create_app(dependencies=...)` (as `synpath serve`
+does with its access token) or wraps the router.
 
 This app is the *inner* app. It knows how to turn a request into a library
 call and a library exception into a status code, and nothing else — no API
@@ -29,10 +31,11 @@ on every venue call.
 """
 from __future__ import annotations
 
+import inspect
 import logging
 import threading
 from contextlib import asynccontextmanager
-from typing import Literal, Annotated, Any, Iterator
+from typing import Literal, Annotated, Any, Iterator, Sequence
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request
 from fastapi.responses import JSONResponse
@@ -81,6 +84,14 @@ because the venue has no such capability at all and no id would have worked;
 and a venue failing us is 502, not 500, because this service is fine and is
 reporting on an upstream that is not.
 """
+
+
+def takes_keyword(function: Any, name: str) -> bool:
+    """Whether `function` accepts `name=` (named, or through `**kwargs`): how a
+    route tells a venue-specific option (Polymarket's candle `source`) from one
+    the venue would reject with a TypeError."""
+    parameters = inspect.signature(function).parameters.values()
+    return any(p.name == name or p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters)
 
 
 def _status_for(exc: Exception) -> int:
@@ -177,6 +188,10 @@ annotation into a string, and FastAPI resolves those against module globals.
 Defined inside the factory it would be invisible and the app would fail to
 build its schema."""
 
+MAX_CANDLES = 20_000
+"""Bars one candle read may ask for: two weeks of minutes. A chart reaching back
+over a quiet market asks for many periods to find enough bars that traded."""
+
 RESPONSES: dict[int | str, dict[str, Any]] = {
     400: {"model": ErrorBody, "description": "Invalid parameters."},
     404: {"model": ErrorBody, "description": "No such venue or market."},
@@ -192,8 +207,14 @@ def create_app(
     registry: VenueRegistry | None = None,
     title: str = "synpath",
     docs: bool = True,
+    dependencies: Sequence[Any] | None = None,
 ) -> FastAPI:
-    """Build the app. Pass `registry` to inject stub adapters in tests."""
+    """Build the app. Pass `registry` to inject stub adapters in tests.
+
+    `dependencies` run before every route except `/` and `/health`, which
+    say what the server is and whether it is up and touch no venue. The app
+    has no authentication of its own; this is where a host that owns one
+    (such as `synpath serve`, which requires its access token) plugs it in."""
     registry = registry or DEFAULT_REGISTRY
 
     @asynccontextmanager
@@ -240,6 +261,8 @@ def create_app(
         trading = getattr(request.app.state, "trading_path", None)
         if trading:
             links["trading"] = trading
+        if getattr(request.app.state, "market_streams", None) is not None:
+            links["market_stream"] = "/ws/market"
         return {"name": "synpath", "version": synpath.__version__, "links": links}
 
     @app.get("/health", tags=["meta"], summary="Liveness")
@@ -247,7 +270,10 @@ def create_app(
         """Answers without touching a venue, so it stays useful when one is down."""
         return {"status": "ok", "version": synpath.__version__}
 
-    @app.get("/venues", tags=["meta"], summary="List venues and capabilities")
+    # Everything below reads venue data, so it carries the host's dependencies.
+    protected = list(dependencies or ())
+
+    @app.get("/venues", dependencies=protected, tags=["meta"], summary="List venues and capabilities")
     def list_venues() -> list[VenueInfo]:
         """Read this before anything else. `has` tells you which calls a venue
         answers and which it will refuse with a 501."""
@@ -258,7 +284,7 @@ def create_app(
             for cls in synpath.exchanges.values()
         ]
 
-    @app.get("/venues/{venue}", tags=["meta"], summary="One venue", responses=RESPONSES)
+    @app.get("/venues/{venue}", dependencies=protected, tags=["meta"], summary="One venue", responses=RESPONSES)
     def get_venue_info(exchange: Venue) -> VenueInfo:
         return VenueInfo(
             id=exchange.id, name=exchange.name,
@@ -268,7 +294,7 @@ def create_app(
     # -- catalog ------------------------------------------------------------
 
     @app.get(
-        "/venues/{venue}/markets", tags=["catalog"],
+        "/venues/{venue}/markets", dependencies=protected, tags=["catalog"],
         summary="List markets", responses=RESPONSES,
     )
     def list_markets(
@@ -298,7 +324,7 @@ def create_app(
         )
 
     @app.get(
-        "/venues/{venue}/markets/{market_id}", tags=["catalog"],
+        "/venues/{venue}/markets/{market_id}", dependencies=protected, tags=["catalog"],
         summary="One market", responses=RESPONSES,
     )
     def get_market(
@@ -312,7 +338,7 @@ def create_app(
         return exchange.fetch_market(market_id)
 
     @app.get(
-        "/venues/{venue}/events", tags=["catalog"],
+        "/venues/{venue}/events", dependencies=protected, tags=["catalog"],
         summary="List events with markets nested", responses=RESPONSES,
     )
     def list_events(
@@ -332,7 +358,7 @@ def create_app(
     # -- market data --------------------------------------------------------
 
     @app.get(
-        "/venues/{venue}/markets/{market_id}/book", tags=["market data"],
+        "/venues/{venue}/markets/{market_id}/book", dependencies=protected, tags=["market data"],
         summary="Order book for one side of a market", responses=RESPONSES,
     )
     def get_order_book(
@@ -356,14 +382,14 @@ def create_app(
         return exchange.fetch_order_book(market_id, side=side, depth=depth)
 
     @app.get(
-        "/venues/{venue}/markets/{market_id}/trades", tags=["market data"],
+        "/venues/{venue}/markets/{market_id}/trades", dependencies=protected, tags=["market data"],
         summary="Recent trades", responses=RESPONSES,
     )
     def list_trades(
         exchange: Venue,
         market_id: str,
         since: Annotated[int | None, Query(description="Milliseconds since epoch, inclusive.")] = None,
-        limit: Annotated[int, Query(ge=1, le=100)] = 100,
+        limit: Annotated[int, Query(ge=1, le=1000)] = 100,
         cursor: Annotated[str | None, Query()] = None,
     ) -> PageResponse[Trade]:
         """Oldest first, in the YES price. `side` is what the taker did on the
@@ -374,7 +400,7 @@ def create_app(
         )
 
     @app.get(
-        "/venues/{venue}/markets/{market_id}/candles", tags=["market data"],
+        "/venues/{venue}/markets/{market_id}/candles", dependencies=protected, tags=["market data"],
         summary="OHLCV candles, in the YES price", responses=RESPONSES,
     )
     def list_candles(
@@ -389,9 +415,14 @@ def create_app(
             "first `limit` returned; without it, the newest `limit` bars."
         ))] = None,
         until: Annotated[int | None, Query(description="Milliseconds since epoch.")] = None,
-        limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+        limit: Annotated[int, Query(ge=1, le=MAX_CANDLES)] = 100,
         cursor: Annotated[str | None, Query(description=(
             "`next_cursor` from the previous page of a read with `since`; continues after its last bar."
+        ))] = None,
+        source: Annotated[str | None, Query(description=(
+            "Polymarket only: `trades` (the default, bars built from executions) or `quotes` (the venue's "
+            "sampled midpoint history, `price_source: sampled_mid`, no volume, reaching further back). "
+            "Other venues refuse it with 400."
         ))] = None,
     ) -> PageResponse[Candle]:
         """Read `price_source` on every bar before using it.
@@ -410,8 +441,14 @@ def create_app(
                 raise http_error(400, "validation_error", "cursor: not a cursor from this endpoint", field="cursor")
             since = int(cursor)
         seconds = timeframe_seconds(timeframe)
+        options = {}
+        if source is not None:
+            if not takes_keyword(exchange.fetch_ohlcv, "source"):
+                raise http_error(400, "validation_error", f"source: {exchange.id} has one candle source",
+                                 field="source")
+            options["source"] = source
         candles = exchange.fetch_ohlcv(
-            market_id, timeframe=timeframe, since=since, until=until, limit=limit,
+            market_id, timeframe=timeframe, since=since, until=until, limit=limit, **options,
         )
         more = since is not None and len(candles) == limit
         next_cursor = str(candles[-1].timestamp + seconds * 1000) if more else None
@@ -420,7 +457,7 @@ def create_app(
     # -- reference ----------------------------------------------------------
 
     @app.get(
-        "/venues/{venue}/markets/{market_id}/fee", tags=["reference"],
+        "/venues/{venue}/markets/{market_id}/fee", dependencies=protected, tags=["reference"],
         summary="Fee schedule, before trading", responses=RESPONSES,
     )
     def get_fee_schedule(exchange: Venue, market_id: str) -> FeeSchedule:
@@ -429,12 +466,18 @@ def create_app(
         return exchange.fetch_fee_schedule(market_id)
 
     @app.get(
-        "/venues/{venue}/series/{series_id}", tags=["reference"],
+        "/venues/{venue}/series/{series_id}", dependencies=protected, tags=["reference"],
         summary="One series", responses=RESPONSES,
     )
     def get_series(exchange: Venue, series_id: str) -> Series:
         """Kalshi only. Polymarket has no series tier and answers 501."""
         return exchange.fetch_series(series_id)
+
+    # -- batch reads and search, across venues -------------------------------
+
+    from .batch import add_batch_routes
+
+    add_batch_routes(app, protected, RESPONSES)
 
     return app
 

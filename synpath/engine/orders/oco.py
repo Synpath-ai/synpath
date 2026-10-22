@@ -44,11 +44,14 @@ def leg_request(spec: Mapping[str, Any], *, parent: ManagedOrder, quantity: Deci
         "trader": parent.request.trader,
         "tags": {**parent.request.tags, "parent": parent.id},
     }
-    for key in ("price", "stop_price", "trigger_source", "time_in_force", "expires_at", "post_only", "reduce_only", "params"):
+    for key in ("price", "stop_price", "trigger_source", "time_in_force", "expires_at", "post_only", "outcome",
+                "action", "params"):
         if spec.get(key) is not None:
             body[key] = spec[key]
-    if "reduce_only" not in body and parent.request.reduce_only:
-        body["reduce_only"] = True
+    if "outcome" not in body and Side(body["side"]) == parent.side and parent.request.outcome is not None:
+        # A leg on the parent's side does what the parent does (a Sell YES
+        # bracket's exits sell YES held); one on the other side keeps its own.
+        body["outcome"], body["action"] = parent.request.outcome, parent.request.action
     return OrderRequest.model_validate(body)
 
 
@@ -132,7 +135,7 @@ class OCO(_Linked):
                 child.status = "canceled"
         await ctx.publish("managed.leg_canceled", {"leg": tag, "reason": reason})
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         if not order.is_terminal or self.state != "working":
             return
         if self.remaining <= 0:
@@ -227,7 +230,7 @@ class Bracket(_Linked):
         entry_children = self.leg_children("entry")
         return bool(entry_children) and not any(c.live for c in entry_children)
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         tag = self.leg_of.get(child.order_id, "")
         if self.state != "working" or not order.is_terminal:
             return

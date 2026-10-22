@@ -33,6 +33,7 @@ from synpath.engine.reconcile import Reconciler
 from synpath.errors import NetworkError
 from synpath.trading.base import TradingExchange
 from synpath.trading.errors import OrderNotFound, OrderRejected, RiskRejected
+from synpath.ws.base import LocalBook
 from synpath.trading.types import (
     Account, Balance, Fill, Liquidity, Order, OrderRequest, OrderStatus, OrderType, Position, PositionSide, Settlement,
     SettlementState, Side, TimeInForce,
@@ -346,13 +347,17 @@ class TestSubmit:
         assert engine.open_orders() == []
         await engine.stop()
 
-    async def test_cancelling_something_already_gone_is_not_an_error(self, journal_path):
+    async def test_cancelling_something_the_venue_no_longer_knows_is_not_confirmed(self, journal_path):
+        """Not found is not cancelled: the order may have filled. With no
+        record at the venue either, the last observed status stands."""
+        from synpath.engine.submissions import CancelUnconfirmed
         venue = ScriptedVenue()
         engine = await engine_for(journal_path, venue)
         order = await engine.submit(request())
         venue.orders.pop(order.id)
-        canceled = await engine.cancel(order.id)
-        assert canceled.status == OrderStatus.CANCELED
+        with pytest.raises(CancelUnconfirmed):
+            await engine.cancel(order.id)
+        assert (await engine.journal.order(order.venue, order.id)).status == OrderStatus.OPEN
         await engine.stop()
 
 
@@ -379,11 +384,12 @@ class TestRisk:
         assert events == ["risk.rejected"]
         await engine.stop()
 
-    async def test_the_price_collar_uses_the_stored_fair_value(self, journal_path):
+    async def test_the_price_collar_uses_the_book_midpoint(self, journal_path):
         venue = ScriptedVenue()
         engine = await engine_for(journal_path, venue)
-        engine.risk.config = engine.risk.config.model_copy(update={"price_collar": D("0.05")})
-        await engine.fair_values.set("kalshi:default", "kalshi:KX-A", D("0.60"), source="mid")
+        engine.order_risk_checks.config = engine.order_risk_checks.config.model_copy(update={"price_collar": D("0.05")})
+        engine.set_book("kalshi:KX-A", LocalBook())
+        engine.books["kalshi:KX-A"].replace([(D("0.59"), D("10"))], [(D("0.61"), D("10"))])
         with pytest.raises(RiskRejected) as caught:
             await engine.submit(request(price=D("0.40")))
         assert caught.value.rule == "price_collar"
@@ -419,7 +425,7 @@ class TestRisk:
     async def test_the_risk_configuration_is_versioned(self, journal_path):
         venue = ScriptedVenue()
         engine = await engine_for(journal_path, venue)
-        first = engine.risk.config_version
+        first = engine.order_risk_checks.config_version
         second = await engine.set_risk(RiskConfig(max_order_contracts=D("2"), price_collar=None, duplicate_window_ms=0))
         assert second > first
         with pytest.raises(RiskRejected):
@@ -542,7 +548,8 @@ class TestLedger:
             ledger.apply_fill(Fill(id=f"F{i}", order_id="V1", venue="kalshi", account=ACCOUNT,
                                    market_id=market, side=Side.BUY,
                                    price=D("0.50"), quantity=D("10"), fee=D("0.10"), timestamp=i), book=book)
-        marks = {("kalshi:default", "kalshi:KX-A"): D("0.55"), ("kalshi:default", "kalshi:KX-B"): D("0.45")}
+        marks = {("kalshi:default", "alpha", "kalshi:KX-A"): D("0.55"), ("kalshi:default", "beta", "kalshi:KX-A"): D("0.55"),
+                 ("kalshi:default", "alpha", "kalshi:KX-B"): D("0.45")}
         assert set(ledger.rollup("market", marks)) == {"kalshi:KX-A", "kalshi:KX-B"}
         assert set(ledger.rollup("book", marks)) == {"alpha", "beta"}
         assert set(ledger.rollup("account", marks)) == {"kalshi:default"}
@@ -602,6 +609,7 @@ class TestPaper:
                                         max_orders_per_minute=None, closing_soon_s=None),
                         accounts={"kalshi": Account(venue="kalshi", name="paper")}, clock=lambda: clock["t"])
         await engine.start()
+        engine.set_book("kalshi:KX-A", LocalBook())
         random.seed(7)
         price = D("0.50")
         submitted = canceled = 0
@@ -610,8 +618,7 @@ class TestPaper:
             move = D(random.choice(["-0.02", "-0.01", "0", "0.01", "0.02"]))
             price = min(max(price + move, D("0.05")), D("0.95"))
             paper.set_book("kalshi:KX-A", bids=[(price - D("0.01"), D("200"))], asks=[(price + D("0.01"), D("200"))])
-            for market_id, book in (("kalshi:KX-A", None),):
-                await engine.fair_values.set("kalshi:paper", market_id, price, source="mid", persist=False)
+            engine.books["kalshi:KX-A"].replace([(price - D("0.01"), D("200"))], [(price + D("0.01"), D("200"))])
             if minute % 30 == 0:
                 # Half the hours the order fills, half it is still resting and
                 # gets pulled: both paths run, over a week of them.
@@ -632,7 +639,7 @@ class TestPaper:
                                                taker_side=Side.SELL if side == Side.BUY else Side.BUY):
                         await engine.on_fill(fill)
         assert submitted == 7 * 24
-        total = engine.ledger.total(engine.fair_values.marks())
+        total = engine.ledger.total(engine.marks())
         # Maker fills on this fee model cost nothing, which is the venues'
         # own schedule; the taker path is checked on its own above.
         assert total.volume > 0 and total.fees == D("0") and total.unrealized is not None

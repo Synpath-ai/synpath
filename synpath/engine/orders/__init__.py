@@ -27,7 +27,7 @@ from __future__ import annotations
 from .base import Child, Context, ManagedOrder, State
 from .day import as_gtd, session_expiry
 from .iceberg import Iceberg
-from .manager import REGISTRY, ManagedOrders, register
+from .manager import REGISTRY, ManagedOrderController, register
 from .oco import OCO, Bracket
 from .peg import Peg
 from .routed import RoutedLimit
@@ -36,7 +36,7 @@ from .taker import MarketOrder, SmartTaker
 from .twap import TWAP
 
 __all__ = [
-    "ManagedOrder", "ManagedOrders", "Context", "Child", "State", "register", "REGISTRY",
+    "ManagedOrder", "ManagedOrderController", "Context", "Child", "State", "register", "REGISTRY",
     "StopMarket", "StopLimit", "TrailingStop", "Iceberg", "OCO", "Bracket", "TWAP", "Peg",
     "MarketOrder", "SmartTaker", "as_gtd", "session_expiry",
 ]

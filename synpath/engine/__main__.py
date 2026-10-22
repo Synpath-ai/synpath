@@ -14,9 +14,9 @@ Three things make this a daemon rather than a script:
 same journal exits with a message naming the one that holds it, rather than
 quietly trading the same account twice.
 
-**Signals stop it properly.** `SIGINT` and `SIGTERM` apply the configured
-halt policy first (by default, cancel everything resting through each
-venue's own cancel-all), then release the lease and close the journal. Kill
+**Signals stop it properly.** `SIGINT` and `SIGTERM` preserve order state,
+release the lease and close the journal. `halt_on_exit=true` explicitly
+applies the configured halt policy before shutdown. Kill
 it with `SIGKILL` and the journal still has every intent, which is what the
 recovery path is for.
 
@@ -126,6 +126,9 @@ async def run(args: argparse.Namespace) -> int:
                         format="%(asctime)s %(levelname)s %(message)s")
     engine_config = EngineConfig(
         journal_path=args.journal or config.get("journal", "synpath.db"),
+        storage_backend=config.get("storage_backend", "sqlite"),
+        session_timezone=config.get("session_timezone", "Europe/London"),
+        session_end=config.get("session_end", "23:59:59"),
         poll_interval_s=float(config.get("poll_interval_s", 5)),
         reconcile_interval_s=float(config.get("reconcile_interval_s", 60)),
         sweep_interval_s=float(config.get("sweep_interval_s", 10)),
@@ -182,7 +185,7 @@ async def run(args: argparse.Namespace) -> int:
     failure = next((t for t in done if t is not waiter and t.exception()), None)
     if failure is not None:
         log.error("synpath.engine: %s stopped the engine: %s", failure.get_name(), failure.exception())
-    if config.get("halt_on_exit", True):
+    if config.get("halt_on_exit", False):
         await engine.halt("the engine is shutting down", policy=engine_config.halt_policy)
     if feeds is not None:
         await feeds.close()
@@ -232,12 +235,12 @@ async def _control_loop(engine: Engine, stopping: asyncio.Event) -> None:
 async def _status_loop(engine: Engine, interval: float) -> None:
     while engine.running:
         await asyncio.sleep(interval)
-        marks = engine.fair_values.marks()
+        marks = engine.marks()
         total = engine.ledger.total(marks)
         log.info(
             "synpath.engine: %s open orders, %s positions, realized %s, fees %s, events %s, halted=%s",
             len(engine.open_orders()), len(engine.ledger.open_positions()), total.realized, total.fees,
-            engine.bus.published, engine.risk.kill.engaged,
+            engine.bus.published, engine.order_risk_checks.kill.engaged,
         )
 
 
@@ -246,8 +249,7 @@ async def status(args: argparse.Namespace) -> int:
     journal = Journal(args.journal)
     await journal.open()
     try:
-        async with journal._db.execute("SELECT name, owner, expires_ts FROM leases") as cursor:
-            leases = [dict(row) async for row in cursor]
+        leases = await journal.lease_records()
         open_orders = await journal.open_orders()
         in_doubt = await journal.in_doubt()
         fills = await journal.fills()

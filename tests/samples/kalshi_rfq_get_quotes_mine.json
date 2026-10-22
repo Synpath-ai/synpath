@@ -1,0 +1,25 @@
+{
+  "quotes": [
+    {
+      "id": "4c5d6e7f-8091-4a2b-b3c4-d5e6f7081920",
+      "rfq_id": "e8d7c6b5-a4f3-4e2d-9c1b-0a9f8e7d6c5b",
+      "creator_id": "comm-self-7f3a",
+      "rfq_creator_id": "comm-other-22de",
+      "market_ticker": "KXNFLGAME-26OCT25KCDEN-KC",
+      "contracts_fp": "20.00",
+      "yes_bid_dollars": "0.4000",
+      "no_bid_dollars": "0.5500",
+      "yes_contracts_fp": "20.00",
+      "no_contracts_fp": "20.00",
+      "created_ts": "2026-10-21T15:02:13.031Z",
+      "updated_ts": "2026-10-21T15:02:13.031Z",
+      "status": "open",
+      "rest_remainder": false,
+      "rfq_creator_user_id": "488e312d-cc17-405c-9961-d389284068e2",
+      "rfq_creator_subaccount": 0,
+      "post_only": true,
+      "creator_user_id": "488e312d-cc17-405c-9961-d389284068e2"
+    }
+  ],
+  "cursor": ""
+}

@@ -87,10 +87,10 @@ class TestRestart:
         recovery = await restarted.start()
         try:
             assert recovery.managed == 1
-            revived = restarted.orders.get(parent.id)
+            revived = restarted.managed_order_controller.get(parent.id)
             assert revived.state == "working" and revived.known_filled == 0, "nothing is trusted before the venues are asked"
 
-            await restarted.orders.on_timer()                          # first event after the restart: resync
+            await restarted.managed_order_controller.on_timer()                          # first event after the restart: resync
             assert revived.known_filled == D("30")
             assert revived.as_order().filled == D("30") and revived.report()["per_venue"]
             assert len(kalshi.orders) == 1 and len(poly.orders) == 1, "the fill was learned, not bought again"
@@ -115,13 +115,13 @@ class TestRestart:
         restarted = new_engine(path, kalshi, poly, clock)
         await restarted.start()
         try:
-            revived = restarted.orders.get(parent.id)
+            revived = restarted.managed_order_controller.get(parent.id)
             restarted.set_book(K, kalshi.books[K])
             restarted.set_book(P, poly.books[P])
             kalshi.set_book(K, asks=[(D("0.41"), D("100"))])
             restarted.set_book(K, kalshi.books[K])
             kalshi.set_book(K, asks=[(D("0.50"), D("100"))])
-            await restarted.orders.on_timer()
+            await restarted.managed_order_controller.on_timer()
             live_k = open_orders(kalshi)
             assert len(live_k) == 1 and live_k[0].price == D("0.41")
             resting = sum(o.quantity - o.filled for o in open_orders(kalshi) + open_orders(poly))
@@ -145,12 +145,12 @@ class TestRestart:
         restarted = new_engine(path, kalshi, poly, clock)
         await restarted.start()
         try:
-            revived = restarted.orders.get(parent.id)
+            revived = restarted.managed_order_controller.get(parent.id)
             assert len(revived.children) == 2
-            await restarted.orders.on_timer()
+            await restarted.managed_order_controller.on_timer()
             assert len(revived.children) == 3 and revived.child_of(stray.id, "kalshi") is not None
             assert sum(c.quantity for c in revived.live_children) <= D("50")
-            assert restarted.orders.parent_of(stray.id, "kalshi") is revived
+            assert restarted.managed_order_controller.parent_of(stray.id, "kalshi") is revived
         finally:
             await restarted.stop()
 
@@ -164,7 +164,7 @@ async def test_a_finished_bucket_order_is_still_reported_after_a_restart(tmp_pat
     again = new_engine(path, kalshi, poly, clock)
     await again.start()
     try:
-        assert again.orders.get(parent.id) is None, "a finished parent is not reloaded as live"
+        assert again.managed_order_controller.get(parent.id) is None, "a finished parent is not reloaded as live"
         bucket_id = parent.market_id.split(":", 1)[1]
         found = await again.bucket_orders(bucket_id)
         assert [p.id for p in found] == [parent.id]
@@ -174,3 +174,59 @@ async def test_a_finished_bucket_order_is_still_reported_after_a_restart(tmp_pat
         assert await again.bucket_order("nope") is None
     finally:
         await again.stop()
+
+
+@pytest.mark.parametrize("ending", ["canceled", "expired"])
+async def test_pending_cancellation_resumes_after_sqlite_restart_without_new_orders(tmp_path, monkeypatch, ending):
+    engine, kalshi, poly, clock, path, order = await resting_legs(tmp_path)
+    parent = engine.managed_order_controller.get(order.id)
+    original_cancellations = {venue.venue: venue.cancel_order for venue in (kalshi, poly)}
+    for venue in (kalshi, poly):
+        async def acknowledge_only(order_id, *, market_id=None, current=None, venue=venue):
+            return await venue.fetch_order(order_id)
+        monkeypatch.setattr(venue, "cancel_order", acknowledge_only)
+
+    await engine.managed_order_controller.run(
+        parent, lambda ctx: parent.cancel(ctx, "pending restart test", end=ending),
+    )
+    assert parent.state == "cancelling" and len(parent.live_children) == 2
+    await engine.journal.close()
+
+    # The venue makes progress while this process cannot receive notifications.
+    # Restart must learn that progress before retrying the remaining cancellation.
+    kalshi.on_trade(K, price=D("0.41"), quantity=D("10"), taker_side=Side.SELL)
+    await original_cancellations["kalshi"](parent.children[0].order_id)
+    for venue in (kalshi, poly):
+        monkeypatch.setattr(venue, "cancel_order", original_cancellations[venue.venue])
+
+    refreshed = []
+    for venue in (kalshi, poly):
+        original_fetch = venue.fetch_order
+        async def record_refresh(order_id, *, original_fetch=original_fetch, venue=venue):
+            refreshed.append((venue.venue, order_id))
+            return await original_fetch(order_id)
+        monkeypatch.setattr(venue, "fetch_order", record_refresh)
+
+    restarted = new_engine(path, kalshi, poly, clock)
+    await restarted.start()
+    try:
+        revived = restarted.managed_order_controller.get(order.id)
+        assert revived.state == "cancelling" and not revived._resynced
+        assert revived.pending_final_state == ending
+        # Supply attractive books: stopping parents must still refuse to allocate.
+        kalshi.set_book(K, asks=[(D("0.40"), D("100"))])
+        poly.set_book(P, asks=[(D("0.40"), D("100"))])
+        restarted.set_book(K, kalshi.books[K])
+        restarted.set_book(P, poly.books[P])
+        await restarted.managed_order_controller.on_timer()
+
+        assert revived.state == ending and not revived.live_children
+        assert revived._resynced
+        assert set(refreshed) >= {(child.venue, child.order_id) for child in parent.children}
+        assert revived.filled == D("10") and revived.remaining == D("40")
+        assert len(kalshi.orders) == 1 and len(poly.orders) == 1
+        assert open_orders(kalshi) == [] and open_orders(poly) == []
+        stored = await restarted.journal.order(revived.venue, order.id)
+        assert stored.status == OrderStatus(ending) and stored.filled == D("10")
+    finally:
+        await restarted.stop()

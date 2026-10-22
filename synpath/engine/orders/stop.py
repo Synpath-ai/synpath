@@ -15,51 +15,59 @@ a number nobody can trade at. The touch is where the triggered order could
 actually execute. `last` (the last public trade) and `mid` are there for
 callers who disagree, and the journal records which was used.
 
-**Stop market** (`type="stop_market"`). `time_in_force` is how long the stop
-stays armed: `gtc` (the default), `gtd` until `expires_at`, or `day` until
-the engine's session end; `ioc` and `fok` are refused. A stop whose time
-runs out before it triggers ends `expired`. The child is a `market` order,
+**Time in force** is one for the whole order, as IBKR and FIX use it: how
+long the stop lives, armed and after it triggers. `gtc` (the default), `gtd`
+until `expires_at`, or `day` until the engine's session end (held as `gtd`
+with that absolute expiry, so it outlives a restart); `ioc` and `fok` are
+refused on a stop.
+
+**Stop market** (`type="stop_market"`). A stop whose time runs out before it
+triggers ends `expired`. The child is a `market` order,
 `ioc`. No venue here takes a market order without a worst price, so the
-engine sets one itself -- the touch plus `PROTECTION` for a buy, minus it
-for a sell, kept inside the price range -- and the caller never does. With
+engine sets the legal venue price bound for the side, using the cached
+market precision when supplied and the venue grid otherwise. The caller
+never supplies a slippage cap. With
 no book to price against at the moment of triggering, the stop ends
 `rejected` rather than send an order that would take whatever appears. A
 child that fills ends the stop `closed`; an IOC remainder that does not
 fill ends it with the unfilled quantity recorded.
 
 **Stop limit** (`type="stop_limit"`). The child is a `limit` at `price`
-(at or below `stop_price` for a sell, at or above it for a buy) with the
-order's own `time_in_force` (`gtc`, `gtd`, `ioc`, `fok`) and `expires_at`,
-and it may rest. A `gtd` stop that expires before it triggers, or with its
-child still resting, ends `expired`; a cancel ends it `canceled` before or
-after the trigger; a child the venue refuses ends it `rejected`.
+(at or below `stop_price` for a sell, at or above it for a buy) that
+inherits the order's time in force and expiry (`gtc`, or `gtd` at the same
+`expires_at`, which is where a `day` stop's session end lives), and it may
+rest. A stop whose time runs out before it triggers, or with its child still
+resting, ends `expired`, the child canceled first; a cancel ends it
+`canceled` before or after the trigger; a child the venue refuses ends it
+`rejected`.
 
 **Trailing** ratchets: a sell stop follows the highest bid seen, a buy stop
 the lowest ask, never the other way. The distance is `trail` in price units
 or `trail_percent` of the watched price, and the current stop is persisted,
 so a restart resumes from the level the market actually reached rather than
 from where it started. With a `price` it sends a limit; without one, a
-market child priced the same way as a stop market's.
+market child with its existing five-cent touch protection.
 
 **Statuses**, as the parent `Order` reports them: `waiting`, `triggered`,
 then `closed`, `canceled`, `rejected` or `expired`.
 """
 from __future__ import annotations
 
+import uuid
 from decimal import Decimal
 from typing import Any
 
 from ...trading.instruments import VENUE_RULES
 from ...trading.money import round_to
-from ...trading.types import Fill, Order, OrderStatus, OrderType, Side, TimeInForce, TriggerSource
+from ...trading.types import Fill, Order, OrderRequest, Precision, OrderStatus, OrderType, Side, TimeInForce, TriggerSource
+from ..storage_types import IntentState
 from .base import Child, Context, D, ManagedOrder
 from .manager import register
 
 TRIGGER_SOURCES = tuple(source.value for source in TriggerSource)
 
-PROTECTION = Decimal("0.05")
-"""How far past the touch a triggered market child may fill: the worst
-price the engine sends with it. Not the caller's to set."""
+TRAILING_PROTECTION = Decimal("0.05")
+"""Legacy trailing-stop protection; stop-market uses legal venue bounds."""
 
 
 class _Stop(ManagedOrder):
@@ -73,6 +81,9 @@ class _Stop(ManagedOrder):
             raise ValueError(f"trigger_source must be one of {TRIGGER_SOURCES}, not {self.trigger_source!r}")
         self.triggered_at: int | None = None
         self.trigger_price: Decimal | None = None
+        self.pending_child: OrderRequest | None = None
+        self.pending_precision: Precision | None = None
+        self.pending_end: str | None = None
 
     # -- the watched price ----------------------------------------------------
 
@@ -87,16 +98,28 @@ class _Stop(ManagedOrder):
         """A buy stop fires when the price rises to it, a sell stop when it falls."""
         return price >= self.stop_price if self.side == Side.BUY else price <= self.stop_price
 
+    async def start(self, ctx: Context) -> None:
+        """A book the engine already holds may meet the stop now, and a quiet
+        market sends no change to say so. A past print does not: `last`
+        waits for one made after the stop."""
+        await self.on_book(ctx, self.market_id)
+
     async def on_book(self, ctx: Context, market_id: str) -> None:
         if self.trigger_source in ("touch", "mid"):
             await self.consider(ctx)
 
     async def on_trade(self, ctx: Context, market_id: str, price: Decimal, quantity: Decimal) -> None:
         if self.trigger_source == "last":
+            timestamp = ctx.last_trade_timestamp(market_id)
+            if timestamp is not None and timestamp < self.created_ms:
+                return
             await self.consider(ctx, price)
 
     async def consider(self, ctx: Context, price: Decimal | None = None) -> None:
         if self.state != "waiting":
+            return
+        if self.request.expires_at is not None and int(ctx.now * 1000) >= self.request.expires_at:
+            await self.expire(ctx)
             return
         watched = price if price is not None else self.watched(ctx)
         if watched is None:
@@ -114,33 +137,113 @@ class _Stop(ManagedOrder):
         self.state = "working"
         self.triggered_at = int(ctx.now * 1000)
         self.trigger_price = watched
-        await ctx.publish("managed.triggered", {
-            "kind": self.kind, "stop_price": str(self.stop_price), "trigger_price": str(watched),
-            "trigger_source": self.trigger_source,
-        })
         await self.send_child(ctx, watched)
 
     async def send_child(self, ctx: Context, watched: Decimal) -> None:
         raise NotImplementedError
 
-    def protection(self, ctx: Context) -> Decimal | None:
-        """The worst price a triggered market child may fill at: the touch
-        plus `PROTECTION` for a buy, minus it for a sell, on the venue's tick
-        and inside (0, 1). `None` with no book to price against: a last-trade
-        trigger can fire on a market nobody is quoting, and an order sent
-        then would take whatever appears."""
+    def child_price_bound(self, ctx: Context) -> Decimal | None:
+        """Stop market takes all available prices on the instrument's legal
+        grid. Trailing stops retain their existing touch protection policy.
+        No ready, uncrossed executable book means no market dispatch."""
         touch = ctx.touch(self.side)
         if touch is None:
             return None
-        tick = VENUE_RULES.get(self.venue, {}).get("default_tick") or Decimal("0.01")
+        precision = ctx.registered_precision() or Precision(
+            tick=VENUE_RULES.get(self.venue, {}).get("default_tick") or Decimal("0.01"))
+        tick = precision.tick
+        if self.kind == "stop_market":
+            self.pending_precision = precision
+            rules = VENUE_RULES.get(self.venue, {})
+            if self.side == Side.SELL:
+                return round_to(max(tick, rules.get("min_price", tick)), tick, "up")
+            ceiling = round_to(precision.face_value, tick, "down")
+            ceiling = ceiling - tick if ceiling == precision.face_value else ceiling
+            return round_to(min(ceiling, rules.get("max_price", ceiling)), tick, "down")
         if self.side == Side.BUY:
-            return min(round_to(touch + PROTECTION, tick, "down"), 1 - tick)
-        return max(round_to(touch - PROTECTION, tick, "up"), tick)
+            return min(round_to(touch + TRAILING_PROTECTION, tick, "down"), 1 - tick)
+        return max(round_to(touch - TRAILING_PROTECTION, tick, "up"), tick)
+
+    async def submit_planned_child(self, ctx: Context, request: OrderRequest) -> None:
+        """Persist one stable dispatch identity with the trigger before sending."""
+        identity = f"{self.request.user_id}:{self.account_key}:{self.id}:stop-child"
+        request = request.model_copy(update={"client_order_id": f"sp-{uuid.uuid5(uuid.NAMESPACE_URL, identity).hex[:20]}"})
+        self.pending_child = request
+        await ctx.plan_child(request)
+        await ctx.save()
+        await ctx.publish("managed.triggered", {"kind": self.kind, "trigger_source": self.trigger_source,
+                                               "stop_price": str(self.stop_price), "trigger_price": str(self.trigger_price),
+                                               "child_client_order_id": request.client_order_id})
+        if not ctx.defer_pending_action():
+            await self.resume_pending(ctx)
+
+    async def resume_pending(self, ctx: Context, *, allow_send: bool = True) -> None:
+        request = self.pending_child
+        if request is None:
+            return
+        if request.type == OrderType.LIMIT and request.expires_at is not None and int(ctx.now * 1000) >= request.expires_at:
+            self.pending_end = "expired"
+            self.state = "cancelling"
+            self.detail = "expired before pending dispatch completed"
+            allow_send = False
+            await ctx.save()
+        order, intent = await ctx.observe_pending_child(request.client_order_id)
+        if order is None and intent is not None and intent.state == IntentState.PLANNED:
+            if not allow_send:
+                intent = await ctx.settle_unsent_child(request.client_order_id)
+            else:
+                order = await ctx.submit_child(request, precision=self.pending_precision)
+        if order is not None:
+            if self.child_of(order.id, order.venue) is None:
+                self.track(order, request.quantity, request.price)
+            self.pending_child = None
+            self.pending_precision = None
+            await ctx.save()
+            if self.pending_end:
+                await self.cancel(ctx, self.detail, end=self.pending_end)
+            else:
+                await self.on_child_order_updated(ctx, order, self.child_of(order.id, order.venue))
+            return
+        if intent is not None and intent.state in (IntentState.REJECTED, IntentState.FAILED, IntentState.SETTLED):
+            self.pending_child = None
+            self.pending_precision = None
+            await self.finish(ctx, self.pending_end or "rejected", intent.detail or "child was not accepted")
+        else:
+            self.detail = "child submission is unresolved; refusing to repeat the venue send"
+            await ctx.save()
+
+    async def recover(self, ctx: Context) -> None:
+        expires_at = self.request.expires_at
+        expired = expires_at is not None and int(ctx.now * 1000) >= expires_at
+        if expired and (self.state == "waiting" or self.kind != "stop_market"):
+            await self.expire(ctx)
+        if self.live:
+            await self.on_timer(ctx)
+
+    async def on_timer(self, ctx: Context) -> None:
+        if (self.pending_child is not None or self.state == "cancelling") and ctx.defer_pending_action():
+            return
+        if self.pending_child is not None:
+            await self.resume_pending(ctx, allow_send=self.state == "working" and self.pending_end is None)
+        elif self.state == "cancelling":
+            await self.cancel(ctx, self.detail, end=self.pending_end or "canceled")
+
+    async def cancel(self, ctx: Context, reason: str = "cancelled", *, end: str = "canceled") -> None:
+        if not self.live:
+            return
+        self.pending_end = end
+        self.detail = reason
+        if self.pending_child is not None:
+            self.state = "cancelling"
+            await ctx.save()
+            await self.resume_pending(ctx, allow_send=False)
+            return
+        await super().cancel(ctx, reason, end=end)
 
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         await self.complete_if_done(ctx)
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         if not order.is_terminal or self.state != "working":
             return
         if self.remaining <= 0:
@@ -174,6 +277,9 @@ class _Stop(ManagedOrder):
     def extra(self) -> dict[str, Any]:
         return {
             "stop_price": str(self.stop_price), "trigger_source": self.trigger_source,
+            "pending_child": self.pending_child.model_dump(mode="json") if self.pending_child else None,
+            "pending_precision": self.pending_precision.model_dump(mode="json") if self.pending_precision else None,
+            "pending_end": self.pending_end,
             "triggered_at": self.triggered_at,
             "trigger_price": str(self.trigger_price) if self.trigger_price is not None else None,
         }
@@ -183,25 +289,26 @@ class _Stop(ManagedOrder):
         self.trigger_source = extra.get("trigger_source", self.trigger_source)
         self.triggered_at = extra.get("triggered_at")
         self.trigger_price = D(extra.get("trigger_price"))
+        self.pending_child = OrderRequest.stored(extra["pending_child"]) if extra.get("pending_child") else None
+        self.pending_precision = Precision.model_validate(extra["pending_precision"]) if extra.get("pending_precision") else None
+        self.pending_end = extra.get("pending_end")
 
 
 @register
 class StopMarket(_Stop):
-    """Fires an immediate-or-cancel child at the protection price."""
+    """Fires one IOC child within the legal venue price bounds."""
 
     kind = "stop_market"
     order_type = OrderType.STOP_MARKET
 
     async def send_child(self, ctx: Context, watched: Decimal) -> None:
-        price = self.protection(ctx)
+        price = self.child_price_bound(ctx)
         if price is None:
             await self.finish(ctx, "rejected", "no book to price the market order against: refusing to send at any price")
             return
         request = self.child_request(quantity=self.remaining, price=price, type=OrderType.MARKET,
                                      time_in_force=TimeInForce.IOC)
-        order = await ctx.submit_child(request)
-        self.track(order, request.quantity, price)
-        await ctx.save()
+        await self.submit_planned_child(ctx, request)
 
     async def expire(self, ctx: Context) -> None:
         """`time_in_force` is how long the stop stays armed. Once triggered,
@@ -219,12 +326,12 @@ class StopLimit(_Stop):
 
     async def send_child(self, ctx: Context, watched: Decimal) -> None:
         price = D(self.request.price)
+        # One time in force for the whole order: the child lives exactly as
+        # long as the stop does (a `day` stop is already `gtd` here).
         request = self.child_request(quantity=self.remaining, price=price, type=OrderType.LIMIT,
                                      time_in_force=self.request.time_in_force or TimeInForce.GTC,
-                                     expires_at=self.request.expires_at)
-        order = await ctx.submit_child(request)
-        self.track(order, request.quantity, price)
-        await ctx.save()
+                                     expires_at=self.request.expires_at, post_only=self.request.post_only)
+        await self.submit_planned_child(ctx, request)
 
 
 @register
@@ -266,16 +373,14 @@ class TrailingStop(_Stop):
             await ctx.save()
 
     async def send_child(self, ctx: Context, watched: Decimal) -> None:
-        price = D(self.request.price) or self.protection(ctx)
+        price = D(self.request.price) or self.child_price_bound(ctx)
         if price is None:
             await self.finish(ctx, "rejected", "no book to price the market order against: refusing to send at any price")
             return
         kind = OrderType.LIMIT if self.request.price is not None else OrderType.MARKET
         request = self.child_request(quantity=self.remaining, price=price, type=kind,
                                      time_in_force=TimeInForce.IOC if kind == OrderType.MARKET else TimeInForce.GTC)
-        order = await ctx.submit_child(request)
-        self.track(order, request.quantity, price)
-        await ctx.save()
+        await self.submit_planned_child(ctx, request)
 
     def extra(self) -> dict[str, Any]:
         return super().extra() | {

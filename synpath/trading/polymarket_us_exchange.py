@@ -197,8 +197,6 @@ def translate_order(request: OrderRequest, scale: InstrumentScale, *, account: s
         )
     if request.time_in_force == TimeInForce.DAY:
         raise InvalidOrder("polymarket_us: 'day' is rewritten to 'gtd' by the engine; the venue's DAY does not cancel at the roll")
-    if request.reduce_only:
-        raise InvalidOrder("polymarket_us: the exchange API has no reduce-only flag")
     symbol = symbol_of(request.market_id)
     precision = scale.precision
     needs_price = request.type in (OrderType.LIMIT, OrderType.MARKET, OrderType.STOP_LIMIT)
@@ -465,6 +463,10 @@ class PolymarketUSExchangeTrading(TradingExchange):
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
         "rfq": False,
+        # Typed RFQ and combos arrive phase by phase (docs/rfq-combo.md).
+        "rfq_taker": False,
+        "rfq_quoter": False,
+        "combos": False,
         "split_merge": False,
         "watch_orders": False,
         "watch_my_trades": False,

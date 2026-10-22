@@ -5,8 +5,8 @@ An outcome trades as two coins, `#<10 * outcome>` for YES and
 `#<10 * outcome + 1>` for NO, each with its own book, orders and fills, and
 the asset id `100_000_000 + <coin number>` on the wire. Every record here is
 turned onto the market's YES leg: buying NO at 0.30 is selling at 0.70, as on
-Polymarket. An order goes to the token it buys -- `buy` buys YES, `sell`
-buys NO -- and with `reduce_only` it sells the other token held instead.
+Polymarket. An order buys or sells the token its `outcome` and `action`
+name; with neither, `buy` buys YES and `sell` buys NO.
 
 Fills carry a direction (`dir`) besides their side. `Buy` and `Sell` are
 trades. `Split Outcome` and `Merge Outcome` turn quote into a YES and NO
@@ -122,6 +122,8 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order | 
         account=account,
         market_id=ids.qualify(VENUE, native),
         side=side,
+        outcome=outcome,
+        action=venue_side.lower(),
         type=OrderType.MARKET if str(order.get("orderType") or "").lower() == "market" else OrderType.LIMIT,
         time_in_force=tif,
         status=status,
@@ -130,7 +132,6 @@ def order_of(raw: dict[str, Any], *, account: Account | None = None) -> Order | 
         filled=filled,
         remaining=left if status == OrderStatus.OPEN else Decimal("0"),
         post_only=order.get("tif") == "Alo",
-        reduce_only=bool(order.get("reduceOnly")),
         created_at=int(order["timestamp"]) if order.get("timestamp") else None,
         updated_at=int(raw["statusTimestamp"]) if raw.get("statusTimestamp") else None,
         info={**raw, "outcome_side": outcome, "native_status": word},
@@ -335,6 +336,10 @@ class HyperliquidTrading(TradingExchange):
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
         "rfq": False,
+        # Typed RFQ and combos arrive phase by phase (docs/rfq-combo.md).
+        "rfq_taker": False,
+        "rfq_quoter": False,
+        "combos": False,
         "split_merge": False,
         "watch_orders": False,
         "watch_my_trades": False,
@@ -445,7 +450,8 @@ class HyperliquidTrading(TradingExchange):
             remaining=quantity - done if state == OrderStatus.OPEN else Decimal("0"),
             average_price=(avg if outcome == "yes" else Decimal("1") - avg) if avg is not None else None,
             post_only=request.post_only,
-            reduce_only=request.reduce_only,
+            outcome=request.leg[0],
+            action=request.leg[1],
             created_at=int(time.time() * 1000),
             book=request.book,
             trader=request.trader,

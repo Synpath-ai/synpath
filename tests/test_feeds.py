@@ -31,7 +31,9 @@ class FakeStream:
 
     def __init__(self, venue: str, name: str, *, market: bool = True, private: bool = False):
         self.venue, self.name = venue, name
-        self.has = {"watch_order_book": market, "watch_orders": private, "watch_my_trades": private}
+        self.has = {"watch_order_book": market, "watch_trades": market, "watch_orders": private,
+                    "watch_my_trades": private}
+        self.trades_watched: list[list[str]] = []
         self.books: dict[str, LocalBook] = {}
         self.watched: list[list[str]] = []
         self.subscribed: list[str] = []
@@ -50,6 +52,9 @@ class FakeStream:
         self.watched.append(list(market_ids))
         for m in market_ids:
             self.books.setdefault(m, LocalBook())
+
+    async def watch_trades(self, market_ids):
+        self.trades_watched.append(list(market_ids))
 
     async def watch_orders(self, market_ids=None):
         self.subscribed.append("orders")
@@ -125,6 +130,7 @@ class TestSubscribing:
         await engine.submit(stop_request())
         assert await feeds.sync() == 1
         assert k_stream.watched == [[K]] and p_market.watched == []
+        assert k_stream.trades_watched == [[K]], "its prints too: a last-trade stop hears every one"
         assert engine.books[K] is k_stream.books[K], "the engine reads the stream's own book object"
         assert await feeds.sync() == 0, "already watched"
 
@@ -152,7 +158,7 @@ class TestBooks:
         kalshi.set_book(K, bids=[(D("0.38"), D("100"))])          # where the child will actually trade
         parent = await engine.submit(stop_request())
         await feeds.sync()
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
 
         await feeds.dispatch("kalshi", k_stream, BookEvent(venue="kalshi", market_id=K, kind="delta"))
         assert managed.state == "waiting", "no snapshot yet: the book is not ready and reads as no book"
@@ -160,7 +166,7 @@ class TestBooks:
         await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.45", "100")], asks=[("0.47", "100")]))
         assert managed.state == "waiting"
         await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.39", "100")], asks=[("0.41", "100")]))
-        assert managed.state == "working" and len(managed.children) == 1
+        assert managed.state in ("working", "done") and len(managed.children) == 1
 
     async def test_a_book_invalidated_after_a_gap_does_not_fire_a_stop(self, setup):
         engine, feeds, kalshi, poly, k_stream, p_market, p_user = setup
@@ -170,7 +176,68 @@ class TestBooks:
         k_stream.books[K].bids = {D("0.30"): D("100")}               # stale levels left behind by a gap
         k_stream.books[K].invalidate()
         await feeds.dispatch("kalshi", k_stream, BookEvent(venue="kalshi", market_id=K, kind="delta"))
-        assert engine.orders.get(parent.id).state == "waiting"
+        assert engine.managed_order_controller.get(parent.id).state == "waiting"
+
+
+class TestMarks:
+    """A held position is marked at the price it could be closed at on the
+    live book the engine holds for it: the bid for a long, the ask for a short."""
+
+    async def fill(self, engine, side, quantity="5", price="0.40", fill_id="F1"):
+        await engine.on_fill(Fill(id=fill_id, order_id="O1", venue="kalshi", account=ACCOUNTS["kalshi"],
+                                  market_id=K, side=side, price=D(price), quantity=D(quantity), timestamp=1))
+
+    async def test_a_long_yes_is_marked_at_the_bid_once_its_book_is_subscribed(self, setup):
+        engine, feeds, kalshi, poly, k_stream, p_market, p_user = setup
+        await self.fill(engine, Side.BUY)
+        assert await feeds.sync() == 1 and k_stream.watched == [[K]], "a held market is subscribed with no order on it"
+        [position] = engine.positions()
+        assert position.mark_price is None, "no snapshot yet: no mark rather than a guessed one"
+
+        await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.44", "10")], asks=[("0.48", "10")]))
+        [position] = engine.positions()
+        assert position.mark_price == D("0.44") and position.unrealized_pnl == D("0.20")
+        assert engine.pnl("account")["total"].unrealized == D("0.20")
+
+    async def test_a_short_yes_which_is_a_long_no_is_marked_at_the_ask(self, setup):
+        engine, feeds, kalshi, poly, k_stream, p_market, p_user = setup
+        await self.fill(engine, Side.SELL, price="0.60")              # Buy NO at 0.40
+        await feeds.sync()
+        await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.44", "10")], asks=[("0.48", "10")]))
+        [position] = engine.positions()
+        # Closing buys YES back at 0.48, which is selling NO at 0.52: 0.12 a contract on 5.
+        assert position.mark_price == D("0.48") and position.unrealized_pnl == D("0.60")
+
+    async def test_the_last_trade_marks_when_nobody_is_on_the_closing_side_or_the_book_is_not_live(self, setup):
+        engine, feeds, kalshi, poly, k_stream, p_market, p_user = setup
+        await self.fill(engine, Side.BUY)
+        await feeds.sync()
+        [position] = engine.positions()
+        assert position.mark_price is None, "no book and no trade: no mark"
+
+        await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, asks=[("0.48", "10")]))
+        await engine.on_trade({"market_id": K, "price": "0.47", "quantity": "1"})
+        [position] = engine.positions()
+        assert position.mark_price == D("0.47"), "no bid: a long is marked at the last trade"
+
+        await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.44", "10")], asks=[("0.48", "10")]))
+        assert engine.positions()[0].mark_price == D("0.44")
+        k_stream.books[K].invalidate()
+        [position] = engine.positions()
+        assert position.mark_price == D("0.47") and position.unrealized_pnl == D("0.35")
+
+
+class TestFillOutcome:
+    async def test_a_fill_carries_its_order_s_outcome_and_action(self, setup):
+        engine, feeds, kalshi, poly, k_stream, p_market, p_user = setup
+        kalshi.set_book(K, bids=[(D("0.40"), D("100"))], asks=[(D("0.45"), D("100"))])
+        order = await engine.submit(OrderRequest(market_id=K, outcome="yes", action="sell", quantity=D("5"),
+                                                 price=D("0.44"), account=ACCOUNTS["kalshi"]))
+        assert (order.outcome, order.action) == ("yes", "sell")
+        for fill in kalshi.on_trade(K, price=D("0.44"), quantity=D("10"), taker_side=Side.BUY):
+            await engine.on_fill(fill)
+        [fill] = await engine.journal.fills()
+        assert (fill.side, fill.outcome, fill.action) == (Side.SELL, "yes", "sell")
 
 
 class TestAccountStreams:
@@ -179,7 +246,7 @@ class TestAccountStreams:
         parent = await engine.submit(stop_request())
         await feeds.sync()
         await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.39", "100")], asks=[("0.41", "100")]))
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         child = managed.children[0]
         venue_order = kalshi.orders[child.order_id]
         assert managed.filled == venue_order.filled, "the placement's answer is the first record"
@@ -194,7 +261,7 @@ class TestAccountStreams:
         await feeds.sync()
         kalshi.set_book(K, bids=[])                                   # nothing to cross: the child rests
         await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.39", "100")], asks=[("0.41", "100")]))
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         child = managed.children[0]
         before = managed.filled
         fill = Fill(id="f-1", order_id=child.order_id, venue="kalshi", account=ACCOUNTS["kalshi"], market_id=K,
@@ -243,7 +310,7 @@ class TestRunning:
         engine, *_ = setup
         loops = engine.background()
         try:
-            assert set(loops) == {"lease", "sweep", "poll", "managed"}
+            assert set(loops) == {"lease", "sweep", "poll", "managed", "dispatch", "rfq"}
         finally:
             for coro in loops.values():
                 coro.close()

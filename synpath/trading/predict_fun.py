@@ -10,9 +10,9 @@ wallet the web app makes), by its owner key. See `predict_fun_signing`.
 Orders, cancels and account reads need a login token (a JWT), which the
 adapter gets by signing the venue's login message and renews when refused.
 
-**YES and NO are separate tokens.** `buy` buys the YES token at the price
-given; `sell` buys the NO token at `1 - price`; with `reduce_only`, `sell`
-sells YES held and `buy` sells NO held. Everything the venue reports on the
+**YES and NO are separate tokens.** An order buys or sells the token its
+`outcome` and `action` name (with neither, `buy` buys YES and `sell` buys
+NO at `1 - price`). Everything the venue reports on the
 NO token comes back on the YES leg.
 
 **Limits rest; market orders take.** A limit is `LIMIT` (good till
@@ -478,6 +478,10 @@ class PredictFunTrading(TradingExchange):
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
         "rfq": False,
+        # Typed RFQ and combos arrive phase by phase (docs/rfq-combo.md).
+        "rfq_taker": False,
+        "rfq_quoter": False,
+        "combos": False,
         "split_merge": False,
         "watch_orders": False,
         "watch_my_trades": False,
@@ -636,7 +640,8 @@ class PredictFunTrading(TradingExchange):
             quantity=contracts,
             filled=Decimal("0"),
             remaining=contracts,
-            reduce_only=request.reduce_only,
+            outcome=request.leg[0],
+            action=request.leg[1],
             post_only=request.post_only,
             expires_at=request.expires_at,
             created_at=int(time.time() * 1000),
@@ -654,7 +659,7 @@ class PredictFunTrading(TradingExchange):
             return order
         return after.model_copy(update={
             "client_order_id": order.client_order_id, "type": order.type, "time_in_force": order.time_in_force,
-            "book": order.book, "trader": order.trader, "tags": order.tags, "reduce_only": order.reduce_only,
+            "book": order.book, "trader": order.trader, "tags": order.tags, "outcome": order.outcome, "action": order.action,
         })
 
     async def _remove(self, hashes: list[str]) -> dict[str, Any]:

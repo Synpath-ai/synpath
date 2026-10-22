@@ -141,7 +141,6 @@ class TestOrders:
 
     @pytest.mark.parametrize("changes", [
         {"type": OrderType.ICEBERG},
-        {"reduce_only": True},
         {"time_in_force": TimeInForce.DAY},
         {"time_in_force": TimeInForce.GTD, "expires_at": 1_000},
     ])
@@ -195,7 +194,8 @@ class TestRecords:
         assert (fill.side, fill.price, fill.quantity, fill.liquidity) == (Side.SELL, Decimal("0.6"), Decimal("0.833335"), Liquidity.TAKER)
         assert fill.settlement == SettlementState.CONFIRMED
         assert fill_of_row({**FILL_ROW, "status": "MATCHED"}).settlement == SettlementState.MATCHED
-        assert fill_of_row({**FILL_ROW, "isParlay": True}) is None
+        parlay = fill_of_row({**FILL_ROW, "isParlay": True})
+        assert parlay.market_id == MARKET_ID, "a parlay fill books on the parlay market (the parent hash)"
 
     def test_a_position_nets_on_yes(self):
         position = position_of(POSITION_ROW)

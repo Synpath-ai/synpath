@@ -1,0 +1,8 @@
+{
+  "request": {
+    "rfq_id": "rfq_in_1"
+  },
+  "status": "COLLECTING_QUOTES",
+  "competition_started_at": 1780963200000,
+  "competition_ends_at": 1780963200400
+}

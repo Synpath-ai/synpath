@@ -32,15 +32,33 @@ import os
 import socket
 import time
 import uuid
-from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, AsyncIterator, Iterable
 
+from ..errors import BadRequest
 from ..trading.types import Account, Fill, Order, OrderRequest
+from .storage_types import Intent, IntentState, JournalEvent, Lease, LeaseLost
+from .submissions import request_identity
+from .order_storage import OrderRecords, UNATTRIBUTED_USER, schema as order_schema
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 10
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS submissions (
+    client_order_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    account_key TEXT NOT NULL,
+    venue TEXT NOT NULL,
+    request TEXT NOT NULL,
+    effective_request TEXT NOT NULL,
+    result_id TEXT,
+    state TEXT NOT NULL DEFAULT 'pending',
+    error TEXT,
+    created_ts INTEGER NOT NULL,
+    updated_ts INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS submissions_owner ON submissions(user_id, account_key, created_ts);
+
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -151,14 +169,6 @@ CREATE TABLE IF NOT EXISTS config_versions (
     payload TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS fair_values (
-    account_key TEXT NOT NULL,
-    market_id TEXT NOT NULL,
-    value TEXT NOT NULL,
-    source TEXT,
-    ts INTEGER NOT NULL,
-    PRIMARY KEY (account_key, market_id)
-);
 
 CREATE TABLE IF NOT EXISTS buckets (
     id TEXT PRIMARY KEY,
@@ -182,6 +192,20 @@ CREATE TABLE IF NOT EXISTS cursors (
     value TEXT NOT NULL,
     updated_ts INTEGER NOT NULL
 );
+"""
+
+
+# Stop tables own their recovery snapshots. The legacy managed table remains
+# the source only for advanced types that have not migrated in this checkpoint.
+MANAGED_SOURCE = """
+    SELECT id, kind, state, market_id, created_ts, payload FROM managed_orders
+        WHERE kind NOT IN ('stop_market', 'stop_limit')
+    UNION ALL
+    SELECT id, 'stop_market', state, market_id, created_ts, snapshot FROM stop_market_orders
+        WHERE json_extract(snapshot, '$.kind') = 'stop_market'
+    UNION ALL
+    SELECT id, 'stop_limit', state, market_id, created_ts, snapshot FROM stop_limit_orders
+        WHERE json_extract(snapshot, '$.kind') = 'stop_limit'
 """
 
 
@@ -217,79 +241,26 @@ def _word(value: Any) -> str:
     return str(getattr(value, "value", value))
 
 
-class LeaseLost(RuntimeError):
-    """Another engine holds the journal, or this one's lease expired."""
-
 
 class _Held(Exception):
     """Internal: the lease row belongs to someone else. Becomes `LeaseLost`."""
 
 
-class IntentState:
-    PLANNED = "planned"
-    """Written, risk passed, not yet sent."""
-    SENDING = "sending"
-    """Handed to the venue; the answer has not come back."""
-    SENT = "sent"
-    SETTLED = "settled"
-    """The order reached a terminal status."""
-    REJECTED = "rejected"
-    FAILED = "failed"
-    """The venue refused it, or the call failed in a way that proves nothing left."""
-    LOST = "lost"
-    """In doubt for longer than the sweep allows and not found at the venue."""
-
 
 IN_DOUBT = (IntentState.SENDING,)
 
 
-@dataclass(frozen=True, slots=True)
-class JournalEvent:
-    seq: int
-    ts: int
-    kind: str
-    key: str | None
-    payload: dict[str, Any]
 
 
-@dataclass(slots=True)
-class Intent:
-    client_order_id: str
-    state: str
-    operation: str
-    venue: str
-    account_key: str
-    market_id: str | None
-    order_id: str | None
-    target_order_id: str | None
-    book: str | None
-    trader: str | None
-    attempts: int
-    request: dict[str, Any]
-    detail: str | None
-    created_ts: int
-    updated_ts: int
-
-    @property
-    def age_ms(self) -> int:
-        return now_ms() - self.updated_ts
-
-
-@dataclass(slots=True)
-class Lease:
-    name: str
-    owner: str
-    holder: str
-    acquired_ts: int
-    expires_ts: int
-    ttl_ms: int = 30_000
-    renew_task: Any = field(default=None, repr=False)
 
 
 class Journal:
     """The engine's write-ahead log and its materialized state."""
 
-    def __init__(self, path: str | os.PathLike[str] = "synpath.db", *, owner: str | None = None, busy_timeout_ms: int = 10_000):
+    def __init__(self, path: str | os.PathLike[str] = "synpath.db", *, owner: str | None = None, busy_timeout_ms: int = 10_000, user_id: str = "local-user"):
+        if not user_id.strip():
+            raise ValueError("user_id must not be empty")
+        self.user_id = user_id
         self.path = str(path)
         self.owner = owner or f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}"
         self.busy_timeout_ms = busy_timeout_ms
@@ -300,32 +271,155 @@ class Journal:
     # -- lifecycle ------------------------------------------------------------
 
     async def open(self) -> "Journal":
+        if self.is_open:
+            return self
+        from .database import connect_sqlite
+        self._db = await connect_sqlite(self.path)
         try:
-            import aiosqlite
-        except ImportError as exc:  # pragma: no cover - depends on the environment
-            raise ImportError("the engine's journal needs aiosqlite: pip install synpath") from exc
-        connection = aiosqlite.connect(self.path, isolation_level=None)
-        # aiosqlite runs each connection on its own thread. Marking it a
-        # daemon means a journal somebody forgot to close cannot keep the
-        # process alive after everything else has finished.
-        connection.daemon = True
-        self._db = await connection
-        self._db.row_factory = aiosqlite.Row
-        await self._db.execute(f"PRAGMA busy_timeout={self.busy_timeout_ms}")
-        await self._db.execute("PRAGMA journal_mode=WAL")
-        # An order must be on disk before it is on the wire, so the write that
-        # records it cannot be one the operating system is still holding.
-        await self._db.execute("PRAGMA synchronous=FULL")
-        await self._db.execute("PRAGMA foreign_keys=ON")
-        await self._db.executescript(SCHEMA)
-        await self._upgrade()
-        await self._db.execute("CREATE INDEX IF NOT EXISTS orders_parent ON orders(parent_id)")
-        await self._db.execute(
-            "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
-            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-            (str(SCHEMA_VERSION),),
-        )
+            await self._db.execute(f"PRAGMA busy_timeout={self.busy_timeout_ms}")
+            await self._db.execute("PRAGMA journal_mode=WAL")
+            # An order must be on disk before it is on the wire, so the write that
+            # records it cannot be one the operating system is still holding.
+            await self._db.execute("PRAGMA synchronous=FULL")
+            await self._db.execute("PRAGMA foreign_keys=ON")
+            await self._validate_existing_store()
+            await self._db.executescript(SCHEMA)
+            await self._upgrade()
+            await self._db.executescript(order_schema())
+            self._order_records = OrderRecords(self._db, user_id=self.user_id if self._has_owner else None)
+            await self._upgrade_order_records()
+            await self._upgrade_submissions()
+            await self._db.execute("CREATE INDEX IF NOT EXISTS orders_parent ON orders(parent_id)")
+            await self._db.execute(
+                "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
+                "ON CONFLICT(key) DO NOTHING",
+                ("6",),
+            )
+            await self._db.execute("BEGIN IMMEDIATE")
+            try:
+                from .migration import upgrade
+                await upgrade(self._db, self.user_id)
+                await self._db.execute("COMMIT")
+                self._order_records.user_id = self.user_id
+            except BaseException:
+                await self._db.execute("ROLLBACK")
+                raise
+        except BaseException:
+            await self._db.close()
+            self._db = None
+            raise
         return self
+
+    async def _validate_existing_store(self):
+        async with self._db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('meta','users')") as cursor:
+            names = {row["name"] for row in await cursor.fetchall()}
+        self._has_owner = "users" in names
+        if "meta" in names:
+            async with self._db.execute("SELECT value FROM meta WHERE key='schema_version'") as cursor:
+                version = await cursor.fetchone()
+            if version is not None and int(version["value"]) > SCHEMA_VERSION:
+                raise ValueError("unsupported SQLite journal schema version")
+        if self._has_owner:
+            async with self._db.execute("SELECT user_id FROM users") as cursor:
+                rows = await cursor.fetchall()
+            if len(rows) != 1 or rows[0]["user_id"] != self.user_id:
+                raise ValueError("configured user_id differs from the stored execution owner")
+
+    async def _upgrade_submissions(self) -> None:
+        """Keep pre-checkpoint client keys reserved without inventing requests."""
+        async with self._db.execute("SELECT value FROM meta WHERE key='submissions_version'") as cursor:
+            if await cursor.fetchone():
+                return
+        from .order_storage import ORDER_TABLES
+        await self._db.execute("BEGIN IMMEDIATE")
+        try:
+            for kind, table in ORDER_TABLES.items():
+                async with self._db.execute(
+                    f"SELECT * FROM {table} WHERE request IS NOT NULL AND client_order_id IS NOT NULL"
+                ) as cursor:
+                    rows = await cursor.fetchall()
+                for row in rows:
+                    request = OrderRequest.stored(json.loads(row["request"]))
+                    snapshot = json.loads(row["snapshot"])
+                    if snapshot.get("account"):
+                        account = Account.model_validate(snapshot["account"])
+                    else:
+                        account = request.account or Account(venue=row["venue"])
+                    request = request.model_copy(update={"account": account, "user_id": row["user_id"],
+                                                         "client_order_id": row["client_order_id"]})
+                    result_id = (row["id"] if kind.startswith("stop") and snapshot.get("kind") else row["venue_order_id"])
+                    await self._db.execute(
+                        "INSERT INTO submissions(client_order_id,user_id,account_key,venue,request,effective_request,result_id,state,created_ts,updated_ts) "
+                        "VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(client_order_id) DO NOTHING",
+                        (row["client_order_id"], row["user_id"], account.key, row["venue"],
+                         _dump(request_identity(request)), _dump(request.model_dump(mode="json")), result_id,
+                         "accepted" if result_id else "pending", row["created_ts"], row["updated_ts"]),
+                    )
+            await self._db.execute("INSERT INTO meta(key,value) VALUES('submissions_version','1')")
+            await self._db.execute("COMMIT")
+        except BaseException:
+            await self._db.execute("ROLLBACK")
+            raise
+
+    @property
+    def is_open(self) -> bool:
+        return self._db is not None
+
+    async def typed_order(self, kind: str, venue: str, application_id: str) -> dict[str, Any] | None:
+        """A type-owned instruction and its latest durable state."""
+        return await self._order_records.get(kind, venue, application_id)
+
+    async def _upgrade_order_records(self) -> None:
+        """Backfill once without inventing ownership or missing instructions.
+
+        Old venue records contain execution results, not necessarily the
+        original user request. Keep that distinction and attribute unknown
+        historical owners to an explicit legacy identity.
+        """
+        async with self._db.execute("SELECT value FROM meta WHERE key='order_records_version'") as cursor:
+            if await cursor.fetchone():
+                return
+        await self._db.execute("BEGIN IMMEDIATE")
+        try:
+            async with self._db.execute("SELECT * FROM intents WHERE operation='create'") as cursor:
+                intents = await cursor.fetchall()
+            for row in intents:
+                try:
+                    request = OrderRequest.stored(json.loads(row["request"]))
+                except (ValueError, TypeError):
+                    continue
+                await self._order_records.write_request(
+                    request, venue=row["venue"], account_key=row["account_key"],
+                    client_order_id=row["client_order_id"], user_id=request.user_id or UNATTRIBUTED_USER,
+                    stamp=row["created_ts"], state=row["state"],
+                )
+            async with self._db.execute("SELECT payload FROM orders") as cursor:
+                rows = await cursor.fetchall()
+            for row in rows:
+                try:
+                    order = Order.model_validate(json.loads(row["payload"]))
+                except (ValueError, TypeError):
+                    continue
+                if order.held_by.value == "venue":
+                    await self._order_records.write_order(order, stamp=now_ms())
+            async with self._db.execute("SELECT payload FROM managed_orders") as cursor:
+                rows = await cursor.fetchall()
+            for row in rows:
+                snapshot = json.loads(row["payload"])
+                if snapshot.get("venue") and snapshot.get("request"):
+                    snapshot = {**snapshot, "request": {**snapshot["request"],
+                                "user_id": snapshot["request"].get("user_id") or UNATTRIBUTED_USER}}
+                    await self._order_records.write_managed(snapshot, user_id=UNATTRIBUTED_USER, stamp=now_ms())
+            await self._db.execute("INSERT INTO meta(key,value) VALUES('order_records_version','1')")
+            await self._db.execute("COMMIT")
+        except BaseException:
+            await self._db.execute("ROLLBACK")
+            raise
+
+    async def lease_records(self) -> list[dict[str, Any]]:
+        """Lease inspection without exposing a database connection to callers."""
+        async with self._db.execute("SELECT name, owner, expires_ts FROM leases") as cursor:
+            return [dict(row) async for row in cursor]
 
     async def schema_version(self) -> int:
         async with self._db.execute("SELECT value FROM meta WHERE key='schema_version'") as cursor:
@@ -451,49 +545,143 @@ class Journal:
             async for row in cursor:
                 yield JournalEvent(row["seq"], row["ts"], row["kind"], row["key"], json.loads(row["payload"]))
 
+    async def events_page(self, *, kinds: Iterable[str] = (), prefixes: Iterable[str] = (),
+                          keys: Iterable[str] | None = None, before: int | None = None,
+                          limit: int = 500) -> list[JournalEvent]:
+        """Events newest first: of these `kinds` or kinds starting with these
+        `prefixes` (either, or all when both are empty), optionally only these
+        `keys`, older than sequence `before`. The order log reads it."""
+        sql = "SELECT seq, ts, kind, key, payload FROM events WHERE 1=1"
+        args: list[Any] = []
+        kind_terms = [("kind = ?", kind) for kind in kinds] + [("kind LIKE ?", f"{prefix}%") for prefix in prefixes]
+        if kind_terms:
+            sql += " AND (" + " OR ".join(term for term, _ in kind_terms) + ")"
+            args += [value for _, value in kind_terms]
+        if keys is not None:
+            wanted = list(dict.fromkeys(keys))
+            if not wanted:
+                return []
+            sql += f" AND key IN ({','.join('?' * len(wanted))})"
+            args += wanted
+        if before is not None:
+            sql += " AND seq < ?"
+            args.append(int(before))
+        sql += " ORDER BY seq DESC LIMIT ?"
+        args.append(int(limit))
+        async with self._db.execute(sql, args) as cursor:
+            return [JournalEvent(row["seq"], row["ts"], row["kind"], row["key"], json.loads(row["payload"]))
+                    async for row in cursor]
+
     async def last_seq(self) -> int:
         async with self._db.execute("SELECT COALESCE(MAX(seq), 0) AS seq FROM events") as cursor:
             row = await cursor.fetchone()
         return int(row["seq"])
 
-    # -- intents --------------------------------------------------------------
+    # -- submission identity --------------------------------------------------
 
-    async def record_intent(
-        self,
-        request: OrderRequest,
-        *,
-        client_order_id: str,
-        venue: str,
-        account: Account,
-        operation: str = "create",
-        target_order_id: str | None = None,
-    ) -> Intent:
-        """Write what the engine is about to do, before it does it."""
+    async def submission(self, client_order_id: str) -> dict[str, Any] | None:
+        async with self._db.execute("SELECT * FROM submissions WHERE client_order_id=?", (client_order_id,)) as cursor:
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        result = dict(row)
+        for field in ("request", "effective_request", "error"):
+            result[field] = json.loads(result[field]) if result[field] else None
+        return result
+
+    async def record_submission(self, original: OrderRequest, effective: OrderRequest,
+                                *, venue: str, account: Account) -> None:
+        """Reserve the instruction and its audit event in one transaction."""
         stamp = now_ms()
-        body = request.model_dump(mode="json")
+        identity = request_identity(original)
         async with self._write:
             await self._db.execute("BEGIN IMMEDIATE")
             try:
-                await self._db.execute(
-                    """INSERT INTO intents(client_order_id, state, operation, venue, account_key, market_id,
-                                           order_id, target_order_id, book, trader, attempts, request, detail,
-                                           created_ts, updated_ts)
-                       VALUES(?,?,?,?,?,?,NULL,?,?,?,0,?,NULL,?,?)
-                       ON CONFLICT(client_order_id) DO NOTHING""",
-                    (client_order_id, IntentState.PLANNED, operation, venue, account.key, request.market_id,
-                     target_order_id, request.book, request.trader, _dump(body), stamp, stamp),
+                cursor = await self._db.execute(
+                    "INSERT INTO submissions(client_order_id,user_id,account_key,venue,request,effective_request,created_ts,updated_ts) "
+                    "VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(client_order_id) DO NOTHING",
+                    (original.client_order_id, original.user_id, account.key, venue,
+                     _dump(identity), _dump(effective.model_dump(mode="json")), stamp, stamp),
                 )
-                await self._db.execute(
-                    "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
-                    (stamp, "intent.planned", client_order_id,
-                     _dump({"operation": operation, "venue": venue, "account": account.key, "request": body,
-                            "target_order_id": target_order_id})),
-                )
+                if cursor.rowcount:
+                    await self._db.execute(
+                        "INSERT INTO events(ts,kind,key,payload) VALUES(?,?,?,?)",
+                        (stamp, "submission.reserved", original.client_order_id,
+                         _dump({"user_id": original.user_id, "account": account.key, "venue": venue,
+                                "request": identity, "effective_request": effective.model_dump(mode="json")})),
+                    )
+                else:
+                    async with self._db.execute("SELECT request FROM submissions WHERE client_order_id=?",
+                                                (original.client_order_id,)) as existing_cursor:
+                        existing = await existing_cursor.fetchone()
+                    if json.loads(existing["request"]) != identity:
+                        raise BadRequest("client_order_id already identifies a different durable instruction")
                 await self._db.execute("COMMIT")
             except BaseException:
                 await self._db.execute("ROLLBACK")
                 raise
-        return await self.intent(client_order_id)  # type: ignore[return-value]
+
+    async def reject_submission(self, client_order_id: str, error: dict[str, Any]) -> None:
+        async with self._write:
+            await self._db.execute("BEGIN IMMEDIATE")
+            try:
+                stamp = now_ms()
+                result = await self._db.execute(
+                    "UPDATE submissions SET state='rejected', error=?, updated_ts=? WHERE client_order_id=? AND result_id IS NULL",
+                    (_dump(error), stamp, client_order_id),
+                )
+                if result.rowcount:
+                    await self._db.execute(
+                        "INSERT INTO events(ts,kind,key,payload) VALUES(?,?,?,?)",
+                        (stamp, "submission.rejected", client_order_id, _dump(error)),
+                    )
+                await self._db.execute("COMMIT")
+            except BaseException:
+                await self._db.execute("ROLLBACK")
+                raise
+
+    # -- intents --------------------------------------------------------------
+
+    async def record_intent(self, request: OrderRequest, *, client_order_id: str,
+                            venue: str, account: Account, operation: str = "create",
+                            target_order_id: str | None = None) -> Intent:
+        """Commit an instruction and its pending side effect before sending."""
+        async with self._write:
+            await self._db.execute("BEGIN IMMEDIATE")
+            try:
+                await self._write_intent(request, client_order_id=client_order_id, venue=venue,
+                                         account=account, operation=operation,
+                                         target_order_id=target_order_id, stamp=now_ms())
+                await self._db.execute("COMMIT")
+            except BaseException:
+                await self._db.execute("ROLLBACK")
+                raise
+        return await self.intent(client_order_id)
+
+    async def _write_intent(self, request: OrderRequest, *, client_order_id: str,
+                            venue: str, account: Account, operation: str = "create",
+                            target_order_id: str | None = None, stamp: int) -> None:
+        body = request.model_dump(mode="json")
+        await self._db.execute(
+            """INSERT INTO intents(client_order_id, state, operation, venue, account_key, market_id,
+                                   order_id, target_order_id, book, trader, attempts, request, detail,
+                                   created_ts, updated_ts)
+               VALUES(?,?,?,?,?,?,NULL,?,?,?,0,?,NULL,?,?)
+               ON CONFLICT(client_order_id) DO NOTHING""",
+            (client_order_id, IntentState.PLANNED, operation, venue, account.key, request.market_id,
+             target_order_id, request.book, request.trader, _dump(body), stamp, stamp),
+        )
+        if operation == "create":
+            await self._order_records.write_request(
+                request, venue=venue, account_key=account.key, client_order_id=client_order_id,
+                user_id=request.user_id or self.user_id, stamp=stamp,
+            )
+        await self._db.execute(
+            "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
+            (stamp, "intent.planned", client_order_id,
+             _dump({"operation": operation, "venue": venue, "account": account.key, "request": body,
+                    "target_order_id": target_order_id})),
+        )
 
     async def mark_intent(
         self,
@@ -587,6 +775,13 @@ class Journal:
                      order.parent_id or order.tags.get("parent"), _dump(body),
                      order.created_at or stamp, stamp),
                 )
+                if order.held_by.value == "venue":
+                    await self._order_records.write_order(order, stamp=stamp)
+                await self._db.execute(
+                    "UPDATE submissions SET result_id=?, state='accepted', updated_ts=? "
+                    "WHERE client_order_id=? AND user_id=? AND account_key=?",
+                    (order.id, stamp, order.client_order_id, order.user_id, account_key),
+                )
                 await self._db.execute(
                     "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
                     (stamp, event, f"{order.venue}:{order.id}", _dump(body)),
@@ -655,6 +850,35 @@ class Journal:
         async with self._db.execute(sql + " ORDER BY updated_ts", args) as cursor:
             return [Order.model_validate(json.loads(row["payload"])) async for row in cursor]
 
+    async def orders_page(self, *, venue: str | None = None, book: str | None = None, market_id: str | None = None,
+                          since_ts: int | None = None, before: tuple[int, str, str] | None = None,
+                          open_only: bool = False, limit: int | None = 100) -> list[tuple[Order, tuple[int, str, str]]]:
+        """Orders in any state, venue orders and engine-held parents alike,
+        newest first by creation, each with its paging key `(created_ts, venue,
+        id)`. `before` is the key of the last row of the previous page; the key
+        is unique, so paging never repeats or skips a row. `open_only` keeps
+        the non-terminal ones; `limit=None` returns every match. Served by the
+        `orders_recent` and `orders_market_recent` indexes."""
+        sql = "SELECT payload, created_ts, venue, id FROM orders WHERE " + ("terminal=0" if open_only else "1=1")
+        args: list[Any] = []
+        for column, value in (("venue", venue), ("book", book), ("market_id", market_id)):
+            if value is not None:
+                sql += f" AND {column}=?"
+                args.append(value)
+        if since_ts is not None:
+            sql += " AND created_ts >= ?"
+            args.append(since_ts)
+        if before is not None:
+            sql += " AND (created_ts, venue, id) < (?, ?, ?)"
+            args.extend(before)
+        sql += " ORDER BY created_ts DESC, venue DESC, id DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            args.append(limit)
+        async with self._db.execute(sql, args) as cursor:
+            return [(Order.model_validate(json.loads(row["payload"])), (int(row["created_ts"]), row["venue"], row["id"]))
+                    async for row in cursor]
+
     async def fills(self, *, since_ts: int | None = None, venue: str | None = None, book: str | None = None) -> list[Fill]:
         """Fills as recorded. The strategy that placed the order is carried in
         `info["book"]`, because a venue's fill does not know about books and
@@ -709,15 +933,16 @@ class Journal:
                 await self._db.execute("DELETE FROM bucket_members WHERE bucket_id=?", (bucket["id"],))
                 for position, member in enumerate(members):
                     await self._db.execute(
-                        "INSERT INTO bucket_members(bucket_id, market_id, flip, position) VALUES(?,?,?,?)",
-                        (bucket["id"], member["market_id"], 1 if member.get("flip") else 0, position),
+                        "INSERT INTO bucket_members(bucket_id, market_id, flip, enabled, position) VALUES(?,?,?,?,?)",
+                        (bucket["id"], member["market_id"], 1 if member.get("flip") else 0,
+                         0 if member.get("enabled") is False else 1, position),
                     )
                 await self._db.execute(
                     "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
                     (stamp, "bucket.saved", bucket["id"], _dump(bucket)),
                 )
                 await self._db.execute("COMMIT")
-            except Exception:
+            except BaseException:
                 await self._db.execute("ROLLBACK")
                 raise
 
@@ -727,9 +952,10 @@ class Journal:
         if row is None:
             return None
         async with self._db.execute(
-            "SELECT market_id, flip FROM bucket_members WHERE bucket_id=? ORDER BY position", (bucket_id,)
+            "SELECT market_id, flip, enabled FROM bucket_members WHERE bucket_id=? ORDER BY position", (bucket_id,)
         ) as cursor:
-            members = [{"market_id": m["market_id"], "flip": bool(m["flip"])} async for m in cursor]
+            members = [{"market_id": m["market_id"], "flip": bool(m["flip"]), "enabled": bool(m["enabled"])}
+                       async for m in cursor]
         return {"id": row["id"], "book": row["book"], "name": row["name"], "status": row["status"],
                 "created_ms": row["created_ts"], "updated_ms": row["updated_ts"], "members": members}
 
@@ -763,9 +989,32 @@ class Journal:
     # -- engine-held orders ---------------------------------------------------
 
     async def save_managed(self, snapshot: dict[str, Any]) -> None:
-        """Write one engine-held order's whole state. Called on every change,
-        because a parent that is not on disk did not happen."""
-        stamp = now_ms()
+        """Commit the authoritative snapshot, shared projection and event."""
+        async with self._write:
+            await self._db.execute("BEGIN IMMEDIATE")
+            try:
+                await self._write_managed(snapshot, stamp=now_ms())
+                await self._db.execute("COMMIT")
+            except BaseException:
+                await self._db.execute("ROLLBACK")
+                raise
+
+    async def plan_managed_child(self, snapshot: dict[str, Any], request: OrderRequest,
+                                 *, venue: str, account: Account) -> None:
+        """The irreversible parent transition and child dispatch commit together."""
+        async with self._write:
+            await self._db.execute("BEGIN IMMEDIATE")
+            try:
+                stamp = now_ms()
+                await self._write_managed(snapshot, stamp=stamp)
+                await self._write_intent(request, client_order_id=request.client_order_id,
+                                         venue=venue, account=account, stamp=stamp)
+                await self._db.execute("COMMIT")
+            except BaseException:
+                await self._db.execute("ROLLBACK")
+                raise
+
+    async def _write_managed(self, snapshot: dict[str, Any], *, stamp: int) -> None:
         account = snapshot.get("account") or {}
         account_key: str | None
         if not account or not account.get("venue"):
@@ -776,31 +1025,30 @@ class Journal:
             account_key = str(account["venue"])
         request = snapshot.get("request") or {}
         children = snapshot.get("children") or []
-        async with self._write:
-            await self._db.execute("BEGIN IMMEDIATE")
-            try:
-                await self._db.execute(
-                    """INSERT INTO managed_orders(id, kind, state, account_key, market_id, book, trader,
-                                                  payload, child_order_id, created_ts, updated_ts)
-                       VALUES(?,?,?,?,?,?,?,?,?,?,?)
-                       ON CONFLICT(id) DO UPDATE SET state=excluded.state, payload=excluded.payload,
-                           child_order_id=excluded.child_order_id, updated_ts=excluded.updated_ts""",
-                    (snapshot["id"], snapshot.get("kind", ""), snapshot.get("state", ""), account_key,
-                     request.get("market_id", ""), request.get("book"), request.get("trader"),
-                     _dump(snapshot), children[-1]["order_id"] if children else None,
-                     int(snapshot.get("created_ms") or stamp), stamp),
-                )
-                await self._db.execute(
-                    "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
-                    (stamp, f"managed.{snapshot.get('state', 'updated')}", snapshot["id"], _dump(snapshot)),
-                )
-                await self._db.execute("COMMIT")
-            except BaseException:
-                await self._db.execute("ROLLBACK")
-                raise
+        await self._db.execute(
+            """INSERT INTO managed_orders(id, kind, state, account_key, market_id, book, trader,
+                                          payload, child_order_id, created_ts, updated_ts)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(id) DO UPDATE SET state=excluded.state, payload=excluded.payload,
+                   child_order_id=excluded.child_order_id, updated_ts=excluded.updated_ts""",
+            (snapshot["id"], snapshot.get("kind", ""), snapshot.get("state", ""), account_key,
+             request.get("market_id", ""), request.get("book"), request.get("trader"),
+             _dump(snapshot), children[-1]["order_id"] if children else None,
+             int(snapshot.get("created_ms") or stamp), stamp),
+        )
+        await self._order_records.write_managed(snapshot, user_id=self.user_id, stamp=stamp)
+        await self._db.execute(
+            "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
+            (stamp, f"managed.{snapshot.get('state', 'updated')}", snapshot["id"], _dump(snapshot)),
+        )
+        await self._db.execute(
+            "UPDATE submissions SET result_id=?, state='accepted', updated_ts=? "
+            "WHERE client_order_id=? AND user_id=?",
+            (snapshot["id"], stamp, request.get("client_order_id"), request.get("user_id")),
+        )
 
     async def managed(self, *, states: Iterable[str] | None = None) -> list[dict[str, Any]]:
-        sql = "SELECT payload FROM managed_orders"
+        sql = f"SELECT payload FROM ({MANAGED_SOURCE}) AS managed_source"
         args: list[Any] = []
         names = list(states or [])
         if names:
@@ -814,16 +1062,16 @@ class Journal:
         `(kind, snapshot)`, oldest first. A bucket's orders are found by
         `bucket:<id>`."""
         async with self._db.execute(
-            "SELECT kind, payload FROM managed_orders WHERE market_id=? ORDER BY created_ts", (market_id,)
+            f"SELECT kind, payload FROM ({MANAGED_SOURCE}) AS managed_source WHERE market_id=? ORDER BY created_ts", (market_id,)
         ) as cursor:
             return [(row["kind"], json.loads(row["payload"])) async for row in cursor]
 
     async def managed_one(self, parent_id: str) -> tuple[str, dict[str, Any]] | None:
-        async with self._db.execute("SELECT kind, payload FROM managed_orders WHERE id=?", (parent_id,)) as cursor:
+        async with self._db.execute(f"SELECT kind, payload FROM ({MANAGED_SOURCE}) AS managed_source WHERE id=?", (parent_id,)) as cursor:
             row = await cursor.fetchone()
         return (row["kind"], json.loads(row["payload"])) if row else None
 
-    # -- cursors, config, fair values ----------------------------------------
+    # -- cursors, config -----------------------------------------------------
 
     async def set_cursor(self, name: str, value: Any) -> None:
         async with self._write:
@@ -856,23 +1104,6 @@ class Journal:
         async with self._db.execute(sql, args) as cursor:
             row = await cursor.fetchone()
         return (int(row["version"]), json.loads(row["payload"])) if row else None
-
-    async def set_fair_value(self, account_key: str, market_id: str, value: Decimal, *, source: str | None = None) -> None:
-        async with self._write:
-            await self._db.execute(
-                "INSERT INTO fair_values(account_key, market_id, value, source, ts) VALUES(?,?,?,?,?) "
-                "ON CONFLICT(account_key, market_id) DO UPDATE SET value=excluded.value, source=excluded.source, ts=excluded.ts",
-                (account_key, market_id, str(value), source, now_ms()),
-            )
-
-    async def fair_values(self, account_key: str | None = None) -> dict[tuple[str, str], Decimal]:
-        sql = "SELECT account_key, market_id, value FROM fair_values"
-        args: list[Any] = []
-        if account_key is not None:
-            sql += " WHERE account_key=?"
-            args.append(account_key)
-        async with self._db.execute(sql, args) as cursor:
-            return {(row["account_key"], row["market_id"]): Decimal(row["value"]) async for row in cursor}
 
     # -- the single-writer lease ---------------------------------------------
 

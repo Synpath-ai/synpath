@@ -1,0 +1,30 @@
+{
+  "quotes": [
+    {
+      "id": "quote_01",
+      "rfqId": "rfq_01",
+      "creatorRfqUserId": "rfquser_maker",
+      "symbol": "caoc-example",
+      "status": "QUOTE_STATUS_EXECUTED",
+      "createdTime": "2026-07-29T14:00:00.200Z",
+      "buyPrice": "0.615",
+      "sellPrice": "0.585",
+      "restRemainder": false,
+      "postOnly": true,
+      "rfqCreatorUserId": "rfquser_me",
+      "rfqCashOrderQty": "10.0000",
+      "buyQtyDecimal": "16.26",
+      "sellQtyDecimal": "24.09",
+      "updatedTime": "2026-07-29T14:00:03.050Z",
+      "acceptedSide": "SIDE_BUY",
+      "acceptedTime": "2026-07-29T14:00:01Z",
+      "confirmationDeadline": "2026-07-29T14:00:04Z",
+      "confirmedTime": "2026-07-29T14:00:02Z",
+      "executionDeadline": "2026-07-29T14:00:03Z",
+      "executedTime": "2026-07-29T14:00:03.050Z",
+      "rfqCreatorOrderId": "ord_requester_01",
+      "creatorOrderId": "ord_maker_01"
+    }
+  ],
+  "cursor": ""
+}

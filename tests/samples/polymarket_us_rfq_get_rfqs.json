@@ -1,0 +1,38 @@
+{
+  "rfqs": [
+    {
+      "id": "rfq_01",
+      "cashOrderQty": "10.0000",
+      "symbol": "caoc-example",
+      "rfqCreatorUserId": "rfquser_me",
+      "createdTime": "2026-07-29T14:00:00Z",
+      "restRemainder": false,
+      "status": "RFQ_STATUS_OPEN",
+      "updatedTime": "2026-07-29T14:00:00Z",
+      "comboLegs": [
+        {
+          "symbol": "tec-mlb-nlchamp-2026-09-27-atl",
+          "side": "SIDE_BUY",
+          "settlementPrice": "0.4"
+        },
+        {
+          "symbol": "tec-mlb-alchamp-2026-09-27-nyy",
+          "side": "SIDE_SELL",
+          "settlementPrice": "0"
+        }
+      ],
+      "tickSize": 0.001
+    },
+    {
+      "id": "rfq_02",
+      "qtyDecimal": "25",
+      "symbol": "crossd-example",
+      "rfqCreatorUserId": "rfquser_other",
+      "createdTime": "2026-07-29T14:01:00Z",
+      "restRemainder": true,
+      "status": "RFQ_STATUS_OPEN",
+      "updatedTime": "2026-07-29T14:01:00Z"
+    }
+  ],
+  "cursor": ""
+}

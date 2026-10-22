@@ -13,14 +13,23 @@ One process, one event loop:
   streams, so stops see prices and parents hear their children fill;
 * **reconciliation**, the **end-of-day** close, **halt/resume** requests
   written by `synpath halt`, and a periodic status line;
-* the **HTTP API**: the read app at `/` and the trading app at `/trading`,
-  with `/trading/ws/events`.
+* the **combo boards** (`synpath.server.combo_warmer`): every combo venue's
+  board built at start-up and rebuilt each minute, so `/trading/combos/board`
+  never waits on a venue;
+* the **HTTP API**: the read app at `/` (with batch reads and search),
+  matching and tick history from Synpath's hosted services at `/matching`
+  and `/history` (serve holds the Synpath API key), live market data at
+  `/ws/market` (sharing the feeds' venue connections, and streaming a
+  bucket's merged book), and the trading app
+  at `/trading`, with `/trading/ws/events`. Every route except `/`, `/health`
+  and the API docs requires an access token.
 
 With no configuration it trades every venue whose credentials it finds and
 still serves market data if it finds none. The first start on a new control
 database creates an owner access token; that token makes every other.
-`SIGINT`/`SIGTERM` stop the HTTP server, apply the halt policy (cancel
-everything resting, by default), close the streams, release the lease.
+`SIGINT`/`SIGTERM` stop the HTTP server, preserve durable orders by
+default, close the streams, and release the lease. `halt_on_exit=true`
+explicitly applies the halt policy before shutdown.
 """
 from __future__ import annotations
 
@@ -29,7 +38,7 @@ import asyncio
 import logging
 import sys
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from . import local
 
@@ -74,6 +83,10 @@ class Stack:
     local_key: str | None = None
     """The access token on record in the local registry for this server's address."""
     extra_tasks: dict[str, Any] = field(default_factory=dict)
+    market_streams: Any | None = None
+    """The `/ws/market` hub: venue market connections shared with the feeds."""
+    combo_boards: Any | None = None
+    """Every combo venue's board, kept warm (`synpath.server.combo_warmer`); None with `[combo_board] warm = false`."""
 
 
 async def build(
@@ -88,21 +101,36 @@ async def build(
     host: str = "127.0.0.1",
     port: int = 8000,
     home_dir: str | None = None,
+    registry: Any | None = None,
+    market_stream_factory: Callable[[str], Any] | None = None,
+    hosted_http: Any | None = None,
 ) -> Stack:
-    """Assemble and start everything except the HTTP server. `adapters` and
-    `stream_map` let a test inject paper venues and fake streams."""
+    """Assemble and start everything except the HTTP server. `adapters`,
+    `stream_map`, `registry` (the read app's market-data adapters),
+    `market_stream_factory` (a venue's market stream for `/ws/market`, where
+    the engine has none) and `hosted_http` (the `httpx.Client` the matching and
+    history routes call Synpath's hosted services through) let a test inject
+    paper venues, fake streams and a mocked hosted API."""
     from ..engine.__main__ import build_adapters, risk_from
     from ..engine.engine import Engine, EngineConfig
     from ..engine.eod import EndOfDay
-    from ..engine.feeds import Feeds, default_streams
+    from ..engine.feeds import Feeds, default_streams, market_stream
     from ..engine.reconcile import Reconciler
     from ..trading.credentials import load_credentials, load_market_data
+    from fastapi import Depends
+
     from .api import VenueRegistry, create_app
+    from .bucket_books import BucketBooks
+    from .hosted_routes import add_hosted_routes
+    from .market_stream import MarketStreams, add_market_socket
     from .store import ControlStore
-    from .trading import create_trading_app
+    from .trading import caller, create_trading_app
 
     config = dict(config or {})
-    credentials = load_credentials(dotenv=dotenv) if adapters is None or (streams and stream_map is None) else {}
+    needs_credentials = adapters is None or (streams and (stream_map is None or market_stream_factory is None))
+    credentials = load_credentials(dotenv=dotenv) if needs_credentials else {}
+    # Always loaded, injected adapters or not: the API keys alone open the
+    # market streams and the read app's keyed reads.
     market_data = load_market_data(dotenv=dotenv)
     if adapters is None:
         config = venues_config(config, credentials)
@@ -112,6 +140,10 @@ async def build(
                         "Run `synpath doctor` to see what is missing.")
     engine_config = EngineConfig(
         journal_path=config.get("journal", journal),
+        storage_backend=config.get("storage_backend", "sqlite"),
+        storage_schema=config.get("storage_schema", "public"),
+        session_timezone=config.get("session_timezone", "Europe/London"),
+        session_end=config.get("session_end", "23:59:59"),
         poll_interval_s=float(config.get("poll_interval_s", 5)),
         reconcile_interval_s=float(config.get("reconcile_interval_s", 60)),
         sweep_interval_s=float(config.get("sweep_interval_s", 10)),
@@ -120,8 +152,14 @@ async def build(
     )
     engine = Engine(adapters, engine_config, risk=risk_from(config))
     feeds = None
-    if streams and config.get("streams", True):
-        feeds = Feeds(engine, stream_map if stream_map is not None else default_streams(adapters, credentials, market_data))
+    streaming = streams and config.get("streams", True)
+    if streaming:
+        feeds = Feeds(engine, stream_map if stream_map is not None
+                      else default_streams(adapters, credentials, market_data))
+    market_streams = MarketStreams(
+        market_stream_factory or (lambda venue: market_stream(venue, credentials.get(venue) or market_data.get(venue))),
+        feeds=feeds, enabled=bool(streaming), book_interval_s=float(config.get("book_interval_s", 0.1)),
+    )
     reconciler = Reconciler(engine, orphan_policy=config.get("orphan_policy", "report"))
     eod = EndOfDay(engine, hour_utc=int(config.get("eod_hour_utc", 0)))
 
@@ -133,15 +171,55 @@ async def build(
         owner_key = issued.secret
     # Leave the token where clients on this machine find it (synpath.server.local).
     stack_key = local.remember(host, port, control=config.get("control", control),
-                               journal=engine_config.journal_path, key=owner_key, home_dir=home_dir)
+                               journal=engine.journal.path, key=owner_key, home_dir=home_dir)
     if feeds is not None:
         await feeds.start()
 
-    app = create_app(registry=VenueRegistry(options=read_options(market_data)))
-    app.mount("/trading", create_trading_app(engine, store))
+    # The market-data routes take the same access token as /trading: the
+    # read app's dependency hook gets `caller`, which finds the control store
+    # on this (root) app. Its adapters get serve's own market-data API keys.
+    if registry is None:
+        registry = VenueRegistry(options=read_options(market_data))
+    app = create_app(registry=registry, dependencies=[Depends(caller)])
+    app.state.control = store
+    # Matching and tick history: serve calls Synpath's hosted services with
+    # its own Synpath API key, so its clients need none.
+    add_hosted_routes(app, [Depends(caller)])
+    app.state.hosted_http = hosted_http
+    add_market_socket(app, market_streams)
+    # Buckets: the merged book on /ws/market and the router preview on
+    # /trading share one fee cache and read members' books from the hub.
+    bucket_books = BucketBooks(engine, app.state.registry, market_streams)
+    market_streams.buckets = bucket_books
+    trading_app = create_trading_app(engine, store)
+    trading_app.state.market_streams = market_streams
+    trading_app.state.bucket_books = bucket_books
+    # The combo board and group previews read leg markets and quotes from the
+    # same catalogue as the read app.
+    trading_app.state.registry = app.state.registry
+    combo_boards = combo_board_warmer(engine, app.state.registry, config)
+    if combo_boards is not None:
+        # The board routes answer from it, never waiting on a build; the RFQ
+        # groups name the legs a venue lacks by its boards' picks.
+        trading_app.state.combo_boards = combo_boards
+        engine.rfq_groups.labeler = combo_boards.labels_for
+    app.mount("/trading", trading_app)
     app.state.trading_path = "/trading"
     return Stack(engine=engine, feeds=feeds, store=store, app=app, reconciler=reconciler, eod=eod,
-                 config=config, owner_key=owner_key, local_key=stack_key)
+                 config=config, owner_key=owner_key, local_key=stack_key, market_streams=market_streams,
+                 combo_boards=combo_boards)
+
+
+def combo_board_warmer(engine: Any, registry: Any, config: dict[str, Any]) -> Any | None:
+    """The combo board warmer `[combo_board]` configures (on by default)."""
+    from .combo_warmer import PAUSE_S, REFRESH_INTERVAL_S, ComboBoardWarmer
+
+    section = dict(config.get("combo_board") or {})
+    if not section.get("warm", True):
+        return None
+    return ComboBoardWarmer(engine, registry,
+                            refresh_interval_s=float(section.get("refresh_interval_s", REFRESH_INTERVAL_S)),
+                            pause_s=float(section.get("pause_s", PAUSE_S)))
 
 
 def background(stack: Stack) -> dict[str, Any]:
@@ -156,16 +234,22 @@ def background(stack: Stack) -> dict[str, Any]:
     loops["control"] = _control_loop(engine, asyncio.Event())
     loops["eod"] = stack.eod.loop()
     loops["status"] = _status_loop(engine, float(stack.config.get("status_interval_s", 60)))
+    if stack.combo_boards is not None and stack.combo_boards.venues():
+        loops["combo_boards"] = stack.combo_boards.loop()
     return loops
 
 
 async def shutdown(stack: Stack) -> None:
     engine = stack.engine
-    if stack.config.get("halt_on_exit", True) and engine.running:
+    if stack.config.get("halt_on_exit", False) and engine.running:
         try:
             await engine.halt("the server is shutting down", policy=engine.config.halt_policy)
         except Exception:
             log.exception("synpath serve: halting on exit failed")
+    if stack.combo_boards is not None:
+        await stack.combo_boards.close()
+    if stack.market_streams is not None:
+        await stack.market_streams.close()
     if stack.feeds is not None:
         await stack.feeds.close()
     await engine.stop()
@@ -202,10 +286,10 @@ async def serve(args: argparse.Namespace) -> int:
     elif stack.owner_key:
         print("\n  A new control database: this is the owner access token. It is shown once.\n"
               f"    {stack.owner_key}\n"
-              "  Send it as `Authorization: Bearer <token>` to /trading; it can issue every other token.\n")
+              "  Send it as `Authorization: Bearer <token>` on every route; it can issue every other token.\n")
     if args.host not in ("127.0.0.1", "localhost", "::1"):
-        print(f"warning: binding to {args.host}. The market-data routes at / have no authentication; "
-              "/trading requires an access token. Put a proxy with TLS in front of anything public.")
+        print(f"warning: binding to {args.host}. Every route except /, /health and the API docs requires an access "
+              "token, but it travels in clear text over plain HTTP. Put a proxy with TLS in front of anything public.")
 
     server = uvicorn.Server(uvicorn.Config(stack.app, host=args.host, port=args.port, log_level=args.log_level.lower()))
     loop = asyncio.get_running_loop()
@@ -219,8 +303,8 @@ async def serve(args: argparse.Namespace) -> int:
         task.add_done_callback(_died)
 
     engine = stack.engine
-    print(f"synpath serving on http://{args.host}:{args.port} (trading at /trading), "
-          f"venues: {', '.join(sorted(engine.adapters)) or 'none'}, journal: {engine.config.journal_path}")
+    print(f"synpath serving on http://{args.host}:{args.port} (live market data at /ws/market, trading at /trading), "
+          f"venues: {', '.join(sorted(engine.adapters)) or 'none'}, journal: {engine.journal.path}")
     try:
         await server.serve()
     finally:
@@ -234,7 +318,7 @@ async def serve(args: argparse.Namespace) -> int:
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="synpath serve", description="Run the engine, the venues' streams and the "
-                                "HTTP API (market data at /, trading at /trading) in one process.")
+                                "HTTP API (market data at / and /ws/market, trading at /trading) in one process.")
     p.add_argument("--host", default="127.0.0.1", help="default: 127.0.0.1")
     p.add_argument("--port", type=int, default=8000, help="default: 8000")
     p.add_argument("--config", default=None, help="TOML or JSON: venues, risk, journal. Optional")

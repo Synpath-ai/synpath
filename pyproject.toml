@@ -26,7 +26,7 @@ classifiers = [
 # `pip install synpath` is the whole install: the read API (httpx, pydantic),
 # order entry and streams (the venues' signing stacks and WebSockets), the
 # execution engine (aiosqlite for its journal) and the REST server (FastAPI,
-# uvicorn). Only the Polymarket US exchange gRPC streams stay optional.
+# uvicorn). PostgreSQL storage and Polymarket US exchange gRPC streams stay optional.
 dependencies = [
     "httpx>=0.27",
     "pydantic>=2.6",
@@ -35,6 +35,8 @@ dependencies = [
     "PyJWT[crypto]>=2.8",
     "websockets>=13",
     "aiosqlite>=0.20",
+    "SQLAlchemy[asyncio]>=2.0,<3",
+    "alembic>=1.13,<2",
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "tomli>=2.0; python_version < '3.11'",   # tomllib is in the standard library from 3.11
@@ -48,6 +50,7 @@ synpath = "synpath.__main__:main"
 # `trading`, `ws`, `engine` and `server` are kept as empty extras so an
 # existing `pip install synpath[trading]` keeps working; everything they used
 # to add is in the base dependencies now.
+postgres = ["psycopg[binary]>=3.2,<4"]
 trading = []
 ws = []
 engine = []

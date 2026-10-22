@@ -32,9 +32,9 @@ class TestCapabilityKeys:
     def test_every_read_adapter_answers_every_trading_key_with_false(self):
         trading = [key for key in CAPABILITIES if key in (
             "create_order", "cancel_order", "edit_order", "fetch_balance", "fetch_positions",
-            "fetch_open_orders", "watch_orders", "rfq", "split_merge",
+            "fetch_open_orders", "watch_orders", "rfq", "rfq_taker", "rfq_quoter", "combos", "split_merge",
         )]
-        assert len(trading) == 9
+        assert len(trading) == 12
         for venue in synpath.exchanges.values():
             for key in trading:
                 assert venue.has[key] is False, (venue.id, key)

@@ -165,7 +165,7 @@ class TWAP(ManagedOrder):
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         await self.complete_if_done(ctx)
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         if self.state != "working" or not order.is_terminal:
             return
         if self.remaining <= 0:

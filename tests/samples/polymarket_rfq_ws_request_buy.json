@@ -1,0 +1,19 @@
+{
+  "type": "RFQ_REQUEST",
+  "rfq_id": "rfq_in_1",
+  "requestor_public_id": "req_public_2",
+  "leg_position_ids": [
+    "101",
+    "202"
+  ],
+  "condition_id": "0x03ababababababababababababababababababababababababababababababab",
+  "yes_position_id": "789",
+  "no_position_id": "790",
+  "direction": "BUY",
+  "side": "YES",
+  "requested_size": {
+    "unit": "notional",
+    "value_e6": "1000000"
+  },
+  "submission_deadline": 4102444800000
+}
