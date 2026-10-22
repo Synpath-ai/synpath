@@ -189,6 +189,9 @@ async def build(
     trading_app = create_trading_app(engine, store)
     trading_app.state.market_streams = market_streams
     trading_app.state.bucket_books = bucket_books
+    # The combo board and group previews read leg markets and quotes from the
+    # same catalogue as the read app.
+    trading_app.state.registry = app.state.registry
     app.mount("/trading", trading_app)
     app.state.trading_path = "/trading"
     return Stack(engine=engine, feeds=feeds, store=store, app=app, reconciler=reconciler, eod=eod,

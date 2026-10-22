@@ -50,7 +50,7 @@ from .money import D, complement, validate_quantity, validate_price
 from .types import (
     Account, Balance, EditRequest, FeeEstimate, Order, OrderRequest, OrderStatus, OrderType, Position,
     PositionSide, Precision, Settlement, Side, TimeInForce, VENUE_ORDER_TYPES,
-    AcceptQuote, Combo, ComboLeg, MakerQuote, QuoteStatus, Rfq, RfqCloseReason, RfqQuote, RfqStatus,
+    AcceptQuote, Combo, ComboLeg, ComboMarket, MakerQuote, QuoteStatus, Rfq, RfqCloseReason, RfqQuote, RfqStatus,
 )
 
 log = logging.getLogger("synpath.trading.polymarket_us")
@@ -491,6 +491,39 @@ def combo_of(raw: dict[str, Any]) -> Combo:
         created_at=parse_ts(raw.get("createdTime")),
         info=raw,
     )
+
+
+COMBO_EVENTS_PAGE = 50
+"""Events read per page of `fetch_combo_eligible_markets` when no limit is given."""
+
+
+def combo_markets_of(event: dict[str, Any]) -> list[ComboMarket]:
+    """The `comboEnabled` markets of one gateway event (`GET /v1/events`,
+    markets nested). The venue's own status rides along; whether a leg is
+    tradable now is the venue's answer to `POST /v1/combos`."""
+    slug = str(event.get("slug") or "")
+    tags = [str(t.get("slug") or t.get("label") or "") if isinstance(t, dict) else str(t)
+            for t in event.get("tags") or []]
+    out: list[ComboMarket] = []
+    for market in event.get("markets") or []:
+        if not market.get("comboEnabled"):
+            continue
+        symbol = str(market.get("slug") or "")
+        if not symbol:
+            continue
+        out.append(ComboMarket(
+            market_id=ids.qualify(VENUE, symbol),
+            venue=VENUE,
+            title=market.get("question") or symbol,
+            event_id=ids.qualify(VENUE, slug) if slug else None,
+            event_title=event.get("title") or None,
+            min_legs=2,
+            max_legs=MAX_COMBO_LEGS,
+            status=market.get("status") or None,
+            tags=[t for t in tags if t],
+            info={**market, "event": {k: v for k, v in event.items() if k != "markets"}},
+        ))
+    return out
 
 
 def rfq_of(raw: dict[str, Any], *, me: str | None = None, mine: bool | None = None, account: Account | None = None) -> Rfq:
@@ -969,12 +1002,16 @@ class PolymarketUSTrading(TradingExchange):
 
     # -- combos ---------------------------------------------------------------
 
-    async def create_combo(self, legs: list[ComboLeg]) -> Combo:
+    async def create_combo(self, legs: list[ComboLeg], *, collection_id: str | None = None) -> Combo:
         """`POST /v1/combos`: the canonical combo for these legs. The same legs
         always give the same symbol, and returning an existing combo does not
         use the weekly quota of 1,000 new ones, so this is idempotent. Legs
         the venue cannot combine (incompatible, redundant, not tradable) are
-        `InvalidOrder` with the venue's message."""
+        `InvalidOrder` with the venue's message. The venue has no
+        collections, so a `collection_id` is refused before anything is sent."""
+        if collection_id is not None:
+            raise InvalidOrder(f"polymarket_us: combos are not built in collections; drop collection_id "
+                               f"({collection_id!r})")
         if not 2 <= len(legs) <= MAX_COMBO_LEGS:
             raise InvalidOrder(f"polymarket_us: a combo has 2 to {MAX_COMBO_LEGS} legs, got {len(legs)}")
         wire = [leg_to_wire(leg) for leg in legs]
@@ -990,6 +1027,33 @@ class PolymarketUSTrading(TradingExchange):
         if not found or not found.get("id"):
             raise ExchangeError("polymarket_us: create combo returned no combo", body=raw)
         return combo_of(found)
+
+    async def fetch_combo_eligible_markets(
+        self, *, event_id: str | None = None, tag: str | None = None,
+        limit: int | None = None, cursor: str | None = None,
+    ) -> Page[ComboMarket]:
+        """The combo-enabled markets (`comboEnabled`), from the public
+        gateway's open events (`GET /v1/events`, markets nested), newest
+        event first. The venue has no combo filter, so `limit` counts the
+        events read (default 50) and each page holds their combo-enabled
+        markets, possibly none. `event_id` (`polymarket_us:<event slug>`) and
+        `tag` (a tag slug, such as `nfl`) are the venue's own filters. The
+        cursor is an offset: an event listed mid-walk can repeat a row on the
+        next page."""
+        wanted = limit or COMBO_EVENTS_PAGE
+        try:
+            offset = int(cursor) if cursor else 0
+        except ValueError:
+            raise BadRequest(f"polymarket_us: not a cursor from this list: {cursor!r}") from None
+        raw = await self.gateway.get("/v1/events", {
+            "limit": wanted, "offset": offset or None, "active": "true", "closed": "false",
+            "orderBy": "id", "orderDirection": "desc",
+            "slug": ids.native(VENUE, event_id) if event_id else None, "tagSlug": tag,
+        })
+        events = (raw or {}).get("events") or []
+        rows = [row for event in events for row in combo_markets_of(event)]
+        more = len(events) >= wanted and not event_id
+        return Page(rows, next_cursor=str(offset + len(events)) if more else None)
 
     async def fetch_combo(self, combo_id: str) -> Combo:
         """`GET /v1/combos?symbol=`, the exact symbol."""

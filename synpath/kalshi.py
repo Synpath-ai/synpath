@@ -1023,6 +1023,15 @@ class Kalshi(Exchange):
                         event["markets"] = [*(event["markets"] or []), raw]
         return {ticker: normalize_event(raw) for ticker, raw in raw_events.items()}
 
+    def fetch_events_by_ids(self, event_ids: list[str]) -> list[Event]:
+        """Many events with their markets nested, in the order asked for
+        (`GET /events?tickers=`, batched). Ids the venue does not serve are
+        left out, as `fetch_markets_by_ids` leaves out closed markets. The
+        combo board reads a collection's events this way."""
+        tickers = [ids.native(VENUE, event_id) if ":" in event_id else event_id for event_id in event_ids]
+        found = self._raw_events_by_ticker(tickers)
+        return [normalize_event(found[ticker]) for ticker in dict.fromkeys(tickers) if ticker in found]
+
     def _raw_events_by_ticker(self, tickers: list[str]) -> dict[str, dict[str, Any]]:
         """The venue's event records with nested markets, keyed by ticker."""
         unique = list(dict.fromkeys(tickers))

@@ -507,10 +507,36 @@ class TestCombos:
         two["multivariate_contracts"].append({**two["multivariate_contracts"][0], "collection_ticker": "KXMVEOTHER-R"})
         venue.get("/multivariate_event_collections").mock(side_effect=[
             httpx.Response(200, json=two), httpx.Response(200, json={"multivariate_contracts": []})])
-        with pytest.raises(InvalidOrder, match="several"):
+        with pytest.raises(InvalidOrder, match="2 open collections") as refused:
             await kalshi.create_combo(legs())
+        assert f"{COLL}, KXMVEOTHER-R" in str(refused.value) and "collection_id" in str(refused.value)
+        assert refused.value.collections == [COLL, "KXMVEOTHER-R"]
         with pytest.raises(InvalidOrder, match="no open collection"):
             await kalshi.create_combo(legs())
+
+    async def test_the_three_live_collections_are_ambiguous_until_named(self, kalshi, venue):
+        """Kalshi's three open collections take the same events (2026-10-22),
+        so legs alone never pick one; naming it skips the listing."""
+        three = sample("get_collections")
+        row = three["multivariate_contracts"][0]
+        names = ["KXMVESPORTSMULTIGAMEEXTENDED-R", "KXMVECROSSCATEGORY-R", "KXMVECROSSCATEGORY-SHARD1-R"]
+        three["multivariate_contracts"] = [{**row, "collection_ticker": n} for n in names]
+        listed = venue.get("/multivariate_event_collections").respond(json=three)
+        with pytest.raises(InvalidOrder, match="3 open collections") as refused:
+            await kalshi.create_combo(legs())
+        assert all(n in str(refused.value) for n in names)
+        made = venue.post(f"/multivariate_event_collections/{names[2]}").respond(json=sample("create_combo"))
+        before = listed.call_count
+        combo = await kalshi.create_combo(legs(), collection_id=names[2])
+        assert made.called and listed.call_count == before, "a named collection is used as given"
+        assert combo.collection_id in (names[2], COLL)
+
+    async def test_collections_always_carry_their_event_tickers(self, kalshi, venue):
+        bare = sample("get_collections")
+        del bare["multivariate_contracts"][0]["associated_event_tickers"]
+        venue.get("/multivariate_event_collections").respond(json=bare)
+        page = await kalshi.fetch_combo_collections()
+        assert page[0]["associated_event_tickers"] == [EVENT_A, EVENT_B]
 
     async def test_refused_legs_are_invalid(self, kalshi, venue):
         venue.post(f"/multivariate_event_collections/{COLL}").respond(

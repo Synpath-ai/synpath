@@ -63,6 +63,7 @@ from .orders import ManagedOrders, as_gtd
 from .orders.manager import REGISTRY
 from .risk import Decision, HaltPolicy, RiskConfig, RiskEngine
 from .rfq import FOLLOWED, RFQ_OPERATIONS, RfqDesk
+from .rfq_group import Matcher, RfqGroupDesk
 
 log = logging.getLogger("synpath.engine")
 
@@ -188,6 +189,7 @@ class Engine:
         journal: JournalStore | None = None,
         accounts: Mapping[str, Account] | None = None,
         clock: Any = time.time,
+        matcher: Matcher | None = None,
     ):
         self.config = config or EngineConfig()
         self.adapters: dict[str, TradingExchange] = dict(adapters)
@@ -227,6 +229,9 @@ class Engine:
         self.market_master = MarketMaster()
         self.rfq = RfqDesk(self)
         """RFQs and combos, both sides (docs/rfq-combo.md); the methods below delegate to it."""
+        self.rfq_groups = RfqGroupDesk(self, matcher=matcher)
+        """Cross-venue RFQ groups over the desk (docs/rfq-combo.md, "Cross-venue RFQ"). `matcher`
+        maps a market onto another venue; by default the hosted matching service."""
 
     # -- lifecycle ------------------------------------------------------------
 
@@ -684,8 +689,35 @@ class Engine:
         """The maker's last look, through risk and the journal. See `RfqDesk.confirm_quote`."""
         return await self.rfq.confirm_quote(quote, rfq_id=rfq_id, venue=venue, wait=wait, timeout_s=timeout_s)
 
-    async def create_combo(self, legs: list[Any], *, venue: str | None = None) -> Any:
-        return await self.rfq.create_combo(legs, venue=venue)
+    async def create_combo(self, legs: list[Any], *, venue: str | None = None,
+                           collection_id: str | None = None) -> Any:
+        """The combo for these legs; `collection_id` names the collection on a
+        venue that builds combos in one (Kalshi). See `RfqDesk.create_combo`."""
+        return await self.rfq.create_combo(legs, venue=venue, collection_id=collection_id)
+
+    # -- cross-venue RFQ (docs/rfq-combo.md, "Cross-venue RFQ"; `engine.rfq_groups`) --
+
+    async def create_rfq_group(self, instrument_id: str | None = None, **kw: Any) -> Any:
+        """One RFQ on every venue that lists the instrument (a market with
+        `cross_venue=True`, a bucket, or a combo's legs), ranked as one. See
+        `RfqGroupDesk.create_group`."""
+        return await self.rfq_groups.create_group(instrument_id, **kw)
+
+    async def rfq_group(self, group_id: str) -> Any:
+        return await self.rfq_groups.get(group_id)
+
+    async def preview_rfq_group(self, instrument_id: str | None = None, **kw: Any) -> Any:
+        """Which venues `create_rfq_group` would ask, and why it would skip
+        the others, without creating anything. See `RfqGroupDesk.preview`."""
+        return await self.rfq_groups.preview(instrument_id, **kw)
+
+    async def accept_group_quote(self, group_id: str, quote_id: str, **kw: Any) -> Any:
+        """Take one quote of a group: the claim, every other member cancelled,
+        then the accept. See `RfqGroupDesk.accept_group_quote`."""
+        return await self.rfq_groups.accept_group_quote(group_id, quote_id, **kw)
+
+    async def cancel_rfq_group(self, group_id: str, *, reason: str = "canceled by the caller") -> Any:
+        return await self.rfq_groups.cancel_group(group_id, reason=reason)
 
     # -- halting --------------------------------------------------------------
 
@@ -771,6 +803,7 @@ class Engine:
             recovery.fills_replayed += 1
         self.risk.roll_day()
         await self.rfq.restore()
+        await self.rfq_groups.restore()
         for intent in await self.journal.in_doubt():
             recovery.in_doubt += 1
             outcome = await self._resolve(intent)
@@ -782,6 +815,9 @@ class Engine:
             else:
                 # Pending or unreachable: still in doubt, and reported as such.
                 recovery.unresolved += 1
+        # After the in-doubt pass, so a member create or accept resolved a
+        # moment ago is what its group sees.
+        await self.rfq_groups.reconcile_all()
         recovery.managed = await self.orders.restore()
         # After the in-doubt intents, so an order adopted a moment ago is in
         # the cache the risk rules count against.

@@ -196,6 +196,39 @@ class TestCombos:
         assert poly._positions["102"] == ("polymarket:1897034", "no")
         await poly.close()
 
+    async def test_eligible_markets_from_a_live_catalogue_page(self, mock):
+        """A trimmed real page (unauthenticated GET, 2026-10-22)."""
+        poly = make()
+        live = json.loads((Path(__file__).parent / "samples" / "polymarket_rfq_combo_markets_live.json").read_text())
+        route = mock.get(f"{API}/v1/rfq/combo-markets").mock(return_value=httpx.Response(200, json=live))
+        page = await poly.fetch_combo_eligible_markets(limit=2, cursor="OQ")
+        assert dict(route.calls[0].request.url.params) == {"limit": "2", "cursor": "OQ"}
+        first = page[0]
+        assert first.market_id == "polymarket:665374" and first.venue == "polymarket"
+        assert first.title == "Will the U.S. invade Iran before 2027?" and first.event_id is None
+        pids = live["markets"][0]["position_ids"]
+        assert first.position_ids == {"yes": pids[0], "no": pids[1]}
+        assert (first.min_legs, first.max_legs) == (prfq.MIN_LEGS, prfq.MAX_LEGS) and first.status == "open"
+        assert first.tags == ["politics", "iran", "trump"] and first.info["slug"] == "will-the-us-invade-iran-before-2027"
+        assert page.next_cursor == "OQ"
+        await poly.close()
+
+    async def test_eligible_markets_tag_filter_and_no_event_filter(self, mock):
+        from synpath.errors import BadRequest
+
+        poly = make()
+        route = mock.get(f"{API}/v1/rfq/combo-markets").mock(return_value=httpx.Response(200, json=sample("combo_markets")))
+        page = await poly.fetch_combo_eligible_markets(tag="Soccer")
+        assert [m.market_id for m in page] == ["polymarket:1897034"] and page.next_cursor == "Mg"
+        assert "tag" not in dict(route.calls[0].request.url.params), "the catalogue takes no filter"
+        with pytest.raises(BadRequest, match="does not name events"):
+            await poly.fetch_combo_eligible_markets(event_id="polymarket:123")
+        await poly.close()
+
+    async def test_a_collection_is_refused(self, poly):
+        with pytest.raises(InvalidOrder, match="not built in collections"):
+            await poly.create_combo(legs(), collection_id="KXMVECROSSCATEGORY-R")
+
     async def test_fetch_unknown_combo_and_no_lookup(self, poly):
         with pytest.raises(RfqNotFound):
             await poly.fetch_combo(COMBO_ID)

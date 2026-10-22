@@ -546,6 +546,17 @@ def leg_to_wire(leg: ComboLeg, event_ticker: str) -> dict[str, str]:
     return {"market_ticker": ticker_of(leg.market_id), "event_ticker": event_ticker, "side": leg.outcome}
 
 
+def with_event_tickers(collection: dict[str, Any]) -> dict[str, Any]:
+    """A collection row with `associated_event_tickers` always present: the
+    venue sends it beside `associated_events`, and it is filled from those
+    when it is missing."""
+    row = dict(collection)
+    if not row.get("associated_event_tickers"):
+        row["associated_event_tickers"] = [str(e.get("ticker")) for e in row.get("associated_events") or []
+                                           if e.get("ticker")]
+    return row
+
+
 def combo_of(market: dict[str, Any]) -> Combo:
     """A multivariate market (`GET /markets/{ticker}`, or the `market` of the
     create answer) as a `Combo`; its legs are `mve_selected_legs`."""
@@ -1210,7 +1221,7 @@ class KalshiTrading(TradingExchange):
             "status": status, "associated_event_ticker": ids.native(VENUE, event_id) if event_id else None,
             "series_ticker": series_id, "limit": limit, "cursor": cursor,
         })
-        rows = list((raw or {}).get("multivariate_contracts") or [])
+        rows = [with_event_tickers(row) for row in (raw or {}).get("multivariate_contracts") or []]
         return Page(rows, next_cursor=(raw or {}).get("cursor") or None)
 
     async def fetch_combo_collection(self, collection_id: str) -> dict[str, Any]:
@@ -1218,7 +1229,7 @@ class KalshiTrading(TradingExchange):
         found = (raw or {}).get("multivariate_contract")
         if not found:
             raise RfqNotFound(f"kalshi: no collection {collection_id!r}")
-        return dict(found)
+        return with_event_tickers(found)
 
     async def _event_of(self, leg: ComboLeg) -> str:
         """A leg's event ticker: `event_id` when given, else the market's own."""
@@ -1249,7 +1260,12 @@ class KalshiTrading(TradingExchange):
             return fits[0]
         if not fits:
             raise InvalidOrder(f"kalshi: no open collection takes events {', '.join(events)} as a {size}-leg combo")
-        raise InvalidOrder(f"kalshi: several collections take these legs ({', '.join(fits)}); pass collection_id")
+        exc = InvalidOrder(
+            f"kalshi: {len(fits)} open collections take these legs ({', '.join(fits)}); name one with "
+            "collection_id"
+        )
+        exc.collections = fits  # type: ignore[attr-defined]  # served as `details.collections`
+        raise exc
 
     async def create_combo(self, legs: list[ComboLeg], *, collection_id: str | None = None) -> Combo:
         """`POST /multivariate_event_collections/{collection}` with

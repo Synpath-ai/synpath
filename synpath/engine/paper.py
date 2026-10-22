@@ -556,6 +556,11 @@ class PaperMaker:
     report_side: Side | None = None
     """Report this side as the one accepted, whatever was asked (the venue
     getting the side wrong, for the engine's side guard)."""
+    ttl_s: float | None = None
+    """The quote's own expiry, seconds after it is made (`expires_at`, as
+    Polymarket global gives one); `None` gives none (Kalshi, Polymarket US)."""
+    delay_s: float = 0.0
+    """The quote arrives this long after the RFQ (seen on the next read past it)."""
 
 
 class PaperRfqVenue(PaperVenue):
@@ -578,8 +583,12 @@ class PaperRfqVenue(PaperVenue):
 
     def __init__(self, *, makers: Sequence[PaperMaker] = (), last_look_s: float = 3.0,
                  auto_advance: bool = False, maker_fill_ratio: Decimal = ONE, stream_incoming: bool = False,
-                 **kw: Any):
+                 rfq_ttl_s: float | None = None, **kw: Any):
         super().__init__(**kw)
+        self.rfq_ttl_s = rfq_ttl_s
+        """Our RFQs' expiry, seconds after the create (`Rfq.expires_at`); the
+        venue closes one as `expired` once past it. `None`: no expiry."""
+        self._delayed: list[tuple[int, Any, Any]] = []
         self.stream_incoming = stream_incoming
         """`True` pushes each `add_incoming_rfq` to `subscribe_incoming_rfqs`
         listeners at once, as a venue stream would; `False` leaves it to be polled."""
@@ -595,6 +604,8 @@ class PaperRfqVenue(PaperVenue):
         self.combos: dict[str, Any] = {}
         self.accepted: dict[str, dict[str, Any]] = {}
         self.calls: list[str] = []
+        self.combo_collections: list[str | None] = []
+        """The `collection_id` each `create_combo` was given."""
         self.quote_listeners: list[Callable[[Any], Any]] = []
         self.pending_quotes: list[Any] = []
         self._q = 0
@@ -627,6 +638,7 @@ class PaperRfqVenue(PaperVenue):
 
     async def deliver(self) -> list[Fill]:
         """Quote updates first (the execution), then fills and orders."""
+        self._expire()
         updates, self.pending_quotes = self.pending_quotes, []
         for quote in updates:
             for listener in list(self.quote_listeners):
@@ -650,16 +662,18 @@ class PaperRfqVenue(PaperVenue):
 
     # -- combos ---------------------------------------------------------------
 
-    async def create_combo(self, legs: list[Any]) -> Any:
+    async def create_combo(self, legs: list[Any], *, collection_id: str | None = None) -> Any:
         import hashlib
 
         from ..trading.types import Combo
 
         self.calls.append("create_combo")
+        self.combo_collections.append(collection_id)
         digest = hashlib.sha1("|".join(sorted(f"{l.market_id}={l.outcome}" for l in legs)).encode()).hexdigest()[:10]
         market_id = f"{self.venue}:combo-{digest}"
         combo = self.combos.get(market_id) or Combo(market_id=market_id, venue=self.venue, legs=list(legs),
-                                                    status="open", created_at=self._now())
+                                                    collection_id=collection_id, status="open",
+                                                    created_at=self._now())
         self.combos[market_id] = combo
         return combo
 
@@ -682,11 +696,39 @@ class PaperRfqVenue(PaperVenue):
         rfq = Rfq(id=self._next("prfq"), venue=self.venue, account=self.account,
                   market_id=None if on_combo else instrument_id, combo_id=instrument_id if on_combo else None,
                   combo=combo or self.combos.get(instrument_id), quantity=quantity, amount=amount,
-                  rest_remainder=rest_remainder, mine=True, created_at=self._now())
+                  rest_remainder=rest_remainder, mine=True, created_at=self._now(),
+                  expires_at=self._now() + int(self.rfq_ttl_s * 1000) if self.rfq_ttl_s is not None else None)
         self.rfqs[rfq.id] = rfq
         for maker in self.makers:
-            self._maker_quote(rfq, maker)
+            if maker.delay_s > 0:
+                self._delayed.append((self._now() + int(maker.delay_s * 1000), rfq.id, maker))
+            else:
+                self._maker_quote(rfq, maker)
         return rfq
+
+    def _expire(self) -> None:
+        """The venue's clock on the requester side: delayed quotes arrive, and
+        quotes and RFQs past their `expires_at` expire."""
+        from ..trading.types import QuoteStatus, RfqCloseReason, RfqStatus
+
+        now = self._now()
+        due = [d for d in self._delayed if d[0] <= now]
+        self._delayed = [d for d in self._delayed if d[0] > now]
+        for _, rfq_id, maker in due:
+            rfq = self.rfqs.get(rfq_id)
+            if rfq is not None and rfq.status == RfqStatus.OPEN:
+                self._maker_quote(rfq, maker)
+        for quote in list(self.quotes.values()):
+            if quote.status == QuoteStatus.OPEN and not quote.mine and quote.expires_at is not None \
+                    and quote.expires_at <= now:
+                self._set_quote(quote.model_copy(update={"status": QuoteStatus.EXPIRED, "updated_at": now}))
+        for rfq in list(self.rfqs.values()):
+            if rfq.mine and rfq.status == RfqStatus.OPEN and rfq.expires_at is not None and rfq.expires_at <= now:
+                self.rfqs[rfq.id] = rfq.model_copy(update={"status": RfqStatus.CLOSED,
+                                                           "closed_reason": RfqCloseReason.EXPIRED})
+                for quote in list(self.quotes.values()):
+                    if quote.rfq_id == rfq.id and quote.status == QuoteStatus.OPEN:
+                        self._set_quote(quote.model_copy(update={"status": QuoteStatus.EXPIRED, "updated_at": now}))
 
     def _maker_quote(self, rfq: Any, maker: PaperMaker) -> Any:
         from ..trading.types import RfqQuote
@@ -705,6 +747,7 @@ class PaperRfqVenue(PaperVenue):
             bid=maker.bid, ask=maker.ask,
             bid_quantity=size(maker.bid, ONE - maker.bid if maker.bid is not None else None),
             ask_quantity=size(maker.ask, maker.ask), created_at=self._now(), mine=False,
+            expires_at=self._now() + int(maker.ttl_s * 1000) if maker.ttl_s is not None else None,
             info={"maker": maker.name},
         )
         return self._set_quote(quote)
@@ -715,6 +758,7 @@ class PaperRfqVenue(PaperVenue):
     async def fetch_rfq(self, rfq_id: str) -> Any:
         from ..trading.errors import RfqNotFound
 
+        self._expire()
         if rfq_id not in self.rfqs:
             raise RfqNotFound(f"paper: no RFQ {rfq_id}")
         return self.rfqs[rfq_id]
@@ -739,12 +783,14 @@ class PaperRfqVenue(PaperVenue):
                 self._set_quote(quote.model_copy(update={"status": QuoteStatus.CANCELED}))
 
     async def fetch_quotes(self, rfq_id: str, *, status: Any = None) -> list[Any]:
+        self._expire()
         return [q for q in self.quotes.values() if q.rfq_id == rfq_id
                 and (status is None or q.status.value == getattr(status, "value", status))]
 
     async def fetch_quote(self, quote_id: str, *, rfq_id: str | None = None) -> Any:
         from ..trading.errors import RfqNotFound
 
+        self._expire()
         if quote_id not in self.quotes:
             raise RfqNotFound(f"paper: no quote {quote_id}")
         if self.auto_advance:
@@ -755,6 +801,7 @@ class PaperRfqVenue(PaperVenue):
         from ..trading.types import QuoteStatus
 
         self.calls.append("accept_quote")
+        self._expire()
         quote = self.quotes.get(accept.quote_id)
         if quote is None:
             from ..trading.errors import RfqNotFound

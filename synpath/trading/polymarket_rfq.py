@@ -83,7 +83,7 @@ from . import polymarket_v3_signing as v3
 from .errors import InsufficientFunds, InvalidOrder, OrderNotFound, OrderRejected, RfqNotFound
 from .limiter import Priority
 from .types import (
-    AcceptQuote, Combo, ComboLeg, Fill, Liquidity, MakerQuote, Order, OrderStatus, OrderType, QuoteStatus, Rfq,
+    AcceptQuote, Combo, ComboLeg, ComboMarket, Fill, Liquidity, MakerQuote, Order, OrderStatus, OrderType, QuoteStatus, Rfq,
     RfqCloseReason, RfqQuote, RfqStatus, SettlementState, Side, TimeInForce,
 )
 
@@ -171,6 +171,23 @@ def is_combo_id(market_id: str) -> bool:
         return ids.native(VENUE, market_id).startswith(COMBO_PREFIX)
     except BadRequest:
         return False
+
+
+def combo_market_of(row: dict[str, Any]) -> ComboMarket:
+    """One catalogue row (`GET /v1/rfq/combo-markets`). `position_ids[0]` is
+    the YES leg, `[1]` the NO leg."""
+    positions = [str(p) for p in row.get("position_ids") or []]
+    return ComboMarket(
+        market_id=ids.qualify(VENUE, str(row.get("id") or "")),
+        venue=VENUE,
+        title=row.get("title") or row.get("slug") or None,
+        position_ids=dict(zip(("yes", "no"), positions)) if len(positions) == 2 else None,
+        min_legs=MIN_LEGS,
+        max_legs=MAX_LEGS,
+        status="pending" if row.get("pending") else "open",
+        tags=[str(t) for t in row.get("tags") or []],
+        info=row,
+    )
 
 
 def sorted_legs(position_ids: list[str]) -> list[str]:
@@ -469,6 +486,14 @@ class PolymarketRfqSession:
 class PolymarketRfqMixin:
     """Combo RFQs on `PolymarketTrading`. See the module doc."""
 
+    rfq_requester_cancel = False
+    """The requester gateway has no cancel: `cancel_rfq` only drops the RFQ
+    here and it lapses at `expires_at`. Read by the engine's cross-venue
+    groups (`synpath.engine.rfq_group`), which record such a venue as left
+    to expire rather than cancelled."""
+    rfq_one_sided = True
+    """An RFQ asks one side (YES, `buy` by amount or `sell` by quantity)."""
+
     # Set by `PolymarketTrading.__init__` through `_init_rfq`.
     requester: AsyncHttpClient
     rfq_api: AsyncHttpClient
@@ -549,6 +574,23 @@ class PolymarketRfqMixin:
             self.remember_combo_market(row)
         return Page(rows, next_cursor=(raw or {}).get("next_cursor") or None)
 
+    async def fetch_combo_eligible_markets(
+        self, *, event_id: str | None = None, tag: str | None = None,
+        limit: int | None = None, cursor: str | None = None,
+    ) -> Page[ComboMarket]:
+        """`fetch_combo_markets` as typed rows: the catalogue's markets, by
+        volume, with their YES/NO position ids. The catalogue takes no
+        filter, so `tag` is applied to each page as it comes (a page can come
+        back short, or empty with a cursor), and `event_id` is refused: the
+        catalogue does not name events."""
+        if event_id is not None:
+            raise BadRequest("polymarket: the combo catalogue does not name events; filter by tag")
+        page = await self.fetch_combo_markets(limit=limit, cursor=cursor)
+        rows = [combo_market_of(row) for row in page]
+        if tag:
+            rows = [row for row in rows if tag.lower() in (t.lower() for t in row.tags)]
+        return Page(rows, next_cursor=page.next_cursor)
+
     async def leg_position_id(self, leg: ComboLeg) -> str:
         """A leg's position id: `leg.info["position_id"]`, else the index,
         else the market's Gamma row (`positionIds`, UNVERIFIED on `/markets/{id}`)."""
@@ -617,11 +659,15 @@ class PolymarketRfqMixin:
             self._combos[provisional_combo_id(legs)] = combo
         return combo
 
-    async def create_combo(self, legs: list[ComboLeg]) -> Combo:
+    async def create_combo(self, legs: list[ComboLeg], *, collection_id: str | None = None) -> Combo:
         """The combo for these legs. The venue has no create (an RFQ names a
         combo), so nothing is sent and no quota is used: each leg's position
         id is resolved, and the combo comes back under its venue id if an RFQ
-        has named it, else under its provisional id (module doc)."""
+        has named it, else under its provisional id (module doc). The venue
+        has no collections, so a `collection_id` is refused."""
+        if collection_id is not None:
+            raise InvalidOrder(f"polymarket: combos are not built in collections; drop collection_id "
+                               f"({collection_id!r})")
         if not MIN_LEGS <= len(legs) <= MAX_LEGS:
             raise InvalidOrder(f"polymarket: a combo has {MIN_LEGS} to {MAX_LEGS} legs, got {len(legs)}")
         if len({leg.market_id for leg in legs}) != len(legs):

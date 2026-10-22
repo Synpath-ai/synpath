@@ -70,7 +70,8 @@ adapter's cancel-all, reads the book back, and cancels anything still resting
 one order at a time. New orders are refused from the moment it engages.
 Policies are `cancel`, `hold` (leave them resting, refuse new ones) and
 `rearm` (refuse, then lift itself after a timer). With `cancel` it first
-cancels every open RFQ the engine asked and every quote it made.
+cancels every open cross-venue RFQ group's members, then every open RFQ the
+engine asked and every quote it made.
 
 ## The pieces
 
@@ -83,6 +84,7 @@ cancels every open RFQ the engine asked and every quote it made.
 | `ledger.py` | positions netted on the YES leg, average cost, realized and unrealized profit, rolled up by market, book and account |
 | `reconcile.py` | orphans, ghosts, drift, position and balance differences |
 | `rfq.py` | RFQs and combos, both sides: accept and confirm through risk and the journal, the quote follower, recovery, halt |
+| `rfq_group.py` | cross-venue RFQ: one RFQ per venue that lists a market, bucket or combo, one ranked list after fees, one accept per group (claimed in the journal), the rest cancelled |
 | `paper.py` | a venue that fills against a real book with queue position and the venue's fee model; `PaperRfqVenue` adds RFQs with configurable makers |
 | `alerts.py` | the few events worth waking someone for |
 | `eod.py` | settlements, the daily report, rolling the risk day |
@@ -353,6 +355,47 @@ quote = await engine.accept_quote(AcceptQuote(quote_id=q.id, rfq_id=rfq.id, outc
 - **A combo is an instrument.** Its own market id carries the order, fills,
   position, P&L and reconciliation; its legs are kept as `combo.saved` events
   and shown in `Position.info["combo"]`.
+
+### Cross-venue RFQ
+
+`engine.rfq_groups` (`rfq_group.py`) asks every venue that lists the same
+thing at once and ranks every answer as one list
+([design](rfq-combo.md#10-cross-venue-rfq)).
+
+```python
+group = await engine.create_rfq_group("bucket:9f2c...", quantity=Decimal("10"), book="arb")
+group = await engine.create_rfq_group("kalshi:KXFOO-25", amount=Decimal("100"), cross_venue=True)
+group = await engine.create_rfq_group(legs=[ComboLeg(market_id="kalshi:KXA-26-X", outcome="yes"),
+                                            ComboLeg(market_id="kalshi:KXB-26-Y", outcome="no")],
+                                      quantity=Decimal("10"))
+group.members, group.skipped          # one RFQ per venue; the venues left out, with reasons
+best = group.best()                   # ranked by effective price after each venue's taker fee
+done = await engine.accept_group_quote(group.id, best.quote_id, venue=best.venue, worst_price=Decimal("0.45"), wait=True)
+```
+
+- **Members.** A bucket's enabled members (with `flip`); a combo's legs
+  mapped onto each combo venue (by the leg's own venue, a bucket member, or
+  hosted matching with its `side_map`), checked for eligibility (Kalshi
+  collections, the Polymarket lists) and built there; a market and, with
+  `cross_venue=True`, its matches. Each member is a desk RFQ. Matching is
+  `Engine(..., matcher=...)`, by default `synpath.matching.match_market`.
+- **Ranking.** Every quote in the group's YES terms (a flipped member's bid
+  `b` is the group's ask `1 - b`), plus the venue's taker fee for the size
+  (`fetch_fee_estimate`), as the router prices a bucket. An amount ranks by
+  the contracts it buys after the fee. `rfq_group.quote` then
+  `rfq_group.updated` as quotes arrive.
+- **One accept.** `accept_group_quote` checks the accept first (nothing
+  written on a refusal), claims the group with the intent
+  `rfq-group-accept:{group}:{n}` (refused while an earlier attempt still
+  holds it), cancels every other member (Polymarket global's lapse instead),
+  then accepts through `accept_quote`. An accept that does not trade frees
+  the group for another quote; cancelled venues stay cancelled. A member's
+  quote cannot be accepted around the group.
+- **Recovery and halt.** Groups not final are in the cursor `rfq:groups`
+  and come back at `recover()`, with their member RFQs re-seeded
+  (`restore_rfqs`). A claim whose accept was never sent is released after a
+  restart, nothing traded. The halt (`cancel` policy) cancels every open
+  group's members; any halt refuses a new accept.
 
 ## The ledger
 

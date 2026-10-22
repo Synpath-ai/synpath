@@ -178,6 +178,84 @@ class TestRfqs:
         assert lookup.status_code == 501 and lookup.json()["error"]["code"] == "not_supported"
 
 
+class TestComboCollectionsAndMarkets:
+    async def test_collection_id_reaches_the_venue(self, server):
+        client, paper = server["client"], server["paper"]
+        made = client.post("/combos", json={"legs": legs(), "collection_id": "KXMVECROSSCATEGORY-SHARD1-R"},
+                           headers=auth(server["trader"]))
+        assert made.status_code == 200, made.text
+        assert paper.combo_collections[-1] == "KXMVECROSSCATEGORY-SHARD1-R"
+        assert made.json()["collection_id"] == "KXMVECROSSCATEGORY-SHARD1-R"
+        client.post("/combos", json={"legs": legs()}, headers=auth(server["trader"]))
+        assert paper.combo_collections[-1] is None, "left out, nothing is named"
+
+    async def test_several_collections_are_a_400_naming_them(self, server, monkeypatch):
+        from synpath.trading.errors import InvalidOrder
+
+        async def ambiguous(legs, *, collection_id=None):
+            exc = InvalidOrder("kalshi: 2 open collections take these legs (A-R, B-R); name one with collection_id")
+            exc.collections = ["A-R", "B-R"]
+            raise exc
+
+        monkeypatch.setattr(server["paper"], "create_combo", ambiguous)
+        refused = server["client"].post("/combos", json={"legs": legs()}, headers=auth(server["trader"]))
+        assert refused.status_code == 400
+        error = refused.json()["error"]
+        assert "collection_id" in error["message"] and error["details"]["collections"] == ["A-R", "B-R"]
+
+    async def test_eligible_markets_are_served_and_cached(self, server, monkeypatch):
+        from synpath.trading.types import ComboMarket
+        from synpath.types import Page
+
+        seen: list[dict] = []
+
+        async def eligible(*, event_id=None, tag=None, limit=None, cursor=None):
+            seen.append({"event_id": event_id, "tag": tag, "limit": limit, "cursor": cursor})
+            row = ComboMarket(market_id=MARKET, venue=VENUE, title="A wins", event_id=f"{VENUE}:tec-nba",
+                              max_legs=50, tags=["nba"])
+            return Page([row], next_cursor="50")
+
+        monkeypatch.setattr(server["paper"], "fetch_combo_eligible_markets", eligible, raising=False)
+        client = server["client"]
+        url = f"/combos/markets?venue={VENUE}&tag=nba&limit=50"
+        first = client.get(url, headers=auth(server["viewer"]))
+        assert first.status_code == 200, first.text
+        page = first.json()
+        assert page["count"] == 1 and page["next_cursor"] == "50"
+        assert page["data"][0] | {"info": {}} == {
+            "market_id": MARKET, "venue": VENUE, "title": "A wins", "event_id": f"{VENUE}:tec-nba",
+            "event_title": None, "position_ids": None, "min_legs": 2, "max_legs": 50, "status": None,
+            "tags": ["nba"], "info": {}}
+        assert seen == [{"event_id": None, "tag": "nba", "limit": 50, "cursor": None}]
+        assert client.get(url, headers=auth(server["viewer"])).json() == page
+        assert len(seen) == 1, "a repeat inside the TTL is served from memory"
+        client.get(url + "&cursor=50", headers=auth(server["viewer"]))
+        assert len(seen) == 2 and seen[-1]["cursor"] == "50", "another page is another read"
+
+    async def test_eligible_markets_grants_and_501(self, server):
+        client = server["client"]
+        denied = client.get(f"/combos/markets?venue={VENUE}", headers=auth(server["other"]))
+        assert denied.status_code == 403
+        none = client.get(f"/combos/markets?venue={VENUE}", headers=auth(server["viewer"]))
+        assert none.status_code == 501 and none.json()["error"]["code"] == "not_supported"
+
+    async def test_collections_are_cached(self, server, monkeypatch):
+        from synpath.types import Page
+
+        calls = []
+
+        async def collections(**kw):
+            calls.append(kw)
+            return Page([{"collection_ticker": "A-R", "associated_event_tickers": ["E1", "E2"]}], next_cursor=None)
+
+        monkeypatch.setattr(server["paper"], "fetch_combo_collections", collections, raising=False)
+        client = server["client"]
+        for _ in range(2):
+            got = client.get(f"/combos/collections?venue={VENUE}", headers=auth(server["viewer"]))
+            assert got.status_code == 200 and got.json()["data"][0]["associated_event_tickers"] == ["E1", "E2"]
+        assert len(calls) == 1
+
+
 class TestAccept:
     async def test_accept_answers_202_at_once(self, server):
         client, engine = server["client"], server["engine"]
@@ -439,7 +517,8 @@ class TestOpenAPI:
         "/rfqs": {"get", "post"}, "/rfqs/incoming": {"get"}, "/rfqs/{rfq_id}": {"get", "delete"},
         "/rfqs/{rfq_id}/quotes": {"get"}, "/quotes": {"get", "post"}, "/quotes/{quote_id}": {"put", "delete"},
         "/quotes/{quote_id}/accept": {"post"}, "/quotes/{quote_id}/confirm": {"post"}, "/combos": {"post"},
-        "/combos/lookup": {"post"}, "/combos/{market_id}": {"get"},
+        "/combos/lookup": {"post"}, "/combos/{market_id}": {"get"}, "/combos/markets": {"get"},
+        "/combos/collections": {"get"},
     }
 
     async def test_the_routes_and_models_are_in_the_document(self, server):
@@ -456,3 +535,7 @@ class TestOpenAPI:
         created = document["paths"]["/rfqs"]["post"]["responses"]["201"]
         assert created["content"]["application/json"]["schema"]["$ref"].endswith("/RfqView")
         assert "rfq" in document["components"]["schemas"]["HaltResult"]["properties"]
+        assert "collection_id" in schemas["CreateComboBody"]["properties"]
+        assert {"market_id", "title", "event_id", "position_ids", "max_legs"} <= set(schemas["ComboMarket"]["properties"])
+        params = {p["name"] for p in document["paths"]["/combos/markets"]["get"]["parameters"]}
+        assert {"venue", "event_id", "tag", "limit", "cursor"} <= params
