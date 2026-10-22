@@ -1,6 +1,6 @@
 # Managed order states in the current code
 
-Status: current implementation walkthrough, read on 22 October 2026 at SDK commit `5ae2269` with local readability refactors. Proposed changes belong in [the routed lifecycle plan](routed-lifecycle-plan.md).
+Status: current implementation walkthrough, updated on 22 October 2026 for the readability checkpoint and routed cancellation fix. Proposed changes belong in [the routed lifecycle plan](routed-lifecycle-plan.md).
 
 A managed order is an instruction the Engine continues running, such as a stop, iceberg or routed bucket order. Its state describes its execution phase. Its filled quantity is a separate measurement. This distinction lets an order be both canceled and partially filled.
 
@@ -43,7 +43,7 @@ For an instruction to buy 100:
 2. The controller forwards book updates, child order updates and timer ticks to that implementation.
 3. Type-specific methods decide whether to continue, stop or finish. `finish()` sets state and detail, saves, then publishes an event.
 4. The shared `cancel()` sets `cancelling` before pulling children. It stays pending while children remain live; otherwise it ends `done` if filled or uses the requested final state.
-5. Shared `expire()` calls `cancel(..., end="expired")`. The controller checks explicit `expires_at` on timer ticks.
+5. Shared `expire()` calls `cancel(..., end="expired")`. The controller checks explicit `expires_at` on timer ticks. Routed orders override `cancel()` to retain the intended ending, process delayed child results and retry cancellation without routing; see the routed lifecycle.
 6. `_run_hook()` handles errors and saves the resulting parent. Network errors and timeouts retain the current state with a detail message. Other errors can end `rejected`, subject to the implementation's recorded uncertain-child information.
 
 A call to `finish()` does not itself verify that every child is terminal. Each caller is responsible for satisfying that condition. Read type-specific paths before assuming the shared helpers enforce it.

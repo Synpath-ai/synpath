@@ -16,11 +16,11 @@ Status: current behavior, not the proposed contract. Read alongside [shared mana
 | `start()` | Sets `working`, records start time, and plans immediately. Public status is currently `triggered`. |
 | Books change or child progress arrives | While ready and `working`, replan remaining quantity and keep, cancel or add children. A partial fill normally leaves the parent `working`. |
 | No member books available | Remain `working`, publish `reason=no_books`, save and wait. |
-| Full fill | Completion paths use `done` / public `closed`. `complete_if_done()` also requires no live children. Some other routed paths pull children then call `finish()` directly. |
+| Full fill | Completion paths use `done` / public `closed`. `complete_if_done()` also requires no live children. Routed full-fill paths now use cancellation cleanup if other tracked children remain live. |
 | Plan has an unfilled remainder and a reason, with no live children | `stop(reason)` ends `canceled` if incomplete. Reasons include `worst_price`, `liquidity`, `min_quantity`. |
-| `max_rounds` reached | `stop("max_rounds")` pulls children, then ends `canceled` if incomplete or waits in `cancelling` if children remain live. |
+| `max_rounds` reached | `stop("max_rounds")` enters `cancelling` before venue calls, then ends `canceled` if incomplete once tracked children have ended. |
 | `max_age_s` reached on timer | Same stop path with `max_age`; currently an incomplete order ends `canceled`, not `expired`. |
-| User cancel or halt | Inherited `cancel()` enters `cancelling`, pulls children, then ends `done` if filled or `canceled` if incomplete and no live children remain. |
+| User cancel or halt | Routed `cancel()` enters `cancelling` before venue calls, retains the intended final state, and finishes after all tracked children have ended. Timer ticks retry pending cancellations. |
 | Explicit `expires_at` reached | Shared timer calls inherited `expire()`, requesting final state `expired` after children are stopped. |
 | Error during a controller callback | Shared `_run_hook()` handles it. A parent can become `rejected`; uncertainty handling is not equivalent for all order types. |
 
@@ -34,19 +34,28 @@ Explicit expiry plumbing exists, so “bucket orders can never expire” is inac
 
 For 100 requested, 30 filled and no liquidity remaining, the routed report can say `state=canceled`, `filled=30`, `unfilled=70`, `stop_reason=liquidity`. A client can display “30/100 filled · stopped: liquidity”. This does not require a separate partial-fill state.
 
-The inherited cancel/expiry path does not populate routed `stop_reason` in the same way as `stop()`. General error paths also use detail text. The reason is therefore not consistent across every ending.
+The user-cancel/expiry path does not populate routed `stop_reason` in the same way as `stop()`. General error paths also use detail text. The reason is therefore not consistent across every ending.
 
 ## Lifecycle behavior to review
 
 - The shared mapping names active routing `triggered`. We are keeping that mapping; document it as active managed execution rather than treating it as a defect.
 - `max_age` and explicit expiry use different final states for time-based endings.
-- `stop()` attempts child cancellation before setting `cancelling`, unlike the shared cancel path. Child updates can call back into the parent while it is still working.
-- After `cancelling`, routed `_ready()` returns false. Routed `on_timer()` and `on_child_order_updated()` then skip their ordinary work. General pending-cancellation retry and completion are not clearly covered by that path; repeated explicit expiry has separate controller handling.
-- Some full-fill/error paths can call `finish()` without a shared guarantee that all children are resolved. Tests must establish when a final state is safe.
+- Stopping now marks `cancelling` before any cancellation calls. Reentrant callbacks process child progress without resuming routing.
+- `on_child_order_updated()` and `on_fill()` can finish a cancelling parent after its last tracked child ends. `on_timer()` retries cancellation when a response still reports open or a request fails.
+- The intended incomplete ending (`pending_final_state`) is included in the existing managed snapshot so delayed explicit expiry remains `expired`. The first stopping cause/end is retained across repeated cancellation attempts.
+- Shared error paths still need a separate review before claiming all unresolved venue submissions prevent finalization. This fix handles tracked children, not every unknown-send case.
 - End reasons differ between routing stop, user cancellation, expiry and errors.
 
-These are code-path observations, not a claim that every scenario has been reproduced. The draft plan identifies the offline cases needed before changing behavior.
+Offline regression tests in `tests/test_routed_limit.py: TestPendingCancellation` reproduce delayed cancellation, fill races, retries and reentrant callbacks. Public status names, routing reasons and `max_age` semantics are unchanged.
+
+## What resync means
+
+`resync()` attempts to refresh child order records after the Engine restarts. It fetches each known child from its venue, replaces saved status/progress, and adopts additional children linked to the parent in the journal. A working parent can then consider its remainder; a cancelling parent only continues cleanup.
+
+`_resynced` means this refresh has been attempted in the current process. New parents set it true in `start()` because they have no restored children. Restored parents begin false. The method sets it true before venue reads and currently logs/skips failed reads or missing adapters. Therefore true does **not** mean all children were successfully refreshed.
+
+`_refresh_restored_children_if_needed()` performs that attempt independently of lifecycle state. Routing callbacks then check `state == "working"`; cancelling callbacks instead advance cleanup. There is no longer a working-only `_ready()` gate that drops stopping updates.
 
 ## Next phase boundary
 
-The Engine owns the instruction; venues own child acceptance and fills. Current routing progress is saved through the managed snapshot path and child records. This phase changes neither storage nor restart behavior. The following phase must assess saved child identities, failed venue reads, uncertain sends and cancellation races before live guarantees can be claimed.
+The Engine owns the instruction; venues own child acceptance and fills. Routing progress and the intended pending ending use the existing managed snapshot path; no schema or table layout changed. The following phase must assess saved child identities, failed venue reads, uncertain sends and cancellation races across process failure before stronger recovery guarantees can be claimed.

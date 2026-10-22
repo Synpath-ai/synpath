@@ -1,6 +1,6 @@
 # Routed order lifecycle improvement plan
 
-Status: documentation and planning only. Keep the existing statuses. No runtime behavior, schema or API changes are authorized by this plan. Read [shared managed states](managed-states.md) and [current routed behavior](routed.md) first.
+Status: existing statuses retained; the user-authorized routed cancellation fix is implemented with offline regression tests. Stop-reason consistency and broader saving/recovery changes remain future work. No schema or public status changes were made. Read [shared managed states](managed-states.md) and [current routed behavior](routed.md) first.
 
 ## Agreed direction
 
@@ -27,27 +27,27 @@ The issue is consistent population across paths, not a need to combine reason an
 | Parent is constructed | `waiting` | `waiting` | `ManagedOrder.__init__()` |
 | Routing starts | `working` | `triggered` | `RoutedLimit.start()` |
 | Book changes or part of the quantity fills | Usually still `working` | `triggered` | `on_book()`, `on_fill()`, `on_child_order_updated()`, `_replan()` |
-| User cancellation begins | `cancelling` | `pending_cancel` | Inherited `ManagedOrder.cancel()` |
+| User cancellation begins | `cancelling` | `pending_cancel` | Routed `cancel()` |
 | Every child is resolved, requested quantity filled | `done` | `closed` | Completion paths |
 | Every child is resolved, some requested quantity remains | `canceled`, or `expired` for explicit expiry | Same as internal state | Cancellation or expiry path |
 
-Routing-boundary `stop()` is a separate path: it sets `stop_reason`, pulls children, and only sets `cancelling` if children are still live afterwards. Thus it can call venues while the parent is still `working`. `max_age` currently ends `canceled` when incomplete, while explicit expiry requests `expired`. Whether to align these endings remains open; neither is changed by this plan.
+Routing-boundary `stop()` sets `stop_reason` and now uses the same routed `cancel()` lifecycle: enter `cancelling` before venue calls and continue cleanup until tracked children end. `max_age` currently ends `canceled` when incomplete, while explicit expiry requests `expired`. Whether to align these endings remains open; neither is changed by this plan.
 
 ## Walkthrough of delayed cancellation
 
 Example: buy 100; 30 filled and 70 remain resting at one venue.
 
-1. User cancels. Inherited `cancel()` sets `cancelling` and saves before requesting child cancellation.
-2. The venue acknowledges the request but still reports the child open. `cancel_live_children_without_waiting()` keeps that child live, so the parent remains `cancelling` with 30 filled.
-3. Later, the venue reports the child canceled. The controller updates the child's record through `update_child_from_venue_order()` before invoking parent callbacks.
-4. Routed `on_child_order_updated()` calls `_ready()`, which returns false unless the parent is `working`. It returns without finishing the `cancelling` parent.
-5. An ordinary routed timer tick has the same gate and also returns. Unlike repeated explicit expiry, it does not retry the inherited cancellation path.
+1. User cancels. Routed `cancel()` sets `cancelling`, records the intended final state and saves before requesting child cancellation.
+2. The venue acknowledges but reports the child open. The child remains live, so the parent remains `cancelling` with 30 filled.
+3. Later, the venue reports the child canceled. The controller updates the child through `update_child_from_venue_order()` before invoking parent callbacks.
+4. `on_child_order_updated()` handles `cancelling` separately: remove inactive legs, check remaining live children, and finish with the retained ending if none remain. Full quantity filled wins and ends `done`.
+5. If no final update arrives, timer ticks retry child cancellation without placing replacements.
 
-This explains a potential stuck transition: child records can be correct while the parent remains pending. The code path is observed; a dedicated delayed-acknowledgment test should reproduce it before a fix is designed.
+Before the fix, `_ready()` allowed only `working`, so both child and ordinary timer callbacks returned without completing the pending parent. The regression tests reproduce those failures on the committed readability checkpoint and pass with the fix.
 
 ## Transition rules to review
 
-These rules are proposed behavior, not a claim that every current path enforces them.
+Tracked-child cancellation rules below are implemented and tested. Uncertain submissions outside the tracked-child list and failure-ending policy remain separate review items.
 
 | Transition or observation | Intended rule |
 |---|---|
@@ -75,18 +75,18 @@ stateDiagram-v2
     cancelling --> expired: incomplete and expiry cleanup complete
 ```
 
-This focuses on normal execution and stopping. Safe rejection and pre-parent validation failure need their own reviewed cases. It does not assert that `stop()` currently enters `cancelling` before venue calls.
+This focuses on normal execution and stopping. Safe rejection and pre-parent validation failure need their own reviewed cases. `stop()` now enters `cancelling` before requesting venue cancellation.
 
-## Offline cases before implementation
+## Offline verification checklist
 
 - [ ] Ordinary full fill and partial fill retain correct quantities and existing public statuses.
 - [ ] Immediate cancellation completes with the expected quantity and reason.
-- [ ] Cancellation acknowledgment still showing open stays pending.
-- [ ] A later child cancellation completes that pending parent.
-- [ ] A cancellation failure is retried without allocating new quantity.
-- [ ] A final fill during cancellation yields full completion; a partial fill is retained while cancellation continues.
-- [ ] Book updates and reentrant child callbacks during stopping cannot submit replacements.
-- [ ] Routing-boundary stop and explicit expiry obey the same cleanup rules, with their chosen final-state policy.
+- [x] Cancellation acknowledgment still showing open stays pending.
+- [x] A later child cancellation completes that pending parent.
+- [x] A cancellation failure is retried without allocating new quantity.
+- [x] A final fill during cancellation yields full completion; a partial fill is retained while cancellation continues.
+- [x] Book updates and reentrant child callbacks during stopping cannot submit replacements.
+- [x] Routing-boundary stop and explicit expiry obey the same cleanup rules, with their chosen final-state policy.
 - [ ] No-books and error paths do not imply confirmed cancellation or safe rejection.
 
 Use existing paper/scripted venues. Do not place credentialed or real-money orders for this work.
@@ -99,4 +99,4 @@ That later review covers pending child identity, response loss, unavailable venu
 
 ## Next code reading session
 
-Read inherited `cancel()` in `base.py`, then `cancel_live_children_without_waiting()`. Follow the delayed venue result through `ManagedOrderController.on_order()` into `RoutedLimit.on_child_order_updated()` and `_ready()`. Compare that with routed `stop()` and `on_timer()`. These call sites show why entering a state is only half of a lifecycle: something must also advance it to its ending.
+Read routed `cancel()` and `_finish_cancellation_if_children_stopped()`, then the shared `cancel_live_children_without_waiting()`. Follow a venue result through `ManagedOrderController.on_order()` into `RoutedLimit.on_child_order_updated()`. Compare its cancelling branch with its working branch, and read `_refresh_restored_children_if_needed()` separately. These call sites show why entering a state is only half of a lifecycle: something must also advance it to its ending.

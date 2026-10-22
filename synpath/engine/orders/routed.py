@@ -33,7 +33,7 @@ from typing import Any
 from ...bucket import Bucket, bucket_id_of
 from ...trading.types import Fill, Order, OrderRequest, OrderType, Precision, Side, TimeInForce
 from .. import router
-from .base import ZERO, Child, Context, D, ManagedOrder, now_ms
+from .base import ZERO, Child, Context, D, ManagedOrder, State, now_ms
 from .manager import register
 
 FEE_REFERENCE_TRIES = 4
@@ -105,6 +105,8 @@ class RoutedLimit(ManagedOrder):
         self.rounds = 0
         self.started_at = 0.0
         self.stop_reason = ""
+        self.pending_final_state: State = "canceled"
+        """The incomplete order's intended ending while child cancellations are pending."""
         self.fees_paid = ZERO
         self.fee_cache: dict[str, Decimal] = {}
         self.fee_floors: dict[str, Decimal] = {}
@@ -114,8 +116,11 @@ class RoutedLimit(ManagedOrder):
         self._replanning = False
         self._replan_again = False
         self._resynced = False
-        """False until this parent has asked the venues about its legs after
-        a restart. A fresh parent sets it in `start`."""
+        """Whether refresh of restored children has been attempted in this process.
+        New parents set this in start() because they have no restored children.
+        resync() sets it before reading venues; failed reads are logged and
+        skipped, so True does not prove every child's status is current.
+        """
 
     # -- identity: the bucket, and every member ---------------------------------
 
@@ -162,12 +167,17 @@ class RoutedLimit(ManagedOrder):
         await self.replan(ctx, first=True)
 
     async def resync(self, ctx: Context) -> None:
-        """After a restart: the venues are the authority on what each leg
-        did while this process was away. Ask every venue for every child,
-        take in any child the journal links to this parent that the
-        snapshot did not carry (an intent that was in doubt when the
-        process died), then plan the remainder. Nothing is placed before
-        this has run."""
+        """Refresh saved child records after a restart before acting on them.
+
+        Read each known child from its venue, replace locally saved status and
+        progress, and adopt additional children linked in the journal. A working
+        parent then considers its remainder; a cancelling parent only resumes
+        cleanup through its caller, never routing.
+
+        This is an attempted refresh, not an all-venues-success barrier:
+        _resynced is set before reads, and unavailable or failing venues are
+        currently skipped. Stronger failed-read recovery is separate work.
+        """
         self._resynced = True
         for child in list(self.children):
             adapter = ctx.engine.adapters.get(child.venue)
@@ -199,51 +209,57 @@ class RoutedLimit(ManagedOrder):
         await ctx.publish("managed.resynced", {"children": len(self.children), "filled": str(self.known_filled)})
         if self.state == "working":
             if self.remaining <= 0:
-                await self.cancel_live_children_without_waiting(ctx)
-                await self.finish(ctx, "done", "filled")
+                await self.cancel(ctx, "filled")
             else:
                 await self.replan(ctx)
 
-    async def _ready(self, ctx: Context) -> bool:
-        """Refresh restored children if needed, then allow only active routing."""
+    async def _refresh_restored_children_if_needed(self, ctx: Context) -> None:
+        """Attempt restart refresh independently of whether this parent may route."""
         if not self._resynced:
             await self.resync(ctx)
-        return self.state == "working"
 
     async def on_book(self, ctx: Context, market_id: str) -> None:
-        if await self._ready(ctx):
+        await self._refresh_restored_children_if_needed(ctx)
+        if self.state == "working":
             await self.replan(ctx)
 
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         self.fees_paid += fill.fee or ZERO
-        if not await self._ready(ctx):
+        await self._refresh_restored_children_if_needed(ctx)
+        if self.state == "cancelling":
+            await self._finish_cancellation_if_children_stopped(ctx)
+            return
+        if self.state != "working":
             return
         if self.remaining <= 0:
-            await self.cancel_live_children_without_waiting(ctx)
-            await self.finish(ctx, "done", "filled")
+            await self.cancel(ctx, "filled")
             return
         await self.replan(ctx)
 
     async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
-        """React to an ended child: remove its leg and consider the remaining quantity."""
-        # The controller has already updated the child's status and fill totals.
-        # Current limitation: _ready() rejects a cancelling parent, so even a
-        # confirmed child cancellation returns here without finishing that parent.
-        # Pending-cancellation completion is tracked in the lifecycle plan.
-        if not await self._ready(ctx) or not order.is_terminal:
+        """Advance stopping children, or replan an active order after a child ends."""
+        # The controller already recorded the child's venue status and progress.
+        # A stopping parent still needs those results to finish; it must not route.
+        await self._refresh_restored_children_if_needed(ctx)
+        if self.state == "cancelling":
+            await self._finish_cancellation_if_children_stopped(ctx)
             return
-        for market_id, leg in list(self.legs.items()):
-            if leg.order_id == order.id and leg.venue == order.venue:
-                self.legs.pop(market_id, None)
+        if self.state != "working" or not order.is_terminal:
+            return
+        self._forget_dead_legs()
         if self.remaining <= 0:
             await self.complete_if_done(ctx)
         else:
             await self.replan(ctx)
 
     async def on_timer(self, ctx: Context) -> None:
-        # This has the same working-only gate: ordinary timer ticks currently
-        # do not retry cancellation or finish a parent already cancelling.
-        if not await self._ready(ctx):
+        await self._refresh_restored_children_if_needed(ctx)
+        if self.state == "cancelling":
+            # An open cancellation response or a failed request needs another
+            # attempt, even if no more book or order notifications arrive.
+            await self.cancel(ctx, self.detail, end=self.pending_final_state)
+            return
+        if self.state != "working":
             return
         if self.max_age_s and ctx.now - self.started_at >= self.max_age_s:
             await self.stop(ctx, "max_age")
@@ -251,17 +267,40 @@ class RoutedLimit(ManagedOrder):
         if not self.live_children and self.remaining > 0:
             await self.replan(ctx)
 
-    async def stop(self, ctx: Context, reason: str) -> None:
-        """Stand down with what filled. `done` only when it all did."""
-        self.stop_reason = reason
+    async def cancel(self, ctx: Context, reason: str = "cancelled", *, end: State = "canceled") -> None:
+        """Stop allocating first, then request child cancellation and await later results."""
+        if not self.live:
+            return
+        if self.state != "cancelling":
+            # Mark stopping before any await that can deliver a child callback.
+            # Later retries preserve the original ending (including explicit expiry).
+            self.pending_final_state = end
+            self.detail = reason
+            self.state = "cancelling"
+        await ctx.save()
+        await self._refresh_restored_children_if_needed(ctx)
         await self.cancel_live_children_without_waiting(ctx)
+        await self._finish_cancellation_if_children_stopped(ctx)
+
+    async def _finish_cancellation_if_children_stopped(self, ctx: Context) -> None:
+        """Complete only after all tracked children ended; a full fill wins over cancellation."""
+        if self.state != "cancelling":
+            return
+        self._forget_dead_legs()
+        if self.live_children:
+            return
         if self.remaining <= 0:
             await self.finish(ctx, "done", "filled")
-        elif self.live_children:
-            self.state = "cancelling"
-            await ctx.save()
         else:
-            await self.finish(ctx, "canceled", f"stopped: {reason}")
+            await self.finish(ctx, self.pending_final_state, self.detail)
+
+    async def stop(self, ctx: Context, reason: str) -> None:
+        """Apply a routing boundary using the same pending-cancellation lifecycle."""
+        if not self.live:
+            return
+        if self.state != "cancelling":
+            self.stop_reason = reason
+        await self.cancel(ctx, f"stopped: {reason}")
 
     # -- the plan and the legs ------------------------------------------------
 
@@ -272,6 +311,8 @@ class RoutedLimit(ManagedOrder):
         """Re-entrant safe: a cancel inside a plan can hand the engine a
         terminal child, whose `on_child_order_updated` asks for a plan of its own. That
         request is noted and honoured once this plan is through."""
+        if self.state != "working":
+            return
         if self._replanning:
             self._replan_again = True
             return
@@ -287,8 +328,10 @@ class RoutedLimit(ManagedOrder):
 
     async def _replan(self, ctx: Context, *, first: bool = False) -> None:
         """Reconcile the new allocation with existing children before adding orders."""
+        if self.state != "working":
+            return
         if self.known_remaining <= 0:
-            await self.complete_if_done(ctx)
+            await self.cancel(ctx, "filled")
             return
 
         canceled_count = await self._clean_up_existing_legs(ctx)
@@ -300,6 +343,8 @@ class RoutedLimit(ManagedOrder):
         plan = await self._calculate_routing_plan(ctx, member_books)
         proposed_legs = {leg.market_id: leg for leg in plan.legs}
         canceled_count += await self._keep_or_cancel_existing_legs(ctx, member_books, proposed_legs)
+        if self.state != "working":
+            return
         placed_count = await self._place_new_legs(ctx, proposed_legs)
         await self._record_routing_result(
             ctx, plan, placed_count=placed_count, canceled_count=canceled_count, first=first,
@@ -399,6 +444,9 @@ class RoutedLimit(ManagedOrder):
         available_quantity = self.budget()
         placed_count = 0
         for market_id, proposed_leg in proposed_legs.items():
+            # A venue response can call back into the parent and start stopping.
+            if self.state != "working":
+                break
             quantity = min(proposed_leg.quantity, available_quantity)
             precision = self.precision[market_id]
             if quantity <= 0 or quantity < precision.min_quantity:
@@ -428,6 +476,8 @@ class RoutedLimit(ManagedOrder):
         self, ctx: Context, plan: router.Plan, *, placed_count: int, canceled_count: int, first: bool,
     ) -> None:
         """Report the round, stop at the applicable bounds, otherwise save working state."""
+        if self.state != "working":
+            return
         # Count only later rounds that changed an order. Replans caused by a
         # cancellation's own notification do not count unless they change something.
         if not first and (placed_count or canceled_count):
@@ -573,6 +623,7 @@ class RoutedLimit(ManagedOrder):
             "precision": {k: v.model_dump(mode="json") for k, v in self.precision.items()},
             "legs": {k: v.to_dict() for k, v in self.legs.items()},
             "rounds": self.rounds, "started_at": self.started_at, "stop_reason": self.stop_reason,
+            "pending_final_state": self.pending_final_state,
             "fees_paid": str(self.fees_paid), "fee_cache": {k: str(v) for k, v in self.fee_cache.items()},
             "fee_floors": {k: str(v) for k, v in self.fee_floors.items()},
         }
@@ -590,6 +641,11 @@ class RoutedLimit(ManagedOrder):
         self.rounds = int(extra.get("rounds") or 0)
         self.started_at = float(extra.get("started_at") or 0)
         self.stop_reason = extra.get("stop_reason") or ""
+        # Older explicit-expiry snapshots used the fixed detail "expired" but
+        # did not store an intended ending separately. Preserve that ending.
+        self.pending_final_state = extra.get("pending_final_state") or (
+            "expired" if self.detail == "expired" else "canceled"
+        )
         self.fees_paid = D(extra.get("fees_paid"), ZERO)
         self.fee_cache = {k: D(v) for k, v in (extra.get("fee_cache") or {}).items()}
         self.fee_floors = {k: D(v) for k, v in (extra.get("fee_floors") or {}).items()}

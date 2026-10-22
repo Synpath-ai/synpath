@@ -342,3 +342,169 @@ class TestFeeFloors:
         book(poly, engine, P, asks=[(D("0.40"), D("1000"))])
         await engine.submit(request(bucket, quantity=D("50"), price=D("0.46")))
         assert kalshi.orders == {} and [o.quantity for o in poly.orders.values()] == [D("50")]
+
+
+class TestPendingCancellation:
+    """A cancellation response may precede the final child status."""
+
+    async def resting_parent(self, setup, **request_fields):
+        engine, kalshi, poly, clock, bucket = setup
+        book(kalshi, engine, K, asks=[(D("0.41"), D("30"))])
+        book(poly, engine, P, asks=[(D("0.42"), D("100"))])
+        # The engine saw liquidity, but it moved before the children reached the venues.
+        kalshi.set_book(K, asks=[(D("0.50"), D("100"))])
+        poly.set_book(P, asks=[(D("0.50"), D("100"))])
+        order = await engine.submit(request(bucket, **request_fields))
+        return engine.managed_order_controller.get(order.id)
+
+    def acknowledge_without_canceling(self, monkeypatch, *venues):
+        original_cancellations = {}
+        for venue in venues:
+            original_cancellations[venue.venue] = venue.cancel_order
+
+            async def acknowledge(order_id, *, market_id=None, current=None, venue=venue):
+                return await venue.fetch_order(order_id)
+
+            monkeypatch.setattr(venue, "cancel_order", acknowledge)
+        return original_cancellations
+
+    async def confirm_cancellations(self, engine, venues, original_cancellations):
+        for venue in venues:
+            for child_order in list(open_orders(venue)):
+                result = await original_cancellations[venue.venue](child_order.id)
+                await engine.on_order(result)
+
+    async def test_delayed_child_confirmation_finishes_a_cancelling_parent(self, setup, monkeypatch):
+        engine, kalshi, poly, clock, bucket = setup
+        parent = await self.resting_parent(setup)
+        original_cancellations = self.acknowledge_without_canceling(monkeypatch, kalshi, poly)
+        original_child_ids = {(child.venue, child.order_id) for child in parent.children}
+
+        await engine.managed_order_controller.cancel(parent.id)
+        assert parent.state == "cancelling" and len(parent.live_children) == 2
+        await engine.on_book({"market_id": K})
+        assert {(child.venue, child.order_id) for child in parent.children} == original_child_ids
+
+        await self.confirm_cancellations(engine, (kalshi, poly), original_cancellations)
+        assert parent.state == "canceled"
+        assert parent.filled == 0 and parent.remaining == 50
+        assert not parent.live_children and not parent.legs
+        assert len(kalshi.orders) + len(poly.orders) == 2
+
+    @pytest.mark.parametrize("fill_all", [False, True])
+    async def test_fills_during_cancellation_are_retained_and_full_fill_wins(self, setup, monkeypatch, fill_all):
+        engine, kalshi, poly, clock, bucket = setup
+        parent = await self.resting_parent(setup)
+        original_cancellations = self.acknowledge_without_canceling(monkeypatch, kalshi, poly)
+        await engine.managed_order_controller.cancel(parent.id)
+
+        kalshi.on_trade(K, price=D("0.41"), quantity=D("10"), taker_side=Side.SELL)
+        await deliver(kalshi, poly)
+        assert parent.filled == 10 and parent.state == "cancelling"
+        if fill_all:
+            kalshi.on_trade(K, price=D("0.41"), quantity=D("20"), taker_side=Side.SELL)
+            poly.on_trade(P, price=D("0.42"), quantity=D("20"), taker_side=Side.SELL)
+            await deliver(kalshi, poly)
+        else:
+            await self.confirm_cancellations(engine, (kalshi, poly), original_cancellations)
+
+        assert parent.state == ("done" if fill_all else "canceled")
+        assert parent.filled == (50 if fill_all else 10)
+        assert not parent.live_children
+        assert len(kalshi.orders) + len(poly.orders) == 2
+
+    @pytest.mark.parametrize("first_attempt_fails", [False, True])
+    async def test_timer_retries_pending_cancellations_without_new_allocations(
+        self, setup, monkeypatch, first_attempt_fails,
+    ):
+        engine, kalshi, poly, clock, bucket = setup
+        parent = await self.resting_parent(setup)
+        attempts = {venue.venue: 0 for venue in (kalshi, poly)}
+        for venue in (kalshi, poly):
+            original_cancel = venue.cancel_order
+
+            async def cancel_after_retry(
+                order_id, *, market_id=None, current=None, venue=venue, original_cancel=original_cancel,
+            ):
+                attempts[venue.venue] += 1
+                if attempts[venue.venue] == 1:
+                    if first_attempt_fails:
+                        raise TimeoutError("cancellation response was lost")
+                    return await venue.fetch_order(order_id)
+                return await original_cancel(order_id, market_id=market_id)
+
+            monkeypatch.setattr(venue, "cancel_order", cancel_after_retry)
+
+        await engine.managed_order_controller.cancel(parent.id)
+        assert parent.state == "cancelling"
+        await engine.managed_order_controller.on_timer()
+        assert parent.state == "canceled" and not parent.live_children
+        assert attempts == {"kalshi": 2, "polymarket": 2}
+        assert len(kalshi.orders) + len(poly.orders) == 2
+
+    async def test_routing_stop_enters_cancelling_before_venue_callbacks(self, setup, monkeypatch):
+        engine, kalshi, poly, clock, bucket = setup
+        parent = await self.resting_parent(setup)
+        states_at_cancel = []
+        replan_calls = []
+
+        async def record_replan(ctx, **kwargs):
+            replan_calls.append(parent.state)
+
+        monkeypatch.setattr(parent, "replan", record_replan)
+        for venue in (kalshi, poly):
+            original_cancel = venue.cancel_order
+
+            async def observe_cancel(order_id, *, market_id=None, current=None, original_cancel=original_cancel):
+                states_at_cancel.append(parent.state)
+                # Simulate a book update arriving inside a cancellation call.
+                await engine.on_book({"market_id": K})
+                return await original_cancel(order_id, market_id=market_id)
+
+            monkeypatch.setattr(venue, "cancel_order", observe_cancel)
+
+        await engine.managed_order_controller.run(parent, lambda ctx: parent.stop(ctx, "max_rounds"))
+        assert states_at_cancel == ["cancelling", "cancelling"]
+        assert not replan_calls, "neither book nor cancellation callbacks may resume routing"
+        assert parent.state == "canceled" and parent.stop_reason == "max_rounds"
+        assert len(kalshi.orders) + len(poly.orders) == 2
+
+    async def test_delayed_expiry_keeps_its_intended_final_state(self, setup, monkeypatch):
+        engine, kalshi, poly, clock, bucket = setup
+        expiry = int((clock.t + 10) * 1000)
+        parent = await self.resting_parent(setup, time_in_force="gtd", expires_at=expiry)
+        original_cancellations = self.acknowledge_without_canceling(monkeypatch, kalshi, poly)
+        clock.tick(11)
+        await engine.managed_order_controller.on_timer()
+        assert parent.state == "cancelling"
+
+        await self.confirm_cancellations(engine, (kalshi, poly), original_cancellations)
+        assert parent.state == "expired" and not parent.live_children
+        assert parent.filled == 0 and parent.remaining == 50
+
+
+    @pytest.mark.parametrize("end", ["canceled", "expired"])
+    async def test_pending_final_state_survives_snapshot_restore(self, setup, monkeypatch, end):
+        engine, kalshi, poly, clock, bucket = setup
+        parent = await self.resting_parent(setup)
+        self.acknowledge_without_canceling(monkeypatch, kalshi, poly)
+        await engine.managed_order_controller.run(
+            parent, lambda ctx: parent.cancel(ctx, "test pending ending", end=end),
+        )
+        snapshot = parent.snapshot()
+        restored = type(parent).from_snapshot(snapshot)
+        assert restored.state == "cancelling"
+        assert restored.pending_final_state == end
+        assert not restored._resynced, "the restored child records still need a venue refresh attempt"
+
+    async def test_legacy_expiry_snapshot_preserves_expired_ending(self, setup, monkeypatch):
+        engine, kalshi, poly, clock, bucket = setup
+        parent = await self.resting_parent(setup)
+        self.acknowledge_without_canceling(monkeypatch, kalshi, poly)
+        await engine.managed_order_controller.run(
+            parent, lambda ctx: parent.cancel(ctx, "expired", end="expired"),
+        )
+        snapshot = parent.snapshot()
+        snapshot["extra"].pop("pending_final_state")
+        restored = type(parent).from_snapshot(snapshot)
+        assert restored.state == "cancelling" and restored.pending_final_state == "expired"
