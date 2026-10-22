@@ -141,7 +141,7 @@ class TestOnDemo:
         ))
         assert parent.status == OrderStatus.TRIGGERED and parent.held_by.value == "engine"
 
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         mine = {c.order_id for c in managed.children}
         assert len(mine) == 1, "one slice at a time"
 
@@ -170,7 +170,7 @@ class TestOnDemo:
             stop_price=(bid / 2).quantize(D("0.01")), book="demo-stop",
         ))
         await engine.on_book({"instrument_id": f"{market}:yes"})
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.state == "waiting", "the stop is far from the touch"
         assert [o for o in await kalshi.fetch_open_orders() if o.market_id == market] == []
 
@@ -189,7 +189,7 @@ class TestOnDemo:
             instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("2"), price=D("0.02"), type=OrderType.TWAP,
             params={"window_s": 4, "slices": 2, "style": "limit", "limit": "0.02"}, book="demo-twap",
         ))
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.sent_slices == 1
         assert await wait_for(lambda: len(managed.children) >= 2, timeout=10)
 
@@ -214,7 +214,7 @@ class TestOnDemo:
             instrument_id=f"{market}:yes", side=Side.BUY, quantity=D("2"), price=D("0.02"), type=OrderType.ICEBERG,
             params={"display": "1"}, book="demo-restart",
         ))
-        child_ids = [c.order_id for c in first.orders.get(parent.id).children]
+        child_ids = [c.order_id for c in first.managed_order_controller.get(parent.id).children]
         await first.journal.close()
 
         second = Engine({"kalshi": kalshi}, EngineConfig(journal_path=path, managed_tick_s=0.05),
@@ -223,7 +223,7 @@ class TestOnDemo:
         recovery = await second.start()
         try:
             assert recovery.managed == 1
-            revived = second.orders.get(parent.id)
+            revived = second.managed_order_controller.get(parent.id)
             assert revived is not None and revived.state == "working"
             assert [c.order_id for c in revived.children] == child_ids, "the same child, not a new one"
             async def child_is_live() -> bool:
@@ -243,7 +243,7 @@ class TestOnDemo:
         ))
         result = await engine.halt("demo drill", policy="cancel")
         assert result["managed"] >= 1
-        assert all(not p.live for p in engine.orders.parents.values())
+        assert all(not p.live for p in engine.managed_order_controller.parents.values())
         assert await wait_for(lambda: no_orders_left(kalshi, market))
 
     async def test_a_day_order_carries_a_venue_expiry(self, engine, kalshi, market):

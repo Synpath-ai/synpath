@@ -162,7 +162,7 @@ async def test_cancel_after_a_stop_limit_child_filled_closes_the_parent(engine_c
         parent = await engine.submit(OrderRequest(market_id=MARKET, side="buy", quantity="2", type="stop_limit",
                                                   stop_price="0.45", price="0.46", client_order_id="stop-limit-1"))
         await feed(engine, "0.44", "0.46")
-        child_id = engine.orders.get(parent.id).children[0].order_id
+        child_id = engine.managed_order_controller.get(parent.id).children[0].order_id
         assert venue.orders[child_id]["status"] == "resting"
         venue.fill(child_id)   # the resting child fills; no stream tells the engine
 
@@ -192,7 +192,7 @@ async def test_a_filled_stop_market_stays_closed_when_cancelled_before_and_after
 
     restarted = await started(venue, config, credentials)
     try:
-        assert restarted.orders.get(parent.id) is None, "a finished parent is not restored"
+        assert restarted.managed_order_controller.get(parent.id) is None, "a finished parent is not restored"
         result = await restarted.cancel(parent.id)
         assert result.status == OrderStatus.CLOSED and result.filled == D("2")
         stored = await restarted.journal.order("kalshi", parent.id)

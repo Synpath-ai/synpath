@@ -212,24 +212,24 @@ class RiskEngine:
 
     # -- the check ------------------------------------------------------------
 
-    def check(
+    def evaluate_order_risk(
         self,
         request: OrderRequest,
         *,
         venue: str,
         account: Account,
         open_orders: Iterable[Order] = (),
-        mark: Decimal | None = None,
+        risk_reference_price: Decimal | None = None,
         market_close_ts: int | None = None,
         event_id: str | None = None,
         venue_notional: Decimal | None = None,
-        deliberate: bool = False,
+        caller_supplied_order_id: bool = False,
     ) -> Decision:
         """Everything that must be true before this order is signed.
 
-        `deliberate` is true when the caller named the order's
-        `client_order_id` itself: the duplicate window is for an accidental
-        second click, and a caller that names each order is not clicking."""
+        `risk_reference_price` is the reference for the limit-price risk check.
+        `caller_supplied_order_id` skips the accidental-duplicate check when true;
+        retries with the same ID remain subject to the engine's submission checks."""
         config = self.config
         if not config.enabled:
             return self._ok()
@@ -249,14 +249,14 @@ class RiskEngine:
             # The collar is for a limit a caller sends. A market order's price
             # is only its protection bound (Kalshi's 0.99 / 0.01), and an
             # engine-held order's child (a stop that fired) trades at the
-            # market on purpose: neither is a quote to check against the mark.
+            # market on purpose: neither is a quote to check against the risk reference price.
             collared = request.type == OrderType.LIMIT and not request.tags.get("parent")
-            if config.price_collar is not None and mark is not None and collared:
-                away = abs(price - mark)
+            if config.price_collar is not None and risk_reference_price is not None and collared:
+                away = abs(price - risk_reference_price)
                 if away > config.price_collar:
                     return self._no(
-                        "price_collar", f"price {price} is {away} from the mark {mark}, over the collar {config.price_collar}",
-                        detail={"mark": str(mark), "away": str(away)},
+                        "price_collar", f"price {price} is {away} from the mark {risk_reference_price}, over the collar {config.price_collar}",
+                        detail={"mark": str(risk_reference_price), "away": str(away)},
                     )
         if config.max_order_contracts is not None and request.quantity > config.max_order_contracts:
             return self._no("max_order_contracts", f"{request.quantity} contracts is over the {config.max_order_contracts} limit")
@@ -273,7 +273,7 @@ class RiskEngine:
         # An engine-held order's children are sliced on purpose and often look
         # alike (an iceberg's reloads, a TWAP's slices, two parents on one
         # market), so the window applies to orders sent from outside only.
-        if config.duplicate_window_ms and not deliberate and not request.tags.get("parent"):
+        if config.duplicate_window_ms and not caller_supplied_order_id and not request.tags.get("parent"):
             signature = (market_id, request.side.value, str(price), str(request.quantity))
             cutoff = now - config.duplicate_window_ms / 1000
             for stamp, seen in reversed(self._recent):

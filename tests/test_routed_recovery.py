@@ -87,10 +87,10 @@ class TestRestart:
         recovery = await restarted.start()
         try:
             assert recovery.managed == 1
-            revived = restarted.orders.get(parent.id)
+            revived = restarted.managed_order_controller.get(parent.id)
             assert revived.state == "working" and revived.known_filled == 0, "nothing is trusted before the venues are asked"
 
-            await restarted.orders.on_timer()                          # first event after the restart: resync
+            await restarted.managed_order_controller.on_timer()                          # first event after the restart: resync
             assert revived.known_filled == D("30")
             assert revived.as_order().filled == D("30") and revived.report()["per_venue"]
             assert len(kalshi.orders) == 1 and len(poly.orders) == 1, "the fill was learned, not bought again"
@@ -115,13 +115,13 @@ class TestRestart:
         restarted = new_engine(path, kalshi, poly, clock)
         await restarted.start()
         try:
-            revived = restarted.orders.get(parent.id)
+            revived = restarted.managed_order_controller.get(parent.id)
             restarted.set_book(K, kalshi.books[K])
             restarted.set_book(P, poly.books[P])
             kalshi.set_book(K, asks=[(D("0.41"), D("100"))])
             restarted.set_book(K, kalshi.books[K])
             kalshi.set_book(K, asks=[(D("0.50"), D("100"))])
-            await restarted.orders.on_timer()
+            await restarted.managed_order_controller.on_timer()
             live_k = open_orders(kalshi)
             assert len(live_k) == 1 and live_k[0].price == D("0.41")
             resting = sum(o.quantity - o.filled for o in open_orders(kalshi) + open_orders(poly))
@@ -145,12 +145,12 @@ class TestRestart:
         restarted = new_engine(path, kalshi, poly, clock)
         await restarted.start()
         try:
-            revived = restarted.orders.get(parent.id)
+            revived = restarted.managed_order_controller.get(parent.id)
             assert len(revived.children) == 2
-            await restarted.orders.on_timer()
+            await restarted.managed_order_controller.on_timer()
             assert len(revived.children) == 3 and revived.child_of(stray.id, "kalshi") is not None
             assert sum(c.quantity for c in revived.live_children) <= D("50")
-            assert restarted.orders.parent_of(stray.id, "kalshi") is revived
+            assert restarted.managed_order_controller.parent_of(stray.id, "kalshi") is revived
         finally:
             await restarted.stop()
 
@@ -164,7 +164,7 @@ async def test_a_finished_bucket_order_is_still_reported_after_a_restart(tmp_pat
     again = new_engine(path, kalshi, poly, clock)
     await again.start()
     try:
-        assert again.orders.get(parent.id) is None, "a finished parent is not reloaded as live"
+        assert again.managed_order_controller.get(parent.id) is None, "a finished parent is not reloaded as live"
         bucket_id = parent.market_id.split(":", 1)[1]
         found = await again.bucket_orders(bucket_id)
         assert [p.id for p in found] == [parent.id]

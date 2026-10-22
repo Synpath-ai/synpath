@@ -116,7 +116,7 @@ def orders_cursor_key(cursor: str | None) -> tuple[int, str, str] | None:
 def current_view(engine: Engine, order: Order) -> Order:
     """An engine-held parent this process runs is read from memory, which is
     what its journal row was last written from; anything else is the row."""
-    parent = engine.orders.get(order.id) if order.held_by.value == "engine" else None
+    parent = engine.managed_order_controller.get(order.id) if order.held_by.value == "engine" else None
     return parent.as_order() if parent is not None else order
 
 
@@ -519,10 +519,10 @@ def create_trading_router() -> APIRouter:
     async def status(principal: Caller, engine: EngineDep) -> EngineStatus:
         require(principal, "view")
         return EngineStatus(
-            owner=engine.journal.owner, running=engine.running, halted=engine.risk.kill.engaged,
-            halt_reason=engine.risk.kill.reason, open_orders=len(engine.open_orders()),
-            managed_orders=len(engine.orders.live()), positions=len(engine.ledger.open_positions()),
-            risk_version=engine.risk.config_version, journal_events=await engine.journal.last_seq(),
+            owner=engine.journal.owner, running=engine.running, halted=engine.order_risk_checks.kill.engaged,
+            halt_reason=engine.order_risk_checks.kill.reason, open_orders=len(engine.open_orders()),
+            managed_orders=len(engine.managed_order_controller.live()), positions=len(engine.ledger.open_positions()),
+            risk_version=engine.order_risk_checks.config_version, journal_events=await engine.journal.last_seq(),
         )
 
     # -- orders ---------------------------------------------------------------
@@ -705,7 +705,7 @@ def create_trading_router() -> APIRouter:
 
     @router.get("/orders/{order_id}", tags=["orders"], summary="One order", responses=RESPONSES)
     async def get_order(principal: Caller, engine: EngineDep, order_id: Annotated[str, Path()]) -> Order:
-        parent = engine.orders.get(order_id)
+        parent = engine.managed_order_controller.get(order_id)
         order = parent.as_order() if parent is not None else None
         if order is None:
             for venue in engine.adapters:
@@ -745,7 +745,7 @@ def create_trading_router() -> APIRouter:
             raise
 
     async def _known(engine: Engine, order_id: str) -> Order:
-        parent = engine.orders.get(order_id)
+        parent = engine.managed_order_controller.get(order_id)
         if parent is not None:
             return parent.as_order()
         for venue in engine.adapters:
@@ -843,13 +843,13 @@ def create_trading_router() -> APIRouter:
     @router.get("/risk", tags=["risk"], summary="The rules in force", responses=RESPONSES)
     async def get_risk(principal: Caller, engine: EngineDep) -> RiskConfig:
         require(principal, "view")
-        return engine.risk.config
+        return engine.order_risk_checks.config
 
     @router.put("/risk", tags=["risk"], summary="Replace the rules", responses=RESPONSES)
     async def put_risk(principal: Caller, engine: EngineDep, body: RiskConfig) -> RiskConfig:
         require(principal, "manage_credentials")
         await engine.set_risk(body, author=principal.user_id)
-        return engine.risk.config
+        return engine.order_risk_checks.config
 
     @router.post("/halt", tags=["risk"], summary="Stop trading", responses=RESPONSES)
     async def halt(principal: Caller, engine: EngineDep, body: HaltRequest) -> HaltResult:
@@ -864,7 +864,7 @@ def create_trading_router() -> APIRouter:
                      scope: Annotated[str | None, Query()] = None) -> HaltState:
         require(principal, "trade")
         await engine.resume(scope=scope)
-        return HaltState(halted=engine.risk.kill.engaged, halt_reason=engine.risk.kill.reason)
+        return HaltState(halted=engine.order_risk_checks.kill.engaged, halt_reason=engine.order_risk_checks.kill.reason)
 
     # -- members, keys and the audit log --------------------------------------
 

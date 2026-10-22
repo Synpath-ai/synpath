@@ -1,6 +1,6 @@
 """The supervisor: every engine-held order, and what reaches it.
 
-One `ManagedOrders` per engine. It creates parents, hands them the events
+One `ManagedOrderController` per engine. It creates parents, hands them the events
 they asked for, writes their state down whenever it changes, and brings them
 back after a restart. Three details are worth stating, because they are what
 makes an engine-held order safe rather than a background task:
@@ -40,7 +40,7 @@ def register(cls: Type[ManagedOrder]) -> Type[ManagedOrder]:
     return cls
 
 
-class ManagedOrders:
+class ManagedOrderController:
     """Every engine-held order this engine is running."""
 
     def __init__(self, engine: Any):
@@ -78,6 +78,7 @@ class ManagedOrders:
     # -- creating -------------------------------------------------------------
 
     def build(self, request: OrderRequest, *, venue: str, account: Any) -> ManagedOrder:
+        """Construct the requested order implementation without saving or starting it."""
         # `managed_kind` lets one venue type map to an engine-held variant:
         # a market order the engine walks the book with, rather than the
         # adapter's single immediate limit.
@@ -91,20 +92,38 @@ class ManagedOrders:
         return cls(request, venue=venue, account=account)
 
     async def create(self, request: OrderRequest, *, venue: str, account: Any, owner: ManagedOrder | None = None) -> ManagedOrder:
+        """Save and register an engine-held order, announce it, then start its behavior.
+
+        `owner` is another managed order, not a user: for example, a bracket
+        can own a stop order. The returned order may already have placed or
+        filled venue children, or encountered a failure while starting.
+        """
+        # Choose the implementation (for example, RoutedLimit for a bucket).
+        # A managed order can itself be a child of another managed order.
         parent = self.build(request, venue=venue, account=account)
         parent.owner_id = owner.id if owner else None
+
+        # Persist the initial instruction before start() can send venue orders.
         await self.save(parent)
+
+        # Register in-memory lookups so market and child updates reach this order.
+        # The owner link also lets a nested managed order report back to its owner.
         self.remember(parent)
         if owner is not None:
             self.by_child[parent.id] = owner.id
+
+        # Creation means the order exists, not that a venue has accepted a child.
         await self.engine.bus.publish("managed.created", {
             "parent_id": parent.id, "kind": parent.kind, "market_id": parent.market_id,
             "side": parent.side.value, "quantity": str(parent.quantity), "book": request.book,
         }, key=parent.id)
+        # Await the type-specific start behavior through the controller's locking,
+        # error handling and final save. A routed order plans and places children here.
         await self.run(parent, lambda ctx: parent.start(ctx))
         return parent
 
     def remember(self, parent: ManagedOrder) -> None:
+        """Index an order by ID, watched markets and known children, in memory only."""
         self.parents[parent.id] = parent
         for instrument in parent.markets():
             self.by_market.setdefault(instrument, set()).add(parent.id)
@@ -118,7 +137,11 @@ class ManagedOrders:
     # -- routing --------------------------------------------------------------
 
     async def run(self, parent: ManagedOrder, call: Any) -> None:
-        """Serialize each parent; child notifications may reenter on this task."""
+        """Run one order's behavior without overlapping another task for that order.
+
+        The callback receives a Context for books, child submission and saving.
+        Child notifications on the current task may call back into the same order.
+        """
         task = asyncio.current_task()
         if self._running_tasks.get(parent.id) is task:
             await self._run_hook(parent, call)
@@ -172,7 +195,7 @@ class ManagedOrders:
             return
         child.status = leg.state
         child.filled = leg.filled
-        await self.run(owner, lambda ctx: owner.on_child(ctx, leg.as_order(), child))
+        await self.run(owner, lambda ctx: owner.on_child_order_updated(ctx, leg.as_order(), child))
 
     async def on_book(self, market_id: str) -> None:
         watching = self.watching(market_id)
@@ -209,10 +232,13 @@ class ManagedOrders:
             child = parent.child_of(order.id, order.venue)
             if child is None:
                 return
-            progress = parent.note_order(order, child)
+            # First update the tracked child, even when no new quantity filled.
+            progress = parent.update_child_from_venue_order(order, child)
             if progress is not None:
                 await parent.on_fill(ctx, progress, child)
-            await parent.on_child(ctx, order, child)
+            # Then let the parent react to the updated child. A correct child
+            # record alone does not advance the parent's lifecycle state.
+            await parent.on_child_order_updated(ctx, order, child)
         await self.run(parent, apply)
 
     async def on_timer(self) -> None:
@@ -247,6 +273,7 @@ class ManagedOrders:
     # -- persistence ----------------------------------------------------------
 
     async def save(self, parent: ManagedOrder) -> None:
+        """Save the restart snapshot and readable order record, and update local lookups."""
         for child in parent.children:
             self.by_child.setdefault(child.order_id, parent.id)
             self.by_child.setdefault(f"{child.venue}:{child.order_id}", parent.id)

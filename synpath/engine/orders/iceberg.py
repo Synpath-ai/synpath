@@ -89,7 +89,7 @@ class Iceberg(ManagedOrder):
             self.schedule_reload(ctx)
         await ctx.save()
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         if order.is_terminal and self.state == "working" and self.remaining > 0:
             self.schedule_reload(ctx)
         await self.complete_if_done(ctx)

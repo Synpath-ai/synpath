@@ -28,15 +28,15 @@ def risk() -> RiskEngine:
 
 
 def test_the_same_order_from_outside_is_refused_within_the_window():
-    decision = risk().check(req(), venue="kalshi", account=ACCOUNT)
+    decision = risk().evaluate_order_risk(req(), venue="kalshi", account=ACCOUNT)
     assert not decision.ok and decision.rule == "duplicate"
 
 
 def test_an_engine_child_that_looks_the_same_is_not_a_duplicate():
-    decision = risk().check(req(tags={"parent": "mo-2"}), venue="kalshi", account=ACCOUNT)
+    decision = risk().evaluate_order_risk(req(tags={"parent": "mo-2"}), venue="kalshi", account=ACCOUNT)
     assert decision.ok, decision.message
 
 
 def test_a_caller_who_names_the_client_order_id_is_not_clicking_twice():
-    decision = risk().check(req(client_order_id="mine-2"), venue="kalshi", account=ACCOUNT, deliberate=True)
+    decision = risk().evaluate_order_risk(req(client_order_id="mine-2"), venue="kalshi", account=ACCOUNT, caller_supplied_order_id=True)
     assert decision.ok, decision.message

@@ -77,8 +77,10 @@ class LegState:
 
 @register
 class RoutedLimit(ManagedOrder):
-    """`params`: `bucket` (its definition; the engine fills this in from the
-    journal), `min_stay_s`, `max_rounds`, `max_age_s`, `precision`."""
+    """`params`: `bucket` (the enabled-member configuration captured at
+    submission and kept for this order, including after restart), `min_stay_s`,
+    `max_rounds`, `max_age_s`, `precision`. Later edits to the saved bucket
+    do not change this order's member configuration."""
 
     kind = "routed_limit"
     order_type = OrderType.MARKET
@@ -177,7 +179,7 @@ class RoutedLimit(ManagedOrder):
                 await ctx.publish("managed.resync_failed", {"order_id": child.order_id, "venue": child.venue,
                                                             "error": f"{type(exc).__name__}: {exc}"})
                 continue
-            progress = self.note_order(order, child)      # the record read back overwrites the snapshot's
+            progress = self.update_child_from_venue_order(order, child)      # the record read back overwrites the snapshot's
             if progress is not None:
                 self.fees_paid += progress.fee or ZERO
         known = {self.key(c) for c in self.children}
@@ -188,7 +190,7 @@ class RoutedLimit(ManagedOrder):
             _, bucket_price = member.to_bucket(order.side, order.price or ZERO)
             child = self.track(order, order.quantity, bucket_price)
             child.fee = order.fee or ZERO
-            ctx.engine.orders.adopt_child(self.id, order.id, order.venue)
+            ctx.engine.managed_order_controller.adopt_child(self.id, order.id, order.venue)
             if child.live and order.market_id not in self.legs:
                 self.legs[order.market_id] = LegState(order_id=order.id, venue=order.venue, side=order.side.value,
                                                       price=order.price or ZERO, bucket_price=bucket_price,
@@ -197,12 +199,13 @@ class RoutedLimit(ManagedOrder):
         await ctx.publish("managed.resynced", {"children": len(self.children), "filled": str(self.known_filled)})
         if self.state == "working":
             if self.remaining <= 0:
-                await self.pull_children(ctx)
+                await self.cancel_live_children_without_waiting(ctx)
                 await self.finish(ctx, "done", "filled")
             else:
                 await self.replan(ctx)
 
     async def _ready(self, ctx: Context) -> bool:
+        """Refresh restored children if needed, then allow only active routing."""
         if not self._resynced:
             await self.resync(ctx)
         return self.state == "working"
@@ -216,12 +219,17 @@ class RoutedLimit(ManagedOrder):
         if not await self._ready(ctx):
             return
         if self.remaining <= 0:
-            await self.pull_children(ctx)
+            await self.cancel_live_children_without_waiting(ctx)
             await self.finish(ctx, "done", "filled")
             return
         await self.replan(ctx)
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
+        """React to an ended child: remove its leg and consider the remaining quantity."""
+        # The controller has already updated the child's status and fill totals.
+        # Current limitation: _ready() rejects a cancelling parent, so even a
+        # confirmed child cancellation returns here without finishing that parent.
+        # Pending-cancellation completion is tracked in the lifecycle plan.
         if not await self._ready(ctx) or not order.is_terminal:
             return
         for market_id, leg in list(self.legs.items()):
@@ -233,6 +241,8 @@ class RoutedLimit(ManagedOrder):
             await self.replan(ctx)
 
     async def on_timer(self, ctx: Context) -> None:
+        # This has the same working-only gate: ordinary timer ticks currently
+        # do not retry cancellation or finish a parent already cancelling.
         if not await self._ready(ctx):
             return
         if self.max_age_s and ctx.now - self.started_at >= self.max_age_s:
@@ -244,7 +254,7 @@ class RoutedLimit(ManagedOrder):
     async def stop(self, ctx: Context, reason: str) -> None:
         """Stand down with what filled. `done` only when it all did."""
         self.stop_reason = reason
-        await self.pull_children(ctx)
+        await self.cancel_live_children_without_waiting(ctx)
         if self.remaining <= 0:
             await self.finish(ctx, "done", "filled")
         elif self.live_children:
@@ -260,7 +270,7 @@ class RoutedLimit(ManagedOrder):
 
     async def replan(self, ctx: Context, *, first: bool = False) -> None:
         """Re-entrant safe: a cancel inside a plan can hand the engine a
-        terminal child, whose `on_child` asks for a plan of its own. That
+        terminal child, whose `on_child_order_updated` asks for a plan of its own. That
         request is noted and honoured once this plan is through."""
         if self._replanning:
             self._replan_again = True
@@ -276,92 +286,154 @@ class RoutedLimit(ManagedOrder):
             self._replan_again = False
 
     async def _replan(self, ctx: Context, *, first: bool = False) -> None:
+        """Reconcile the new allocation with existing children before adding orders."""
         if self.known_remaining <= 0:
-            # Everything is filled by the venue's word; the fills the stream
-            # has not delivered yet finish it through `on_fill`.
             await self.complete_if_done(ctx)
             return
+
+        canceled_count = await self._clean_up_existing_legs(ctx)
+        member_books = self._read_member_books(ctx)
+        if not member_books:
+            await self._save_while_waiting_for_books(ctx, canceled_count=canceled_count, first=first)
+            return
+
+        plan = await self._calculate_routing_plan(ctx, member_books)
+        proposed_legs = {leg.market_id: leg for leg in plan.legs}
+        canceled_count += await self._keep_or_cancel_existing_legs(ctx, member_books, proposed_legs)
+        placed_count = await self._place_new_legs(ctx, proposed_legs)
+        await self._record_routing_result(
+            ctx, plan, placed_count=placed_count, canceled_count=canceled_count, first=first,
+        )
+
+    async def _clean_up_existing_legs(self, ctx: Context) -> int:
+        """Remove inactive legs and cancel excess resting quantity, newest first."""
         self._forget_dead_legs()
-        pulled = await self._trim(ctx)
-        books = {}
+        return await self._trim(ctx)
+
+    def _read_member_books(self, ctx: Context) -> dict[str, router.BookView]:
+        """Read available member books, with flipped members expressed in bucket terms."""
+        member_books = {}
         for member in self.bucket.members:
             book = ctx.book(member.market_id)
             if book is not None:
-                books[member.market_id] = router.view(book, member)
-        if not books:
-            # No book for any member yet (a restart before the streams are
-            # back): nothing to plan against, and no reason to pull what
-            # rests beyond what the trim took. Wait for a book.
-            if not first and pulled:
-                self.rounds += 1
-            await ctx.publish("managed.routed", {"round": self.rounds, "placed": 0, "pulled": pulled,
-                                                 "resting": len(self.legs), "remaining": str(self.known_remaining),
-                                                 "reason": "no_books"})
-            await ctx.save()
-            return
-        await self._price_fees(ctx, books)
-        plan = router.plan(self.bucket, books, self.precision, self._fee,
-                           side=self.side, quantity=self.known_remaining, limit=self.limit, floors=self.fee_floors)
-        wanted = {leg.market_id: leg for leg in plan.legs}
+                member_books[member.market_id] = router.view(book, member)
+        return member_books
 
-        # Keep a leg that is still at a price the plan wants, as long as what
-        # is kept does not add up to more than is left; pull one whose price
-        # is wrong, unless it has not sat for min_stay_s yet. Shrinking a leg
-        # is a cancel and a re-place at the back of the queue, so a leg is
-        # not pulled merely because the plan would size it smaller today. A
-        # kept leg is not topped up in the same round.
-        kept_resting = ZERO
+    async def _save_while_waiting_for_books(
+        self, ctx: Context, *, canceled_count: int, first: bool,
+    ) -> None:
+        """Keep resting orders when no books are available; save cleanup progress and wait."""
+        # A restart may restore children before their market streams return.
+        # Missing books alone do not justify cancelling those resting orders.
+        if not first and canceled_count:
+            self.rounds += 1
+        await ctx.publish("managed.routed", {
+            "round": self.rounds, "placed": 0, "pulled": canceled_count,
+            "resting": len(self.legs), "remaining": str(self.known_remaining), "reason": "no_books",
+        })
+        await ctx.save()
+
+    async def _calculate_routing_plan(
+        self, ctx: Context, member_books: dict[str, router.BookView],
+    ) -> router.Plan:
+        """Price the available liquidity and propose legs for all remaining contracts."""
+        await self._price_fees(ctx, member_books)
+        return router.plan(
+            self.bucket, member_books, self.precision, self._fee,
+            side=self.side, quantity=self.known_remaining, limit=self.limit, floors=self.fee_floors,
+        )
+
+    async def _keep_or_cancel_existing_legs(
+        self, ctx: Context, member_books: dict[str, router.BookView],
+        proposed_legs: dict[str, router.Leg],
+    ) -> int:
+        """Keep suitable children and cancel movable ones that no longer fit.
+
+        Remove each kept market from `proposed_legs` in place, so the placement
+        stage cannot submit another child there during this round.
+        """
+        canceled_count = 0
+        kept_resting_quantity = ZERO
         for market_id, leg in list(self.legs.items()):
             child = self.child_of(leg.order_id, leg.venue)
             if child is None or not child.live:
                 self.legs.pop(market_id, None)
                 continue
-            want = wanted.get(market_id)
-            resting = child.quantity - self.known(child)
-            if market_id not in books:
-                # No view of this member's book: nothing says the leg is wrong.
-                kept_resting += resting
-                wanted.pop(market_id, None)
+            proposed_leg = proposed_legs.get(market_id)
+            resting_quantity = child.quantity - self.known(child)
+
+            # No current book for this market: keep its child, because missing
+            # data alone is not evidence that the resting order should move.
+            if market_id not in member_books:
+                kept_resting_quantity += resting_quantity
+                proposed_legs.pop(market_id, None)
                 continue
-            if (want is not None and want.price == leg.price and want.side == leg.side
-                    and kept_resting + resting <= self.known_remaining):
-                kept_resting += resting
-                wanted.pop(market_id)
+
+            # Same side and price, with room in the remaining quantity: keep
+            # the queue position. Do not shrink to the proposal's size, since
+            # cancel/replacement would lose priority, or top it up this round.
+            if (proposed_leg is not None and proposed_leg.price == leg.price and proposed_leg.side == leg.side
+                    and kept_resting_quantity + resting_quantity <= self.known_remaining):
+                kept_resting_quantity += resting_quantity
+                proposed_legs.pop(market_id)
                 continue
+
+            # The proposal no longer fits, but the minimum stay has not passed.
+            # Keep the child for now; budget() still reserves its outstanding size.
             if not self.may_move(ctx, leg):
-                wanted.pop(market_id, None)
+                proposed_legs.pop(market_id, None)
                 continue
+
+            # The child no longer fits and is old enough to move. Cancel it;
+            # any replacement will come from the remaining proposed legs.
             self.legs.pop(market_id, None)
             await ctx.cancel_child(child.order_id, child.venue)
             child.status = "canceled"
-            pulled += 1
+            canceled_count += 1
+        return canceled_count
 
-        # Never put out more than is left once every live leg is reserved.
-        budget = self.budget()
-        placed = 0
-        for market_id, want in wanted.items():
-            size = min(want.quantity, budget)
-            spec = self.precision[market_id]
-            if size <= 0 or size < spec.min_quantity:
+    async def _place_new_legs(self, ctx: Context, proposed_legs: dict[str, router.Leg]) -> int:
+        """Submit remaining proposals within the unreserved quantity and venue minimums."""
+        # Reserve every live child's size before adding orders, including those
+        # kept despite missing books or an unelapsed minimum stay.
+        available_quantity = self.budget()
+        placed_count = 0
+        for market_id, proposed_leg in proposed_legs.items():
+            quantity = min(proposed_leg.quantity, available_quantity)
+            precision = self.precision[market_id]
+            if quantity <= 0 or quantity < precision.min_quantity:
                 continue
-            if spec.min_notional is not None and want.notional() * size / want.quantity < spec.min_notional:
+            if (precision.min_notional is not None
+                    and proposed_leg.notional() * quantity / proposed_leg.quantity < precision.min_notional):
                 continue
-            request = self.child_request(market_id=market_id, side=want.side, price=want.price, quantity=size,
-                                         type=OrderType.LIMIT, time_in_force=TimeInForce.GTC)
+            request = self.child_request(
+                market_id=market_id, side=proposed_leg.side, price=proposed_leg.price, quantity=quantity,
+                type=OrderType.LIMIT, time_in_force=TimeInForce.GTC,
+            )
             order = await ctx.submit_child(request)
-            child = self.track(order, size, want.bucket_price)   # the child's price in bucket terms
+            # Record both the venue's response and the intended allocation.
+            # Child progress uses bucket prices; LegState retains the native price.
+            child = self.track(order, quantity, proposed_leg.bucket_price)
             child.fee = order.fee or ZERO
-            self.legs[market_id] = LegState(order_id=order.id, venue=order.venue, side=want.side.value, price=want.price,
-                                            bucket_price=want.bucket_price, quantity=size, placed_at=ctx.now,
-                                            round=self.rounds)
-            budget -= size
-            placed += 1
-        if not first and (placed or pulled):
-            # A round is a re-allocation that changed something. The re-plans
-            # a cancel's own echo triggers change nothing and do not count.
+            self.legs[market_id] = LegState(
+                order_id=order.id, venue=order.venue, side=proposed_leg.side.value, price=proposed_leg.price,
+                bucket_price=proposed_leg.bucket_price, quantity=quantity, placed_at=ctx.now,
+                round=self.rounds,
+            )
+            available_quantity -= quantity
+            placed_count += 1
+        return placed_count
+
+    async def _record_routing_result(
+        self, ctx: Context, plan: router.Plan, *, placed_count: int, canceled_count: int, first: bool,
+    ) -> None:
+        """Report the round, stop at the applicable bounds, otherwise save working state."""
+        # Count only later rounds that changed an order. Replans caused by a
+        # cancellation's own notification do not count unless they change something.
+        if not first and (placed_count or canceled_count):
             self.rounds += 1
         await ctx.publish("managed.routed", {
-            "round": self.rounds, "placed": placed, "pulled": pulled, "resting": len(self.legs),
+            "round": self.rounds, "placed": placed_count, "pulled": canceled_count, "resting": len(self.legs),
             "remaining": str(self.known_remaining),
             "unfilled": str(plan.unfilled), "reason": plan.reason,
             "expected_net_price": str(plan.expected_net_price) if plan.expected_net_price is not None else None,

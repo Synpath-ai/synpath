@@ -59,7 +59,7 @@ from .journal import IntentState, LeaseLost, now_ms
 from .storage import JournalStore, create_journal
 from .submissions import CancelUnconfirmed, SubmissionInDoubt, SubmissionPending, request_identity
 from .ledger import Ledger
-from .orders import ManagedOrders, as_gtd
+from .orders import ManagedOrderController, as_gtd
 from .orders.manager import REGISTRY
 from .risk import Decision, HaltPolicy, RiskConfig, RiskEngine
 
@@ -187,7 +187,8 @@ class Engine:
             raise ValueError("execution engine and journal must use the same user_id")
         self.bus = EventBus(self.journal)
         self.ledger = Ledger()
-        self.risk = RiskEngine(risk or RiskConfig(), ledger=self.ledger, clock=clock)
+        # Holds the order risk rules, trading halt state and recent submission counters.
+        self.order_risk_checks = RiskEngine(risk or RiskConfig(), ledger=self.ledger, clock=clock)
         self.accounts: dict[str, Account] = dict(accounts or {})
         for venue in self.adapters:
             # Every configured venue trades under some account; name the
@@ -207,7 +208,8 @@ class Engine:
         self.event_of: dict[str, str] = {}
         """Market to event id, for the per-event cap."""
         self._open_cache: dict[str, Order] = {}
-        self.orders = ManagedOrders(self)
+        # Creates, restores and advances engine-held orders, and links their venue children.
+        self.managed_order_controller = ManagedOrderController(self)
         self.books: dict[str, Any] = {}
         """The local books engine-held orders watch, fed by `on_book`."""
         self.last_trade: dict[str, Decimal] = {}
@@ -220,8 +222,8 @@ class Engine:
         await self.journal.open()
         if self.config.require_lease:
             await self.journal.acquire_lease(self.config.lease_name, ttl_ms=self.config.lease_ttl_ms)
-        version = await self.journal.save_config("risk", self.risk.config.model_dump(mode="json"))
-        self.risk.config_version = version
+        version = await self.journal.save_config("risk", self.order_risk_checks.config.model_dump(mode="json"))
+        self.order_risk_checks.config_version = version
         recovery = await self.recover()
         self.running = True
         self.started_ts = int(self.clock() * 1000)
@@ -274,9 +276,12 @@ class Engine:
 
     # -- submitting -----------------------------------------------------------
 
-    async def submit(self, request: OrderRequest, *, venue: str | None = None, mark: Decimal | None = None,
+    async def submit(self, request: OrderRequest, *, venue: str | None = None, risk_reference_price: Decimal | None = None,
                      precision: Precision | None = None) -> Order:
-        """Retry the same instruction, never repeat an uncertain venue send."""
+        """Retry the same instruction, never repeat an uncertain venue send.
+
+        `risk_reference_price` overrides the book midpoint for the limit-price risk check.
+        """
         if request.user_id not in (None, self.config.user_id):
             raise BadRequest("user_id is assigned by the execution worker")
         if self.config.require_lease and not await self.journal.holds_lease():
@@ -284,10 +289,11 @@ class Engine:
         request = request.model_copy(update={"user_id": self.config.user_id})
         supported = VENUE_ORDER_TYPES | {OrderType.STOP_MARKET, OrderType.STOP_LIMIT}
         if is_bucket_id(request.market_id) or request.type not in supported or request.params.get("walk"):
-            return await self._submit_once(request, venue=venue, mark=mark, precision=precision)
+            return await self._submit_once(request, venue=venue, risk_reference_price=risk_reference_price, precision=precision)
         venue = venue or self._venue_of(request)
         account = request.account or self.accounts.get(venue) or Account(venue=venue)
-        deliberate = request.client_order_id is not None
+        # Caller-assigned IDs bypass the accidental-duplicate check, not same-ID retry protection.
+        caller_supplied_order_id = request.client_order_id is not None
         request = request.model_copy(update={"account": account,
                                              "client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"})
         async with self._lock(f"submission:{request.client_order_id}"):
@@ -316,7 +322,10 @@ class Engine:
                         return result
                 request = effective
             try:
-                return await self._submit_once(request, venue=venue, mark=mark, deliberate=deliberate, precision=precision)
+                return await self._submit_once(
+                    request, venue=venue, risk_reference_price=risk_reference_price,
+                    caller_supplied_order_id=caller_supplied_order_id, precision=precision,
+                )
             except (RiskRejected, BadRequest, OrderRejected) as error:
                 intent = await self.journal.intent(request.client_order_id)
                 if intent is not None and intent.state == IntentState.PLANNED:
@@ -327,13 +336,13 @@ class Engine:
 
     async def _existing_submission_result(self, submission: dict[str, Any]) -> Order | None:
         if submission["result_id"]:
-            parent = self.orders.get(submission["result_id"])
+            parent = self.managed_order_controller.get(submission["result_id"])
             if parent is None:
                 stored = await self.journal.managed_one(submission["result_id"])
                 parent = self._rebuilt(*stored) if stored else None
             if parent is not None:
-                if parent.live and self.orders.get(parent.id) is None:
-                    self.orders.remember(parent)
+                if parent.live and self.managed_order_controller.get(parent.id) is None:
+                    self.managed_order_controller.remember(parent)
                 return parent.as_order()
             result = await self.journal.order(submission["venue"], submission["result_id"])
             if result is None:
@@ -361,15 +370,20 @@ class Engine:
                                 client_order_id=submission["client_order_id"])
 
     async def _submit_once(self, request: OrderRequest, *, venue: str | None = None,
-                           mark: Decimal | None = None, deliberate: bool | None = None,
+                           risk_reference_price: Decimal | None = None, caller_supplied_order_id: bool | None = None,
                            precision: Precision | None = None) -> Order:
         """Risk, journal, send, record. Raises `RiskRejected` before anything
-        is sent, or the venue's own error after."""
+        is sent, or the venue's own error after.
+
+        `risk_reference_price` is the reference for the limit-price risk check.
+        `caller_supplied_order_id` skips the accidental-duplicate check when true;
+        when omitted, infer it before generating an order ID.
+        """
         if request.user_id not in (None, self.config.user_id):
             raise BadRequest("user_id is assigned by the execution worker")
         request = request.model_copy(update={"user_id": self.config.user_id})
         if is_bucket_id(request.market_id):
-            return await self._submit_bucket(request, mark=mark)
+            return await self._submit_bucket(request, risk_reference_price=risk_reference_price)
         venue = venue or self._venue_of(request)
         adapter = self._adapter(venue)
         account = request.account or self.accounts.get(venue) or Account(venue=venue)
@@ -377,17 +391,21 @@ class Engine:
         request = as_gtd(request, now_s=self.clock(), timezone_name=self.config.session_timezone,
                          session_end=self.config.session_end)
         if request.type not in VENUE_ORDER_TYPES:
-            return await self.submit_managed(request, venue=venue, account=account, mark=mark)
+            return await self.submit_managed(request, venue=venue, account=account, risk_reference_price=risk_reference_price)
         if request.type == OrderType.MARKET and request.params.get("walk"):
             # An explicit request for the engine's book walk rather than the
             # adapter's single immediate limit.
             walked = request.model_copy(update={"params": {**request.params, "managed_kind": "market_engine"}})
-            return await self.submit_managed(walked, venue=venue, account=account, mark=mark)
-        deliberate = request.client_order_id is not None if deliberate is None else deliberate
+            return await self.submit_managed(walked, venue=venue, account=account, risk_reference_price=risk_reference_price)
+        if caller_supplied_order_id is None:
+            caller_supplied_order_id = request.client_order_id is not None
         client_order_id = request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"
         request = request.model_copy(update={"client_order_id": client_order_id, "account": account})
 
-        decision = self.check(request, venue=venue, account=account, mark=mark, deliberate=deliberate)
+        decision = self.evaluate_order_risk(
+            request, venue=venue, account=account, risk_reference_price=risk_reference_price,
+            caller_supplied_order_id=caller_supplied_order_id,
+        )
         if not decision.ok:
             await self.bus.publish("risk.rejected", {
                 "rule": decision.rule, "message": decision.message, "client_order_id": client_order_id,
@@ -399,7 +417,7 @@ class Engine:
         await self.journal.record_intent(request, client_order_id=client_order_id, venue=venue, account=account)
         async with self._lock(f"{venue}:{client_order_id}"):
             await self.journal.mark_intent(client_order_id, IntentState.SENDING, bump_attempt=True)
-            self.risk.record_sent(request)
+            self.order_risk_checks.record_sent(request)
             try:
                 order = (await adapter.create_order_with_precision(request, precision)
                          if precision is not None else await adapter.create_order(request))
@@ -429,10 +447,11 @@ class Engine:
         await self.bus.publish("order.accepted", order.model_dump(mode="json"), key=f"{venue}:{order.id}", persist=False)
         return order
 
-    async def _submit_bucket(self, request: OrderRequest, *, mark: Decimal | None) -> Order:
+    async def _submit_bucket(self, request: OrderRequest, *, risk_reference_price: Decimal | None) -> Order:
         """An order on a bucket is a market order the engine holds as a
-        `routed_limit` parent, with the bucket's definition on the request so
-        the parent is whole in the journal. Its `price` is the worst price the
+        `routed_limit` parent. The request stores the enabled-member bucket
+        configuration captured at submission; later edits to the saved bucket
+        do not change this running order. Its `price` is the worst price the
         caller accepts, in bucket terms, as on any market order here. The
         nominal venue is the first member's; the legs each carry their own."""
         if request.type != OrderType.MARKET:
@@ -446,8 +465,11 @@ class Engine:
         bucket = Bucket.model_validate(row)
         if bucket.status != "active":
             raise BadRequest(f"{request.market_id}: the bucket is {bucket.status}")
-        # Only enabled members are routed to: the parent carries the bucket as
-        # it routes, so a member switched off is not a leg, a market or a venue of it.
+        # Capture the bucket configuration for this order, keeping only enabled members.
+        # The parent uses this configuration throughout execution, including after restart;
+        # later edits to the saved bucket do not change which members this order trades.
+        # Disabled members receive no child orders and require no venue adapters here.
+        # The saved bucket definition remains unchanged.
         bucket = bucket.routable()
         missing = bucket.venues() - set(self.adapters)
         if missing:
@@ -456,7 +478,7 @@ class Engine:
         account = request.account or self.accounts.get(nominal) or Account(venue=nominal)
         params = {**request.params, "managed_kind": "routed_limit", "bucket": bucket.model_dump(mode="json")}
         request = request.model_copy(update={"params": params, "account": account})
-        return await self.submit_managed(request, venue=nominal, account=account, mark=mark)
+        return await self.submit_managed(request, venue=nominal, account=account, risk_reference_price=risk_reference_price)
 
     async def save_bucket(self, bucket: Bucket) -> Bucket:
         """Store or update a bucket definition in this engine's journal."""
@@ -465,10 +487,12 @@ class Engine:
         return bucket
 
     async def submit_managed(self, request: OrderRequest, *, venue: str, account: Account,
-                             mark: Decimal | None = None) -> Order:
+                             risk_reference_price: Decimal | None = None) -> Order:
         """Accept an engine-held order: check it, journal it, start it."""
         check_managed_fields(request, now_ms=int(self.clock() * 1000))
-        decision = self.check(request, venue=venue, account=account, mark=mark)
+        decision = self.evaluate_order_risk(
+            request, venue=venue, account=account, risk_reference_price=risk_reference_price,
+        )
         if not decision.ok:
             await self.bus.publish("risk.rejected", {
                 "rule": decision.rule, "message": decision.message, "market_id": request.market_id,
@@ -477,7 +501,7 @@ class Engine:
             raise RiskRejected(decision.message, rule=decision.rule)
         request = request.model_copy(update={"user_id": request.user_id or self.config.user_id,
                                              "client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"})
-        parent = await self.orders.create(request, venue=venue, account=account)
+        parent = await self.managed_order_controller.create(request, venue=venue, account=account)
         return parent.as_order()
 
     async def submit_child(self, parent: Any, request: OrderRequest, **kw: Any) -> Order:
@@ -496,9 +520,9 @@ class Engine:
             request = request.model_copy(update={"account": account})
         if request.type in VENUE_ORDER_TYPES:
             order = await self.submit(request, venue=venue, **kw)
-            self.orders.adopt_child(parent.id, order.id, order.venue)
+            self.managed_order_controller.adopt_child(parent.id, order.id, order.venue)
             return order
-        leg = await self.orders.create(request, venue=venue, account=account, owner=parent)
+        leg = await self.managed_order_controller.create(request, venue=venue, account=account, owner=parent)
         return leg.as_order()
 
     @staticmethod
@@ -509,8 +533,8 @@ class Engine:
             return parent.venue
 
     async def cancel_child(self, parent: Any, order_id: str, venue: str | None = None) -> Order | None:
-        if order_id in self.orders.parents:
-            return (await self.orders.cancel(order_id, reason=f"cancelled by {parent.id}")).as_order()
+        if order_id in self.managed_order_controller.parents:
+            return (await self.managed_order_controller.cancel(order_id, reason=f"cancelled by {parent.id}")).as_order()
         child = parent.child_of(order_id, venue)
         venue = venue or (child.venue if child is not None else parent.venue)
         try:
@@ -522,17 +546,21 @@ class Engine:
         except OrderNotFound:
             return None
 
-    def check(self, request: OrderRequest, *, venue: str, account: Account, mark: Decimal | None = None,
-              deliberate: bool = False) -> Decision:
-        """The risk decision on its own, for a caller that wants to ask first."""
+    def evaluate_order_risk(
+        self, request: OrderRequest, *, venue: str, account: Account,
+        risk_reference_price: Decimal | None = None,
+        caller_supplied_order_id: bool = False,
+    ) -> Decision:
+        """Return whether an order passes the configured risk rules, without submitting it."""
         market_id = request.market_id
-        if mark is None:
-            mark = self.book_mid(market_id)
-        return self.risk.check(
+        if risk_reference_price is None:
+            risk_reference_price = self.book_mid(market_id)
+        return self.order_risk_checks.evaluate_order_risk(
             request, venue=venue, account=account,
             open_orders=[o for o in self.open_orders(venue=venue)],
-            mark=mark, market_close_ts=self.market_close.get(market_id), event_id=self.event_of.get(market_id),
-            deliberate=deliberate,
+            risk_reference_price=risk_reference_price, market_close_ts=self.market_close.get(market_id),
+            event_id=self.event_of.get(market_id),
+            caller_supplied_order_id=caller_supplied_order_id,
         )
 
     async def cancel(self, order_id: str, *, venue: str | None = None, market_id: str | None = None) -> Order:
@@ -543,8 +571,8 @@ class Engine:
         returned as it is, without a venue call; a venue that answers "not
         found" is asked for the order itself, so a fill that won the race is
         recorded as `closed` rather than overwritten as `canceled`."""
-        if order_id in self.orders.parents:
-            parent = await self.orders.cancel(order_id)
+        if order_id in self.managed_order_controller.parents:
+            parent = await self.managed_order_controller.cancel(order_id)
             return parent.as_order()
         order = await self._known(order_id, venue)
         if order.is_terminal or order.held_by == HeldBy.ENGINE:
@@ -574,7 +602,7 @@ class Engine:
         await self.journal.upsert_order(result, event="order.canceled")
         self._remember(result)
         await self.journal.mark_intent(key, IntentState.SETTLED, order_id=order_id)
-        await self.orders.on_order(result)
+        await self.managed_order_controller.on_order(result)
         await self.bus.publish("order.canceled", result.model_dump(mode="json"), key=f"{venue}:{order_id}", persist=False)
         return result
 
@@ -619,7 +647,7 @@ class Engine:
             client_order_id=key,
         )
         account = order.account or self.accounts.get(venue) or Account(venue=venue)
-        decision = self.check(intent_request, venue=venue, account=account)
+        decision = self.evaluate_order_risk(intent_request, venue=venue, account=account)
         if not decision.ok:
             await self.bus.publish("risk.rejected", {
                 "rule": decision.rule, "message": decision.message, "order_id": order.id, "operation": "edit",
@@ -634,7 +662,7 @@ class Engine:
         await self.journal.upsert_order(result, event="order.edited")
         self._remember(result)
         await self.journal.mark_intent(key, IntentState.SETTLED, order_id=result.id)
-        await self.orders.on_order(result)
+        await self.managed_order_controller.on_order(result)
         await self.bus.publish("order.edited", result.model_dump(mode="json"), key=f"{venue}:{result.id}", persist=False)
         return result
 
@@ -643,7 +671,7 @@ class Engine:
     async def halt(self, reason: str, *, scope: str = "*", policy: HaltPolicy | None = None, rearm_after_s: float | None = None) -> dict[str, Any]:
         """Stop trading. Returns what the policy did, per venue."""
         policy = policy or self.config.halt_policy
-        self.risk.kill.engage(reason=reason, scope=scope, policy=policy, rearm_after_s=rearm_after_s)
+        self.order_risk_checks.kill.engage(reason=reason, scope=scope, policy=policy, rearm_after_s=rearm_after_s)
         result: dict[str, Any] = {"policy": policy, "scope": scope, "reason": reason, "canceled": {}, "remaining": {}}
         if policy == "cancel":
             for venue, adapter in self.adapters.items():
@@ -663,7 +691,7 @@ class Engine:
                     canceled = order.model_copy(update={"status": OrderStatus.CANCELED})
                     await self.journal.upsert_order(canceled, event="order.canceled")
                     self._remember(canceled)
-        result["managed"] = await self.orders.on_halt(reason, scope=scope)
+        result["managed"] = await self.managed_order_controller.on_halt(reason, scope=scope)
         await self.bus.publish("engine.halted", result)
         return result
 
@@ -691,21 +719,21 @@ class Engine:
             return -1
 
     async def resume(self, *, scope: str | None = None) -> None:
-        self.risk.kill.release(scope=scope)
+        self.order_risk_checks.kill.release(scope=scope)
         await self.bus.publish("engine.resumed", {"scope": scope or "*"})
 
     async def pause_book(self, book: str, *, paused: bool = True) -> None:
         """Stop one strategy without stopping the engine."""
-        books = set(self.risk.config.paused_books)
+        books = set(self.order_risk_checks.config.paused_books)
         books.add(book) if paused else books.discard(book)
-        self.risk.config = self.risk.config.model_copy(update={"paused_books": sorted(books)})
-        self.risk.config_version = await self.journal.save_config("risk", self.risk.config.model_dump(mode="json"))
+        self.order_risk_checks.config = self.order_risk_checks.config.model_copy(update={"paused_books": sorted(books)})
+        self.order_risk_checks.config_version = await self.journal.save_config("risk", self.order_risk_checks.config.model_dump(mode="json"))
         await self.bus.publish("engine.book_paused" if paused else "engine.book_resumed", {"book": book})
 
     async def set_risk(self, config: RiskConfig, *, author: str | None = None) -> int:
         """Replace the rules; the new version is journaled and returned."""
         version = await self.journal.save_config("risk", config.model_dump(mode="json"), author=author)
-        self.risk.configure(config, version=version)
+        self.order_risk_checks.configure(config, version=version)
         await self.bus.publish("risk.configured", {"version": version, "author": author})
         return version
 
@@ -717,7 +745,7 @@ class Engine:
         for fill in await self.journal.fills():
             self.ledger.apply_fill(fill)
             recovery.fills_replayed += 1
-        self.risk.roll_day()
+        self.order_risk_checks.roll_day()
         for intent in await self.journal.in_doubt():
             recovery.in_doubt += 1
             outcome = await self._resolve(intent)
@@ -729,11 +757,11 @@ class Engine:
             else:
                 # Pending or unreachable: still in doubt, and reported as such.
                 recovery.unresolved += 1
-        recovery.managed = await self.orders.restore()
+        recovery.managed = await self.managed_order_controller.restore()
         # After the in-doubt intents, so an order adopted a moment ago is in
         # the cache the risk rules count against.
         recovery.orders_open = len(await self.refresh_open_orders())
-        await self.orders.resume_restored()
+        await self.managed_order_controller.resume_restored()
         return recovery
 
     async def sweep(self) -> list[dict[str, Any]]:
@@ -830,7 +858,7 @@ class Engine:
         self._remember(order)
         await self.bus.publish(f"order.{order.status.value}", order.model_dump(mode="json"),
                                key=f"{order.venue}:{order.id}", persist=False)
-        await self.orders.on_order(order)
+        await self.managed_order_controller.on_order(order)
 
     async def on_fill(self, fill: Fill) -> None:
         """Record a fill once, book it in the ledger, publish it. A fill of a
@@ -858,7 +886,7 @@ class Engine:
             book = self.books.get(market_id)
         if book is not None:
             self.books[market_id] = book
-        await self.orders.on_book(market_id)
+        await self.managed_order_controller.on_book(market_id)
 
     def set_book(self, market_id: str, book: Any) -> None:
         """Hand the engine a `LocalBook` (or anything with `best_bid`,
@@ -880,7 +908,7 @@ class Engine:
                 return
             self.last_trade_timestamps[market_id] = timestamp
         self.last_trade[market_id] = Decimal(str(price))
-        await self.orders.on_trade(market_id, Decimal(str(price)), Decimal(str(quantity)))
+        await self.managed_order_controller.on_trade(market_id, Decimal(str(price)), Decimal(str(quantity)))
 
     async def on_settlement(self, settlement: Settlement) -> None:
         realized = self.ledger.apply_settlement(settlement)
@@ -941,14 +969,14 @@ class Engine:
         holds is rebuilt from its journal snapshot, read-only."""
         out = []
         for kind, snapshot in await self.journal.managed_on(f"bucket:{bucket_id}"):
-            parent = self.orders.get(snapshot["id"]) or self._rebuilt(kind, snapshot)
+            parent = self.managed_order_controller.get(snapshot["id"]) or self._rebuilt(kind, snapshot)
             if parent is not None:
                 out.append(parent)
         return out
 
     async def bucket_order(self, parent_id: str) -> Any | None:
         """One order on a bucket, by its id, or None if the id is not one."""
-        parent = self.orders.get(parent_id)
+        parent = self.managed_order_controller.get(parent_id)
         if parent is None:
             found = await self.journal.managed_one(parent_id)
             parent = self._rebuilt(*found) if found else None
@@ -1029,12 +1057,12 @@ class Engine:
             while self.running:
                 parent_id = await self._dispatch_queue.get()
                 self._queued_parents.discard(parent_id)
-                parent = self.orders.get(parent_id)
+                parent = self.managed_order_controller.get(parent_id)
                 if parent is None or not parent.live:
                     continue
                 self.dispatch_parent = parent_id
                 try:
-                    await self.orders.run(parent, lambda ctx: parent.on_timer(ctx))
+                    await self.managed_order_controller.run(parent, lambda ctx: parent.on_timer(ctx))
                 finally:
                     self.dispatch_parent = None
         finally:
@@ -1045,7 +1073,7 @@ class Engine:
         while self.running:
             await asyncio.sleep(self.config.managed_tick_s)
             try:
-                await self.orders.on_timer()
+                await self.managed_order_controller.on_timer()
             except Exception:
                 log.exception("synpath.engine: the managed-order timer failed")
 

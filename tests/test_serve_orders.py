@@ -182,7 +182,7 @@ class TestListing:
         harness.wait_until(lambda: K in harness.stack.feeds.watching["kalshi"])
         harness.push("kalshi", stream.snapshot(K, bids=[("0.44", "5")], asks=[("0.46", "5")]))
         engine = harness.stack.engine
-        harness.wait_until(lambda: bool(engine.orders.get(placed["triggered"]["id"]).children))
+        harness.wait_until(lambda: bool(engine.managed_order_controller.get(placed["triggered"]["id"]).children))
         step()
         placed["elsewhere"] = place(harness, limit(market_id="kalshi:KXHARNESS-2",
                                                    client_order_id="list-elsewhere")).json()
@@ -193,7 +193,7 @@ class TestListing:
         with serve_harness(kalshi=kalshi) as harness:
             placed = self.place_one_of_everything(harness, kalshi)
             parent_id = placed["triggered"]["id"]
-            child_id = harness.stack.engine.orders.get(parent_id).children[0].order_id
+            child_id = harness.stack.engine.managed_order_controller.get(parent_id).children[0].order_id
 
             default = {row["id"]: row["status"] for row in orders(harness)["data"]}
             assert default == {placed["resting"]["id"]: "open", placed["waiting"]["id"]: "waiting",
@@ -236,7 +236,7 @@ class TestListing:
                                      "stop_price": "0.10", "client_order_id": "list-ended"}).json()
             harness.client.delete(f"/trading/orders/{parent['id']}", headers=harness.auth)
             engine = harness.stack.engine
-            harness.call(lambda: engine.orders.parents.pop(parent["id"]))   # what a restart leaves
+            harness.call(lambda: engine.managed_order_controller.parents.pop(parent["id"]))   # what a restart leaves
             rows = orders(harness, scope="all")["data"]
             assert [(row["id"], row["status"], row["held_by"]) for row in rows] == \
                 [(parent["id"], "canceled", "engine")]
@@ -290,7 +290,7 @@ class TestStopsReadTheBookTheyAreHanded:
 
     @staticmethod
     def state(harness, parent_id: str) -> str:
-        return harness.stack.engine.orders.get(parent_id).state
+        return harness.stack.engine.managed_order_controller.get(parent_id).state
 
     def test_a_stop_already_met_on_a_book_the_screen_loaded_triggers_without_another_update(self, serve_harness):
         kalshi = MockKalshi()

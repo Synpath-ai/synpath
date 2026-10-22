@@ -63,7 +63,7 @@ async def test_retry_same_stop_returns_original_parent_even_after_restart(tmp_pa
     engine, venue = await scripted_engine(path)
     original = await engine.submit(stop_request())
     repeated = await engine.submit(stop_request(quantity="10.000", stop_price="0.400"))
-    assert repeated.id == original.id and len(engine.orders.parents) == 1
+    assert repeated.id == original.id and len(engine.managed_order_controller.parents) == 1
     await engine.stop()
     restarted, _ = await scripted_engine(path, venue)
     try:
@@ -123,12 +123,12 @@ async def test_day_retry_keeps_the_original_expiry(setup):
     engine, paper, clock = setup
     req = request(side="sell", type="stop_market", stop_price="0.40", time_in_force="day", client_order_id="day-a")
     first = await engine.submit(req)
-    expiry = engine.orders.get(first.id).request.expires_at
+    expiry = engine.managed_order_controller.get(first.id).request.expires_at
     clock.tick(86400)
     repeated = await engine.submit(req)
     assert repeated.id == first.id and repeated.expires_at == expiry
-    await engine.orders.on_timer()
-    assert engine.orders.get(first.id).state == "expired" and paper.fills == []
+    await engine.managed_order_controller.on_timer()
+    assert engine.managed_order_controller.get(first.id).state == "expired" and paper.fills == []
 
 
 async def test_expiry_wins_when_price_arrives_before_the_timer(setup):
@@ -138,7 +138,7 @@ async def test_expiry_wins_when_price_arrives_before_the_timer(setup):
     clock.tick(1)
     book(paper, engine, bids=[(D("0.39"), D("100"))], asks=[(D("0.41"), D("100"))])
     await feed_book(engine, paper=paper)
-    restored = engine.orders.get(parent.id)
+    restored = engine.managed_order_controller.get(parent.id)
     assert restored.state == "expired" and restored.children == []
 
 
@@ -163,7 +163,7 @@ async def test_trigger_and_child_plan_are_committed_before_adapter_call(tmp_path
 async def test_atomic_plan_rolls_back_both_parent_and_child(setup, monkeypatch):
     engine, paper, clock = setup
     parent = await engine.submit(request(side="sell", type="stop_market", stop_price="0.40"))
-    managed = engine.orders.get(parent.id)
+    managed = engine.managed_order_controller.get(parent.id)
     snapshot = {**managed.snapshot(), "state": "working"}
     child = managed.child_request(quantity=D("10"), price=D("0.01"), type="market", time_in_force="ioc")
     child = child.model_copy(update={"client_order_id": "child-a"})
@@ -186,14 +186,14 @@ async def test_lost_child_response_stays_triggered_and_is_adopted_after_restart(
     parent = await engine.submit(stop_request())
     venue.fail_next = "arrived"
     await cross(engine)
-    assert engine.orders.get(parent.id).state == "working" and len(venue.sent) == 1
+    assert engine.managed_order_controller.get(parent.id).state == "working" and len(venue.sent) == 1
     await engine.stop()
     restarted, _ = await scripted_engine(path, venue)
     try:
-        restored = restarted.orders.get(parent.id)
+        restored = restarted.managed_order_controller.get(parent.id)
         assert len(restored.children) == 1 and restored.pending_child is None
         for _ in range(3):
-            await restarted.orders.on_timer()
+            await restarted.managed_order_controller.on_timer()
             await cross(restarted)
         assert len(venue.sent) == 1
         assert restored.children[0].order_id == "V1"
@@ -206,7 +206,7 @@ async def test_stop_market_uses_deep_available_liquidity_and_reports_execution_a
     parent = await engine.submit(request(side="sell", type="stop_market", stop_price="0.40"))
     book(paper, engine, bids=[(D("0.39"), D("4")), (D("0.20"), D("6"))], asks=[(D("0.41"), D("10"))])
     await feed_book(engine, paper=paper)
-    result = engine.orders.get(parent.id).as_order()
+    result = engine.managed_order_controller.get(parent.id).as_order()
     assert result.status == OrderStatus.CLOSED and result.filled == D("10")
     assert result.average_price == D("0.276"), "the fill average is not the 0.01 child limit"
     child = (await engine.journal.orders_for_parent(parent.id))[0]
@@ -229,7 +229,7 @@ async def test_cancel_and_trigger_race_leaves_no_working_child(tmp_path):
     parent = await engine.submit(stop_request(type="stop_limit", price="0.38"))
     try:
         await asyncio.wait_for(asyncio.gather(cross(engine), engine.cancel(parent.id)), 2)
-        assert engine.orders.get(parent.id).state == "canceled"
+        assert engine.managed_order_controller.get(parent.id).state == "canceled"
         assert await venue.fetch_open_orders() == []
         assert len(venue.sent) <= 1
     finally:
@@ -248,8 +248,8 @@ async def test_cancel_acknowledgement_with_nonterminal_result_stays_pending(tmp_
         result = await engine.cancel(parent.id)
         assert result.status == OrderStatus.PENDING_CANCEL
         venue.cancel_order = original
-        await engine.orders.on_timer()
-        assert engine.orders.get(parent.id).state == "canceled"
+        await engine.managed_order_controller.on_timer()
+        assert engine.managed_order_controller.get(parent.id).state == "canceled"
     finally:
         await engine.stop()
 
@@ -267,9 +267,9 @@ async def test_order_history_pages_are_exhausted_before_adoption(tmp_path):
         return Page([], next_cursor="next") if kwargs.get("cursor") is None else Page([child])
     venue.fetch_orders = history
     try:
-        await engine.orders.on_timer()
+        await engine.managed_order_controller.on_timer()
         assert cursors == [None, "next"]
-        assert engine.orders.get(parent.id).state == "done" and len(venue.sent) == 1
+        assert engine.managed_order_controller.get(parent.id).state == "done" and len(venue.sent) == 1
     finally:
         await engine.stop()
 
@@ -347,11 +347,11 @@ asyncio.run(crash())
     venue = DurableFakeVenue(venue_path)
     engine, _ = await scripted_engine(journal, venue)
     try:
-        parent = engine.orders.live()[0]
+        parent = engine.managed_order_controller.live()[0]
         assert len(parent.children) == 1 and parent.pending_child is None
         assert len(venue.orders) == 1
         for _ in range(2):
-            await engine.orders.on_timer()
+            await engine.managed_order_controller.on_timer()
         assert len(venue.orders) == 1
         assert len(venue.sent) == (1 if boundary == 'before_send' else 0)
     finally:
@@ -369,7 +369,7 @@ async def test_legacy_checkpoint_client_key_is_reserved_during_migration(tmp_pat
     restarted, _ = await scripted_engine(path, venue)
     try:
         assert (await restarted.submit(stop_request())).id == original.id
-        assert len(restarted.orders.parents) == 1 and venue.sent == []
+        assert len(restarted.managed_order_controller.parents) == 1 and venue.sent == []
     finally:
         await restarted.stop()
 
@@ -377,7 +377,7 @@ async def test_legacy_checkpoint_client_key_is_reserved_during_migration(tmp_pat
 async def test_cancel_a_planned_child_never_dispatches_it(tmp_path):
     engine, venue = await scripted_engine(tmp_path / "engine.db")
     parent = await engine.submit(stop_request())
-    managed = engine.orders.get(parent.id)
+    managed = engine.managed_order_controller.get(parent.id)
     managed.state = "working"
     child = managed.child_request(quantity=D("10"), price=D("0.01"), type="market", time_in_force="ioc")
     child = child.model_copy(update={"client_order_id": "planned-child"})
@@ -399,7 +399,7 @@ async def test_expired_planned_stop_limit_does_not_send_after_restart(tmp_path):
     path = tmp_path / "engine.db"
     engine, venue = await scripted_engine(path)
     parent = await engine.submit(stop_request(type="stop_limit", price="0.38", time_in_force="gtd", expires_at=int((engine.clock() + 60) * 1000)))
-    managed = engine.orders.get(parent.id)
+    managed = engine.managed_order_controller.get(parent.id)
     managed.state = "working"
     managed.pending_child = managed.child_request(quantity=D("10"), price=D("0.38"), type="limit", time_in_force="gtd", expires_at=managed.request.expires_at).model_copy(update={"client_order_id": "planned-expiry"})
     await engine.journal.plan_managed_child(managed.snapshot(), managed.pending_child, venue=managed.venue, account=managed.account)
@@ -408,7 +408,7 @@ async def test_expired_planned_stop_limit_does_not_send_after_restart(tmp_path):
     restarted = Engine({"kalshi": venue}, config, clock=lambda: managed.request.expires_at / 1000 + 1)
     try:
         await restarted.start()
-        assert restarted.orders.get(parent.id).state == "expired"
+        assert restarted.managed_order_controller.get(parent.id).state == "expired"
         assert venue.sent == []
     finally:
         await restarted.stop()
@@ -430,7 +430,7 @@ async def test_cancellation_of_uncertain_child_survives_restart(tmp_path):
     venue.fetch_open_orders = original
     restarted, _ = await scripted_engine(path, venue)
     try:
-        assert restarted.orders.get(parent.id).state == "canceled"
+        assert restarted.managed_order_controller.get(parent.id).state == "canceled"
         assert await venue.fetch_open_orders() == [] and len(venue.sent) == 1
     finally:
         await restarted.stop()
@@ -457,10 +457,10 @@ async def test_crossed_book_and_replayed_trade_do_not_trigger(setup):
     parent = await engine.submit(request(side="sell", type="stop_market", stop_price="0.40"))
     engine.set_book("kalshi:KX-A", SimpleNamespace(ready=True, best_bid=D("0.39"), best_ask=D("0.30")))
     await engine.on_book({"market_id": "kalshi:KX-A"})
-    assert engine.orders.get(parent.id).state == "waiting"
+    assert engine.managed_order_controller.get(parent.id).state == "waiting"
     last = await engine.submit(request(side="sell", type="stop_market", stop_price="0.40", trigger_source="last"))
     await engine.on_trade({"market_id": "kalshi:KX-A", "price": "0.39", "quantity": "1", "timestamp": engine.started_ts - 1000})
-    assert engine.orders.get(last.id).state == "waiting" and paper.fills == []
+    assert engine.managed_order_controller.get(last.id).state == "waiting" and paper.fills == []
 
 
 async def test_risk_refusal_is_durable_on_retry(tmp_path):
@@ -489,7 +489,7 @@ async def test_submission_reservation_and_audit_rollback_before_any_dispatch(tmp
         with pytest.raises(sqlite3.IntegrityError, match="simulated audit failure"):
             await engine.submit(stop_request())
         assert await engine.journal.submission('protect-a') is None
-        assert engine.orders.parents == {} and venue.sent == []
+        assert engine.managed_order_controller.parents == {} and venue.sent == []
     finally:
         await engine.stop()
 
@@ -520,7 +520,7 @@ async def test_slow_venue_does_not_block_another_markets_stop_observation(tmp_pa
         await asyncio.wait_for(cross(engine), 1)
         await asyncio.wait_for(entered.wait(), 1)
         await asyncio.wait_for(engine.on_book({'market_id': 'kalshi:KX-B'}), 1)
-        managed = engine.orders.get(second.id)
+        managed = engine.managed_order_controller.get(second.id)
         assert managed.state == 'working' and managed.pending_child is not None
         if action == 'cancel':
             await engine.cancel(second.id)
@@ -529,7 +529,7 @@ async def test_slow_venue_does_not_block_another_markets_stop_observation(tmp_pa
         release.set()
         for _ in range(100):
             expected = 'canceled' if action == 'cancel' else 'expired' if action == 'expire' else 'working'
-            if engine.orders.get(first.id).children and managed.pending_child is None and managed.state == expected:
+            if engine.managed_order_controller.get(first.id).children and managed.pending_child is None and managed.state == expected:
                 break
             await asyncio.sleep(0.005)
         assert managed.pending_child is None
@@ -549,8 +549,8 @@ async def test_sell_stop_market_notional_limit_counts_the_no_price(tmp_path):
         await engine.set_risk(RiskConfig(price_collar=None, duplicate_window_ms=0, closing_soon_s=None,
                                         max_order_notional=D('5')))
         await cross(engine)
-        assert engine.orders.get(parent.id).state == 'rejected'
-        assert '9.90' in engine.orders.get(parent.id).detail
+        assert engine.managed_order_controller.get(parent.id).state == 'rejected'
+        assert '9.90' in engine.managed_order_controller.get(parent.id).detail
         assert venue.sent == [], 'buying NO at a 0.01 YES limit can cost 0.99 per contract'
     finally:
         await engine.stop()
@@ -567,7 +567,7 @@ async def test_unexpected_decoder_error_after_send_preserves_uncertain_stop(tmp_
     venue.create_order = accepted_then_decoder_failed
     try:
         await cross(engine)
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.state == "working" and managed.pending_child is not None
         assert "unresolved" in managed.detail and len(venue.sent) == 1
     finally:
@@ -575,7 +575,7 @@ async def test_unexpected_decoder_error_after_send_preserves_uncertain_stop(tmp_
     venue.create_order = original
     engine, _ = await scripted_engine(path, venue)
     try:
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert len(managed.children) == 1 and managed.pending_child is None
         assert len(venue.sent) == 1
     finally:
@@ -619,8 +619,8 @@ async def test_canceled_commit_keeps_triggered_stop_recoverable(tmp_path, monkey
         await engine.stop()
     restarted, _ = await scripted_engine(path, venue)
     try:
-        await restarted.orders.on_timer()
-        assert restarted.orders.get(parent.id).state != "rejected"
+        await restarted.managed_order_controller.on_timer()
+        assert restarted.managed_order_controller.get(parent.id).state != "rejected"
         assert len(venue.sent) == 1
     finally:
         await restarted.stop()

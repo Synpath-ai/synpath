@@ -240,7 +240,7 @@ async def _status_loop(engine: Engine, interval: float) -> None:
         log.info(
             "synpath.engine: %s open orders, %s positions, realized %s, fees %s, events %s, halted=%s",
             len(engine.open_orders()), len(engine.ledger.open_positions()), total.realized, total.fees,
-            engine.bus.published, engine.risk.kill.engaged,
+            engine.bus.published, engine.order_risk_checks.kill.engaged,
         )
 
 

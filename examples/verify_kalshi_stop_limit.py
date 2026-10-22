@@ -180,7 +180,7 @@ async def verify(adapter: KalshiTrading, guard: OneOrderGuard, directory: Path) 
             await engine.on_book({"market_id": MARKET})
         finally:
             guard.enabled = False
-        managed = engine.orders.get(parent_id)
+        managed = engine.managed_order_controller.get(parent_id)
         if managed.state != "working" or len(managed.children) != 1 or guard.sent is None:
             raise RuntimeError("trigger did not create exactly one child")
         child = managed.children[0]
@@ -194,7 +194,7 @@ async def verify(adapter: KalshiTrading, guard: OneOrderGuard, directory: Path) 
     finally:
         guard.enabled = False
         try:
-            managed = engine.orders.get(parent_id) if parent_id else None
+            managed = engine.managed_order_controller.get(parent_id) if parent_id else None
             if managed is not None and managed.live and managed.children:
                 guard.cancel_ids.update(c.order_id for c in managed.children)
                 try:

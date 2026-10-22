@@ -387,7 +387,7 @@ class TestRisk:
     async def test_the_price_collar_uses_the_book_midpoint(self, journal_path):
         venue = ScriptedVenue()
         engine = await engine_for(journal_path, venue)
-        engine.risk.config = engine.risk.config.model_copy(update={"price_collar": D("0.05")})
+        engine.order_risk_checks.config = engine.order_risk_checks.config.model_copy(update={"price_collar": D("0.05")})
         engine.set_book("kalshi:KX-A", LocalBook())
         engine.books["kalshi:KX-A"].replace([(D("0.59"), D("10"))], [(D("0.61"), D("10"))])
         with pytest.raises(RiskRejected) as caught:
@@ -425,7 +425,7 @@ class TestRisk:
     async def test_the_risk_configuration_is_versioned(self, journal_path):
         venue = ScriptedVenue()
         engine = await engine_for(journal_path, venue)
-        first = engine.risk.config_version
+        first = engine.order_risk_checks.config_version
         second = await engine.set_risk(RiskConfig(max_order_contracts=D("2"), price_collar=None, duplicate_window_ms=0))
         assert second > first
         with pytest.raises(RiskRejected):

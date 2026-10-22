@@ -158,7 +158,7 @@ class TestBooks:
         kalshi.set_book(K, bids=[(D("0.38"), D("100"))])          # where the child will actually trade
         parent = await engine.submit(stop_request())
         await feeds.sync()
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
 
         await feeds.dispatch("kalshi", k_stream, BookEvent(venue="kalshi", market_id=K, kind="delta"))
         assert managed.state == "waiting", "no snapshot yet: the book is not ready and reads as no book"
@@ -176,7 +176,7 @@ class TestBooks:
         k_stream.books[K].bids = {D("0.30"): D("100")}               # stale levels left behind by a gap
         k_stream.books[K].invalidate()
         await feeds.dispatch("kalshi", k_stream, BookEvent(venue="kalshi", market_id=K, kind="delta"))
-        assert engine.orders.get(parent.id).state == "waiting"
+        assert engine.managed_order_controller.get(parent.id).state == "waiting"
 
 
 class TestMarks:
@@ -246,7 +246,7 @@ class TestAccountStreams:
         parent = await engine.submit(stop_request())
         await feeds.sync()
         await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.39", "100")], asks=[("0.41", "100")]))
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         child = managed.children[0]
         venue_order = kalshi.orders[child.order_id]
         assert managed.filled == venue_order.filled, "the placement's answer is the first record"
@@ -261,7 +261,7 @@ class TestAccountStreams:
         await feeds.sync()
         kalshi.set_book(K, bids=[])                                   # nothing to cross: the child rests
         await feeds.dispatch("kalshi", k_stream, k_stream.snapshot(K, bids=[("0.39", "100")], asks=[("0.41", "100")]))
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         child = managed.children[0]
         before = managed.filled
         fill = Fill(id="f-1", order_id=child.order_id, venue="kalshi", account=ACCOUNTS["kalshi"], market_id=K,

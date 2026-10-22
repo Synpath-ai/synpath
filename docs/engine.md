@@ -219,7 +219,7 @@ parent = await engine.submit(OrderRequest(
     market_id=bucket.market_id, side=Side.BUY, quantity=Decimal("500"), type="market", price=Decimal("0.42"),
     book="alpha", params={"min_stay_s": 5, "max_rounds": 20},
 ))
-engine.orders.get(parent.id).report()          # filled, average, per venue, why it stopped
+engine.managed_order_controller.get(parent.id).report()          # filled, average, per venue, why it stopped
 await engine.bucket_position(bucket.id)        # the ledger's positions, netted in bucket terms
 ```
 

@@ -202,7 +202,7 @@ class _Stop(ManagedOrder):
             if self.pending_end:
                 await self.cancel(ctx, self.detail, end=self.pending_end)
             else:
-                await self.on_child(ctx, order, self.child_of(order.id, order.venue))
+                await self.on_child_order_updated(ctx, order, self.child_of(order.id, order.venue))
             return
         if intent is not None and intent.state in (IntentState.REJECTED, IntentState.FAILED, IntentState.SETTLED):
             self.pending_child = None
@@ -243,7 +243,7 @@ class _Stop(ManagedOrder):
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         await self.complete_if_done(ctx)
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         if not order.is_terminal or self.state != "working":
             return
         if self.remaining <= 0:

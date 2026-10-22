@@ -206,10 +206,10 @@ asyncio.run(crash())
     venue = lifecycle_scenarios.DurableFakeVenue(venue_path)
     engine, _ = await lifecycle_scenarios.scripted_engine(dsn, venue, storage_backend="postgresql", storage_schema=schema)
     try:
-        parent = engine.orders.live()[0]
+        parent = engine.managed_order_controller.live()[0]
         assert len(parent.children) == 1 and parent.pending_child is None
         for _ in range(2):
-            await engine.orders.on_timer()
+            await engine.managed_order_controller.on_timer()
         assert len(venue.orders) == 1
         assert len(venue.sent) == (1 if boundary == "before_send" else 0)
     finally:
@@ -404,7 +404,7 @@ async def test_audit_failure_rolls_back_submission_before_dispatch(database):
         with pytest.raises(psycopg.errors.RaiseException, match="simulated audit failure"):
             await engine.submit(lifecycle_scenarios.stop_request())
         assert await engine.journal.submission("protect-a") is None
-        assert engine.orders.parents == {} and venue.sent == []
+        assert engine.managed_order_controller.parents == {} and venue.sent == []
     finally:
         await engine.stop()
 

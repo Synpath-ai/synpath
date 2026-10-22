@@ -95,7 +95,7 @@ class TestPlacing:
         assert [(o.side, o.price, o.quantity) for o in poly.orders.values()] == [(Side.BUY, D("0.42"), D("20"))]
 
         await deliver(kalshi, poly)
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.state == "done" and managed.filled == D("50")
         assert managed.as_order().average_price == (D("0.41") * 30 + D("0.42") * 20) / 50
         report = managed.report()
@@ -126,7 +126,7 @@ class TestPlacing:
             assert [(o.side, o.price, o.quantity) for o in poly.orders.values()] == [(Side.SELL, D("0.70"), D("40"))]
             assert kalshi.orders == {}
             await deliver(kalshi, poly)
-            managed = engine.orders.get(parent.id)
+            managed = engine.managed_order_controller.get(parent.id)
             assert managed.state == "done" and managed.as_order().average_price == D("0.30")
         finally:
             await engine.stop()
@@ -140,7 +140,7 @@ class TestPlacing:
         parent = await engine.submit(request(off))
         assert [(o.price, o.quantity) for o in kalshi.orders.values()] == [(D("0.44"), D("30"))]
         assert poly.orders == {}, "the cheaper member is off, so nothing goes there"
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.markets() == [K] and managed.venues() == {"kalshi"}
 
 
@@ -152,7 +152,7 @@ class TestWorking:
         kalshi.set_book(K, asks=[(D("0.41"), D("10"))])     # someone else took 20 before our leg arrived
         parent = await engine.submit(request(bucket))
         await deliver(kalshi, poly)
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.state == "working" and managed.filled == D("30")
         resting = open_orders(kalshi)
         assert [(o.price, o.quantity, o.filled) for o in resting] == [(D("0.41"), D("30"), D("10"))]
@@ -174,7 +174,7 @@ class TestWorking:
         poly.set_book(P, asks=[(D("0.50"), D("100"))])
         parent = await engine.submit(request(bucket))
         await deliver(kalshi, poly)
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         first_k, first_p = list(kalshi.orders)[0], list(poly.orders)[0]
 
         engine.set_book(K, BookState(asks=[(D("0.40"), D("30"))]))
@@ -211,7 +211,7 @@ class TestStopping:
         book(kalshi, engine, K, asks=[(D("0.50"), D("100"))])
         book(poly, engine, P, asks=[(D("0.52"), D("100"))])
         parent = await engine.submit(request(bucket))
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert parent.status == OrderStatus.CANCELED
         assert managed.stop_reason == "worst_price" and managed.report()["unfilled"] == "50"
         assert kalshi.orders == {} and poly.orders == {}
@@ -225,7 +225,7 @@ class TestStopping:
         # A fill re-plans but changes no leg, so it is not a round; the book move is round 1.
         parent = await engine.submit(request(bucket, params={"max_rounds": 1}))
         await deliver(kalshi, poly)
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.filled == D("10") and managed.state == "working" and managed.rounds == 0
         engine.set_book(K, BookState(asks=[(D("0.40"), D("30"))]))
         await engine.on_book({"market_id": K})
@@ -241,9 +241,9 @@ class TestStopping:
         poly.set_book(P, asks=[(D("0.50"), D("100"))])
         parent = await engine.submit(request(bucket))
         assert open_orders(kalshi) and open_orders(poly)
-        await engine.orders.cancel(parent.id)
+        await engine.managed_order_controller.cancel(parent.id)
         assert open_orders(kalshi) == [] and open_orders(poly) == []
-        assert engine.orders.get(parent.id).state == "canceled"
+        assert engine.managed_order_controller.get(parent.id).state == "canceled"
 
     async def test_a_halt_on_one_member_venue_reaches_it(self, setup):
         engine, kalshi, poly, clock, bucket = setup
@@ -252,10 +252,10 @@ class TestStopping:
         kalshi.set_book(K, asks=[(D("0.50"), D("100"))])
         poly.set_book(P, asks=[(D("0.50"), D("100"))])
         parent = await engine.submit(request(bucket))
-        halted = await engine.orders.on_halt("test", scope="polymarket")
+        halted = await engine.managed_order_controller.on_halt("test", scope="polymarket")
         assert halted == 1
         assert open_orders(kalshi) == [] and open_orders(poly) == []
-        assert engine.orders.get(parent.id).state == "canceled"
+        assert engine.managed_order_controller.get(parent.id).state == "canceled"
 
 
 class TestPosition:
@@ -330,7 +330,7 @@ class TestFeeFloors:
         book(poly, engine, P, asks=[(D("0.400"), D("10"))])
         parent = await engine.submit(request(bucket, quantity=D("40")))
         assert asked[:2] == [D("100"), D("10000")]
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.fee_cache[f"{P}@0.400"] == D("0.0001") and managed.fee_floors[P] == D("0.25")
         # Polymarket's 10 are 0.2c cheaper but pay 0.25 in fees: Kalshi takes all 40.
         assert poly.orders == {} and [o.quantity for o in kalshi.orders.values()] == [D("40")]
