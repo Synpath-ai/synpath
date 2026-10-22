@@ -188,7 +188,7 @@ async def verify(adapter, guard, directory, market, initial_book, trigger, limit
         parent = await engine.submit(request)
         parent_id = parent.id
         await engine.on_book({"market_id": market_id})
-        if engine.orders.get(parent_id).state != "waiting" or guard.sent:
+        if engine.managed_order_controller.get(parent_id).state != "waiting" or guard.sent:
             raise RuntimeError("stop was not below its trigger when armed")
         await engine.stop()
         engine = engine_for(adapter, directory / "orders.db")
@@ -198,12 +198,12 @@ async def verify(adapter, guard, directory, market, initial_book, trigger, limit
         report["waiting_restart_verified"] = True
         guard.stage = "entry"
         deadline = time.monotonic() + wait_s
-        while engine.orders.get(parent_id).state == "waiting" and time.monotonic() < deadline:
+        while engine.managed_order_controller.get(parent_id).state == "waiting" and time.monotonic() < deadline:
             book = await book_for(adapter, guard.ticker)
             engine.set_book(market_id, book)
             await engine.on_book({"market_id": market_id})
-            await engine.orders.on_timer()
-            parent = engine.orders.get(parent_id)
+            await engine.managed_order_controller.on_timer()
+            parent = engine.managed_order_controller.get(parent_id)
             if parent.state != "waiting":
                 report["observed_trigger_ask"] = str(book.best_ask)
                 break
@@ -218,7 +218,7 @@ async def verify(adapter, guard, directory, market, initial_book, trigger, limit
             return report
         await engine.on_order(entry)
         report.update(entry_status=entry.status.value, entry_filled=str(entry.filled), entry_average_price=str(entry.average_price),
-                      entry_cost=str(entry.cost), entry_fee=str(entry.fee), parent_status=engine.orders.get(parent_id).as_order().status.value)
+                      entry_cost=str(entry.cost), entry_fee=str(entry.fee), parent_status=engine.managed_order_controller.get(parent_id).as_order().status.value)
         fills = await adapter.fetch_my_trades(market_id=market_id, order_id=entry.id)
         report["entry_fill_records"] = [{"quantity": str(f.quantity), "price": str(f.price), "fee": str(f.fee)} for f in fills]
         if entry.filled <= 0:
@@ -245,7 +245,7 @@ async def verify(adapter, guard, directory, market, initial_book, trigger, limit
     finally:
         guard.stage = "blocked"
         try:
-            if parent_id and engine.orders.get(parent_id) and engine.orders.get(parent_id).state == "waiting":
+            if parent_id and engine.managed_order_controller.get(parent_id) and engine.managed_order_controller.get(parent_id).state == "waiting":
                 await engine.cancel(parent_id)
             # The exit is IOC and already terminal; the entry may rest. Read back and cancel only
             # these keys even after a failed/ambiguous response. Never resend.

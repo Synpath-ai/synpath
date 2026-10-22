@@ -7,7 +7,7 @@
 an order does, so it takes the same road: the quote is re-read, the price
 for the caller's outcome and action is checked against `worst_price`, an
 `amount` is sized into contracts (`synpath.trading.money`), and the
-resulting `rfq_taker` `OrderRequest` goes through `Engine.check`, every
+resulting `rfq_taker` `OrderRequest` goes through `Engine.evaluate_order_risk`, every
 rule an order meets. Only then is the intent written, keyed
 `rfq-accept:{venue}:{quote_id}`, marked `sending`, and the venue called.
 A confirm on the quoter side is the same with `operation="confirm_quote"`
@@ -346,7 +346,7 @@ class RfqDesk:
         venue = self._venue_for(venue, account=account, market_id=instrument_id)
         adapter = self._adapter(venue, "rfq_taker")
         account = self._account(venue, account)
-        decision = self.engine.risk.check_offer(instrument_id, venue=venue, book=book, quantity=quantity, notional=amount)
+        decision = self.engine.order_risk_checks.check_offer(instrument_id, venue=venue, book=book, quantity=quantity, notional=amount)
         if not decision.ok:
             raise await self._refused(decision, operation="create_rfq", market_id=instrument_id, book=book)
         if combo is not None:
@@ -516,7 +516,7 @@ class RfqDesk:
             await self.engine.bus.publish("risk.rejected", {
                 "rule": "worst_price", "message": message, "operation": "rfq_taker", "market_id": market_id,
                 "book": book, "quote_id": quote.id, "price": str(price), "worst_price": str(accept.worst_price),
-                "config_version": self.engine.risk.config_version,
+                "config_version": self.engine.order_risk_checks.config_version,
             })
             raise RiskRejected(message, rule="worst_price")
         quantity, send_size = self._accept_size(accept, quote, price, venue, market_id, rfq)
@@ -528,7 +528,7 @@ class RfqDesk:
                     "worst_price": str(accept.worst_price) if accept.worst_price is not None else None,
                     "amount": str(accept.amount) if accept.amount is not None else None},
         )
-        decision = self.engine.check(request, venue=venue, account=account, deliberate=True)
+        decision = self.engine.evaluate_order_risk(request, venue=venue, account=account, caller_supplied_order_id=True)
         if not decision.ok:
             raise await self._refused(decision, operation="rfq_taker", market_id=market_id, book=book,
                                       extra={"quote_id": quote.id, "client_order_id": key})
@@ -540,7 +540,7 @@ class RfqDesk:
                                                                  account=account, key=key, held=held, group=group)
         book = request.book
         await self._begin(request, key=key, venue=venue, account=account, operation="accept_quote", target=quote.id)
-        self.engine.risk.record_sent(request)
+        self.engine.order_risk_checks.record_sent(request)
         self.following[self._quote_key(venue, quote.id)] = key
         sent = accept.model_copy(update={"client_order_id": key, "account": account,
                                          "rfq_id": accept.rfq_id or quote.rfq_id, "quantity": send_size,
@@ -725,7 +725,7 @@ class RfqDesk:
         if stamped.status not in (OrderStatus.OPEN, OrderStatus.PENDING):
             await engine.bus.publish(f"order.{stamped.status.value}", stamped.model_dump(mode="json"),
                                      key=f"{order.venue}:{order.id}", persist=False)
-        await engine.orders.on_order(stamped)
+        await engine.managed_order_controller.on_order(stamped)
         adapter = engine.adapters[order.venue]
         if adapter.has.get("fetch_my_trades"):
             try:
@@ -859,7 +859,7 @@ class RfqDesk:
         if quote.expires_at is not None and quote.expires_at <= now:
             raise BadRequest("expires_at is in the past")
         quantity, notional = self._maker_size(quote, rfq)
-        decision = self.engine.risk.check_offer(market_id, venue=venue, book=quote.book, quantity=quantity,
+        decision = self.engine.order_risk_checks.check_offer(market_id, venue=venue, book=quote.book, quantity=quantity,
                                                 notional=notional)
         if not decision.ok:
             raise await self._refused(decision, operation="rfq_quoter", market_id=market_id, book=quote.book,
@@ -1030,12 +1030,12 @@ class RfqDesk:
             price=price, book=book, trader=(held or {}).get("trader"), outcome=outcome, action=action,
             params={"rfq_id": current.rfq_id, "quote_id": quote_id, "requester_side": requester.value},
         )
-        decision = self.engine.check(request, venue=venue, account=account, deliberate=True)
+        decision = self.engine.evaluate_order_risk(request, venue=venue, account=account, caller_supplied_order_id=True)
         if not decision.ok:
             raise await self._refused(decision, operation="rfq_quoter", market_id=market_id, book=book,
                                       extra={"quote_id": quote_id, "client_order_id": key})
         await self._begin(request, key=key, venue=venue, account=account, operation="confirm_quote", target=quote_id)
-        self.engine.risk.record_sent(request)
+        self.engine.order_risk_checks.record_sent(request)
         self.following[self._quote_key(venue, quote_id)] = key
         try:
             result = await adapter.confirm_quote(current)
@@ -1057,7 +1057,7 @@ class RfqDesk:
         """What our side of a confirmed quote does: it closes what we hold
         where it can (selling YES out of a long, NO out of a short), else it
         opens, as `default_leg` says."""
-        held = self.engine.risk._net_contracts(account.key, venue, market_id)
+        held = self.engine.order_risk_checks._net_contracts(account.key, venue, market_id)
         if side == Side.SELL and held > 0:
             return "yes", "sell"
         if side == Side.BUY and held < 0:

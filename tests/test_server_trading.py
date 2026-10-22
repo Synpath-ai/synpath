@@ -226,7 +226,7 @@ class TestTradingRoutes:
 
     async def test_a_risk_rule_answers_409_with_its_name(self, server):
         client, engine = server["client"], server["engine"]
-        engine.risk.config = engine.risk.config.model_copy(update={"max_order_contracts": D("1")})
+        engine.order_risk_checks.config = engine.order_risk_checks.config.model_copy(update={"max_order_contracts": D("1")})
         response = client.post("/orders", json=order_body(quantity="5"), headers=auth(server["trader_key"]))
         error = response.json()["error"]
         assert response.status_code == 409 and error["code"] == "risk_rejected"

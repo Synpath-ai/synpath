@@ -109,7 +109,7 @@ async def test_configured_owner_survives_parent_restart_and_is_inherited_by_chil
     restarted = Engine({"kalshi": venue}, config, risk=risk)
     try:
         await restarted.start()
-        restored = restarted.orders.get(parent.id)
+        restored = restarted.managed_order_controller.get(parent.id)
         assert restored.request.user_id == "environment-owner" and restored.state == "waiting"
         assert restored.child_request(quantity=D("1"), price=D("0.3")).user_id == "environment-owner"
     finally:

@@ -20,7 +20,7 @@ A parent that wants ten contracts in slices of one submits ten orders, each
 of which can be refused on its own.
 
 **Events arrive, the parent decides.** `on_book`, `on_trade`, `on_fill`,
-`on_child`, `on_timer` and `on_halt` are the only ways in. A type that needs
+`on_child_order_updated`, `on_timer` and `on_halt` are the only ways in. A type that needs
 the touch reads it from the book the engine keeps; one that needs a clock
 gets `on_timer` about once a second, which is also what makes a restart
 harmless: the timer does not care how long it has been away.
@@ -214,7 +214,7 @@ class Context:
         await self.engine.bus.publish(kind, {"parent_id": self.parent.id, **(payload or {})}, key=self.parent.id)
 
     async def save(self) -> None:
-        await self.engine.orders.save(self.parent)
+        await self.engine.managed_order_controller.save(self.parent)
 
 
 class ManagedOrder:
@@ -311,8 +311,13 @@ class ManagedOrder:
     async def on_fill(self, ctx: Context, fill: Fill, child: Child) -> None:
         """One of this parent's children filled, wholly or in part."""
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
-        """A child's status changed (cancelled, rejected, expired, closed)."""
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
+        """React to a child order update after its local record has been updated.
+
+        `order` is the venue result; `child` is this parent's tracked child.
+        Implementations decide whether that change means waiting, replanning
+        or finishing the parent. This callback does not fetch the venue order.
+        """
 
     async def on_timer(self, ctx: Context) -> None:
         """About once a second, whatever else happened."""
@@ -333,7 +338,7 @@ class ManagedOrder:
             return
         self.state = "cancelling"
         await ctx.save()
-        await self.pull_children(ctx)
+        await self.cancel_live_children_without_waiting(ctx)
         if not self.live:
             # A child's final venue record, read while pulling it, ended the
             # parent already (a fill that won the race closes it).
@@ -352,22 +357,31 @@ class ManagedOrder:
         is tried again."""
         await self.cancel(ctx, "expired", end="expired")
 
-    async def pull_children(self, ctx: Context) -> None:
-        """Cancel every live child.
+    async def cancel_live_children_without_waiting(self, ctx: Context) -> None:
+        """Request cancellation of each live child once and record each response.
 
-        A successful request that still reports a resting order is an
-        acknowledgement, not a terminal result. Keep the child live and the
-        parent pending until a later observation confirms cancellation or
-        filling. Failed cancellations are retried by the parent timer.
+        Await each request's response, but do not poll or wait for every child
+        to reach a final status. This is not a background task launcher.
+        A venue can accept the cancellation request while its response still
+        reports the order open. That is not a confirmed cancellation: record
+        the returned status and leave the child live. The caller must keep
+        processing updates or retry cancellation; this helper does not wait
+        for confirmation and does not itself schedule retries.
         """
         for child in self.live_children:
             try:
                 result = await ctx.cancel_child(child.order_id, child.venue)
                 if result is not None:
-                    self.note_order(result, child)
+                    # Copy what the venue actually reported. A fill may have won
+                    # the race, or the cancellation may still be pending.
+                    self.update_child_from_venue_order(result, child)
                 else:
+                    # The existing cancel-child contract treats no returned
+                    # order as canceled; this is distinct from an open response.
                     child.status = "canceled"
             except Exception as exc:
+                # Failure to obtain a result is not proof of cancellation.
+                # Preserve the last child status for subsequent processing.
                 log.debug("synpath.engine.orders: cancelling %s failed: %s", child.order_id, exc)
 
     async def finish(self, ctx: Context, state: State, detail: str = "") -> None:
@@ -377,14 +391,21 @@ class ManagedOrder:
         await ctx.save()
         await ctx.publish(f"managed.{state}", {"kind": self.kind, "filled": str(self.filled), "detail": self.detail})
 
-    def note_order(self, order: Order, child: Child) -> Fill | None:
-        """Take the venue's latest record of a child. Returns the progress
-        since the last record as a `Fill`-shaped step for the `on_fill`
-        hook, or `None` if nothing more filled. Built from the order record
-        alone: the venue's fill events go to the ledger, never here."""
+    def update_child_from_venue_order(self, order: Order, child: Child) -> Fill | None:
+        """Update the tracked child from an already-obtained venue order result.
+
+        This method makes no venue request. Its caller supplies an order from
+        a submission/cancellation response, stream update or explicit status read.
+        Return newly filled quantity as a `Fill`-shaped step for `on_fill`, or
+        None if no additional quantity filled. Separate venue fill events go
+        to the ledger, not directly to this parent's progress.
+        """
+        # Ignore a result that would move known fills backwards.
         if order.filled < child.filled:
             return None
         before, fee_before = child.filled, child.fee
+        # Replace cumulative totals and status; do not add the same fills again
+        # when a stream repeats a result already seen in a placement or cancel response.
         child.filled = order.filled or ZERO
         if order.average_price is not None or child.filled > before:
             child.average_price = order.average_price
@@ -392,6 +413,8 @@ class ManagedOrder:
         child.status = order.status.value
         self.updated_ms = now_ms()
         delta = child.filled - before
+        # No new fill does not mean no change: the child status above may
+        # have changed from open to canceled. Only the fill-progress return is None.
         if delta <= 0:
             return None
         return Fill(

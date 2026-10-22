@@ -135,7 +135,7 @@ class OCO(_Linked):
                 child.status = "canceled"
         await ctx.publish("managed.leg_canceled", {"leg": tag, "reason": reason})
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         if not order.is_terminal or self.state != "working":
             return
         if self.remaining <= 0:
@@ -230,7 +230,7 @@ class Bracket(_Linked):
         entry_children = self.leg_children("entry")
         return bool(entry_children) and not any(c.live for c in entry_children)
 
-    async def on_child(self, ctx: Context, order: Order, child: Child) -> None:
+    async def on_child_order_updated(self, ctx: Context, order: Order, child: Child) -> None:
         tag = self.leg_of.get(child.order_id, "")
         if self.state != "working" or not order.is_terminal:
             return

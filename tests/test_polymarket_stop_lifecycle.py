@@ -57,7 +57,7 @@ async def test_waiting_restart_limit_child_direction_and_targeted_cancel(venue, 
         assert (await engine.submit(request)).id == parent.id
         engine.set_book(MARKET, SimpleNamespace(ready=True, best_bid=D("0.39"), best_ask=D("0.46")))
         await engine.on_book({"market_id": MARKET})
-        assert engine.orders.get(parent.id).as_order().status == OrderStatus.TRIGGERED
+        assert engine.managed_order_controller.get(parent.id).as_order().status == OrderStatus.TRIGGERED
         sent = venue.sent("POST", "/order")
         assert len(sent) == 1
         body = json.loads(sent[0].content)
@@ -92,7 +92,7 @@ async def test_stop_market_child_uses_fak_and_remains_pending_until_fill_readbac
                                                  stop_price="0.40", client_order_id="market-a"))
         engine.set_book(MARKET, SimpleNamespace(ready=True, best_bid=D("0.39"), best_ask=D("0.41")))
         await engine.on_book({"market_id": MARKET})
-        managed = engine.orders.get(parent.id)
+        managed = engine.managed_order_controller.get(parent.id)
         assert managed.as_order().status == OrderStatus.TRIGGERED and managed.filled == 0
         sent = json.loads(venue.sent("POST", "/order")[0].content)
         assert sent["orderType"] == "FAK" and sent["order"]["tokenId"] == token_id
@@ -123,12 +123,12 @@ async def test_response_lost_never_resends_but_needs_signed_identity_recovery(ve
         parent = await engine.submit(req)
         engine.set_book(MARKET, SimpleNamespace(ready=True, best_bid=D("0.39"), best_ask=D("0.41")))
         await engine.on_book({"market_id": MARKET})
-        assert engine.orders.get(parent.id).pending_child is not None
+        assert engine.managed_order_controller.get(parent.id).pending_child is not None
         await engine.stop()
         engine = engine_for(poly, path)
         recovery = await engine.start()
         assert recovery.unresolved == 1
-        restored = engine.orders.get(parent.id)
+        restored = engine.managed_order_controller.get(parent.id)
         assert restored.pending_child is not None and restored.children == []
         assert (await engine.submit(req)).id == parent.id
         assert len(venue.sent("POST", "/order")) == 1

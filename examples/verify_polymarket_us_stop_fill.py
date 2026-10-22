@@ -184,15 +184,15 @@ async def verify(adapter, guard, directory, rules, initial, trigger, *, wait_s=2
         # persists waiting before the next actual venue book observation.
         if not initially_eligible:
             await engine.on_book({"market_id": market_id})
-        assert engine.orders.get(parent_id).state == "waiting" and not guard.sent
+        assert engine.managed_order_controller.get(parent_id).state == "waiting" and not guard.sent
         guard.stage = "entry"
         deadline = time.monotonic() + wait_s
-        while engine.orders.get(parent_id).state == "waiting" and time.monotonic() < deadline:
+        while engine.managed_order_controller.get(parent_id).state == "waiting" and time.monotonic() < deadline:
             book = await book_for(adapter, guard.slug)
             engine.set_book(market_id, book)
             await engine.on_book({"market_id": market_id})
-            await engine.orders.on_timer()
-            if engine.orders.get(parent_id).state != "waiting":
+            await engine.managed_order_controller.on_timer()
+            if engine.managed_order_controller.get(parent_id).state != "waiting":
                 report["observed_trigger_ask"] = str(book.best_ask)
                 break
             await asyncio.sleep(poll_s)
@@ -202,7 +202,7 @@ async def verify(adapter, guard, directory, rules, initial, trigger, *, wait_s=2
             if "entry" in guard.sent:
                 raise RuntimeError("create response unresolved; do not resend or infer acceptance")
             await engine.cancel(parent_id)
-            managed = engine.orders.get(parent_id)
+            managed = engine.managed_order_controller.get(parent_id)
             report["outcome"] = ("triggered but local dispatch failed" if managed.state == "rejected"
                                  else "no threshold crossing; no venue order")
             report["parent_status"] = managed.as_order().status.value
@@ -211,7 +211,7 @@ async def verify(adapter, guard, directory, rules, initial, trigger, *, wait_s=2
         entry = await terminal_order(adapter, oid, guard)
         await engine.on_order(entry)
         report.update(entry_status=entry.status.value, entry_filled=str(entry.filled), entry_average_price=str(entry.average_price),
-                      entry_fee=str(entry.fee), parent_status=engine.orders.get(parent_id).as_order().status.value)
+                      entry_fee=str(entry.fee), parent_status=engine.managed_order_controller.get(parent_id).as_order().status.value)
         if entry.filled <= 0:
             report["outcome"] = "triggered without a fill"
             return report
@@ -246,7 +246,7 @@ async def verify(adapter, guard, directory, rules, initial, trigger, *, wait_s=2
     finally:
         guard.stage = "blocked"
         try:
-            if parent_id and engine.orders.get(parent_id) and engine.orders.get(parent_id).state == "waiting":
+            if parent_id and engine.managed_order_controller.get(parent_id) and engine.managed_order_controller.get(parent_id).state == "waiting":
                 await engine.cancel(parent_id)
             for stage, oid in guard.ids.items():
                 order = await terminal_order(adapter, oid, guard)

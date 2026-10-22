@@ -242,7 +242,7 @@ class Feeds:
         the engine can mark it from the book, `Engine.exit_price`), by venue,
         on venues with a market stream."""
         out: dict[str, set[str]] = {}
-        watched = [market_id for market_id in list(self.engine.orders.by_market) if self.engine.orders.watching(market_id)]
+        watched = [market_id for market_id in list(self.engine.managed_order_controller.by_market) if self.engine.managed_order_controller.watching(market_id)]
         held = [state.market_id for state in self.engine.ledger.open_positions()]
         for market_id in watched + held:
             venue, _ = ids.split(market_id)
@@ -271,7 +271,7 @@ class Feeds:
                 # The venue sends no fresh snapshot for a market the
                 # connection already carried (the screen's, say): the
                 # parents read the book they were just handed, now.
-                await self.engine.orders.on_book(market_id)
+                await self.engine.managed_order_controller.on_book(market_id)
             added += len(new)
         return added
 

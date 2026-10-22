@@ -23,7 +23,7 @@ from .events import EngineEvent, EventBus, Subscription
 from .journal import Intent, IntentState, Journal, JournalEvent, LeaseLost
 from .storage import JournalStore, create_journal
 from .ledger import Ledger, PositionState, Rollup
-from .orders import ManagedOrder, ManagedOrders
+from .orders import ManagedOrder, ManagedOrderController
 from .risk import Decision, KillSwitch, RiskConfig, RiskEngine
 from .rfq import RfqDesk
 
@@ -33,6 +33,6 @@ __all__ = [
     "EventBus", "EngineEvent", "Subscription",
     "Ledger", "PositionState", "Rollup",
     "RiskConfig", "RiskEngine", "Decision", "KillSwitch",
-    "ManagedOrder", "ManagedOrders",
+    "ManagedOrder", "ManagedOrderController",
     "RfqDesk",
 ]
