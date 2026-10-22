@@ -323,7 +323,8 @@ python -m synpath.server bootstrap --control control.db   # the same, from a she
 | `POST /quotes`, `PUT /quotes/{id}`, `DELETE /quotes/{id}`, `POST /quotes/{id}/confirm` | `trade` | send, replace, withdraw a quote; confirm an accepted one (`202`/`200` as accept) |
 | `POST /combos`, `POST /combos/lookup`, `GET /combos/{market_id}` | `trade` / `view` / `view` | create or look up the combo for some legs (idempotent; `collection_id` on Kalshi); look one up without creating it; read its legs |
 | `GET /combos/markets` (`venue`, `event_id`, `tag`, `limit`, `cursor`), `GET /combos/collections` (`venue`, `status`, `event_id`, `limit`, `cursor`) | `view` | where combos can be built: Polymarket's and Polymarket US's combo-eligible markets; Kalshi's collections with their event tickers. Cached 15 s |
-| `GET /combos/board` (`venue`, `pages`) | `view` | a combo venue's eligible markets as games (moneyline / spread / total picks per participant) and YES / NO questions, with categories and counts ([combo board](#the-combo-board)). Cached 30 s |
+| `GET /combos/board/categories` (`venue`) | `view` | a combo board's rail: its categories with counts, `status` (`building` / `ready`), `built_at`, `complete` ([combo board](#the-combo-board)) |
+| `GET /combos/board` (`venue`; `category`, `cursor`, `limit`, `q`, `sort`) | `view` | a combo venue's eligible markets as games (moneyline / spread / total picks per participant) and YES / NO questions, with categories and counts: the whole board, or one category a page at a time ([combo board](#the-combo-board)). serve keeps it warm; never waits on a build |
 | `GET`/`POST`/`DELETE /grants`, `POST /keys`, `DELETE /keys/{id}` | `manage_members` / `manage_credentials` | who may do what |
 | `GET /audit` | `manage_members` | the append-only history of those changes |
 | `WS /ws/events` | `view` | the engine's events, replayed from a cursor then live |
@@ -496,7 +497,9 @@ list; accepting one quote cancels the rest
 - **`RfqGroup`**: `id`, `instrument`, the size, `outcome`, `action`,
   `members` (one per venue: `venue`, `instrument_id`, `flip`, `via`, mapped
   `legs`, `combo`, `collection_id`, `rfq_id`, `status`, `detail`),
-  `skipped` (`venue`, `code`, `reason`, `leg`), `quotes` best first
+  `skipped` (`venue`, `code`, `reason`, `leg`, and for a combo `missing_legs`:
+  every leg the venue lacks, each `market_id`, `label`, `code`, `mapped_id`,
+  `detail`; [skip reasons](#combo-skip-reasons)), `quotes` best first
   (`quote_id`, `venue`, `rfq_id`, `raw_bid`/`raw_ask`, `raw_price` (the
   member's YES price), `price` (the group's), `outcome_price`, `quantity`,
   `fee`, `fee_per_contract`, `effective_price`, `effective_outcome_price`,
@@ -542,10 +545,60 @@ list; accepting one quote cancels the rest
 - **Halt**: `POST /halt` with the `cancel` policy cancels every open group's
   members first (`rfq.groups` in the result).
 
+### Combo skip reasons
+
+A combo venue that would not be asked (`skipped` on a preview or a group) names **every** leg it
+lacks, not the first: `missing_legs`, each with `market_id` (the leg as given), `label` (a short
+readable name for its market, never its outcome), `code`, `mapped_id` (the venue's matched market,
+where there is one) and `detail` (what matching or the venue said). The venue's own `code` is the
+first of its legs' codes in this order, and `reason` says them all, one clause per code:
+
+| `code` | Meaning | `reason` |
+|---|---|---|
+| `missing_leg` | hosted matching lists no such market on the venue | `no match for “Al Fayha to win”, “U.S. invades Iran”` |
+| `matching_error` | the matching service could not be asked | `matching unavailable for “Al Fayha to win”` |
+| `ineligible_leg` | matched, but not on the venue's combo-eligible list | `not combo-eligible on Polymarket US: “U.S. invades Iran”` |
+| `outside_collections` | matched, but its event is in none of the venue's open combo collections, or no one collection takes the legs together (Kalshi) | `Kalshi combos are sports and cross-category only: “U.S. invades Iran” is in none` |
+
+A label is the leg's pick on serve's warm board (a moneyline by its participant's short name and
+`to win`, a spread by its line, a total by its game and side), else its market's question from the
+catalogue, shortened (`Will the U.S. invade Iran before 2027?` -> `U.S. invades Iran`), else its
+`info.label`, else its market id. Matching is checked for every leg before eligibility, so a venue
+that lacks a match for some legs reports those, and eligibility is reported when every leg matched.
+
 ### The combo board
 
 `GET /trading/combos/board?venue=` turns a combo venue's eligibility into what a combo builder draws
-(`synpath/engine/combo_board.py`): `ComboBoard` `{venue, count, complete, as_of, categories, events}`.
+(`synpath/engine/combo_board.py`): `ComboBoard` `{venue, count, complete, as_of, status, built_at,
+error, categories, events}`, and on a page `category`, `total` and `next_cursor`.
+
+- **Kept warm** (`synpath/server/combo_warmer.py`). serve builds every combo venue's board at
+  start-up, through the venue's whole list (no page cap: Polymarket's catalogue is about 214,000
+  rows in 214 pages, with their Gamma markets and events; every event of Kalshi's open
+  collections), sleeping `pause_s` between two venue reads, and builds it again
+  `refresh_interval_s` after the last build ended
+  (`[combo_board]` in the configuration, [engine](engine.md)). A request never waits on a build:
+  until the first build ends the board is `status: "building"` with no events, answered at once;
+  after that it is the last good board (`status: "ready"`, `built_at`), kept while a refresh runs
+  or fails (`error` says why). A first build serves its board so far (`complete: false`) after its
+  first 5 pages (the venue lists by volume) and every 40 after. Gamma's markets (without their
+  prices) and the games' events are kept between builds, so a refresh reads Gamma only for markets
+  it has not seen and takes the catalogue's prices. A bare `create_trading_app` (no warmer) or `warm = false` builds on
+  request instead, 5 pages, kept 30 s.
+- **Beside trading.** A whole-catalogue build is minutes of CPU work in serve's own process, so
+  it is kept off the event loop that answers health checks and order routes: its steps run in
+  worker threads that hand back the GIL every 100 items, the GIL switch interval is 0.5 ms while
+  boards are warmed, and the board's objects are frozen out of the cyclic collector (`gc.freeze`)
+  as they are built. Measured on the whole Polymarket catalogue: requests stay under 0.8 s during
+  a build (before: 1-6 s, enough for a terminal to report the engine offline).
+- **In parts.** `GET /trading/combos/board/categories?venue=` is the rail: `categories` with counts,
+  `count` (markets read), `events`, `status`, `built_at`, `complete`, a few hundred bytes. `GET
+  /trading/combos/board?venue=&category=&cursor=&limit=&q=&sort=` is one page of one category
+  (`all`: every one): `limit` events (default 50, at most 500) from `cursor` (the last page's
+  `next_cursor`), those whose title, category or participants hold every word of `q`, in board
+  order (`sort=board`, by start) or by `volume` or `start` within each category; `total` counts the
+  category's matching events, and `categories` are the whole board's. Without any of these the
+  answer is the whole board, as before.
 
 - **Events**: a `game` (`rows`: one per participant, `name`, `abbr` and `picks` by `moneyline`,
   `spread`, `total`, each a `BoardPick` or null where the venue lists no such market) or a
@@ -557,14 +610,15 @@ list; accepting one quote cancels the rest
 - Everything comes from the venue's own fields, never a URL slug or title wording; a participant
   the venue gives no abbreviation shows its name.
 - **Kalshi**: the events of its open collections (`associated_event_tickers`), their markets read
-  from the server's catalogue (`fetch_events_by_ids`, at most 150 events). The type is the event's
+  from the server's catalogue (`fetch_events_by_ids`, in batches of 100; every event when warm, at
+  most 150 on request). The type is the event's
   `product_metadata.competition_scope` (`Game`, `Spread`, `Point Total`; any other scope, such as
   `1st Half Winner` or `Team Total`, is a question); a game joins the events that share the
   `sub_title` (`NE vs CHI (Oct 22)`) within one `competition`. Participants are the winner markets'
   `yes_sub_title` (`Tie` is the draw), identified by `custom_strike` (the team's id, which a spread
   market names too); codes are the `sub_title`'s, side by side with the title's names; a spread's
   line is its `floor_strike` (`CHI -2.5` for "Chicago wins by over 2.5"), a total's too.
-- **Polymarket**: its catalogue rows (up to `pages` pages), with Gamma's market for each (from the
+- **Polymarket**: its catalogue rows (every page when warm; `pages` on request), with Gamma's market for each (from the
   server's catalogue: `sportsMarketType` `moneyline` / `spreads` / `totals`, `line`,
   `groupItemTitle`, its event) and the games' Gamma events (`fetch_events_by_ids`: `teams` with
   `abbreviation`). A two-sided market backs its outcomes' teams (YES the first; a spread at `line`

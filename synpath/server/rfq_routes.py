@@ -545,6 +545,34 @@ def add_rfq_routes(router: APIRouter) -> None:
 
     boards = TtlCache(ttl_s=COMBO_BOARD_TTL_S, size=16)
 
+    async def whole_board(request: Request, engine: Engine, name: str, pages: int) -> ComboBoard:
+        """serve's warm board (never waiting on a build: `status: building`
+        until the first ends); without a warmer (a bare trading app, or
+        `[combo_board] warm = false`), built on request and kept 30 s."""
+        warmer = getattr(request.app.state, "combo_boards", None)
+        if warmer is not None and warmer.warms(name):
+            return warmer.board(name)
+        reader = catalogue_reader(request, name)
+        return await boards.get(("board", name, pages),
+                                lambda: tagged(name, board_for(name, engine.adapters[name], reader, pages=pages)))
+
+    @router.get("/combos/board/categories", tags=["rfq"], summary="A combo board's categories, with counts",
+                responses=RFQ_RESPONSES)
+    async def combo_board_categories(
+        principal: Caller,
+        engine: EngineDep,
+        request: Request,
+        venue: Annotated[str, Query(description="A venue with `combos`: `kalshi`, `polymarket`, `polymarket_us`")],
+    ) -> ComboBoardCategories:
+        """The rail of a combo builder: the board's categories (leagues,
+        kinds) with their event counts, the markets read and the events on
+        the board, its `status` (`building` until serve's first build of it
+        ends), `built_at` and `complete`. A few hundred bytes; read the
+        events a category at a time from `GET /combos/board?category=`."""
+        name = rfq_venue(engine, venue, capability="combos")
+        require_view(principal, engine, name)
+        return categories_view(await whole_board(request, engine, name, BOARD_PAGES))
+
     @router.get("/combos/board", tags=["rfq"], summary="A venue's combo-eligible markets as games and questions",
                 responses=RFQ_RESPONSES)
     async def combo_board(
@@ -552,7 +580,18 @@ def add_rfq_routes(router: APIRouter) -> None:
         engine: EngineDep,
         request: Request,
         venue: Annotated[str, Query(description="A venue with `combos`: `kalshi`, `polymarket`, `polymarket_us`")],
-        pages: Annotated[int, Query(ge=1, le=20, description="Pages of the venue's list to read")] = 5,
+        pages: Annotated[int, Query(ge=1, le=20, description="Without serve's warmer only: pages of the venue's "
+                                                             "list to read")] = BOARD_PAGES,
+        category: Annotated[str | None, Query(max_length=40, description="One category's events (`nfl`, "
+                                                                         "`politics`; `all`: every one), a page "
+                                                                         "at a time")] = None,
+        cursor: Annotated[str | None, Query(max_length=20, description="The page after the one that gave it")] = None,
+        limit: Annotated[int | None, Query(ge=1, le=MAX_PAGE_LIMIT, description="Events per page (default "
+                                                                                 f"{PAGE_LIMIT})")] = None,
+        q: Annotated[str | None, Query(max_length=100, description="Only events whose title, category or "
+                                                                    "participants hold every word")] = None,
+        sort: Annotated[BoardSort, Query(description="`board` (start time), `volume` (largest first) or `start`, "
+                                                     "within each category")] = "board",
     ) -> ComboBoard:
         """What a combo builder draws (`synpath/engine/combo_board.py`):
         games (participants, and moneyline / spread / total picks where the
@@ -561,12 +600,24 @@ def add_rfq_routes(router: APIRouter) -> None:
         `market_id` and `outcome`, with the catalogue's prices. Kalshi's
         board is its open collections' events (their markets read from the
         server's catalogue); Polymarket's and Polymarket US's, their own
-        eligible lists. Served from memory for 30 s."""
+        eligible lists.
+
+        serve keeps every combo venue's board warm (built at start-up from
+        the venue's whole list, rebuilt each minute; docs/server.md), so
+        this never waits on a venue: until the first build ends it answers
+        `status: "building"` with no events. With `category`, `cursor`,
+        `limit`, `q` or `sort` it answers one page (`category`, `total`,
+        `next_cursor`) with the whole board's categories; without any, the
+        whole board, as before."""
         name = rfq_venue(engine, venue, capability="combos")
         require_view(principal, engine, name)
-        reader = catalogue_reader(request, name)
-        return await boards.get(("board", name, pages),
-                                lambda: tagged(name, board_for(name, engine.adapters[name], reader, pages=pages)))
+        board = await whole_board(request, engine, name, pages)
+        if category is None and cursor is None and limit is None and not q and sort == "board":
+            return board
+        try:
+            return board_page(board, category=category, cursor=cursor, limit=limit or PAGE_LIMIT, query=q, sort=sort)
+        except BadRequest as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from None
 
     @router.get("/combos/{market_id}", tags=["rfq"], summary="One combo and its legs", responses=RFQ_RESPONSES)
     async def get_combo(principal: Caller, engine: EngineDep, market_id: Annotated[str, Path()],
@@ -586,7 +637,11 @@ def add_rfq_routes(router: APIRouter) -> None:
 # Cross-venue RFQ groups (docs/rfq-combo.md, "Cross-venue RFQ")
 # ---------------------------------------------------------------------------
 
-from ..engine.combo_board import ComboBoard, board_for  # noqa: E402
+from ..engine.combo_board import (  # noqa: E402
+    BOARD_PAGES, MAX_PAGE_LIMIT, PAGE_LIMIT, BoardSort, ComboBoard, ComboBoardCategories, board_for, board_page,
+    categories_view,
+)
+from ..errors import BadRequest  # noqa: E402
 from ..engine.rfq_group import GroupPreview, RfqGroup  # noqa: E402
 
 
