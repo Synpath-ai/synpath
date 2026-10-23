@@ -68,6 +68,7 @@ ADAPTERS = {
     "novig": ("..trading.novig", "NovigTrading"),
     "matchbook": ("..trading.matchbook", "MatchbookTrading"),
     "prophetx": ("..trading.prophetx", "ProphetXTrading"),
+    "azuro": ("..trading.azuro", "AzuroTrading"),
 }
 
 

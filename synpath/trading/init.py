@@ -328,6 +328,19 @@ def ask_prophetx(p: Prompter) -> dict[str, str]:
     return values
 
 
+def ask_azuro(p: Prompter) -> dict[str, str]:
+    p.say("\nAzuro: market data is public and needs nothing; this is for betting. It needs the private key")
+    p.say("(64 hex characters) of the wallet that signs each bet and holds the bet token: USDT on Polygon, WETH")
+    p.say("on Base. The wallet also approves Azuro's relayer to spend the token once, on chain (approve()).")
+    key = p.value("Private key (64 hex characters, typed hidden)", secret=True, check=_private_key)
+    chain = p.value("Chain (polygon, base, polygon_amoy, base_sepolia)", default="polygon",
+                    check=_choice("polygon", "base", "polygon_amoy", "base_sepolia"))
+    values = {"AZURO_PRIVATE_KEY": _with_0x(key)}
+    if chain != "polygon":
+        values["AZURO_CHAIN"] = chain
+    return values
+
+
 VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", ("KALSHI_KEY_ID",), ask_kalshi),
     ("Polymarket", ("POLYMARKET_PRIVATE_KEY",), ask_polymarket),
@@ -342,6 +355,7 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("Novig", ("NOVIG_KEY_ID", "NOVIG_MANAGEMENT_KEY_ID"), ask_novig),
     ("Matchbook", ("MATCHBOOK_USERNAME",), ask_matchbook),
     ("ProphetX", ("PROPHETX_ACCESS_KEY", "PROPHETX_AFFILIATE_KEY"), ask_prophetx),
+    ("Azuro", ("AZURO_PRIVATE_KEY",), ask_azuro),
 ]
 """Each venue, the settings any of which means it is set up already (an API
 key alone is, for market data), and the questions."""

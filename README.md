@@ -85,6 +85,7 @@ No silent gaps: if we weren't recording at a moment, you get the reason instead 
 | | [Novig](https://novig.com) | `novig` | ✓ sports, no key | ✓ (US, identity and location checks; Paper for play money) | WebSocket (trading key), else polled from the public book | one book per market, both sides read it |
 | | [Matchbook](https://www.matchbook.com) | `matchbook` | ✓ no account | ✓ your own login | polled from REST | one book per runner, back and lay read as YES |
 | | [ProphetX](https://www.prophetx.co) | `prophetx` | ✓ sports (Trading API key pair, or a Market Data API key) | ✓ | WebSocket (Trading API key pair) | one book per line, both sides read it |
+| | [Azuro](https://azuro.org) | `azuro` | ✓ sports, no key | ✓ bets with a worst price | WebSocket (no key) | no book: the pool's quoted odds, one level a side sized by its limits |
 
 Betfair is a betting exchange, not a prediction market, read here the same way: each runner (selection) is a yes/no market, `betfair:1.234567890-47972`, and the Betfair market holding the runners is the event. Every Betfair call needs your own Betfair account and application key, and the API is refused from several countries (the US, Germany, France, the Netherlands, Singapore, India, Turkey, the UAE and others). Betfair's keys are for your own betting: showing its prices to anyone else needs a data licence from Betfair. See [capabilities](docs/capabilities.md#betfair).
 
@@ -95,6 +96,8 @@ Novig, a US sports exchange, lists two-outcome markets (a moneyline, a spread, a
 Matchbook, a betting exchange licensed in the UK and Alderney, is read the same way: each runner is a yes/no market, `matchbook:<event id>-<market id>-<runner id>`, and the Matchbook market holding the runners is the event. Its market data needs no account; betting logs in with your own Matchbook username and password. Every GET is chargeable on Matchbook's API plans (£100 per million a month), and its terms allow viewing prices and betting on your own account only. See [capabilities](docs/capabilities.md#matchbook).
 
 ProphetX, a US peer-to-peer sports exchange, is read the way SX Bet is: each line (a moneyline, or a spread or total at one number) is a yes/no market whose first side is YES, `prophetx:44285780-90de769f4f4977a04446ed203e957351` (the event, then the YES side's strike id), and the game is the event. Prices are American odds, converted exactly to probabilities. Every call needs a key: the Trading API key pair, which any KYC-approved ProphetX account generates under API Integration, or a Market Data API key issued by ProphetX on request. See [capabilities](docs/capabilities.md#prophetx).
+
+Azuro is an onchain sports betting protocol: a shared liquidity pool takes every bet at the odds it quotes, so there is no order book and nothing rests. A two-outcome condition ("Total Goals Over/Under 2.5") is one yes/no market, `azuro:<conditionId>`, with the lower outcome id as YES; a condition with three or more outcomes (1X2, correct score) is one market per outcome, `azuro:<conditionId>-<outcomeId>`, where only YES can be bought. The game is the event. Prices are `1 / odds`. Ids are the same on every chain; `Azuro(chain=...)` picks the pool read (Polygon USDT by default, Base WETH). Bets are EIP-712 messages signed by your wallet and placed on chain by Azuro's relayer. Azuro's bet API and streams are refused from some regions. See [capabilities](docs/capabilities.md#azuro).
 
 ## Why Synpath
 
@@ -144,7 +147,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # [..., 'betfair', 'smarkets', 'novig', 'matchbook', 'prophetx'] (Betfair, predict.fun and ProphetX need keys)
+for venue_id in synpath.exchanges:                 # [..., 'betfair', 'smarkets', 'novig', 'matchbook', 'prophetx', 'azuro'] (Betfair, predict.fun and ProphetX need keys)
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 

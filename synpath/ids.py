@@ -6,7 +6,8 @@ the venue's own id, separated by a colon: `kalshi:KXFEDDECISION-26SEP-C25`,
 `opinion:5342`, `hyperliquid:7173`, `betfair:1.234567890-47972`,
 `smarkets:164973231-456060183`, `novig:01a1577c-d666-7e81-852e-68bed1446801`,
 `matchbook:34569494493900023-34569495835700023-34569495836701023`,
-`prophetx:44285780-90de769f4f4977a04446ed203e957351`. Nothing is hashed or
+`prophetx:44285780-90de769f4f4977a04446ed203e957351`,
+`azuro:600610060000000000943019940000000000001802657415`. Nothing is hashed or
 re-keyed, so the part after the colon is what the venue's own website and API
 call the thing.
 
@@ -19,7 +20,7 @@ The colon is safe as a separator: no venue's native id contains one.
 """
 from __future__ import annotations
 
-VENUES: tuple[str, ...] = ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair", "smarkets", "novig", "matchbook", "prophetx")
+VENUES: tuple[str, ...] = ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair", "smarkets", "novig", "matchbook", "prophetx", "azuro")
 """Every venue this library speaks, by id. `synpath.exchanges` is the same
 list with the adapter classes attached; this one exists so the id helpers do
 not import the adapters."""

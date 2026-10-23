@@ -1,0 +1,4050 @@
+{
+ "sports": [
+  {
+   "id": 44,
+   "slug": "american-football",
+   "name": "American Football",
+   "sportId": "44",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 14,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 14,
+   "countries": [
+    {
+     "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+     "slug": "united-states",
+     "name": "United States",
+     "turnover": "1836.88",
+     "activeGamesCount": 14,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 14,
+     "leagues": [
+      {
+       "id": "ba24572e-de14-4d7b-a081-0b02a2ba9b26",
+       "slug": "nfl",
+       "name": "NFL",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "1836.88",
+       "activeGamesCount": 14,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 14
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 28,
+   "slug": "baseball",
+   "name": "Baseball",
+   "sportId": "28",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 1,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 1,
+   "countries": [
+    {
+     "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+     "slug": "united-states",
+     "name": "United States",
+     "turnover": "3",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "3a4486af-5ec9-4320-9241-880bdad69b26",
+       "slug": "mlb",
+       "name": "MLB",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "3",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 31,
+   "slug": "basketball",
+   "name": "Basketball",
+   "sportId": "31",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 198,
+   "activeLiveGamesCount": 12,
+   "activePrematchGamesCount": 186,
+   "countries": [
+    {
+     "id": "853b5565-e225-4fa9-aba6-ceb1cf23f1f7",
+     "slug": "argentina",
+     "name": "Argentina",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "8df3a1f5-216a-4f1c-b1e0-b107467bef64",
+       "slug": "la-liga-argentina",
+       "name": "La Liga Argentina",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "30019433-f902-4983-9340-85dc596dca69",
+       "slug": "la-liga-femenina-w",
+       "name": "La Liga Femenina (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "dd04e44b-b511-4311-9efb-7e370c528f6b",
+     "slug": "australia",
+     "name": "Australia",
+     "turnover": "20.9",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "3a3dfe70-d7b6-4c16-a207-33fd22a51cc8",
+       "slug": "nbl",
+       "name": "NBL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      },
+      {
+       "id": "d1e597d9-24b1-4d41-b561-28ccd0d6363c",
+       "slug": "wnbl",
+       "name": "WNBL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "20.9",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "3b5ce713-eeab-4f54-83c4-adac6afc2e70",
+     "slug": "austria",
+     "name": "Austria",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "ee97f0f8-1848-4299-ae26-dee88013d718",
+       "slug": "bsl",
+       "name": "BSL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "a3c2a398-5364-4976-b4db-24c2d9cd91ce",
+     "slug": "brazil",
+     "name": "Brazil",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "42161f83-b388-424a-88fe-d75245e28ad3",
+       "slug": "nbb",
+       "name": "NBB",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "35908e41-5b17-43d7-813f-eed39803978a",
+     "slug": "chile",
+     "name": "Chile",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "6ca80faf-41d9-48ad-9a12-505d61765974",
+       "slug": "lnb",
+       "name": "LNB",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "0485dc68-767d-499f-94a8-a9dedff7e571",
+     "slug": "denmark",
+     "name": "Denmark",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "eff95c23-fe61-4659-8661-1dc97073fa57",
+       "slug": "basketligaen",
+       "name": "Basketligaen",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "f18b268e-1f95-4550-b562-a943f52946b9",
+     "slug": "finland",
+     "name": "Finland",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 2,
+     "activePrematchGamesCount": 4,
+     "leagues": [
+      {
+       "id": "fa77d1a7-d1c7-44ed-be70-ca9bc373ac26",
+       "slug": "korisliiga",
+       "name": "Korisliiga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 2,
+       "activePrematchGamesCount": 4
+      }
+     ]
+    },
+    {
+     "id": "4c43eaf4-4a7f-44da-b826-88dfc47e4786",
+     "slug": "france",
+     "name": "France",
+     "turnover": "4.1911538461538465",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "842f679e-97b7-4920-9620-33f92dc4fd43",
+       "slug": "lfb-w",
+       "name": "LFB (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "734bd340-947d-48a0-8b60-43d7a0d94f7f",
+       "slug": "pro-a",
+       "name": "Pro A",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "4.1911538461538465",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "0441c8e8-5fad-43f5-8ae6-50a468a7e339",
+     "slug": "germany",
+     "name": "Germany",
+     "turnover": "0",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 8,
+     "leagues": [
+      {
+       "id": "c8e7fd8d-2610-4391-af53-372e7b4b03a7",
+       "slug": "bbl",
+       "name": "BBL",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "897d50f6-60d4-441b-a685-27c084190c45",
+     "slug": "greece",
+     "name": "Greece",
+     "turnover": "0",
+     "activeGamesCount": 10,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 10,
+     "leagues": [
+      {
+       "id": "ba65e5c7-5bdb-4c8a-8c41-e44f3cdcbda3",
+       "slug": "a1-w",
+       "name": "A1 (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      },
+      {
+       "id": "900cc868-8739-488e-9ec4-d8bde105effd",
+       "slug": "basket-league",
+       "name": "Basket League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "f03059af-3e1d-4acc-8734-3e50137b1a81",
+     "slug": "hungary",
+     "name": "Hungary",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "88f32d6d-bac5-4cec-99d9-4c55ef471f0e",
+       "slug": "nb-i",
+       "name": "NB I",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "749fafaf-1c48-45a7-a9f1-ef7fd37825ef",
+     "slug": "iceland",
+     "name": "Iceland",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "4ea62ad2-325f-4951-b1bd-1684745175c8",
+       "slug": "premier-league",
+       "name": "Premier League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "130.4",
+     "activeGamesCount": 33,
+     "activeLiveGamesCount": 2,
+     "activePrematchGamesCount": 31,
+     "leagues": [
+      {
+       "id": "f687f40f-a786-4b08-889e-5cbc20ef4ffa",
+       "slug": "aba-league",
+       "name": "ABA League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "019fe386-69c1-4f12-b4e0-60ed9f9e0f6d",
+       "slug": "bnxt-league",
+       "name": "BNXT League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      },
+      {
+       "id": "6b0c8e95-9a2c-4b82-ad90-33ffc92ef445",
+       "slug": "euroleague",
+       "name": "Euroleague",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "130.4",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "5e1a4ecc-c9cd-479d-a5ab-7fe89f4285dd",
+       "slug": "latvian-estonian-basketball-league",
+       "name": "Latvian-Estonian Basketball League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      },
+      {
+       "id": "77574c61-520e-412b-b44f-18de4ed31336",
+       "slug": "nbl",
+       "name": "NBL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 3
+      },
+      {
+       "id": "7ecb2b92-1c6a-4663-a860-1f3925cde075",
+       "slug": "vtb-united-league",
+       "name": "VTB United League",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "33126e3b-218b-43d7-9cc0-154de6fd513d",
+       "slug": "wbla-w",
+       "name": "WBLA (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "151cb52c-f1f5-4192-a58e-5f4e41498d84",
+     "slug": "israel",
+     "name": "Israel",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "c3d11fc6-81e2-43f0-b48d-b7ae922d612b",
+       "slug": "super-league",
+       "name": "Super League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "c7b3f0f8-226d-4245-8d33-7f03b74e21a2",
+     "slug": "italy",
+     "name": "Italy",
+     "turnover": "0",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 8,
+     "leagues": [
+      {
+       "id": "6377823e-a0f7-49d0-81b3-8e0606743a67",
+       "slug": "serie-a",
+       "name": "Serie A",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "40becd45-fc59-4b19-be19-955cc30f7f2d",
+     "slug": "japan",
+     "name": "Japan",
+     "turnover": "0",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 8,
+     "leagues": [
+      {
+       "id": "8200ddcb-d9d5-4f93-98d2-524cd8beeeaa",
+       "slug": "b-league-1",
+       "name": "B League 1",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "6f1d2aa0-f4fe-4401-ae92-0fb92ceed3ed",
+     "slug": "lithuania",
+     "name": "Lithuania",
+     "turnover": "0",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 4,
+     "leagues": [
+      {
+       "id": "19041b09-13db-4b5d-8922-b8f688ca5987",
+       "slug": "lkl",
+       "name": "LKL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 4
+      }
+     ]
+    },
+    {
+     "id": "e1d5fa76-2be7-4582-a842-4ad9e7c9bc9d",
+     "slug": "mexico",
+     "name": "Mexico",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "5175f16b-3564-48da-a67c-23c835545b21",
+       "slug": "lnbp",
+       "name": "LNBP",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "d7ad6904-7b23-446c-813f-94290862bdae",
+     "slug": "norway",
+     "name": "Norway",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "5ceded3c-4fa8-4a7e-ac56-9c668d099d25",
+       "slug": "blno",
+       "name": "BLNO",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "8920d050-f45f-447a-80f3-6b2f44195962",
+     "slug": "poland",
+     "name": "Poland",
+     "turnover": "0",
+     "activeGamesCount": 18,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 17,
+     "leagues": [
+      {
+       "id": "c5fa14d9-102e-46f8-b669-c3c97b4fcaa1",
+       "slug": "1-liga",
+       "name": "1. liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "5da97143-4b04-4d7a-a8f4-74d48a75751b",
+       "slug": "plk",
+       "name": "PLK",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      },
+      {
+       "id": "e942f8c8-15fe-4776-8067-b8ae94fecf18",
+       "slug": "plkk-w",
+       "name": "PLKK (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "7956532e-afb7-42c1-9bbf-74d582ca3aef",
+     "slug": "portugal",
+     "name": "Portugal",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "0a5457f2-2673-44bb-b6e3-83761d0bdae6",
+       "slug": "nacional-liga-w",
+       "name": "Nacional Liga (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "203697c9-a099-4980-82ef-e4048da47c0a",
+     "slug": "slovakia",
+     "name": "Slovakia",
+     "turnover": "0",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 4,
+     "leagues": [
+      {
+       "id": "79f9fbee-676f-4100-b599-50751e254ea7",
+       "slug": "extraliga",
+       "name": "Extraliga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 4
+      }
+     ]
+    },
+    {
+     "id": "e75ae69b-6965-410b-a2cc-d66d1c5fb610",
+     "slug": "south-korea",
+     "name": "South Korea",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "eef22a0b-0002-4983-abf7-57f47cfa07c2",
+       "slug": "kbl",
+       "name": "KBL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "7269aa71-860e-4cca-b8b0-e04721c87bcc",
+     "slug": "spain",
+     "name": "Spain",
+     "turnover": "0",
+     "activeGamesCount": 13,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 13,
+     "leagues": [
+      {
+       "id": "849ad84f-5c94-4951-90cd-bba70eba95a3",
+       "slug": "liga-acb",
+       "name": "Liga ACB",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "1183d63b-ccb0-4e79-9721-991d4e8be63e",
+       "slug": "liga-femenina-w",
+       "name": "Liga Femenina (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "45082afd-17b1-4d06-83ec-337e63560e6a",
+     "slug": "sweden",
+     "name": "Sweden",
+     "turnover": "116.61",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "4b0d27b0-2811-4982-8b61-17f2a9c9e047",
+       "slug": "basketligan",
+       "name": "Basketligan",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "116.61",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 4
+      },
+      {
+       "id": "fe16bbad-cb21-4aa4-aa28-66247ed621e5",
+       "slug": "superettan",
+       "name": "Superettan",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "c8fafa99-9151-42e0-bcd8-0bda2fdcc3e5",
+     "slug": "switzerland",
+     "name": "Switzerland",
+     "turnover": "0",
+     "activeGamesCount": 10,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 10,
+     "leagues": [
+      {
+       "id": "b98e7cdb-7fff-425b-9595-fa9be5ea82fb",
+       "slug": "nlb",
+       "name": "NLB",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      },
+      {
+       "id": "caf29460-d752-422e-acec-237c57ac246b",
+       "slug": "sbl",
+       "name": "SBL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "5589328e-fce3-4ff5-8d32-dcd3c8cdeb39",
+     "slug": "turkey",
+     "name": "Turkey",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "55872476-b726-412b-9633-b1881aa3a7e9",
+       "slug": "tbsl",
+       "name": "TBSL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "4849c873-916e-4675-a21f-8bc649c7b75f",
+     "slug": "ukraine",
+     "name": "Ukraine",
+     "turnover": "0",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 4,
+     "activePrematchGamesCount": 0,
+     "leagues": [
+      {
+       "id": "f7c88302-8e9d-4780-82b1-5dbaa1f186a8",
+       "slug": "super-league",
+       "name": "Super League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 4,
+       "activePrematchGamesCount": 0
+      }
+     ]
+    },
+    {
+     "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+     "slug": "united-states",
+     "name": "United States",
+     "turnover": "1",
+     "activeGamesCount": 13,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 13,
+     "leagues": [
+      {
+       "id": "a633c662-a34a-4234-b775-466cf86be8e8",
+       "slug": "nba",
+       "name": "NBA",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 12,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 12
+      },
+      {
+       "id": "37812e1f-c61f-45e9-a7e5-7749a875bb87",
+       "slug": "wnba-w",
+       "name": "WNBA (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "1",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "f1f0ec7b-59a5-4377-b788-f1c1c32008e8",
+     "slug": "uruguay",
+     "name": "Uruguay",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "b69a59fd-7917-4f24-92d1-4f3eeb30e416",
+       "slug": "lub",
+       "name": "LUB",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 29,
+   "slug": "boxing",
+   "name": "Boxing",
+   "sportId": "29",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 25,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 25,
+   "countries": [
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "0",
+     "activeGamesCount": 25,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 25,
+     "leagues": [
+      {
+       "id": "3261f3ed-9e7c-45b9-9eb6-b1c0dffa11a6",
+       "slug": "matchups",
+       "name": "Matchups",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 25,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 25
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 40,
+   "slug": "cricket",
+   "name": "Cricket",
+   "sportId": "40",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 5,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 5,
+   "countries": [
+    {
+     "id": "cf80f0dc-265e-4da7-90c1-d08159bbe7b9",
+     "slug": "canada",
+     "name": "Canada",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "3cee76cf-a71c-4cf5-9e10-8d1c89051d01",
+       "slug": "ncl-gt20",
+       "name": "NCL GT20",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "0",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 4,
+     "leagues": [
+      {
+       "id": "4dce7f63-770e-43ae-a2e4-942fe687b8a7",
+       "slug": "one-day-international-matches",
+       "name": "One Day International Matches",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "b21087a7-4b87-4295-ac38-68559403f2da",
+       "slug": "t20-world-cup-sub-regional-africa-qualifiers-c",
+       "name": "T20 World Cup Sub Regional Africa Qualifiers C",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 33,
+   "slug": "football",
+   "name": "Football",
+   "sportId": "33",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 636,
+   "activeLiveGamesCount": 21,
+   "activePrematchGamesCount": 615,
+   "countries": [
+    {
+     "id": "b1b31c3c-6e29-4c87-b48c-942001ec1d13",
+     "slug": "algeria",
+     "name": "Algeria",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "ed1dce85-79f5-4617-8f72-5b41aedeca53",
+       "slug": "ligue-1",
+       "name": "Ligue 1",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "853b5565-e225-4fa9-aba6-ceb1cf23f1f7",
+     "slug": "argentina",
+     "name": "Argentina",
+     "turnover": "41.81",
+     "activeGamesCount": 16,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 16,
+     "leagues": [
+      {
+       "id": "775a7bbe-0047-48ad-94ae-43a9fdd8c95f",
+       "slug": "copa-argentina",
+       "name": "Copa Argentina",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "835cdd41-d657-42ca-b033-30dbaa8d4945",
+       "slug": "liga-profesional",
+       "name": "Liga Profesional",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "41.81",
+       "activeGamesCount": 15,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 15
+      }
+     ]
+    },
+    {
+     "id": "dd04e44b-b511-4311-9efb-7e370c528f6b",
+     "slug": "australia",
+     "name": "Australia",
+     "turnover": "51.05",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "41fc2547-0413-4a16-a4e1-50191e27c4b3",
+       "slug": "a-league",
+       "name": "A-League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "51.05",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "3b5ce713-eeab-4f54-83c4-adac6afc2e70",
+     "slug": "austria",
+     "name": "Austria",
+     "turnover": "10.461538461538462",
+     "activeGamesCount": 14,
+     "activeLiveGamesCount": 5,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "00da57b0-01bc-4d21-90d9-9d7257773916",
+       "slug": "2-liga",
+       "name": "2. Liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "1",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 5,
+       "activePrematchGamesCount": 3
+      },
+      {
+       "id": "acc90094-de4c-418d-a4d5-de6bd0299a6c",
+       "slug": "bundesliga",
+       "name": "Bundesliga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "9.461538461538462",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "a3c2a398-5364-4976-b4db-24c2d9cd91ce",
+     "slug": "brazil",
+     "name": "Brazil",
+     "turnover": "68.49958564298187",
+     "activeGamesCount": 18,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 18,
+     "leagues": [
+      {
+       "id": "43aa89c9-7fa0-49a1-8fa2-8525a73d6fd5",
+       "slug": "brasileirao-serie-a",
+       "name": "Brasileirao - Serie A",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "68.49958564298187",
+       "activeGamesCount": 18,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 18
+      }
+     ]
+    },
+    {
+     "id": "5b952254-77fe-43f9-bb97-495953a891f8",
+     "slug": "bulgaria",
+     "name": "Bulgaria",
+     "turnover": "0",
+     "activeGamesCount": 7,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "c11f4bb8-a4ef-403e-8526-4481b72e146b",
+       "slug": "efbet-liga",
+       "name": "Efbet Liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "35908e41-5b17-43d7-813f-eed39803978a",
+     "slug": "chile",
+     "name": "Chile",
+     "turnover": "65",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 8,
+     "leagues": [
+      {
+       "id": "9e766672-3a5e-4c44-a399-5a9280866888",
+       "slug": "primera-division",
+       "name": "Primera Division",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "65",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "28bf5a71-8d57-4145-a0cb-e2592101e481",
+     "slug": "china",
+     "name": "China",
+     "turnover": "0",
+     "activeGamesCount": 16,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 16,
+     "leagues": [
+      {
+       "id": "8c416799-ddb5-4617-a7b4-c3e461b5d5b2",
+       "slug": "league-1",
+       "name": "League 1",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "556147f2-87af-4a08-a5e0-9b6aae93c207",
+       "slug": "super-league",
+       "name": "Super League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "340f594e-8978-4b34-82bd-64623a4088c4",
+     "slug": "croatia",
+     "name": "Croatia",
+     "turnover": "1",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "8ec73b56-3d1e-46f4-a8c6-3ed8b5992844",
+       "slug": "hnl",
+       "name": "HNL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "1",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "b723d6f8-bdb7-4722-840c-653816c948cf",
+     "slug": "cyprus",
+     "name": "Cyprus",
+     "turnover": "1",
+     "activeGamesCount": 7,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "894f46b9-7209-469b-9b4f-cbae133f168b",
+       "slug": "1st-division",
+       "name": "1st Division",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "1",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "0485dc68-767d-499f-94a8-a9dedff7e571",
+     "slug": "denmark",
+     "name": "Denmark",
+     "turnover": "2",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "17ca5e99-2226-4670-b2cf-31ef948f83b9",
+       "slug": "superliga",
+       "name": "Superliga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "2",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "28c94203-3958-41e9-8e80-b7791236d625",
+     "slug": "egypt",
+     "name": "Egypt",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "ccb393fb-7067-44f8-a016-b8c68927ee68",
+       "slug": "premier-league",
+       "name": "Premier League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "0aed7fe4-3bc1-4ca4-ad52-dfd2b188d9ad",
+     "slug": "england",
+     "name": "England",
+     "turnover": "246.10876068556647",
+     "activeGamesCount": 116,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 116,
+     "leagues": [
+      {
+       "id": "cbbc4945-da8e-4759-bc21-c2ee7ab59b78",
+       "slug": "championship",
+       "name": "Championship",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "50.51527883880825",
+       "activeGamesCount": 12,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 12
+      },
+      {
+       "id": "45bb710f-70d2-4b31-bc53-a0c3e4b5d860",
+       "slug": "efl-cup",
+       "name": "EFL Cup",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "62c5d6e8-435a-485a-a9c6-90b0748e8e45",
+       "slug": "fa-trophy",
+       "name": "FA Trophy",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 27,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 27
+      },
+      {
+       "id": "76a2f309-bc47-4ba4-9398-5e34b77b4c96",
+       "slug": "isthmian-league-premier-division",
+       "name": "Isthmian League - Premier Division",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      },
+      {
+       "id": "cfb7a9c3-2f11-4036-ac8c-6dd9d3e06f1c",
+       "slug": "league-one",
+       "name": "League One",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 13,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 13
+      },
+      {
+       "id": "4205696c-6765-4df9-86be-5658b8bcce2d",
+       "slug": "league-two",
+       "name": "League Two",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 13,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 13
+      },
+      {
+       "id": "1ee7ce1a-9d8c-49aa-88a3-385008161393",
+       "slug": "national-league",
+       "name": "National League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "36",
+       "activeGamesCount": 11,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 11
+      },
+      {
+       "id": "23930505-d196-4e92-8875-8cdb725e2b32",
+       "slug": "national-league-south",
+       "name": "National League South",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 12,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 12
+      },
+      {
+       "id": "c2e8dd40-8b06-4171-80c6-8c99a9ad1326",
+       "slug": "premier-league",
+       "name": "Premier League",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "157.59348184675818",
+       "activeGamesCount": 10,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 10
+      },
+      {
+       "id": "f6e2d469-8d21-4859-b62d-76796c887d4b",
+       "slug": "super-league-w",
+       "name": "Super League (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "2",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "8220f8bf-bd9a-4f5c-8fe0-19eb94521f28",
+     "slug": "estonia",
+     "name": "Estonia",
+     "turnover": "0",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 2,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "40a700c1-c8c1-4185-80a2-72a1a97a69eb",
+       "slug": "premium-liiga",
+       "name": "Premium Liiga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 2,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "f18b268e-1f95-4550-b562-a943f52946b9",
+     "slug": "finland",
+     "name": "Finland",
+     "turnover": "5",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "8e5433f4-febc-410c-b3df-dc558714294f",
+       "slug": "veikkausliiga",
+       "name": "Veikkausliiga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "5",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "4c43eaf4-4a7f-44da-b826-88dfc47e4786",
+     "slug": "france",
+     "name": "France",
+     "turnover": "87.85724275724276",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "e18b6c55-6d7f-49ac-b9a5-8d59a6bba0ab",
+       "slug": "ligue-1",
+       "name": "Ligue 1",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "87.85724275724276",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 9
+      }
+     ]
+    },
+    {
+     "id": "0441c8e8-5fad-43f5-8ae6-50a468a7e339",
+     "slug": "germany",
+     "name": "Germany",
+     "turnover": "81.62668463223274",
+     "activeGamesCount": 18,
+     "activeLiveGamesCount": 2,
+     "activePrematchGamesCount": 16,
+     "leagues": [
+      {
+       "id": "6c4d74c5-6ed9-440a-854c-8f67753081ee",
+       "slug": "2-bundesliga",
+       "name": "2. Bundesliga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "5",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 2,
+       "activePrematchGamesCount": 7
+      },
+      {
+       "id": "279a60eb-c1f4-41f6-86de-39e40e93dd02",
+       "slug": "bundesliga",
+       "name": "Bundesliga",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "76.62668463223274",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 9
+      }
+     ]
+    },
+    {
+     "id": "897d50f6-60d4-441b-a685-27c084190c45",
+     "slug": "greece",
+     "name": "Greece",
+     "turnover": "4",
+     "activeGamesCount": 15,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 15,
+     "leagues": [
+      {
+       "id": "b3303bba-6cba-4328-b9c0-99f7914820ba",
+       "slug": "greek-cup",
+       "name": "Greek Cup",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "7b87fc28-4a52-40af-9b02-f1e70e4d19a8",
+       "slug": "super-league",
+       "name": "Super League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "4",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "f03059af-3e1d-4acc-8734-3e50137b1a81",
+     "slug": "hungary",
+     "name": "Hungary",
+     "turnover": "4",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "5da3245b-da75-42be-b701-460ac0091a99",
+       "slug": "nb-i",
+       "name": "NB I",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "4",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "272f2ea0-688e-4a92-8ae7-1216159c812a",
+     "slug": "india",
+     "name": "India",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "fcb00dbc-521a-4597-9901-b37aaeed1053",
+       "slug": "indian-super-league",
+       "name": "Indian Super League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "29",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 8,
+     "leagues": [
+      {
+       "id": "c82d4e0c-6235-4cc0-95c5-da3d2353c915",
+       "slug": "1-liga",
+       "name": "1. Liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "29",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "5cc9325b-0380-438c-b682-82a8aadc2542",
+     "slug": "ireland",
+     "name": "Ireland",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "ac897bde-7918-4d16-a6aa-9438c478983d",
+       "slug": "premier-division",
+       "name": "Premier Division",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "151cb52c-f1f5-4192-a58e-5f4e41498d84",
+     "slug": "israel",
+     "name": "Israel",
+     "turnover": "0",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "21d7d31d-dfb2-4cf6-9fb8-355bfc54e033",
+       "slug": "liga-alef",
+       "name": "Liga Alef",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "8adff4b2-f1d2-43cb-ba37-6526dc8bddc3",
+       "slug": "liga-bet",
+       "name": "Liga Bet",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "e01064a9-8d7a-4bc0-9b9b-ab8142e97e6b",
+       "slug": "premier-league",
+       "name": "Premier League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "c7b3f0f8-226d-4245-8d33-7f03b74e21a2",
+     "slug": "italy",
+     "name": "Italy",
+     "turnover": "45.879265091863516",
+     "activeGamesCount": 36,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 36,
+     "leagues": [
+      {
+       "id": "084b2fb1-5879-443b-9509-4b27d7a283d0",
+       "slug": "serie-a",
+       "name": "Serie A",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "16.879265091863516",
+       "activeGamesCount": 20,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 20
+      },
+      {
+       "id": "2f7f0c56-9576-494d-b6d5-428da9835118",
+       "slug": "serie-a-w",
+       "name": "Serie A (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      },
+      {
+       "id": "9bedbd6b-2714-4316-aa9c-df7cb511ab25",
+       "slug": "serie-b",
+       "name": "Serie B",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "29",
+       "activeGamesCount": 10,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 10
+      }
+     ]
+    },
+    {
+     "id": "40becd45-fc59-4b19-be19-955cc30f7f2d",
+     "slug": "japan",
+     "name": "Japan",
+     "turnover": "0",
+     "activeGamesCount": 10,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 10,
+     "leagues": [
+      {
+       "id": "df0727f8-cd4c-48f8-af36-5dca6447108e",
+       "slug": "j1-100-year-vision-league",
+       "name": "J1 100 Year Vision League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 10,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 10
+      }
+     ]
+    },
+    {
+     "id": "cef9c76c-e8e2-406f-b715-57680bd585be",
+     "slug": "jordan",
+     "name": "Jordan",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 4,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "4cb30ed0-58da-4e39-8495-db688683e0d1",
+       "slug": "division-1",
+       "name": "Division 1",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 3,
+       "activePrematchGamesCount": 0
+      },
+      {
+       "id": "35952d85-e563-41e7-842f-5ab9a0b821ae",
+       "slug": "pro-league",
+       "name": "Pro League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "3dc6789f-53ac-442e-a275-e72ae1271f9e",
+     "slug": "kazakhstan",
+     "name": "Kazakhstan",
+     "turnover": "0",
+     "activeGamesCount": 7,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "e0db2a4a-7ec8-426b-8bc2-3d289813072b",
+       "slug": "premier-league",
+       "name": "Premier League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "38fd0d2a-0b5c-4cce-863e-50bb99e6d111",
+     "slug": "kuwait",
+     "name": "Kuwait",
+     "turnover": "427.88",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "4f7df1c2-07db-4c11-a9e3-41877739728b",
+       "slug": "premier-league",
+       "name": "Premier League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "427.88",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "6f1d2aa0-f4fe-4401-ae92-0fb92ceed3ed",
+     "slug": "lithuania",
+     "name": "Lithuania",
+     "turnover": "0",
+     "activeGamesCount": 12,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 11,
+     "leagues": [
+      {
+       "id": "6c43ca39-fbca-4c47-a4af-8c4927161a00",
+       "slug": "1-lyga",
+       "name": "1 Lyga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 7
+      },
+      {
+       "id": "f24085df-1f0c-4ab6-8670-4bf2409772c4",
+       "slug": "a-lyga",
+       "name": "A Lyga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 4
+      }
+     ]
+    },
+    {
+     "id": "e1d5fa76-2be7-4582-a842-4ad9e7c9bc9d",
+     "slug": "mexico",
+     "name": "Mexico",
+     "turnover": "1",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "25a27b64-caa5-4678-a432-73df4e7a1baa",
+       "slug": "liga-mx",
+       "name": "Liga MX",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "1",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 9
+      }
+     ]
+    },
+    {
+     "id": "f859abc9-b740-4e4d-a024-fa52f2d9a6b0",
+     "slug": "montenegro",
+     "name": "Montenegro",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "2499a3e6-d6ae-4498-9d25-c3bfdbc6fbef",
+       "slug": "first-league",
+       "name": "First League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "239e3828-5894-4803-bb53-2915c4c31c21",
+     "slug": "morocco",
+     "name": "Morocco",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "e0b68f6c-a93c-42b7-8c01-a1f7cb1a08e4",
+       "slug": "botola",
+       "name": "Botola",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "99ec4325-038a-4cab-b1cf-eb3c5f4d5e63",
+     "slug": "netherlands",
+     "name": "Netherlands",
+     "turnover": "5.846153846153847",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "74a307a9-32eb-4017-837d-16389fb916be",
+       "slug": "eredivisie",
+       "name": "Eredivisie",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "5.846153846153847",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 9
+      }
+     ]
+    },
+    {
+     "id": "6aa7d5e8-326c-4ce4-b0d6-6a6b7d78d903",
+     "slug": "northern-ireland",
+     "name": "Northern Ireland",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "599a5957-28a9-4765-b733-bc1f5b383d06",
+       "slug": "premiership",
+       "name": "Premiership",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "d7ad6904-7b23-446c-813f-94290862bdae",
+     "slug": "norway",
+     "name": "Norway",
+     "turnover": "5",
+     "activeGamesCount": 16,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 16,
+     "leagues": [
+      {
+       "id": "6c4a516d-3f98-40eb-909c-43d80b15361a",
+       "slug": "1st-division",
+       "name": "1st Division",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "3",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "a26de6b2-ab55-4522-9184-f663c2ae9827",
+       "slug": "eliteserien",
+       "name": "Eliteserien",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "2",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "83066ae1-3929-4f13-a601-d0c32e292de2",
+     "slug": "paraguay",
+     "name": "Paraguay",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "2291a4d8-cd08-4b0d-a180-7b911ff32072",
+       "slug": "primera-division",
+       "name": "Primera Division",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "fcdff780-6793-4166-b3ad-9bf0370a55c9",
+     "slug": "peru",
+     "name": "Peru",
+     "turnover": "2",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "14b23ef9-ff14-421a-bdaa-d3e1946376af",
+       "slug": "liga-1",
+       "name": "Liga 1",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "2",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 9
+      }
+     ]
+    },
+    {
+     "id": "8920d050-f45f-447a-80f3-6b2f44195962",
+     "slug": "poland",
+     "name": "Poland",
+     "turnover": "64",
+     "activeGamesCount": 18,
+     "activeLiveGamesCount": 2,
+     "activePrematchGamesCount": 16,
+     "leagues": [
+      {
+       "id": "41ecb4c7-fe38-4ac7-996c-69af470e2aa9",
+       "slug": "ekstraklasa",
+       "name": "Ekstraklasa",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "64",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "9bffe986-6e9d-44b1-bdad-2090bc91d75f",
+       "slug": "i-liga",
+       "name": "I Liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "7956532e-afb7-42c1-9bbf-74d582ca3aef",
+     "slug": "portugal",
+     "name": "Portugal",
+     "turnover": "106.15",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "4f2c698c-5c7d-42dc-a49e-950850884426",
+       "slug": "primeira-liga",
+       "name": "Primeira Liga",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "106.15",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 9
+      }
+     ]
+    },
+    {
+     "id": "9e17e126-1624-454a-b981-7d8d6789f7e4",
+     "slug": "romania",
+     "name": "Romania",
+     "turnover": "31",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "0c5876d8-f507-4505-bf1a-e2a627eb3116",
+       "slug": "liga-i",
+       "name": "Liga I",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "31",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "5f36af5f-ed27-4da6-a4d4-cac2dab75650",
+     "slug": "saudi-arabia",
+     "name": "Saudi Arabia",
+     "turnover": "22.880000000000003",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "565c1d0e-c05d-4bed-9d1b-98b06dce8358",
+       "slug": "professional-league",
+       "name": "Professional League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "22.880000000000003",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "077c1454-f7e4-4f5b-811e-b8062445d2d2",
+     "slug": "scotland",
+     "name": "Scotland",
+     "turnover": "2",
+     "activeGamesCount": 27,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 27,
+     "leagues": [
+      {
+       "id": "be393edf-fd62-4595-8c27-f7c2fff8dcf2",
+       "slug": "league-one",
+       "name": "League One",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      },
+      {
+       "id": "e1e7cfcb-68ee-4963-9381-86ccba00dfc1",
+       "slug": "premiership",
+       "name": "Premiership",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "2",
+       "activeGamesCount": 12,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 12
+      },
+      {
+       "id": "73df4981-8a5a-4c64-a9d5-3773ece11f51",
+       "slug": "scottish-cup",
+       "name": "Scottish Cup",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 10,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 10
+      }
+     ]
+    },
+    {
+     "id": "bee9bbc7-0551-48f1-b7f1-f4c014a7a727",
+     "slug": "serbia",
+     "name": "Serbia",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "c0dff242-624f-426d-a74c-f3b803a28839",
+       "slug": "prva-liga",
+       "name": "Prva Liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "58b97c41-0641-4edc-b6ee-284def410775",
+     "slug": "slovenia",
+     "name": "Slovenia",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "7211069a-0a0b-498e-a2f3-4365c16b98c9",
+       "slug": "prvaliga",
+       "name": "PrvaLiga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "e75ae69b-6965-410b-a2cc-d66d1c5fb610",
+     "slug": "south-korea",
+     "name": "South Korea",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "4980afb8-8fe0-4702-b20c-a80a753bc1c0",
+       "slug": "k-league-1",
+       "name": "K League 1",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "7269aa71-860e-4cca-b8b0-e04721c87bcc",
+     "slug": "spain",
+     "name": "Spain",
+     "turnover": "59.66374482555345",
+     "activeGamesCount": 10,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 10,
+     "leagues": [
+      {
+       "id": "0c4edf34-0f92-4d28-8110-164fc6251a79",
+       "slug": "laliga",
+       "name": "LaLiga",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "59.66374482555345",
+       "activeGamesCount": 10,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 10
+      }
+     ]
+    },
+    {
+     "id": "45082afd-17b1-4d06-83ec-337e63560e6a",
+     "slug": "sweden",
+     "name": "Sweden",
+     "turnover": "0",
+     "activeGamesCount": 37,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 37,
+     "leagues": [
+      {
+       "id": "73ce5c99-8d7c-4011-bbfc-3e5175ead660",
+       "slug": "allsvenskan",
+       "name": "Allsvenskan",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      },
+      {
+       "id": "93606bb2-7e3a-4264-a246-7f1f92011a82",
+       "slug": "elitettan-w",
+       "name": "Elitettan (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      },
+      {
+       "id": "93774944-eaa2-4c02-843c-334558e03768",
+       "slug": "ettan",
+       "name": "Ettan",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 15,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 15
+      },
+      {
+       "id": "59ced72a-c9a1-4bf8-8e87-f13c42d32199",
+       "slug": "superettan",
+       "name": "Superettan",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "c8fafa99-9151-42e0-bcd8-0bda2fdcc3e5",
+     "slug": "switzerland",
+     "name": "Switzerland",
+     "turnover": "0",
+     "activeGamesCount": 7,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "024039a7-1167-46c5-a311-816b67275107",
+       "slug": "promotion-league",
+       "name": "Promotion League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "b426c09f-16f6-431c-9c50-76ac502adfe6",
+       "slug": "super-league",
+       "name": "Super League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    },
+    {
+     "id": "f8b364a7-b096-4f58-b411-47e9ae8c7657",
+     "slug": "thailand",
+     "name": "Thailand",
+     "turnover": "0",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 4,
+     "leagues": [
+      {
+       "id": "b963bae7-2038-44c1-a1bd-88f4b6b9b660",
+       "slug": "thai-league-1",
+       "name": "Thai League 1",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 4
+      }
+     ]
+    },
+    {
+     "id": "5589328e-fce3-4ff5-8d32-dcd3c8cdeb39",
+     "slug": "turkey",
+     "name": "Turkey",
+     "turnover": "9.675287356321839",
+     "activeGamesCount": 9,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 9,
+     "leagues": [
+      {
+       "id": "5604602c-ec93-446b-8b04-b4f45022a534",
+       "slug": "super-lig",
+       "name": "Super Lig",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "9.675287356321839",
+       "activeGamesCount": 9,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 9
+      }
+     ]
+    },
+    {
+     "id": "afd90409-818b-4590-9a80-2ed5a4165537",
+     "slug": "united-arab-emirates",
+     "name": "United Arab Emirates",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "e38af9ee-7b9b-427b-b300-508a77225220",
+       "slug": "pro-league",
+       "name": "Pro League",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+     "slug": "united-states",
+     "name": "United States",
+     "turnover": "0",
+     "activeGamesCount": 15,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 15,
+     "leagues": [
+      {
+       "id": "9597daa0-103c-4ddd-9973-5f7cc64f3429",
+       "slug": "mls",
+       "name": "MLS",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 15,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 15
+      }
+     ]
+    },
+    {
+     "id": "f1f0ec7b-59a5-4377-b788-f1c1c32008e8",
+     "slug": "uruguay",
+     "name": "Uruguay",
+     "turnover": "0",
+     "activeGamesCount": 7,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "2c2e3c0b-a70d-4aa8-b799-a7fc1e98fe61",
+       "slug": "segunda-division",
+       "name": "Segunda Division",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "1310ae52-2149-45e6-8fbe-cc0fab0426fe",
+     "slug": "vietnam",
+     "name": "Vietnam",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "d751b623-2a76-4cfb-a1fa-3e68eb635ed8",
+       "slug": "vleague-1",
+       "name": "V.League 1",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "c139e7c4-77ea-47e4-853e-6e4c82b1eab8",
+     "slug": "wales",
+     "name": "Wales",
+     "turnover": "109.8629",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 8,
+     "leagues": [
+      {
+       "id": "b987f703-0250-407d-9bac-16252097ece2",
+       "slug": "cymru-premier",
+       "name": "Cymru Premier",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "109.8629",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 30,
+   "slug": "formula-1",
+   "name": "Formula 1",
+   "sportId": "30",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 3,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 3,
+   "countries": [
+    {
+     "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+     "slug": "united-states",
+     "name": "United States",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "632e47b9-78f4-4e0e-a53b-5af848dd9919",
+       "slug": "practice",
+       "name": "Practice",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "74950742-ad65-4a82-9649-c51db99ef01d",
+       "slug": "qualifying",
+       "name": "Qualifying",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "3710f012-1ab7-468e-aa07-b3fed5198a18",
+       "slug": "race",
+       "name": "Race",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 27,
+   "slug": "handball",
+   "name": "Handball",
+   "sportId": "27",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 17,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 17,
+   "countries": [
+    {
+     "id": "3b5ce713-eeab-4f54-83c4-adac6afc2e70",
+     "slug": "austria",
+     "name": "Austria",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "0b028018-01b9-4f7a-b821-7978a9673cfe",
+       "slug": "hla",
+       "name": "HLA",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "4c43eaf4-4a7f-44da-b826-88dfc47e4786",
+     "slug": "france",
+     "name": "France",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "a54cd7e3-01dc-4248-88ea-55d90260871f",
+       "slug": "starligue",
+       "name": "Starligue",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "0441c8e8-5fad-43f5-8ae6-50a468a7e339",
+     "slug": "germany",
+     "name": "Germany",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "c94071a9-f646-46f3-8682-14e4921fd6b0",
+       "slug": "bundesliga",
+       "name": "Bundesliga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      },
+      {
+       "id": "35b80cf3-9a8f-49b7-ad90-efde62a38551",
+       "slug": "bundesliga-2",
+       "name": "Bundesliga 2",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "749fafaf-1c48-45a7-a9f1-ef7fd37825ef",
+     "slug": "iceland",
+     "name": "Iceland",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "675eb08d-23c9-4f75-9f28-84cd05833f97",
+       "slug": "olis-deildin",
+       "name": "Olis deildin",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "8920d050-f45f-447a-80f3-6b2f44195962",
+     "slug": "poland",
+     "name": "Poland",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "c93aafb2-748b-4367-b064-da7f02196299",
+       "slug": "1-liga",
+       "name": "1 Liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "bee9bbc7-0551-48f1-b7f1-f4c014a7a727",
+     "slug": "serbia",
+     "name": "Serbia",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "5c7ebcf5-d239-4feb-978c-41a9d84e6aa7",
+       "slug": "superliga",
+       "name": "Superliga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "7269aa71-860e-4cca-b8b0-e04721c87bcc",
+     "slug": "spain",
+     "name": "Spain",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "39c6c9a3-919a-4b96-bfad-0856c9f0bc9e",
+       "slug": "asobal",
+       "name": "Asobal",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 32,
+   "slug": "ice-hockey",
+   "name": "Ice Hockey",
+   "sportId": "32",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 105,
+   "activeLiveGamesCount": 13,
+   "activePrematchGamesCount": 92,
+   "countries": [
+    {
+     "id": "f18b268e-1f95-4550-b562-a943f52946b9",
+     "slug": "finland",
+     "name": "Finland",
+     "turnover": "0",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 4,
+     "activePrematchGamesCount": 4,
+     "leagues": [
+      {
+       "id": "f2dd88aa-83f8-4626-a95e-8c4969735baf",
+       "slug": "liiga",
+       "name": "Liiga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 4,
+       "activePrematchGamesCount": 4
+      }
+     ]
+    },
+    {
+     "id": "0441c8e8-5fad-43f5-8ae6-50a468a7e339",
+     "slug": "germany",
+     "name": "Germany",
+     "turnover": "0",
+     "activeGamesCount": 14,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 14,
+     "leagues": [
+      {
+       "id": "c7ef4c80-37f3-4760-92c5-e8e2ef02e7cd",
+       "slug": "del",
+       "name": "DEL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      },
+      {
+       "id": "0d172eee-7b2b-4908-8177-0e05efccdf99",
+       "slug": "del-2",
+       "name": "DEL 2",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "0",
+     "activeGamesCount": 19,
+     "activeLiveGamesCount": 6,
+     "activePrematchGamesCount": 13,
+     "leagues": [
+      {
+       "id": "a75d1aae-48b5-4a6b-bc20-9472a875a854",
+       "slug": "extraliga",
+       "name": "Extraliga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 19,
+       "activeLiveGamesCount": 6,
+       "activePrematchGamesCount": 13
+      }
+     ]
+    },
+    {
+     "id": "3f0080c2-e76c-4acb-b555-e4052998f3fb",
+     "slug": "russia",
+     "name": "Russia",
+     "turnover": "58.92999999999999",
+     "activeGamesCount": 15,
+     "activeLiveGamesCount": 3,
+     "activePrematchGamesCount": 12,
+     "leagues": [
+      {
+       "id": "a54d1f68-7775-4fdf-9d20-c974c7ac4bc9",
+       "slug": "khl",
+       "name": "KHL",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "58.92999999999999",
+       "activeGamesCount": 15,
+       "activeLiveGamesCount": 3,
+       "activePrematchGamesCount": 12
+      }
+     ]
+    },
+    {
+     "id": "45082afd-17b1-4d06-83ec-337e63560e6a",
+     "slug": "sweden",
+     "name": "Sweden",
+     "turnover": "0",
+     "activeGamesCount": 7,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "d91079f1-6606-46b9-95eb-dbdd73b35d5e",
+       "slug": "shl",
+       "name": "SHL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    },
+    {
+     "id": "c8fafa99-9151-42e0-bcd8-0bda2fdcc3e5",
+     "slug": "switzerland",
+     "name": "Switzerland",
+     "turnover": "0",
+     "activeGamesCount": 13,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 13,
+     "leagues": [
+      {
+       "id": "dbb9b103-f3a5-4210-91f6-7fc3f6d8921f",
+       "slug": "nla",
+       "name": "NLA",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 13,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 13
+      }
+     ]
+    },
+    {
+     "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+     "slug": "united-states",
+     "name": "United States",
+     "turnover": "0",
+     "activeGamesCount": 29,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 29,
+     "leagues": [
+      {
+       "id": "0cb6b5d0-e1b3-40bf-966c-e31c32d91a39",
+       "slug": "ahl",
+       "name": "AHL",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 15,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 15
+      },
+      {
+       "id": "6f7eb3f8-f0e2-4286-a6bc-3c27c9b0d484",
+       "slug": "nhl",
+       "name": "NHL",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 14,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 14
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 36,
+   "slug": "mma",
+   "name": "MMA",
+   "sportId": "36",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 36,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 36,
+   "countries": [
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "0",
+     "activeGamesCount": 36,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 36,
+     "leagues": [
+      {
+       "id": "a5ed7aa3-032f-4a6e-b642-79c6e7b56660",
+       "slug": "matchups",
+       "name": "Matchups",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 22,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 22
+      },
+      {
+       "id": "3a80c089-849d-4fb4-a6dc-df6f09471997",
+       "slug": "ufc-333-volkanovski-vs-evloev",
+       "name": "UFC 333 - Volkanovski vs Evloev",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 14,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 14
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 58,
+   "slug": "rugby-league",
+   "name": "Rugby League",
+   "sportId": "58",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 7,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 7,
+   "countries": [
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "0",
+     "activeGamesCount": 7,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "994ab911-2497-44e4-8193-576cdf3edb30",
+       "slug": "world-cup",
+       "name": "World Cup",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 4
+      },
+      {
+       "id": "51241de9-de76-4453-80ec-63a7c3e294b3",
+       "slug": "world-cup-women",
+       "name": "World Cup - Women",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 59,
+   "slug": "rugby-union",
+   "name": "Rugby Union",
+   "sportId": "59",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 7,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 7,
+   "countries": [
+    {
+     "id": "4c43eaf4-4a7f-44da-b826-88dfc47e4786",
+     "slug": "france",
+     "name": "France",
+     "turnover": "0",
+     "activeGamesCount": 7,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "d084e526-f16f-4eb1-b0fe-c38f5d273359",
+       "slug": "top-14",
+       "name": "Top 14",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 7,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 7
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 34,
+   "slug": "snooker",
+   "name": "Snooker",
+   "sportId": "34",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 2,
+   "activeLiveGamesCount": 0,
+   "activePrematchGamesCount": 2,
+   "countries": [
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "c7947535-6c8b-45e2-a00e-f797bfaafa04",
+       "slug": "northern-ireland-open",
+       "name": "Northern Ireland Open",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "slug": "table-tennis",
+   "name": "Table Tennis",
+   "sportId": "1",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 6,
+   "activeLiveGamesCount": 6,
+   "activePrematchGamesCount": 0,
+   "countries": [
+    {
+     "id": "853b5565-e225-4fa9-aba6-ceb1cf23f1f7",
+     "slug": "argentina",
+     "name": "Argentina",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 0,
+     "leagues": [
+      {
+       "id": "b3fd9939-0e68-4280-b7c6-9e6fc9bb6863",
+       "slug": "masters",
+       "name": "Masters",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 0
+      }
+     ]
+    },
+    {
+     "id": "8920d050-f45f-447a-80f3-6b2f44195962",
+     "slug": "poland",
+     "name": "Poland",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 3,
+     "activePrematchGamesCount": 0,
+     "leagues": [
+      {
+       "id": "6e2284fe-9f1f-4046-a603-b5e374d6f460",
+       "slug": "masters",
+       "name": "Masters",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 3,
+       "activePrematchGamesCount": 0
+      }
+     ]
+    },
+    {
+     "id": "7269aa71-860e-4cca-b8b0-e04721c87bcc",
+     "slug": "spain",
+     "name": "Spain",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 2,
+     "activePrematchGamesCount": 0,
+     "leagues": [
+      {
+       "id": "254e8e34-5437-4263-8a11-5949aa5f6194",
+       "slug": "masters",
+       "name": "Masters",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 2,
+       "activePrematchGamesCount": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 45,
+   "slug": "tennis",
+   "name": "Tennis",
+   "sportId": "45",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 76,
+   "activeLiveGamesCount": 13,
+   "activePrematchGamesCount": 63,
+   "countries": [
+    {
+     "id": "dd04e44b-b511-4311-9efb-7e370c528f6b",
+     "slug": "australia",
+     "name": "Australia",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "76b6f866-49a7-47f0-8762-bcedffbad434",
+       "slug": "australia-w",
+       "name": "Australia (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "0af42bd8-0df1-410c-999e-c5c102d4f9ba",
+     "slug": "belgium",
+     "name": "Belgium",
+     "turnover": "0",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "2fd6ff1b-e16f-4fd8-bcf4-608137a82a4c",
+       "slug": "brussels",
+       "name": "Brussels",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "e4f2ad36-14b1-4132-83b0-49e31997e180",
+       "slug": "brussels-doubles",
+       "name": "Brussels - Doubles",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "28bf5a71-8d57-4145-a0cb-e2592101e481",
+     "slug": "china",
+     "name": "China",
+     "turnover": "0",
+     "activeGamesCount": 16,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 16,
+     "leagues": [
+      {
+       "id": "db2c3140-4b24-48e6-8055-842e17d2fa74",
+       "slug": "guangzhou",
+       "name": "Guangzhou",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "6c203e37-4c21-4783-9447-e60cdd9ba655",
+       "slug": "guangzhou-w",
+       "name": "Guangzhou (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 12,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 12
+      },
+      {
+       "id": "813ecdcc-82b4-4921-8b35-3e08a93e2fe0",
+       "slug": "ningbo-doubles-w",
+       "name": "Ningbo - Doubles (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "a5f7a0f4-ecd8-4861-80a7-7a07850b07b0",
+       "slug": "ningbo-w",
+       "name": "Ningbo (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "924fbf5e-30ae-47e7-8cdd-35169bfc5821",
+     "slug": "colombia",
+     "name": "Colombia",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "869e7497-fdae-4a6e-8eaa-f06ea72e991a",
+       "slug": "cali",
+       "name": "Cali",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "4c43eaf4-4a7f-44da-b826-88dfc47e4786",
+     "slug": "france",
+     "name": "France",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 2,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "5841f791-279b-486f-aa14-1aa9671aa660",
+       "slug": "atp-lyon-hard-double",
+       "name": "ATP Lyon - Hard (Double)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "3c9bc995-daf5-4bcc-b575-ee038e217b63",
+       "slug": "france",
+       "name": "France",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 0
+      },
+      {
+       "id": "b570bd2a-2530-46c7-9146-b285dacfb172",
+       "slug": "france-w",
+       "name": "France (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 0
+      },
+      {
+       "id": "70e12e99-3d2a-4a30-86f4-ddd13d1ff81b",
+       "slug": "lyon",
+       "name": "Lyon",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "0",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 7,
+     "leagues": [
+      {
+       "id": "3c26819b-312f-4aba-a6a8-6e0d6709f405",
+       "slug": "australia",
+       "name": "Australia",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "1198b992-53b3-4929-b56b-eff5c8f6b78a",
+       "slug": "brussels",
+       "name": "Brussels",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "43732f09-884d-4803-9e32-49d273f1e42c",
+       "slug": "guangzhou",
+       "name": "Guangzhou",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "4a5df1f8-6369-4408-8286-d4120760a1a3",
+       "slug": "lyon",
+       "name": "Lyon",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 0
+      },
+      {
+       "id": "564cee7b-dafc-484c-b0bb-fc6d2757f979",
+       "slug": "tokyo-w",
+       "name": "Tokyo (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 3
+      },
+      {
+       "id": "915a9a01-8a3e-487d-8278-cd7522e1b631",
+       "slug": "usa-w",
+       "name": "USA (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "c7b3f0f8-226d-4245-8d33-7f03b74e21a2",
+     "slug": "italy",
+     "name": "Italy",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 0,
+     "leagues": [
+      {
+       "id": "e4bc8418-4ee1-4672-8a62-b81aef26b1e8",
+       "slug": "atp-challenger-florence-clay-doubles",
+       "name": "ATP Challenger Florence - Clay (Doubles)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 0
+      }
+     ]
+    },
+    {
+     "id": "40becd45-fc59-4b19-be19-955cc30f7f2d",
+     "slug": "japan",
+     "name": "Japan",
+     "turnover": "0",
+     "activeGamesCount": 11,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 11,
+     "leagues": [
+      {
+       "id": "2837ae01-3503-4f5c-b0c0-6a1edcec28ff",
+       "slug": "osaka-doubles-w",
+       "name": "Osaka - Doubles (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "18975490-938d-451b-ad66-fe333a764d28",
+       "slug": "osaka-w",
+       "name": "Osaka (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      },
+      {
+       "id": "3c0f789f-c38d-43e3-81e4-c29fbe54670c",
+       "slug": "tokyo-w",
+       "name": "Tokyo (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 8
+      }
+     ]
+    },
+    {
+     "id": "3dc6789f-53ac-442e-a275-e72ae1271f9e",
+     "slug": "kazakhstan",
+     "name": "Kazakhstan",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "f471c5e9-a52d-41e7-9bd5-f51dabe86a68",
+       "slug": "almaty",
+       "name": "Almaty",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "8e8be8a4-870c-4aa8-b5b8-f5e12cb1e440",
+       "slug": "almaty-doubles",
+       "name": "Almaty - Doubles",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+     "slug": "united-states",
+     "name": "United States",
+     "turnover": "0",
+     "activeGamesCount": 23,
+     "activeLiveGamesCount": 6,
+     "activePrematchGamesCount": 17,
+     "leagues": [
+      {
+       "id": "255b0687-873f-4069-8b31-a28e503f490c",
+       "slug": "atp-challenger-fort-worth-hard-doubles",
+       "name": "ATP Challenger Fort Worth - Hard (Doubles)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "c8d88906-b4c6-4650-ac84-a9e8895350fd",
+       "slug": "fort-worth",
+       "name": "Fort Worth",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 3
+      },
+      {
+       "id": "434b7482-a76c-4cae-b16e-d316f80b06f5",
+       "slug": "usa",
+       "name": "USA",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 3,
+       "activeLiveGamesCount": 2,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "2d435bd8-1c20-4568-a1d4-b5c9368c8c7c",
+       "slug": "usa-w",
+       "name": "USA (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 0
+      },
+      {
+       "id": "e9c8ae78-ea25-490e-ae98-4869d38491f4",
+       "slug": "utr-pro-series-lubbock",
+       "name": "UTR Pro Series Lubbock",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 8,
+       "activeLiveGamesCount": 2,
+       "activePrematchGamesCount": 6
+      },
+      {
+       "id": "842a8dcc-3570-45eb-89a7-c97f698974a1",
+       "slug": "utr-pro-series-lubbock-women",
+       "name": "UTR Pro Series Lubbock - Women",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 26,
+   "slug": "volleyball",
+   "name": "Volleyball",
+   "sportId": "26",
+   "sportHub": {
+    "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+    "slug": "sports"
+   },
+   "activeGamesCount": 55,
+   "activeLiveGamesCount": 7,
+   "activePrematchGamesCount": 48,
+   "countries": [
+    {
+     "id": "853b5565-e225-4fa9-aba6-ceb1cf23f1f7",
+     "slug": "argentina",
+     "name": "Argentina",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "102d1af3-bc00-4323-bffc-fdb9b17286a4",
+       "slug": "division-de-honor-w",
+       "name": "Division de Honor (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "a3c2a398-5364-4976-b4db-24c2d9cd91ce",
+     "slug": "brazil",
+     "name": "Brazil",
+     "turnover": "0",
+     "activeGamesCount": 6,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 6,
+     "leagues": [
+      {
+       "id": "09ead89a-838c-4120-a2d4-27908fec17c3",
+       "slug": "paulista-u21",
+       "name": "Paulista U21",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "b5fe9ef5-6ec4-492b-be66-53ea4bdd7228",
+       "slug": "superliga-w",
+       "name": "SuperLiga (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "b723d6f8-bdb7-4722-840c-653816c948cf",
+     "slug": "cyprus",
+     "name": "Cyprus",
+     "turnover": "0",
+     "activeGamesCount": 2,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 2,
+     "leagues": [
+      {
+       "id": "55d999d9-59d2-4f17-9ca7-89ab69d9451f",
+       "slug": "league-cup",
+       "name": "League Cup",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 2
+      }
+     ]
+    },
+    {
+     "id": "f18b268e-1f95-4550-b562-a943f52946b9",
+     "slug": "finland",
+     "name": "Finland",
+     "turnover": "0",
+     "activeGamesCount": 3,
+     "activeLiveGamesCount": 3,
+     "activePrematchGamesCount": 0,
+     "leagues": [
+      {
+       "id": "3ed478b3-04f3-4331-ac2e-2b1ee4fb8d7c",
+       "slug": "mestaruusliiga",
+       "name": "Mestaruusliiga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 2,
+       "activePrematchGamesCount": 0
+      },
+      {
+       "id": "c4ca66e9-bbdb-4452-a163-0bf7bd6cc7a7",
+       "slug": "mestaruusliiga-w",
+       "name": "Mestaruusliiga (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 0
+      }
+     ]
+    },
+    {
+     "id": "4c43eaf4-4a7f-44da-b826-88dfc47e4786",
+     "slug": "france",
+     "name": "France",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "78d4f9ee-6793-4f87-b630-c9d81469b5fe",
+       "slug": "ligue-a",
+       "name": "Ligue A",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "0441c8e8-5fad-43f5-8ae6-50a468a7e339",
+     "slug": "germany",
+     "name": "Germany",
+     "turnover": "0",
+     "activeGamesCount": 8,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 8,
+     "leagues": [
+      {
+       "id": "b85cd48a-f62b-48f7-8498-b9854f5e8e76",
+       "slug": "1-bundesliga",
+       "name": "1. Bundesliga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 4
+      },
+      {
+       "id": "2097047f-8cf8-4b5e-bbde-d8cb15126074",
+       "slug": "1-bundesliga-w",
+       "name": "1. Bundesliga (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 4
+      }
+     ]
+    },
+    {
+     "id": "897d50f6-60d4-441b-a685-27c084190c45",
+     "slug": "greece",
+     "name": "Greece",
+     "turnover": "0",
+     "activeGamesCount": 11,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 10,
+     "leagues": [
+      {
+       "id": "56566746-98f9-45a8-8e0c-3bb6dbda0a32",
+       "slug": "a1",
+       "name": "A1",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 6,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 6
+      },
+      {
+       "id": "a23f8034-bf82-44de-a068-64370f4a0c00",
+       "slug": "a1-w",
+       "name": "A1 (W)",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 4
+      }
+     ]
+    },
+    {
+     "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+     "slug": "international-tournaments",
+     "name": "International Tournaments",
+     "turnover": "0",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "6fe768b3-9452-482b-bb25-ee46d6d37a41",
+       "slug": "1-liga",
+       "name": "1. Liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 2,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "80299e29-e2e3-43f8-84d9-fa09e2da3059",
+       "slug": "1-liga-w",
+       "name": "1. Liga (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      },
+      {
+       "id": "419df95f-129b-4e51-9d41-5304a7afc0aa",
+       "slug": "extraliga-w",
+       "name": "Extraliga (W)",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "c7b3f0f8-226d-4245-8d33-7f03b74e21a2",
+     "slug": "italy",
+     "name": "Italy",
+     "turnover": "0",
+     "activeGamesCount": 5,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 5,
+     "leagues": [
+      {
+       "id": "6c741bc0-3577-46f9-95a4-19644ff5a40c",
+       "slug": "superlega",
+       "name": "SuperLega",
+       "isTopLeague": true,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 5,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 5
+      }
+     ]
+    },
+    {
+     "id": "99ec4325-038a-4cab-b1cf-eb3c5f4d5e63",
+     "slug": "netherlands",
+     "name": "Netherlands",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 0,
+     "activePrematchGamesCount": 1,
+     "leagues": [
+      {
+       "id": "f352cc28-d2d2-4ce7-988d-65cf537733fe",
+       "slug": "eredivisie",
+       "name": "Eredivisie",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 0,
+       "activePrematchGamesCount": 1
+      }
+     ]
+    },
+    {
+     "id": "8920d050-f45f-447a-80f3-6b2f44195962",
+     "slug": "poland",
+     "name": "Poland",
+     "turnover": "0",
+     "activeGamesCount": 4,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 3,
+     "leagues": [
+      {
+       "id": "dc670a82-2d8e-45d6-a9a1-8ac5ed5b3cb1",
+       "slug": "i-liga",
+       "name": "I. Liga",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 4,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 3
+      }
+     ]
+    },
+    {
+     "id": "5589328e-fce3-4ff5-8d32-dcd3c8cdeb39",
+     "slug": "turkey",
+     "name": "Turkey",
+     "turnover": "0",
+     "activeGamesCount": 1,
+     "activeLiveGamesCount": 1,
+     "activePrematchGamesCount": 0,
+     "leagues": [
+      {
+       "id": "94351c4e-778b-4ad4-9702-f85067d1afd7",
+       "slug": "1-lig",
+       "name": "1. Lig",
+       "isTopLeague": false,
+       "topWeight": 0,
+       "turnover": "0",
+       "activeGamesCount": 1,
+       "activeLiveGamesCount": 1,
+       "activePrematchGamesCount": 0
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

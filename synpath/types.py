@@ -601,6 +601,11 @@ class FeeSchedule(_Base):
           Smarkets charges the same way (2% on its standard tier, no
           Expert Fee), on net winnings per Smarkets market, and Matchbook
           too (2% in the UK and Ireland, 4% elsewhere), per Matchbook market.
+        * `pool_margin` (Azuro) — nothing: the pool's margin is inside the
+          odds it quotes, so the price is already the whole cost. A bet sent
+          through Azuro's relayer pays it a flat fee per bet, in the bet
+          token, which is not a function of price or size and is left out
+          here (`AzuroTrading.fetch_fee_estimate` reads it).
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:
@@ -624,6 +629,8 @@ class FeeSchedule(_Base):
             return round(limitless_buy_rate(price) * rate / LIMITLESS_FEE_CEILING * price * contracts, 6)
         if self.fee_type in ("profit_on_win", "net_market_winnings") and rate is not None:
             return round(rate * (1 - price) * contracts, 6)
+        if self.fee_type == "pool_margin":
+            return 0.0
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent
             return round(rate * contracts * (price * (1 - price)) ** power, 6)

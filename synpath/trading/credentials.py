@@ -55,6 +55,9 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       market data, streams and orders), and optionally
                       PROPHETX_AFFILIATE_KEY (the Market Data API, market data
                       alone) and PROPHETX_SANDBOX
+  Azuro               AZURO_PRIVATE_KEY, and optionally AZURO_CHAIN (polygon,
+                      the default, base, polygon_amoy, base_sepolia),
+                      AZURO_AFFILIATE, AZURO_RPC_URL
 """
 from __future__ import annotations
 
@@ -440,10 +443,40 @@ class ProphetXCredentials:
         return [v for v in (self.access_key, self.secret_key, self.affiliate_key) if v]
 
 
+@dataclass(frozen=True, repr=False)
+class AzuroCredentials:
+    """Azuro: the wallet that signs every bet (EIP-712) and holds the bet
+    token, and the chain whose pool it bets with. Market data needs nothing."""
+
+    private_key: str = field(repr=False)
+    """The wallet's private key, hex. Signs every bet and cash-out; the
+    relayer places them on chain and is paid from this wallet's tokens."""
+    chain: str = "polygon"
+    """The deployment bet with: `polygon` (USDT), `base` (WETH), or the
+    testnets `polygon_amoy` and `base_sepolia`."""
+    affiliate: str | None = None
+    """The affiliate address every bet names; the wallet's own when unset."""
+    rpc_url: str | None = None
+    """A JSON-RPC endpoint on the chain, for the balance, the allowance and
+    the approval; the chain's public endpoint when unset."""
+    _public = ("chain", "affiliate", "rpc_url")
+    __repr__ = _redacted_repr
+
+    @property
+    def address(self) -> str:
+        from .polymarket_signing import WalletSigner
+
+        return WalletSigner(self.private_key).address
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.private_key]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
     | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
-    | BetfairCredentials | SmarketsCredentials | NovigCredentials | MatchbookCredentials | ProphetXCredentials
+    | BetfairCredentials | SmarketsCredentials | NovigCredentials | MatchbookCredentials | ProphetXCredentials | AzuroCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -478,6 +511,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
     ),
     "matchbook": ("MATCHBOOK_USERNAME", "MATCHBOOK_PASSWORD"),
     "prophetx": ("PROPHETX_ACCESS_KEY", "PROPHETX_SECRET_KEY", "PROPHETX_AFFILIATE_KEY", "PROPHETX_SANDBOX"),
+    "azuro": ("AZURO_PRIVATE_KEY", "AZURO_CHAIN", "AZURO_AFFILIATE", "AZURO_RPC_URL"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -829,6 +863,28 @@ def load_prophetx(env: Mapping[str, str]) -> ProphetXCredentials | None:
     return ProphetXCredentials(access_key=access, secret_key=secret, affiliate_key=affiliate, sandbox=sandbox)
 
 
+AZURO_CHAINS = ("polygon", "base", "polygon_amoy", "base_sepolia")
+"""The deployments that take bets; Gnosis and Chiliz are discontinued."""
+
+
+def load_azuro(env: Mapping[str, str]) -> AzuroCredentials | None:
+    key = env.get("AZURO_PRIVATE_KEY")
+    if not key:
+        return None
+    if not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("AZURO_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    chain = (env.get("AZURO_CHAIN") or "polygon").strip().lower().replace("-", "_")
+    if chain not in AZURO_CHAINS:
+        raise CredentialsMissing(f"AZURO_CHAIN must be one of {', '.join(AZURO_CHAINS)} (Gnosis and Chiliz are discontinued)")
+    affiliate = env.get("AZURO_AFFILIATE") or None
+    if affiliate and not re.match(r"^0x[0-9a-fA-F]{40}$", affiliate):
+        raise CredentialsMissing(f"AZURO_AFFILIATE must be a 0x address (40 hex characters); got {_shape_of(affiliate)}")
+    return AzuroCredentials(
+        private_key=key if key.startswith("0x") else "0x" + key, chain=chain, affiliate=affiliate,
+        rpc_url=env.get("AZURO_RPC_URL") or None,
+    )
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -844,6 +900,7 @@ LOADERS = {
     "novig": load_novig,
     "matchbook": load_matchbook,
     "prophetx": load_prophetx,
+    "azuro": load_azuro,
 }
 
 

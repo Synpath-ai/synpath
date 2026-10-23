@@ -24,7 +24,7 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet,
+stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet and Azuro,
 Ed25519 and private-key JWT for Polymarket US, Ed25519 or P-256 request signing (NOVIG-V3) for Novig; ProphetX signs nothing (a key pair buys a bearer token). Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
@@ -74,6 +74,7 @@ private key. `synpath init` tells them apart.
 | Novig | REST: nothing. Books over the WebSocket: a subaccount's trading key (without one, the public book is polled) | a subaccount's trading key: a key id and its private key file (PEM, Ed25519 or P-256). The management key, optional, opens, funds and labels subaccounts and never trades | the management key on novig.com (paper.novig.com for Paper) -> Profile -> Settings -> Novig API; then `NovigTrading.open_subaccount` with a keypair from `novig_signing.generate_key()` issues the trading key. The private key is never sent |
 | Matchbook | nothing | the account's login: username and password (an account with two-factor login passes a session token made elsewhere) | your matchbook.com account; higher API limits need an API plan from api@matchbook.com |
 | ProphetX | the Trading API key pair, or a Market Data API key | the Trading API key pair: an access key and a secret key, exchanged for a ten-minute bearer token | prophetx.co -> Menu -> API Integration, on any KYC-approved account (sandbox.prophetx.dev for the sandbox); the secret is shown once. The Market Data API key is issued by ProphetX on request |
+| Azuro | nothing | the private key of the wallet that signs each bet and holds the bet token, which must allow Azuro's relayer to spend it (`approve()`, once) | exported from the wallet |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
@@ -101,6 +102,7 @@ The variables each venue reads:
 | Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
 | Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
 | ProphetX | `PROPHETX_ACCESS_KEY` and `PROPHETX_SECRET_KEY` (the Trading API: market data, streams, orders), `PROPHETX_AFFILIATE_KEY` (optional; the Market Data API, market data only), `PROPHETX_SANDBOX=1` (optional; ProphetX's sandbox, with demo funds) |
+| Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance and allowance are read from and the approval is sent through; a public one when unset) |
 
 Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
 optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
@@ -714,3 +716,53 @@ grants one, is in `info`. The fee is reported on each order and fill;
 ProphetX's API documentation publishes no rate, so there is no fee estimate.
 
 Check ProphetX's terms for where it may be used before trading.
+
+## Azuro
+
+`AzuroTrading`, built to `@azuro-org/toolkit` and the Azuro backend API. Bet
+and cash-out digests and signatures are checked against the ones the toolkit
+and viem produce.
+
+The one credential is the wallet. Every bet is the EIP-712 message
+`ClientBetData` (the consent text, the affiliate, the pool's core contract, a
+five-minute expiry, the chain id, the relayer's fee, and one `SubBet`: the
+condition, the outcome, the minimum odds, the stake and a nonce) under the
+domain `Live Betting` `1.0.0` with the core contract as verifying contract,
+signed by the wallet and sent to `/bet/orders/ordinar`. Azuro's relayer puts
+it on chain and is paid a flat fee per bet (`/bet/gas-info`) from the wallet's
+bet token, so before the first bet the wallet allows the relayer to spend the
+token: `fetch_allowance()` reads the allowance, `approve()` sends the
+approval, an on-chain transaction whose gas the wallet pays in the chain's
+coin. `fetch_balance()` is the wallet's bet token, read on chain.
+
+A bet is a market order with a worst price. The pool takes it whole at the
+odds it quotes when the bet reaches the chain, or refuses it, so an order is
+`market`, or a `limit` that is `ioc` or `fok`; anything that would rest, and
+`post_only` and `reduce_only`, are refused. `buy` backs the market's YES
+outcome with minimum odds `1 / price`, rounded up to the protocol's twelve
+decimals; `sell` backs the other outcome of a two-outcome market with minimum
+odds `1 / (1 - price)`. One outcome of a larger condition has no NO to sell.
+`n` contracts stake `n` times the price paid, rounded down to the token's
+decimals, so at the quoted odds or better the bet returns at least `n`.
+
+Placing is asynchronous: the API answers with the bet order's id
+(`<bettor>_<nonce>`) in state `Created`, and `create_order` returns it
+`pending`. The relayer sends it on (`Placed`, `Sent`) and it becomes
+`Accepted`, which is `closed` and filled here, or `Rejected`.
+`wait_for_order(id)` reads it until then. A signed bet cannot be cancelled;
+an accepted one can be closed early where the venue offers a price:
+`fetch_cashout_quote(bet_id)` reads the offer by the bet's on-chain id
+(`Order.info["betId"]`), `cash_out(bet_id)` signs it (`CashOutOrder` under
+the domain `Cash Out` `1.0.0`, the offer's odds as the minimum) and sends it,
+and `fetch_cashout(id)` follows it.
+
+`fetch_orders`, `fetch_open_orders` (bets not yet on chain), `fetch_my_trades`
+(one fill per accepted bet) and `fetch_settlements` (won, lost, or cancelled
+with the stake returned) read the wallet's bet orders. Positions net each
+market's accepted, unsettled single bets on the YES leg. Combo bets are read
+on their first leg's market and marked `info["combo"]`; this library places
+single bets only. A winning bet's payout is claimed on chain from the pool,
+which this library does not do.
+
+Gnosis and Chiliz are discontinued and take no bets. Azuro's bet API answers
+some regions with a 503; check where Azuro may be used before betting.

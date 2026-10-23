@@ -191,6 +191,13 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
                 market=ProphetXMarketStream(credentials=creds, session=session, catalog=catalog),
                 private=ProphetXUserStream(credentials=creds, session=session, catalog=catalog, resolver=resolver),
             )
+        elif venue == "azuro":
+            # Public odds over the feed's socket; bets are read back by
+            # polling, since the feed streams no account channel.
+            from ..ws.azuro import AzuroMarketStream
+            chain = getattr(creds, "chain", "polygon")
+            out[venue] = VenueStreams(market=AzuroMarketStream(chain=chain, catalog=getattr(adapter, "catalog", None)),
+                                      private=None)
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out
