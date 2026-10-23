@@ -383,7 +383,13 @@ def _sx_bet(creds: Credentials) -> TradingExchange:
     return SxBetTrading(creds)  # type: ignore[arg-type]
 
 
+def _azuro(creds: Credentials) -> TradingExchange:
+    from .trading.azuro import AzuroTrading
+    return AzuroTrading(creds)  # type: ignore[arg-type]
+
+
 _TRADING = {
     "kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion,
     "hyperliquid": _hyperliquid, "predict_fun": _predict_fun, "limitless": _limitless, "sx_bet": _sx_bet,
+    "azuro": _azuro,
 }

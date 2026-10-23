@@ -1,0 +1,104 @@
+{
+ "conditions": [
+  {
+   "state": "Active",
+   "conditionId": "600610060000000000943019940000000000001406934671",
+   "sort": "1300",
+   "title": "Handicap 3-Way",
+   "category": "handicap_3_way",
+   "marketGroupKeys": [],
+   "outcomes": [
+    {
+     "id": "600610060000000000943019940000000000001406934671_2",
+     "outcomeId": "3",
+     "odds": "6.83",
+     "point": "-1",
+     "sort": "0000004900",
+     "title": "Trefelin FC (-1)",
+     "state": "Active",
+     "hidden": false
+    },
+    {
+     "id": "600610060000000000943019940000000000001406934671_0",
+     "outcomeId": "1",
+     "odds": "4.95",
+     "point": "+1",
+     "sort": "0010005100",
+     "title": "Draw (+1)",
+     "state": "Active",
+     "hidden": false
+    },
+    {
+     "id": "600610060000000000943019940000000000001406934671_1",
+     "outcomeId": "2",
+     "odds": "1.32",
+     "point": "+1",
+     "sort": "0020005100",
+     "title": "Flint Town United (+1)",
+     "state": "Active",
+     "hidden": false
+    }
+   ]
+  },
+  {
+   "state": "Active",
+   "conditionId": "600610060000000000943019940000000000001802657415",
+   "sort": "30300",
+   "title": "Total Corners Over/Under",
+   "category": "total",
+   "marketGroupKeys": [],
+   "outcomes": [
+    {
+     "id": "600610060000000000943019940000000000001802657415_0",
+     "outcomeId": "1",
+     "odds": "2.04",
+     "point": "10.5",
+     "sort": "0000006050",
+     "title": "Over 10.5",
+     "state": "Active",
+     "hidden": false
+    },
+    {
+     "id": "600610060000000000943019940000000000001802657415_1",
+     "outcomeId": "2",
+     "odds": "1.65",
+     "point": "10.5",
+     "sort": "0020006050",
+     "title": "Under 10.5",
+     "state": "Active",
+     "hidden": false
+    }
+   ]
+  },
+  {
+   "state": "Resolved",
+   "conditionId": "600610060000000000028666020000000000001624778125",
+   "sort": "15000.00106",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "category": "total",
+   "marketGroupKeys": [],
+   "outcomes": [
+    {
+     "id": "600610060000000000028666020000000000001624778125_1",
+     "outcomeId": "2",
+     "odds": "3.26",
+     "point": "11.5",
+     "sort": "0020006150",
+     "title": "Under 11.5",
+     "state": "Lost",
+     "hidden": true
+    },
+    {
+     "id": "600610060000000000028666020000000000001624778125_0",
+     "outcomeId": "1",
+     "odds": "1.26",
+     "point": "11.5",
+     "sort": "0000006150",
+     "title": "Over 11.5",
+     "state": "Won",
+     "hidden": true
+    }
+   ]
+  }
+ ]
+}

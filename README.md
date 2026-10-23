@@ -82,10 +82,13 @@ No silent gaps: if we weren't recording at a moment, you get the reason instead 
 | | [SX Bet](https://sx.bet) | `sx_bet` | ✓ sports | ✓ | WebSocket | one book per market, both sides read it |
 | | [Betfair Exchange](https://www.betfair.com/exchange) | `betfair` | ✓ your own account and app key (delayed key: 1-180 s late, 3 levels) | — | Exchange Stream API (TLS socket) | one book per runner, back and lay read as YES |
 | | [Smarkets](https://smarkets.com) | `smarkets` | ✓ no account (quotes delayed without a login) | — | polled from REST quotes | one book per contract, bids are YES bids |
+| | [Azuro](https://azuro.org) | `azuro` | ✓ sports, no key | ✓ bets with a worst price | WebSocket (no key) | no book: the pool's quoted odds, one level a side sized by its limits |
 
 Betfair is a betting exchange, not a prediction market, read here the same way: each runner (selection) is a yes/no market, `betfair:1.234567890-47972`, and the Betfair market holding the runners is the event. Every Betfair call needs your own Betfair account and application key, and the API is refused from several countries (the US, Germany, France, the Netherlands, Singapore, India, Turkey, the UAE and others). Betfair's keys are for your own betting: showing its prices to anyone else needs a data licence from Betfair. See [capabilities](docs/capabilities.md#betfair).
 
 Smarkets, a UK betting exchange, is read the same way: each contract is a yes/no market, `smarkets:164973231-456060183`, and the Smarkets market holding the contracts is the event. Its market data needs no account (quotes are delayed without a login); betting needs Smarkets' approved API access, which this library does not use yet. Smarkets' API terms allow viewing prices and betting on your own account, and prohibit odds scraping. See [capabilities](docs/capabilities.md#smarkets).
+
+Azuro is an onchain sports betting protocol: a shared liquidity pool takes every bet at the odds it quotes, so there is no order book and nothing rests. A two-outcome condition ("Total Goals Over/Under 2.5") is one yes/no market, `azuro:<conditionId>`, with the lower outcome id as YES; a condition with three or more outcomes (1X2, correct score) is one market per outcome, `azuro:<conditionId>-<outcomeId>`, where only YES can be bought. The game is the event. Prices are `1 / odds`. Ids are the same on every chain; `Azuro(chain=...)` picks the pool read (Polygon USDT by default, Base WETH). Bets are EIP-712 messages signed by your wallet and placed on chain by Azuro's relayer. Azuro's bet API and streams are refused from some regions. See [capabilities](docs/capabilities.md#azuro).
 
 ## Why Synpath
 
@@ -135,7 +138,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'betfair', 'smarkets'] (Betfair and predict.fun need keys)
+for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'betfair', 'smarkets', 'azuro'] (Betfair and predict.fun need keys)
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 

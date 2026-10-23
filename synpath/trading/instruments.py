@@ -66,6 +66,13 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # £0.05.
     "smarkets": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.0001"), "quantity_step": Decimal("0.0001"),
                  "whole": False, "min_notional": Decimal("0.05")},
+    # A bet's price is a worst price, turned into minimum odds of `1 / price`
+    # at 12 decimals, so any price in (0, 1) is accepted: the tick here is
+    # only the grid prices are quoted on. The stake is in the bet token (USDT
+    # to six decimals, WETH to eighteen), so contracts take any size to a
+    # millionth; the pool's own minimum bet is read per selection.
+    "azuro": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
+              "whole": False},
 }
 
 

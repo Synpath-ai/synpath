@@ -52,7 +52,7 @@ def doctor(dotenv: str | None) -> int:
             continue
         if creds is None:
             names = ENV_NAMES[venue]
-            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair") else ""
+            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair", "azuro") else ""
             rows.append((venue, "not configured", f"set {names[0]}{hint}"))
             continue
         stage = getattr(creds, "env", "-")
@@ -91,6 +91,10 @@ def doctor(dotenv: str | None) -> int:
             stage = creds.jurisdiction
             login = "certificate" if creds.cert_path else "interactive"
             identity = f"user {creds.username}, app key loaded, {login} login"
+        elif venue == "azuro":
+            stage = creds.chain
+            affiliate = f", affiliate {creds.affiliate}" if creds.affiliate else ""
+            identity = f"wallet {creds.address}{affiliate}"
         elif venue == "smarkets":
             stage = "login"
             identity = f"user {creds.username}: undelayed quotes; betting needs approved API access, not supported yet"

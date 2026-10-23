@@ -42,6 +42,7 @@ asyncio.run(main())
 | `SxBetMarketStream` | `realtime.sx.bet` (or the testnet) | SX Bet API key (every channel needs one) | whole books, top of book, the tape of taker bets, market changes and settlements |
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
+| `AzuroMarketStream` | `streams.onchainfeed.org` (`dev-streams` for the testnets) | none | each condition's odds as quotes, one-level books sized by the pool's limits, condition status changes |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
@@ -69,6 +70,7 @@ variable `synpath serve` reads it from:
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
 | Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
+| Azuro | nothing | `AZURO_CHAIN` picks the pool when trading |
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
@@ -189,6 +191,21 @@ jittered exponential backoff between attempts.
   `conflate_ms` asks. The stream logs a warning once when it sees that, and
   waits a whole conflation window before treating silence as a dead socket.
   No public trades, so no `watch_trades`; no account stream yet.
+- *Azuro* speaks plain JSON on `wss://streams.onchainfeed.org/v1/streams/feed`:
+  `SubscribeConditions` (and `UnsubscribeConditions`) with the condition ids
+  and the chain's environment (`PolygonUSDT`, `BaseWETH`), and a
+  `ConditionUpdated` message whenever a condition's odds or state change,
+  carrying every outcome's `currentOdds`. Each update is read as the REST
+  quotes are: buying YES at `1 / odds` of the YES outcome and, on a
+  two-outcome market, selling at one minus the price of the other. An update
+  that names only some outcomes keeps the others' last odds. A pool has no
+  book, so `watch_order_book` keeps the quote as one level a side sized by the
+  pool's limits, read over REST (`Azuro.fetch_order_book`) when the market is
+  watched and after every reconnect; updates move the prices and keep those
+  sizes. A condition stopping, resuming, resolving or being cancelled is a
+  `MarketStatusEvent` (`paused`, `open`, `settled` with `yes`, `no` or
+  `void`). No trades channel: bets are on the subgraph (`Azuro.fetch_trades`).
+  The feed's socket answers some regions with a 503.
 - *Smarkets* has no public stream: its socket feed (the protobuf stream on
   `api.smarkets.com:3701` that `smk_python_sdk` speaks) is for approved API
   users and market makers. `SmarketsMarketStream` polls the REST quotes

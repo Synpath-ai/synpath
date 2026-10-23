@@ -164,6 +164,13 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
             # login, when configured, only undelays the quotes.
             from ..ws.smarkets import SmarketsMarketStream
             out[venue] = VenueStreams(market=SmarketsMarketStream(credentials=creds), private=None)
+        elif venue == "azuro":
+            # Public odds over the feed's socket; bets are read back by
+            # polling, since the feed streams no account channel.
+            from ..ws.azuro import AzuroMarketStream
+            chain = getattr(creds, "chain", "polygon")
+            out[venue] = VenueStreams(market=AzuroMarketStream(chain=chain, catalog=getattr(adapter, "catalog", None)),
+                                      private=None)
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

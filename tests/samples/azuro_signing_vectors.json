@@ -1,0 +1,253 @@
+{
+ "source": "@azuro-org/toolkit 7.2.0 getBetTypedData / getCashoutTypedData, viem 2.37.4 hashTypedData and signTypedData",
+ "private_key": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+ "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+ "cases": [
+  {
+   "name": "polygon single",
+   "chainId": 137,
+   "clientData": {
+    "attention": "By signing this transaction, I agree to place a bet for an event on Azuro Protocol",
+    "affiliate": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "core": "0xF9548Be470A4e130c90ceA8b179FCD66D2972AC7",
+    "expiresAt": 1792780300,
+    "chainId": 137,
+    "relayerFeeAmount": "12345",
+    "isBetSponsored": false,
+    "isFeeSponsored": false,
+    "isSponsoredBetReturnable": false
+   },
+   "bet": {
+    "conditionId": "600610060000000000943019940000000000001406934671",
+    "outcomeId": "3",
+    "minOdds": "6830000000000",
+    "amount": "5000000",
+    "nonce": "1792780000000"
+   },
+   "domain": {
+    "name": "Live Betting",
+    "version": "1.0.0",
+    "chainId": 137,
+    "verifyingContract": "0xF9548Be470A4e130c90ceA8b179FCD66D2972AC7"
+   },
+   "digest": "0x616f4bffef951dad0757e70d94fa880db0d841cbadbd70a3d1e6ed1b228386f1",
+   "signature": "0xb18b917c40a89c64ea83554facbf980cd3eaa1b450635157bdedc2e33759daac6cd43f21646fecb423297d59459bb93bf2592534f59cbd24f344bea14f6acf971c"
+  },
+  {
+   "name": "base single",
+   "chainId": 8453,
+   "clientData": {
+    "attention": "By signing this transaction, I agree to place a bet for an event on Azuro Protocol",
+    "affiliate": "0x1111111111111111111111111111111111111111",
+    "core": "0xF40cF1dD7d16C098cff5F8B5650A8FaEf1F4640d",
+    "expiresAt": 1792780300,
+    "chainId": 8453,
+    "relayerFeeAmount": "12345",
+    "isBetSponsored": false,
+    "isFeeSponsored": false,
+    "isSponsoredBetReturnable": false
+   },
+   "bet": {
+    "conditionId": "600610060000000000028772180000000000002040246119",
+    "outcomeId": "1",
+    "minOdds": "1351351351352",
+    "amount": "1000000000000000",
+    "nonce": "42"
+   },
+   "domain": {
+    "name": "Live Betting",
+    "version": "1.0.0",
+    "chainId": 8453,
+    "verifyingContract": "0xF40cF1dD7d16C098cff5F8B5650A8FaEf1F4640d"
+   },
+   "digest": "0x4dc53f4e9beb140765a7e67ad3872f04585c28abd786a845d94456c70a0329ab",
+   "signature": "0xf5c9774d590e97347d2539c6d7b621f2973f2db593930c6b1f17c6419273d19177f7920aa07d6e8c53da4162e81ec3b9c97740705d98561ed9fd4de1847028651b"
+  }
+ ],
+ "cashout": {
+  "chainId": 137,
+  "tokenId": "472063",
+  "cashoutOdds": "1.85",
+  "expiredAt": 1792780300,
+  "attention": "By signing this transaction, I agree to cash out on Azuro",
+  "domain": {
+   "name": "Cash Out",
+   "version": "1.0.0",
+   "chainId": 137,
+   "verifyingContract": "0x4a2BB4211cCF9b9eA6eF01D0a61448154ED19095"
+  },
+  "message": {
+   "attention": "By signing this transaction, I agree to cash out on Azuro",
+   "chainId": "137",
+   "items": [
+    {
+     "betId": "472063",
+     "bettingContract": "0xF9548Be470A4e130c90ceA8b179FCD66D2972AC7",
+     "minOdds": "1850000000000"
+    }
+   ],
+   "expiresAt": "1792780300"
+  },
+  "digest": "0xbdd331f876933fc5471a31745fb8dedd43b01e8f6a855557a503e2e5e4910726",
+  "signature": "0x99fb3f81cba4617aafdbec03e4e1cc43647cd3e9d8d0ba1a4e7d28daf192987f0f9ead5a191e0a74bc7bf718d3a9cedf4252404279f307daa13feac8b4d2f55a1b"
+ },
+ "min_odds": [
+  {
+   "odds": 1.36,
+   "slippage": 0,
+   "minOdds": "1.360000000000"
+  },
+  {
+   "odds": 1.36,
+   "slippage": 5,
+   "minOdds": "1.340000000000"
+  },
+  {
+   "odds": 2.77,
+   "slippage": 10,
+   "minOdds": "2.590000000000"
+  },
+  {
+   "odds": 6.83,
+   "slippage": 2.5,
+   "minOdds": "6.680000000000"
+  }
+ ],
+ "chains": {
+  "56": {
+   "environment": "BscUSDT",
+   "core": "0x14CB339E65f2AbF69941FeA56916Faee092f25ad",
+   "relayer": "0xAe684d68526a8d6a1c6426848d787ef060346030",
+   "lp": "0xa2db60D3DcecEc80d5D30c680a7b1e2018cD909f",
+   "cashout": "0x81F72B93ABaf061535aaF5D831F05e0CC4084b32",
+   "betToken": {
+    "address": "0x55d398326f99059ff775485246999027b3197955",
+    "symbol": "USDT",
+    "decimals": 18
+   },
+   "api": "https://api.onchainfeed.org/api/v1/public",
+   "socket": "wss://streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-bsc-v3"
+  },
+  "97": {
+   "environment": "BscDevUSDT",
+   "core": "0x524994dcA5EA2bc979ac5506E7195F28B4c16932",
+   "relayer": "0x779e12C9a864640f7Ee4e16414e85925b33a2505",
+   "lp": "0x431A0993d29eEb0fF7e3FE351A303eF72195431a",
+   "cashout": "0x61E1b1b73cfc748AA82f686E2ec1E59c8e3e6431",
+   "betToken": {
+    "address": "0x99B127C373D500F25Ee22b591835Dc1D4DF83CeD",
+    "symbol": "USDT",
+    "decimals": 6
+   },
+   "api": "https://dev-api.onchainfeed.org/api/v1/public",
+   "socket": "wss://dev-streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-bsc-dev-v3"
+  },
+  "100": {
+   "environment": "GnosisXDAI",
+   "core": "0x0e00E6ffcb5E207B800eec9e02999D1Fd9e448f2",
+   "relayer": "0x40eb85018fA18dDd10a433C8c40ca8D6744d8B32",
+   "lp": "0xeb7cDA87D00d677A6Dc73EB569723b0fA51D97E7",
+   "cashout": "0x25de227af58188e656524d1C32cCf7C078cdC891",
+   "betToken": {
+    "address": "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
+    "symbol": "WXDAI",
+    "decimals": 18
+   },
+   "api": "https://api.onchainfeed.org/api/v1/public",
+   "socket": "wss://streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-gnosis-v3"
+  },
+  "137": {
+   "environment": "PolygonUSDT",
+   "core": "0xF9548Be470A4e130c90ceA8b179FCD66D2972AC7",
+   "relayer": "0x8dA05c0021e6b35865FDC959c54dCeF3A4AbBa9d",
+   "lp": "0x0FA7FB5407eA971694652E6E16C12A52625DE1b8",
+   "cashout": "0x4a2BB4211cCF9b9eA6eF01D0a61448154ED19095",
+   "betToken": {
+    "address": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+    "symbol": "USDT",
+    "decimals": 6
+   },
+   "api": "https://api.onchainfeed.org/api/v1/public",
+   "socket": "wss://streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-polygon-v3"
+  },
+  "8453": {
+   "environment": "BaseWETH",
+   "core": "0xF40cF1dD7d16C098cff5F8B5650A8FaEf1F4640d",
+   "relayer": "0xD2D508d66dB4fCE4B384e4C3EA2fa53BA43e73b5",
+   "lp": "0x1eD7368bc515E928A4007cEa61FB8a6F8863Af87",
+   "cashout": "0x6EDff24761F4473611B45BDAe4a779ff31af14Be",
+   "betToken": {
+    "address": "0x4200000000000000000000000000000000000006",
+    "symbol": "WETH",
+    "decimals": 18
+   },
+   "api": "https://api.onchainfeed.org/api/v1/public",
+   "socket": "wss://streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-base-v3"
+  },
+  "80002": {
+   "environment": "PolygonAmoyUSDT",
+   "core": "0xCD0Db5ef28C3Bd3a69283372dE923Eb4DA0585F6",
+   "relayer": "0x48c9bE88706F22838070eE7C4bC74Ad7A8eeF114",
+   "lp": "0x0a75395Ff15d9557424b632cEBCac448D66F9779",
+   "cashout": "0x7dF132Ad2334a667A004049a75a4a8a530dc24F2",
+   "betToken": {
+    "address": "0xCf1b86ceD971b88C042C64A9c099377e2738073C",
+    "symbol": "USDT",
+    "decimals": 6
+   },
+   "api": "https://dev-api.onchainfeed.org/api/v1/public",
+   "socket": "wss://dev-streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-polygon-amoy-dev-v3"
+  },
+  "84532": {
+   "environment": "BaseSepoliaWETH",
+   "core": "0x679CC42F69F98631668348d088086359D4217Ffa",
+   "relayer": "0x2De54cABa6A8198D9Dc51931485Bfdc8017aB0c5",
+   "lp": "0x4fE86EddCC22dc992b7994878169201Ec7ea50AB",
+   "cashout": "0xf52Eb6ec19d81Ea623A7d7Ad397287C0C40f2F37",
+   "betToken": {
+    "address": "0x9e09f213Ff75e53D52e9e777A6567A68683E935f",
+    "symbol": "WETH",
+    "decimals": 18
+   },
+   "api": "https://dev-api.onchainfeed.org/api/v1/public",
+   "socket": "wss://dev-streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-base-sepolia-dev-v3"
+  },
+  "88882": {
+   "environment": "ChilizSpicyWCHZ",
+   "core": "0x524994dcA5EA2bc979ac5506E7195F28B4c16932",
+   "relayer": "0x725ec0A9eC9dC993A86d0eFD7fD78929d226AbE7",
+   "lp": "0x431A0993d29eEb0fF7e3FE351A303eF72195431a",
+   "cashout": "0x7c771a200EcD61A01af992360303f7b1465Cd8e3",
+   "betToken": {
+    "address": "0x721EF6871f1c4Efe730Dce047D40D1743B886946",
+    "symbol": "WCHZ",
+    "decimals": 18
+   },
+   "api": "https://dev-api.onchainfeed.org/api/v1/public",
+   "socket": "wss://dev-streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-chiliz-spicy-dev-v3"
+  },
+  "88888": {
+   "environment": "ChilizWCHZ",
+   "core": "0xa5061617Ee6565CF48d7f0FEF06910b9fb9dE2b0",
+   "relayer": "0x81F72B93ABaf061535aaF5D831F05e0CC4084b32",
+   "lp": "0xEf6b12580301b04CD2551182C88623524B6e47b8",
+   "cashout": "0x3995eebB51793Ee353162E7400DB455B17dE3692",
+   "betToken": {
+    "address": "0x677F7e16C7Dd57be1D4C8aD1244883214953DC47",
+    "symbol": "WCHZ",
+    "decimals": 18
+   },
+   "api": "https://api.onchainfeed.org/api/v1/public",
+   "socket": "wss://streams.onchainfeed.org/v1/streams",
+   "bets": "https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-chiliz-v3"
+  }
+ }
+}

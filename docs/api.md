@@ -77,7 +77,7 @@ and spot exchanges do not.
 | Method | Returns | Notes |
 |---|---|---|
 | `fetch_markets(query, limit, cursor, status, sort)` | `Page[Market]` | `limit` up to 100 |
-| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read), order preserved, closed and settled markets included |
+| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read; Azuro reads each game's conditions once, ten games a request), order preserved, closed and settled markets included |
 | `fetch_events(query, limit, cursor, status)` | `Page[Event]` | markets nested |
 | `fetch_market(market_id)` | `Market` | |
 | `fetch_order_book(market_id, side, depth)` | `OrderBook` | `side="yes"` (default) or `"no"` |
@@ -120,6 +120,24 @@ contracts = smk.fetch_markets(domain="football", market_type="WINNER_3_WAY", lim
 book = smk.fetch_order_book(contracts[0].id)  # Smarkets bids are YES bids, offers YES asks
 book.info["bids"], book.info["offers"]     # Smarkets' own [price bps, quantity] pairs
 smk.fetch_trades(contracts[0].id)          # the short recent tape
+```
+
+Azuro needs no key. It adds `fetch_sports()` (the feed's sports, countries
+and leagues with their open game counts), `fetch_limits(market_id, side)`
+(the pool's minimum and maximum bet and maximum payout on one selection) and
+`fetch_condition_states(condition_ids)` (fresh odds and states, without the
+games), and takes `sport` and `league` (the feed's slugs, `"football"`,
+`"premier-league"`) on `fetch_markets` and `fetch_events`. `chain=` picks the
+pool read: `polygon` (the default), `base`, or a testnet. See
+[Azuro](capabilities.md#azuro).
+
+```python
+azuro = synpath.Azuro()                     # the Polygon pool; Azuro(chain="base") for Base
+markets = azuro.fetch_markets(sport="football", limit=20)
+market = markets[0]
+market.yes.quote.ask, market.info["odds"]   # 1 / odds, and the venue's odds
+azuro.fetch_limits(market.id)               # {"min_bet", "max_bet", "max_payout", ...}
+azuro.fetch_trades(market.id)               # single bets, from the bets subgraph
 ```
 
 Polymarket also has
@@ -204,7 +222,7 @@ result.matched     # MarketLink | None
 
 Matching covers every venue this library speaks: `kalshi`, `polymarket`,
 `polymarket_us`, `opinion`, `hyperliquid`, `predict_fun`, `limitless` and
-`sx_bet` (not Betfair or Smarkets yet). `venue=` asks one of them in particular; without it the answer is
+`sx_bet` (not Betfair, Smarkets or Azuro yet). `venue=` asks one of them in particular; without it the answer is
 the first venue listing the same question, in the order Polymarket, Kalshi,
 Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Polymarket US.
 
@@ -256,13 +274,14 @@ A venue that cannot filter by one of them raises `NotSupported`. Polymarket
 does for `settled`, since its catalog does not publish resolution status, and
 Betfair for everything but `open`, since a closed market leaves its catalogue
 (read it by id instead). Smarkets filters on its events' states: `closed` is an
-ended or suspended event, `settled` a settled or cancelled one.
+ended or suspended event, `settled` a settled or cancelled one. Azuro lists
+`open` games only and raises for the rest; a settled market is read by id.
 Anything outside the four raises `BadRequest` rather than being handed to the
 venue to interpret for itself.
 
 ### Identifiers
 
-One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
+One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. On Azuro a two-outcome condition is one market, `azuro:<condition id>`, a condition with three or more outcomes one market per outcome, `azuro:<condition id>-<outcome id>`, and the game is the event, `azuro:<game id>`; the ids are the same on every chain. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
 
 ### Paging
 

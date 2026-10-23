@@ -24,7 +24,7 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet,
+stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet and Azuro,
 Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
@@ -71,6 +71,7 @@ private key. `synpath init` tells them apart.
 | predict.fun | mainnet: the API key (`pred_sk_...`). Test network: nothing | the API key and a private key: a plain wallet's, or a Predict account's owner key with its deposit address | the key at developers.predict.fun; a web-app account's owner key under Account -> Settings -> Privy wallet |
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
+| Azuro | nothing | the private key of the wallet that signs each bet and holds the bet token, which must allow Azuro's relayer to spend it (`approve()`, once) | exported from the wallet |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
@@ -95,6 +96,7 @@ The variables each venue reads:
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
+| Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance and allowance are read from and the approval is sent through; a public one when unset) |
 
 Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
 optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
@@ -573,3 +575,53 @@ each market on the YES leg. The balance is the proxy wallet's USDC: what is
 free to bet, and what matched bets hold in escrow.
 
 Check SX Bet's terms for where it may be used before trading.
+
+## Azuro
+
+`AzuroTrading`, built to `@azuro-org/toolkit` and the Azuro backend API. Bet
+and cash-out digests and signatures are checked against the ones the toolkit
+and viem produce.
+
+The one credential is the wallet. Every bet is the EIP-712 message
+`ClientBetData` (the consent text, the affiliate, the pool's core contract, a
+five-minute expiry, the chain id, the relayer's fee, and one `SubBet`: the
+condition, the outcome, the minimum odds, the stake and a nonce) under the
+domain `Live Betting` `1.0.0` with the core contract as verifying contract,
+signed by the wallet and sent to `/bet/orders/ordinar`. Azuro's relayer puts
+it on chain and is paid a flat fee per bet (`/bet/gas-info`) from the wallet's
+bet token, so before the first bet the wallet allows the relayer to spend the
+token: `fetch_allowance()` reads the allowance, `approve()` sends the
+approval, an on-chain transaction whose gas the wallet pays in the chain's
+coin. `fetch_balance()` is the wallet's bet token, read on chain.
+
+A bet is a market order with a worst price. The pool takes it whole at the
+odds it quotes when the bet reaches the chain, or refuses it, so an order is
+`market`, or a `limit` that is `ioc` or `fok`; anything that would rest, and
+`post_only` and `reduce_only`, are refused. `buy` backs the market's YES
+outcome with minimum odds `1 / price`, rounded up to the protocol's twelve
+decimals; `sell` backs the other outcome of a two-outcome market with minimum
+odds `1 / (1 - price)`. One outcome of a larger condition has no NO to sell.
+`n` contracts stake `n` times the price paid, rounded down to the token's
+decimals, so at the quoted odds or better the bet returns at least `n`.
+
+Placing is asynchronous: the API answers with the bet order's id
+(`<bettor>_<nonce>`) in state `Created`, and `create_order` returns it
+`pending`. The relayer sends it on (`Placed`, `Sent`) and it becomes
+`Accepted`, which is `closed` and filled here, or `Rejected`.
+`wait_for_order(id)` reads it until then. A signed bet cannot be cancelled;
+an accepted one can be closed early where the venue offers a price:
+`fetch_cashout_quote(bet_id)` reads the offer by the bet's on-chain id
+(`Order.info["betId"]`), `cash_out(bet_id)` signs it (`CashOutOrder` under
+the domain `Cash Out` `1.0.0`, the offer's odds as the minimum) and sends it,
+and `fetch_cashout(id)` follows it.
+
+`fetch_orders`, `fetch_open_orders` (bets not yet on chain), `fetch_my_trades`
+(one fill per accepted bet) and `fetch_settlements` (won, lost, or cancelled
+with the stake returned) read the wallet's bet orders. Positions net each
+market's accepted, unsettled single bets on the YES leg. Combo bets are read
+on their first leg's market and marked `info["combo"]`; this library places
+single bets only. A winning bet's payout is claimed on chain from the pool,
+which this library does not do.
+
+Gnosis and Chiliz are discontinued and take no bets. Azuro's bet API answers
+some regions with a 503; check where Azuro may be used before betting.
