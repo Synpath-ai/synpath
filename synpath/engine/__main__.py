@@ -65,6 +65,7 @@ ADAPTERS = {
     "predict_fun": ("..trading.predict_fun", "PredictFunTrading"),
     "limitless": ("..trading.limitless", "LimitlessTrading"),
     "sx_bet": ("..trading.sx_bet", "SxBetTrading"),
+    "prophetx": ("..trading.prophetx", "ProphetXTrading"),
 }
 
 

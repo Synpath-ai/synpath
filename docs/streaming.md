@@ -43,6 +43,8 @@ asyncio.run(main())
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
+| `ProphetXMarketStream` | the host `GET /websocket/connection-config` names (ProphetX's Talaria, Pusher protocol 7) | the Trading API key pair (every channel is private) | each line's ten best levels a side on every change, top of book, the tournament's tape of fills |
+| `ProphetXUserStream` | the same host | the Trading API key pair | orders on every change; a fill with each match |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -69,6 +71,7 @@ variable `synpath serve` reads it from:
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
 | Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
+| ProphetX | the Trading API key pair (prophetx.co -> API Integration); the Market Data API key has no stream | `PROPHETX_ACCESS_KEY`, `PROPHETX_SECRET_KEY` |
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
@@ -204,6 +207,28 @@ jittered exponential backoff between attempts.
   says so in `info["delayed"]`. A change shows at the next poll, not as it
   happens, so its `watch_*` keys are `partial`. No `watch_trades`: the recent
   tape is short and unpaged; read it with `Smarkets.fetch_trades`.
+- *ProphetX* streams over Talaria, its own server for the Pusher wire
+  protocol (protocol 7); the stream speaks it directly, so no Pusher client is
+  needed. On every connect it reads `GET /websocket/connection-config` for the
+  host (`ws_host`, else the Pusher cluster), opens `/app/<key>`, takes the
+  `socket_id` from `pusher:connection_established`, and registers the
+  complete set of subscriptions at `POST /v4/mm/websocket` with
+  `X-CFTC-Terminology: true`. The answer authorizes each channel with its own
+  signature; the stream signs in with its `authenticated` block and joins
+  the channels it wants once `pusher:signin_success` arrives. Every message's
+  data is JSON in a string whose `payload` is base64 JSON. Books come from the
+  event channel (`{"type": "event"}`) as `v2.market_selections`: each message
+  is one line's two sides, ten levels each, so it replaces the book, and a
+  quiet line publishes nothing, so each book is seeded from REST when its
+  channel is joined. Messages carry a sequence number and an older one is
+  dropped. Trades come from the tournament channel as `trade_execution`
+  (bound as `v2.tournament_<id>`), anonymous fills with the strike, its price
+  and the stake; `watch_trades` reads each line's tournament first. The
+  account's `orders` arrive on its private channel, one message per fill,
+  with `health_check` every five seconds. The stream sends `pusher:ping`
+  every 30 s and answers the server's. Every channel is private, so both
+  streams need the Trading API key pair; the engine runs them on the trading
+  adapter's session, since ProphetX counts sessions per key.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

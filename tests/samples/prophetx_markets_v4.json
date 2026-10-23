@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "id": 555,
+      "name": "Moneyline",
+      "display_name": "Moneyline",
+      "type": "moneyline",
+      "category_name": "Game Lines",
+      "sub_type": "moneyline",
+      "selections": [
+        [
+          {
+            "outcome_id": 1,
+            "name": "Patriots",
+            "price": -110,
+            "strike": null,
+            "strike_id": "line_1",
+            "quantity": 2100.0
+          }
+        ],
+        [
+          {
+            "outcome_id": 2,
+            "name": "Jets",
+            "price": 105,
+            "strike": null,
+            "strike_id": "line_2",
+            "quantity": 2150.0
+          }
+        ]
+      ]
+    }
+  ]
+}

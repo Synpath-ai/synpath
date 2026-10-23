@@ -1,0 +1,10 @@
+{
+  "data": {
+    "balance": 1000.0,
+    "gec_balance": 500.0,
+    "matched_order_balance": 200.0,
+    "unmatched_order_balance": 50.0,
+    "unmatched_order_balance_status": "succeed",
+    "unmatched_order_last_synced_at": "2026-08-10T14:12:40.307908108Z"
+  }
+}

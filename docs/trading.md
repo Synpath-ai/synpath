@@ -25,7 +25,7 @@ pip install synpath
 
 Order entry ships in the base package. The install carries the venues' signing
 stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet,
-Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
+Ed25519 and private-key JWT for Polymarket US; ProphetX signs nothing (a key pair buys a bearer token). Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
 (`synpath._core`), in about 20 microseconds rather than the 3 milliseconds
@@ -71,6 +71,7 @@ private key. `synpath init` tells them apart.
 | predict.fun | mainnet: the API key (`pred_sk_...`). Test network: nothing | the API key and a private key: a plain wallet's, or a Predict account's owner key with its deposit address | the key at developers.predict.fun; a web-app account's owner key under Account -> Settings -> Privy wallet |
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
+| ProphetX | the Trading API key pair, or a Market Data API key | the Trading API key pair: an access key and a secret key, exchanged for a ten-minute bearer token | prophetx.co -> Menu -> API Integration, on any KYC-approved account (sandbox.prophetx.dev for the sandbox); the secret is shown once. The Market Data API key is issued by ProphetX on request |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
@@ -95,6 +96,7 @@ The variables each venue reads:
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
+| ProphetX | `PROPHETX_ACCESS_KEY` and `PROPHETX_SECRET_KEY` (the Trading API: market data, streams, orders), `PROPHETX_AFFILIATE_KEY` (optional; the Market Data API, market data only), `PROPHETX_SANDBOX=1` (optional; ProphetX's sandbox, with demo funds) |
 
 Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
 optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
@@ -573,3 +575,56 @@ each market on the YES leg. The balance is the proxy wallet's USDC: what is
 free to bet, and what matched bets hold in escrow.
 
 Check SX Bet's terms for where it may be used before trading.
+
+## ProphetX
+
+`ProphetXTrading`, built to ProphetX's Trading API reference (the v4 `/mm`
+routes at docs.prophetx.co).
+
+The access key and secret key are exchanged at `POST /auth/login` for a
+bearer token that lasts ten minutes; the adapter renews it with the refresh
+token before it lapses and logs in again only when that fails. ProphetX counts
+live sessions per access key and a second login adds one, so the adapter, its
+catalog and its streams share one session; run each process on its own key
+pair. Nothing is signed.
+
+Every ProphetX order is a buy: each side of a line is its own instrument
+(`strike_id`), and there is no sell. `buy` buys the line's first side (YES) at
+the price given; `sell` buys the second side at `1 - price`. The price goes as
+American odds on ProphetX's ladder (`GET /v4/mm/get_price_ladder`), snapped on
+the cheaper side, so an order never pays more than asked. ProphetX counts the
+stake in USD, so `n` contracts stake `n * P` at the ladder price's
+probability `P`, rounded down to the cent, at least $1. A fill's contracts are
+its stake over its price's probability: its stake plus its profit.
+`reduce_only` is refused. `client_order_id` is ProphetX's `external_id`, its
+idempotency key: up to 100 letters, digits, `-` and `_`, generated when absent;
+a repeat is refused as `DuplicateClientOrderId`.
+
+Limits rest until filled or cancelled (`gtc`); `post_only` is ProphetX's
+`ALO`, which ProphetX rejects after the fact (`wiped`) when it would have
+crossed. `market` and `ioc` go as its `fillOrKill` at the price given as the
+worst accepted: whatever is there fills and the rest is cancelled about two
+seconds after the last fill. There is no all-or-none (`fok`) and no expiry
+(`gtd`). An order whose event goes live is wiped, and so are two orders of one
+account that would cross each other.
+
+`submit_order` answers before matching runs, so the order returned is
+`pending`; `ProphetXUserStream` carries what became of it, one message per
+fill ([Streaming](streaming.md)). Reads (`fetch_order`, the history, the fills)
+come from a replica that can lag by seconds, while `cancel_order` is final when
+it answers: an order it cancelled is reported cancelled even before the read
+catches up. A partly filled order whose rest was cancelled or killed is
+rewritten by ProphetX as a smaller, fully matched one; here it is `canceled`
+with its fill. The default rate tier allows one request a second per endpoint
+and turns the batch routes off, so `create_orders` and `cancel_orders` send
+one at a time; `cancel_all_orders` cancels in the background, account-wide or
+for both sides of one line.
+
+ProphetX has no positions route: `fetch_positions` nets the matched stakes of
+the last sixty days' live orders per line on the YES leg, each at its limit
+price. The balance is the wallet's USD: what is free to stake, and what
+resting and matched orders hold; an exposure credit line, where ProphetX
+grants one, is in `info`. The fee is reported on each order and fill;
+ProphetX's API documentation publishes no rate, so there is no fee estimate.
+
+Check ProphetX's terms for where it may be used before trading.
