@@ -45,6 +45,10 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       (certificate login) and BETFAIR_JURISDICTION
   Smarkets            optionally SMARKETS_USERNAME and SMARKETS_PASSWORD: market
     (market data)     data needs no login; one gives undelayed quotes
+  Novig               NOVIG_KEY_ID, NOVIG_PRIVATE_KEY_PATH (a subaccount's trading
+                      key, PEM, Ed25519 or P-256), NOVIG_ENV (production, the
+                      default, or paper), and optionally NOVIG_MANAGEMENT_KEY_ID /
+                      NOVIG_MANAGEMENT_PRIVATE_KEY_PATH (subaccounts and funding)
 """
 from __future__ import annotations
 
@@ -357,10 +361,38 @@ class SmarketsCredentials:
         return [self.password]
 
 
+@dataclass(frozen=True, repr=False)
+class NovigCredentials:
+    """Novig: a subaccount's trading key, and optionally the account's
+    management key. Each is a key id and a PKCS#8 PEM private key, Ed25519
+    or P-256, that signs every request (NOVIG-V3).
+
+    The trading key places and cancels orders on its one subaccount, reads
+    its orders, fills, positions and balance, and opens the websocket. The
+    management key (Profile -> Settings -> Novig API in the web app) opens,
+    funds and labels subaccounts and never places an order. A key works only
+    in the environment it was made in."""
+
+    key_id: str | None = None
+    """The trading key's id: also the address of its subaccount."""
+    private_key_pem: bytes | None = field(default=None, repr=False)
+    management_key_id: str | None = None
+    management_private_key_pem: bytes | None = field(default=None, repr=False)
+    env: Literal["production", "paper"] = "production"
+    """`production` trades real money at api.novig.com (US identity and
+    location checks); `paper` play money at api.paper.novig.com."""
+    _public = ("key_id", "management_key_id", "env")
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [pem.decode(errors="ignore") for pem in (self.private_key_pem, self.management_private_key_pem) if pem]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
     | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
-    | BetfairCredentials | SmarketsCredentials
+    | BetfairCredentials | SmarketsCredentials | NovigCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -389,6 +421,10 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "BETFAIR_JURISDICTION",
     ),
     "smarkets": ("SMARKETS_USERNAME", "SMARKETS_PASSWORD"),
+    "novig": (
+        "NOVIG_KEY_ID", "NOVIG_PRIVATE_KEY_PATH", "NOVIG_ENV", "NOVIG_MANAGEMENT_KEY_ID",
+        "NOVIG_MANAGEMENT_PRIVATE_KEY_PATH",
+    ),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -685,6 +721,38 @@ def load_smarkets(env: Mapping[str, str]) -> SmarketsCredentials | None:
     return SmarketsCredentials(username=username, password=password)
 
 
+NOVIG_ENVS = ("production", "paper")
+
+
+def load_novig(env: Mapping[str, str]) -> NovigCredentials | None:
+    key_id, management_id = env.get("NOVIG_KEY_ID") or None, env.get("NOVIG_MANAGEMENT_KEY_ID") or None
+    if not key_id and not management_id:
+        return None
+    pems: list[bytes | None] = []
+    for name, path_var in ((key_id, "NOVIG_PRIVATE_KEY_PATH"), (management_id, "NOVIG_MANAGEMENT_PRIVATE_KEY_PATH")):
+        path = env.get(path_var) or None
+        if name and not path:
+            id_var = "NOVIG_KEY_ID" if path_var == "NOVIG_PRIVATE_KEY_PATH" else "NOVIG_MANAGEMENT_KEY_ID"
+            raise CredentialsMissing(f"{id_var} is set but {path_var} is not")
+        pem = _read_pem(path, var=path_var) if name and path else None
+        if pem is not None:
+            from .novig_signing import load_private_key
+
+            try:
+                load_private_key(pem)
+            except (ValueError, TypeError) as exc:
+                raise CredentialsMissing(f"{path_var} points at {path!r}, which is not an unencrypted "
+                                         f"Ed25519 or P-256 PKCS#8 key: {exc}") from None
+        pems.append(pem)
+    stage = (env.get("NOVIG_ENV") or "production").strip().lower()
+    if stage not in NOVIG_ENVS:
+        raise CredentialsMissing(f"NOVIG_ENV must be production or paper, got {stage!r}")
+    return NovigCredentials(
+        key_id=key_id, private_key_pem=pems[0], management_key_id=management_id,
+        management_private_key_pem=pems[1], env=stage,  # type: ignore[arg-type]
+    )
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -697,6 +765,7 @@ LOADERS = {
     "sx_bet": load_sx_bet,
     "betfair": load_betfair,
     "smarkets": load_smarkets,
+    "novig": load_novig,
 }
 
 

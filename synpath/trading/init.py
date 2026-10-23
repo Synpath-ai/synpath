@@ -71,7 +71,7 @@ def _pem_file(raw: str) -> str | None:
         return "The path to the private key file is required."
     path = Path(raw).expanduser()
     if not path.is_file():
-        return f"No file at {path}. Give the full path to the key file Kalshi downloaded."
+        return f"No file at {path}. Give the full path to the key file the venue gave you."
     try:
         head = path.read_bytes()[:4096]
     except OSError as exc:
@@ -278,6 +278,31 @@ def ask_smarkets(p: Prompter) -> dict[str, str]:
     return {"SMARKETS_USERNAME": username, "SMARKETS_PASSWORD": password}
 
 
+def ask_novig(p: Prompter) -> dict[str, str]:
+    p.say("\nNovig: market data is public and needs nothing; this is for trading. Trading uses a subaccount's")
+    p.say("trading key: make the management key in the web app (Profile -> Settings -> Novig API; paper.novig.com")
+    p.say("for Paper), then open a subaccount with it, which issues the trading key. Each key is a key id and a")
+    p.say("PEM private key file (Ed25519 or P-256). Production needs US identity and location checks.")
+    env = p.value("Environment, production (real money) or paper", check=_choice("production", "paper"),
+                  default="production")
+    values = {"NOVIG_ENV": env}
+    key_id = p.value("Trading key id (empty if you have only the management key so far)", default="",
+                     check=lambda raw: None)
+    if key_id:
+        values["NOVIG_KEY_ID"] = key_id
+        values["NOVIG_PRIVATE_KEY_PATH"] = str(Path(p.value("Path to its private key file (.pem)",
+                                                            check=_pem_file)).expanduser().resolve())
+    management = p.value("Management key id (optional: opens and funds subaccounts; empty to skip)", default="",
+                         check=lambda raw: None if raw or key_id else "Give a trading key or the management key.")
+    if management:
+        values["NOVIG_MANAGEMENT_KEY_ID"] = management
+        values["NOVIG_MANAGEMENT_PRIVATE_KEY_PATH"] = str(Path(p.value(
+            "Path to the management key file (novig-api-key-<name>.pem)", check=_pem_file)).expanduser().resolve())
+    if env == "production":
+        p.say("  production trades real money.")
+    return values
+
+
 VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", ("KALSHI_KEY_ID",), ask_kalshi),
     ("Polymarket", ("POLYMARKET_PRIVATE_KEY",), ask_polymarket),
@@ -289,6 +314,7 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("SX Bet", ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY"), ask_sx_bet),
     ("Betfair", ("BETFAIR_APP_KEY",), ask_betfair),
     ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
+    ("Novig", ("NOVIG_KEY_ID", "NOVIG_MANAGEMENT_KEY_ID"), ask_novig),
 ]
 """Each venue, the settings any of which means it is set up already (an API
 key alone is, for market data), and the questions."""

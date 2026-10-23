@@ -1,0 +1,143 @@
+{
+ "items": [
+  {
+   "marketId": "01a1577c-d666-7e81-852e-68bed1446801",
+   "description": "MIL",
+   "eventId": "01a1577c-d5f2-7a31-85bc-3a2230bd25f9",
+   "marketType": "MONEY",
+   "strike": "0",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1792800000000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.25",
+    "charged": "WHEN_LIVE"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a1577c-d666-7e81-852e-68ce96100d9c",
+     "name": "MIL",
+     "status": "TBD",
+     "last": "0.63",
+     "bid": {
+      "price": "0.625",
+      "qty": 7823560
+     }
+    },
+    {
+     "outcomeId": "01a1577c-d666-7e81-852e-68d273380247",
+     "name": "TB",
+     "status": "TBD",
+     "last": "0.37",
+     "bid": {
+      "price": "0.37",
+      "qty": 193321
+     }
+    }
+   ],
+   "volume": 52951388,
+   "openInterest": 37465750
+  },
+  {
+   "marketId": "01a16628-b058-7ff1-afc5-0e1a35958ec3",
+   "description": "Kyler Gordon DPOTY",
+   "eventId": "019fcbf2-0856-7553-bfb1-c7f7db11f420",
+   "marketType": "DPOTY",
+   "strike": "0",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1802647860000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.5",
+    "charged": "ALWAYS"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a16628-b058-7ff1-afc5-0e289361c436",
+     "name": "Yes",
+     "status": "TBD"
+    },
+    {
+     "outcomeId": "01a16628-b058-7ff1-afc5-0e39cdc5f37d",
+     "name": "No",
+     "status": "TBD"
+    }
+   ],
+   "volume": 0,
+   "openInterest": 0
+  },
+  {
+   "marketId": "01a1679c-a16f-7971-bdee-2552c9ef5215",
+   "description": "Anthony Cirelli FIRST_GOAL_SCORER",
+   "eventId": "01a16464-d306-7a91-b4e8-7a127088c4dc",
+   "marketType": "FIRST_GOAL_SCORER",
+   "strike": "0",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1792803600000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.25",
+    "charged": "WHEN_LIVE"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a1679c-a16f-7971-bdee-256d29c069f8",
+     "name": "Yes",
+     "status": "TBD"
+    },
+    {
+     "outcomeId": "01a1679c-a16f-7971-bdee-257e22cfabd4",
+     "name": "No",
+     "status": "TBD",
+     "bid": {
+      "price": "0.865",
+      "qty": 2023
+     }
+    }
+   ],
+   "volume": 0,
+   "openInterest": 0
+  },
+  {
+   "marketId": "01a1696f-6a69-7241-8d7a-b127e34701e6",
+   "description": "EDM",
+   "eventId": "01a1696f-6a01-7980-8ca5-81bfd7a21ea7",
+   "marketType": "MONEY",
+   "strike": "0",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1792882800000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.25",
+    "charged": "WHEN_LIVE"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a1696f-6a69-7241-8d7a-b1323e3fb4cd",
+     "name": "EDM",
+     "status": "TBD",
+     "bid": {
+      "price": "0.605",
+      "qty": 100000
+     }
+    },
+    {
+     "outcomeId": "01a1696f-6a69-7241-8d7a-b14045396ef7",
+     "name": "TOR",
+     "status": "TBD",
+     "bid": {
+      "price": "0.35",
+      "qty": 10000
+     }
+    }
+   ],
+   "volume": 0,
+   "openInterest": 0
+  }
+ ],
+ "next": "01a1696f-6a69-7241-8d7a-b127e34701e6"
+}

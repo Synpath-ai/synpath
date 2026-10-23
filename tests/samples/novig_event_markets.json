@@ -1,0 +1,189 @@
+{
+ "items": [
+  {
+   "marketId": "01a1696f-6a69-7241-8d7a-b127e34701e6",
+   "description": "EDM",
+   "eventId": "01a1696f-6a01-7980-8ca5-81bfd7a21ea7",
+   "marketType": "MONEY",
+   "strike": "0",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1792882800000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.25",
+    "charged": "WHEN_LIVE"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a1696f-6a69-7241-8d7a-b1323e3fb4cd",
+     "name": "EDM",
+     "status": "TBD",
+     "bid": {
+      "price": "0.605",
+      "qty": 100000
+     }
+    },
+    {
+     "outcomeId": "01a1696f-6a69-7241-8d7a-b14045396ef7",
+     "name": "TOR",
+     "status": "TBD",
+     "bid": {
+      "price": "0.35",
+      "qty": 10000
+     }
+    }
+   ],
+   "volume": 0,
+   "openInterest": 0
+  },
+  {
+   "marketId": "01a1696f-6a6a-71c3-9c03-173319eb820f",
+   "description": "EDM +1.5",
+   "eventId": "01a1696f-6a01-7980-8ca5-81bfd7a21ea7",
+   "marketType": "SPREAD",
+   "strike": "1.5",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1792882800000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.25",
+    "charged": "WHEN_LIVE"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a1696f-6a6a-71c3-9c03-1749ce00ded9",
+     "name": "EDM +1.5",
+     "status": "TBD",
+     "bid": {
+      "price": "0.76",
+      "qty": 15000
+     }
+    },
+    {
+     "outcomeId": "01a1696f-6a6a-71c3-9c03-17505ea23035",
+     "name": "TOR -1.5",
+     "status": "TBD",
+     "bid": {
+      "price": "0.17",
+      "qty": 15000
+     }
+    }
+   ],
+   "volume": 0,
+   "openInterest": 0
+  },
+  {
+   "marketId": "01a1696f-6a6a-71c3-9c03-1701718f9728",
+   "description": "EDM -2.5",
+   "eventId": "01a1696f-6a01-7980-8ca5-81bfd7a21ea7",
+   "marketType": "SPREAD",
+   "strike": "-2.5",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1792882800000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.25",
+    "charged": "WHEN_LIVE"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a1696f-6a6a-71c3-9c03-17131cdf5a1d",
+     "name": "EDM -2.5",
+     "status": "TBD",
+     "bid": {
+      "price": "0.27",
+      "qty": 15000
+     }
+    },
+    {
+     "outcomeId": "01a1696f-6a6a-71c3-9c03-172b69e0fe1b",
+     "name": "TOR +2.5",
+     "status": "TBD",
+     "bid": {
+      "price": "0.66",
+      "qty": 50000
+     }
+    }
+   ],
+   "volume": 0,
+   "openInterest": 0
+  },
+  {
+   "marketId": "01a1696f-6a6a-71c3-9c03-16728c7d4c6b",
+   "description": "TOR @ EDM t9.5",
+   "eventId": "01a1696f-6a01-7980-8ca5-81bfd7a21ea7",
+   "marketType": "TOTAL",
+   "strike": "9.5",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1792882800000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.25",
+    "charged": "WHEN_LIVE"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a1696f-6a6a-71c3-9c03-16850c948f4d",
+     "name": "Over 9.5",
+     "status": "TBD",
+     "bid": {
+      "price": "0.09",
+      "qty": 35000
+     }
+    },
+    {
+     "outcomeId": "01a1696f-6a6a-71c3-9c03-1695af89ca60",
+     "name": "Under 9.5",
+     "status": "TBD",
+     "bid": {
+      "price": "0.76",
+      "qty": 35000
+     }
+    }
+   ],
+   "volume": 0,
+   "openInterest": 0
+  },
+  {
+   "marketId": "01a1696f-6a6a-71c3-9c03-164f7dd1765a",
+   "description": "TOR @ EDM t8.5",
+   "eventId": "01a1696f-6a01-7980-8ca5-81bfd7a21ea7",
+   "marketType": "TOTAL",
+   "strike": "8.5",
+   "status": "OPEN",
+   "voids": "FMV",
+   "startsTs": 1792882800000,
+   "fee": {
+    "coefficient": "0.06",
+    "makerCredit": "0.25",
+    "charged": "WHEN_LIVE"
+   },
+   "outcomes": [
+    {
+     "outcomeId": "01a1696f-6a6a-71c3-9c03-1650058efc82",
+     "name": "Over 8.5",
+     "status": "TBD",
+     "bid": {
+      "price": "0.22",
+      "qty": 15000
+     }
+    },
+    {
+     "outcomeId": "01a1696f-6a6a-71c3-9c03-1668996f2e62",
+     "name": "Under 8.5",
+     "status": "TBD",
+     "bid": {
+      "price": "0.71",
+      "qty": 15000
+     }
+    }
+   ],
+   "volume": 0,
+   "openInterest": 0
+  }
+ ]
+}

@@ -66,6 +66,12 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # £0.05.
     "smarkets": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.0001"), "quantity_step": Decimal("0.0001"),
                  "whole": False, "min_notional": Decimal("0.05")},
+    # Prices on a grid of 0.001 near the ends (to 0.050, from 0.950) and
+    # 0.005 between, so the tick here is the finest and an order is snapped
+    # onto the grid on the cheaper side. The venue's contract pays 1 cent, so
+    # dollar contracts step by 0.01.
+    "novig": {"default_tick": Decimal("0.001"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.01"),
+              "whole": False},
 }
 
 

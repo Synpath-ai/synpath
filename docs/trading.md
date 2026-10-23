@@ -25,7 +25,7 @@ pip install synpath
 
 Order entry ships in the base package. The install carries the venues' signing
 stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet,
-Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
+Ed25519 and private-key JWT for Polymarket US, Ed25519 or P-256 request signing (NOVIG-V3) for Novig. Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
 (`synpath._core`), in about 20 microseconds rather than the 3 milliseconds
@@ -71,6 +71,7 @@ private key. `synpath init` tells them apart.
 | predict.fun | mainnet: the API key (`pred_sk_...`). Test network: nothing | the API key and a private key: a plain wallet's, or a Predict account's owner key with its deposit address | the key at developers.predict.fun; a web-app account's owner key under Account -> Settings -> Privy wallet |
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
+| Novig | REST: nothing. Books over the WebSocket: a subaccount's trading key (without one, the public book is polled) | a subaccount's trading key: a key id and its private key file (PEM, Ed25519 or P-256). The management key, optional, opens, funds and labels subaccounts and never trades | the management key on novig.com (paper.novig.com for Paper) -> Profile -> Settings -> Novig API; then `NovigTrading.open_subaccount` with a keypair from `novig_signing.generate_key()` issues the trading key. The private key is never sent |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
@@ -95,6 +96,7 @@ The variables each venue reads:
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
+| Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
 
 Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
 optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
@@ -107,6 +109,33 @@ Smarkets needs no credentials for market data. `SMARKETS_USERNAME` and
 `synpath doctor` reports them. There is no Smarkets order entry yet: betting
 through Smarkets' API needs its approved API access (applied for, with a
 one-off £150 fee). See [Smarkets](capabilities.md#smarkets).
+
+Novig trades on one subaccount per trading key. An order buys an outcome:
+`buy` the market's YES outcome at the price given, `sell` its NO outcome at
+one minus it, snapped onto the venue's price grid on the cheaper side, in
+sizes of 0.01 contract (the venue's 1-cent contract). Placement is queued:
+`create_order` returns the order `pending`, and the private stream or a read
+says when it rests, fills or is rejected. A batch of up to 256 is placed all
+or nothing. Every resting order on an event is voided when the event goes in
+play. Production needs Novig's identity check and a US location outside
+Arizona, Michigan and Nevada, with a recent device geolocation from the Novig
+app (a VPN is refused); Paper is the same API with play money and no location
+check. `NovigTrading.echo()` proves the host, key, clock and signature in one
+call. Novig's parlay RFQ, for registered liquidity providers, is not
+supported yet. See [Novig](capabilities.md#novig).
+
+```python
+from decimal import Decimal
+
+from synpath.trading import novig_signing
+from synpath.trading.credentials import load_credentials, require
+from synpath.trading.novig import NovigTrading
+
+async with NovigTrading(require("novig", load_credentials())) as nv:   # with the management key loaded
+    private_pem, public_pem = novig_signing.generate_key()           # keep private_pem in a secret store
+    desk = await nv.open_subaccount("desk-1", public_pem)            # desk["keyId"] is NOVIG_KEY_ID
+    await nv.fund_subaccount(desk["keyId"], Decimal("250"), client_transfer_id="desk-1-topup-1")
+```
 
 ## Through your own server
 
