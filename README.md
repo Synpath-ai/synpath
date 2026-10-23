@@ -5,7 +5,7 @@
 # Synpath – One API for prediction markets <a href="https://x.com/Synpath_Dev"><img src="https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2FSynpath_Dev&style=social&label=Follow" alt="Follow @Synpath_Dev on X" height="28"></a>
 
 **Build on prediction markets without building against each one.**<br/>
-One open-source API across 8 venues (Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet): market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
+One open-source API across 9 venues (Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet and Myriad): market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
 
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <a href="https://pepy.tech/projects/synpath"><img src="https://img.shields.io/pepy/dt/synpath?label=Total%20Downloads&color=blue" alt="Total Downloads"></a>
@@ -80,16 +80,19 @@ No silent gaps: if we weren't recording at a moment, you get the reason instead 
 | | [predict.fun](https://predict.fun) | `predict_fun` | ✓ (API key) | ✓ | WebSocket (API key) | one book per market, both sides read it |
 | | [Limitless](https://limitless.exchange) | `limitless` | ✓ | ✓ | WebSocket | one book per market, both sides read it |
 | | [SX Bet](https://sx.bet) | `sx_bet` | ✓ sports | ✓ | WebSocket | one book per market, both sides read it |
+| | [Myriad](https://myriad.markets) | `myriad` | ✓ order-book and AMM markets, sports | ✓ order book | WebSocket (no key) | one book per market, both sides read it; AMM books built from the pool |
 | | [Betfair Exchange](https://www.betfair.com/exchange) | `betfair` | ✓ your own account and app key (delayed key: 1-180 s late, 3 levels) | — | Exchange Stream API (TLS socket) | one book per runner, back and lay read as YES |
 | | [Smarkets](https://smarkets.com) | `smarkets` | ✓ no account (quotes delayed without a login) | — | polled from REST quotes | one book per contract, bids are YES bids |
 
 Betfair is a betting exchange, not a prediction market, read here the same way: each runner (selection) is a yes/no market, `betfair:1.234567890-47972`, and the Betfair market holding the runners is the event. Every Betfair call needs your own Betfair account and application key, and the API is refused from several countries (the US, Germany, France, the Netherlands, Singapore, India, Turkey, the UAE and others). Betfair's keys are for your own betting: showing its prices to anyone else needs a data licence from Betfair. See [capabilities](docs/capabilities.md#betfair).
 
+Myriad runs order-book markets on BNB Chain and AMM (pool) markets on BNB Chain, Abstract and Linea behind one API. A market id carries its network, and `amm` for a pool market, since the two kinds number their markets separately: `myriad:56-2385` is an order-book market, `myriad:56-amm-2385` an unrelated pool market. Order entry is on the order book; a pool trade is an on-chain transaction this library does not send. See [capabilities](docs/capabilities.md#myriad).
+
 Smarkets, a UK betting exchange, is read the same way: each contract is a yes/no market, `smarkets:164973231-456060183`, and the Smarkets market holding the contracts is the event. Its market data needs no account (quotes are delayed without a login); betting needs Smarkets' approved API access, which this library does not use yet. Smarkets' API terms allow viewing prices and betting on your own account, and prohibit odds scraping. See [capabilities](docs/capabilities.md#smarkets).
 
 ## Why Synpath
 
-- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
+- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet and Myriad, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
 
 - **Traders deserve advanced order types.** Stops, trailing stops, icebergs, OCO, brackets, TWAP and pegs, on every venue, even where the exchange has none. Orders are journaled before they're sent, so a crash never places one twice.
 
@@ -135,7 +138,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'betfair', 'smarkets'] (Betfair and predict.fun need keys)
+for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'myriad', 'betfair', 'smarkets'] (Betfair and predict.fun need keys)
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 

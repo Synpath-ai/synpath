@@ -11,7 +11,8 @@ loaded; the adapters are what use it.
 
 Two sets per venue. `load_credentials` is what a trading adapter needs: the
 private key included, except for SX Bet, whose API key alone reads the
-account and cancels and whose private key only places orders.
+account and cancels and whose private key only places orders, and Myriad,
+whose API key alone reads the account.
 `load_market_data` is the API key alone, for the three venues whose market
 data wants one and no wallet: Opinion, predict.fun and SX Bet.
 
@@ -40,6 +41,10 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
   SX Bet              SX_BET_API_KEY (market data, the account, cancels), and
                       optionally SX_BET_PRIVATE_KEY (placing orders),
                       SX_BET_ACCOUNT_ADDRESS, SX_BET_TESTNET
+  Myriad              MYRIAD_PRIVATE_KEY (signs orders and cancels; signs in
+                      when there is no API key), and optionally
+                      MYRIAD_API_KEY with MYRIAD_API_SECRET (HMAC-signed
+                      requests), MYRIAD_ACCOUNT_ADDRESS, MYRIAD_RPC_URL
   Betfair             BETFAIR_APP_KEY, BETFAIR_USERNAME, BETFAIR_PASSWORD, and
     (market data)     optionally BETFAIR_CERT_PATH / BETFAIR_KEY_PATH
                       (certificate login) and BETFAIR_JURISDICTION
@@ -317,6 +322,45 @@ class SxBetCredentials:
 
 
 @dataclass(frozen=True, repr=False)
+class MyriadCredentials:
+    """Myriad: the wallet that signs orders, and how requests prove whose they are.
+
+    Every order and every cancel is an EIP-712 message signed by the wallet.
+    Requests to the account's endpoints are signed with an API key and its
+    secret (HMAC); without a key, the wallet signs in (SIWE) for a session
+    token instead. The venue refuses a bare key. A key acts for the wallet
+    that minted it, so a key with no private key reads the account but
+    cannot place or cancel."""
+
+    private_key: str | None = field(default=None, repr=False)
+    """The wallet's private key, hex: the wallet the Myriad account is
+    connected to. Signs orders, cancels and the sign-in."""
+    api_key: str | None = None
+    api_secret: str | None = field(default=None, repr=False)
+    """An API key and its secret (Myriad Account settings, or `POST
+    /auth/api-keys` from a signed-in session; the secret is shown once)."""
+    account_address: str | None = None
+    """The wallet's address, when no private key names it. Public."""
+    rpc_url: str | None = None
+    """A BNB Chain node for the balance read. A public one when unset."""
+    _public = ("api_key", "account_address", "rpc_url")
+    __repr__ = _redacted_repr
+
+    @property
+    def address(self) -> str | None:
+        """The trading wallet: the signer's address, else the one given."""
+        if self.private_key:
+            from .polymarket_signing import WalletSigner
+
+            return WalletSigner(self.private_key).address
+        return self.account_address
+
+    @property
+    def secrets(self) -> list[str]:
+        return [v for v in (self.private_key, self.api_secret) if v]
+
+
+@dataclass(frozen=True, repr=False)
 class BetfairCredentials:
     """Betfair: the account's application key and its login. Every Betfair
     call, market data included, needs both: the key names the application,
@@ -360,7 +404,7 @@ class SmarketsCredentials:
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
     | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
-    | BetfairCredentials | SmarketsCredentials
+    | MyriadCredentials | BetfairCredentials | SmarketsCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -384,6 +428,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
     ),
     "limitless": ("LIMITLESS_PRIVATE_KEY", "LIMITLESS_API_TOKEN_ID", "LIMITLESS_API_SECRET", "LIMITLESS_RPC_URL"),
     "sx_bet": ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY", "SX_BET_ACCOUNT_ADDRESS", "SX_BET_TESTNET"),
+    "myriad": ("MYRIAD_PRIVATE_KEY", "MYRIAD_API_KEY", "MYRIAD_API_SECRET", "MYRIAD_ACCOUNT_ADDRESS", "MYRIAD_RPC_URL"),
     "betfair": (
         "BETFAIR_APP_KEY", "BETFAIR_USERNAME", "BETFAIR_PASSWORD", "BETFAIR_CERT_PATH", "BETFAIR_KEY_PATH",
         "BETFAIR_JURISDICTION",
@@ -638,6 +683,35 @@ def load_sx_bet(env: Mapping[str, str]) -> SxBetCredentials | None:
     return SxBetCredentials(api_key=api_key, private_key=key, account_address=account, testnet=testnet)
 
 
+def load_myriad(env: Mapping[str, str]) -> MyriadCredentials | None:
+    key = env.get("MYRIAD_PRIVATE_KEY") or None
+    api_key, secret = env.get("MYRIAD_API_KEY") or None, env.get("MYRIAD_API_SECRET") or None
+    if api_key and not secret:
+        raise CredentialsMissing(
+            "MYRIAD_API_KEY is set but MYRIAD_API_SECRET is not; the venue refuses a key without its signature "
+            "since 2026-08-15. A key made before secrets existed cannot be upgraded: mint a new one in Myriad "
+            "Account settings")
+    if secret and not api_key:
+        raise CredentialsMissing("MYRIAD_API_SECRET is set but MYRIAD_API_KEY is not")
+    if not key and not api_key:
+        return None
+    if key and not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("MYRIAD_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    key = None if key is None else key if key.startswith("0x") else "0x" + key
+    account = env.get("MYRIAD_ACCOUNT_ADDRESS") or None
+    if account and not re.match(r"^0x[0-9a-fA-F]{40}$", account):
+        raise CredentialsMissing(
+            f"MYRIAD_ACCOUNT_ADDRESS must be the wallet's 0x address (40 hex characters), not its private key; "
+            f"got {_shape_of(account)}")
+    if account and key:
+        from .polymarket_signing import WalletSigner
+
+        if WalletSigner(key).address.lower() != account.lower():
+            raise CredentialsMissing("MYRIAD_ACCOUNT_ADDRESS is not the address of MYRIAD_PRIVATE_KEY")
+    return MyriadCredentials(private_key=key, api_key=api_key, api_secret=secret, account_address=account,
+                             rpc_url=env.get("MYRIAD_RPC_URL") or None)
+
+
 def _shape_of(value: str) -> str:
     """What a malformed value looks like, without echoing it: it may be a
     private key pasted into the wrong variable."""
@@ -695,6 +769,7 @@ LOADERS = {
     "predict_fun": load_predict_fun,
     "limitless": load_limitless,
     "sx_bet": load_sx_bet,
+    "myriad": load_myriad,
     "betfair": load_betfair,
     "smarkets": load_smarkets,
 }

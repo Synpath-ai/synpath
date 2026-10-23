@@ -29,6 +29,18 @@ def sx_bet_identity(creds: Any) -> str:
     return f"{wallet}; API key: market data, account, cancels; {placing}"
 
 
+def myriad_identity(creds: Any) -> str:
+    """What Myriad's credentials allow: the private key signs orders and
+    cancels (and signs in without an API key); the API key and secret sign
+    requests, and alone read the account."""
+    wallet = f"wallet {creds.address}" if creds.address else "wallet address unknown (set MYRIAD_ACCOUNT_ADDRESS)"
+    requests = (f"API key {creds.api_key[:8]}…: HMAC-signed requests" if creds.api_key
+                else "no API key: the wallet signs in for a session")
+    orders = ("private key loaded: places and cancels orders" if creds.private_key
+              else "no private key: reads the account only; set MYRIAD_PRIVATE_KEY to place or cancel")
+    return f"{wallet}; {requests}; {orders}"
+
+
 def doctor(dotenv: str | None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
@@ -52,7 +64,7 @@ def doctor(dotenv: str | None) -> int:
             continue
         if creds is None:
             names = ENV_NAMES[venue]
-            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair") else ""
+            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "myriad", "betfair") else ""
             rows.append((venue, "not configured", f"set {names[0]}{hint}"))
             continue
         stage = getattr(creds, "env", "-")
@@ -86,6 +98,9 @@ def doctor(dotenv: str | None) -> int:
         elif venue == "sx_bet":
             stage = "testnet" if creds.testnet else "mainnet"
             identity = sx_bet_identity(creds)
+        elif venue == "myriad":
+            stage = "mainnet"
+            identity = myriad_identity(creds)
         elif venue == "betfair":
             # The application key is a secret too; the username names the account.
             stage = creds.jurisdiction

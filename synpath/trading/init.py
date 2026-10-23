@@ -250,6 +250,29 @@ def ask_sx_bet(p: Prompter) -> dict[str, str]:
     return values
 
 
+def ask_myriad(p: Prompter) -> dict[str, str]:
+    p.say("\nMyriad: market data is public and needs nothing; this is for trading on its order book (BNB Chain).")
+    p.say("The private key (64 hex characters) of the wallet your Myriad account is connected to signs every")
+    p.say("order and cancel. An API key and secret (Myriad Account settings; the secret is shown once) sign")
+    p.say("your requests and raise the rate limit; without one, the wallet signs in for a session instead, and a")
+    p.say("wallet that never signed in gets a Myriad account on its first sign-in. A key alone reads the account.")
+    api_key = p.value("API key (empty to sign in with the wallet instead)", default="", check=lambda raw: None)
+    values: dict[str, str] = {}
+    if api_key:
+        values["MYRIAD_API_KEY"] = api_key
+        values["MYRIAD_API_SECRET"] = p.value("API secret (typed hidden)", secret=True, check=_required("The API secret"))
+        key = _optional_private_key(p, purpose="placing and cancelling orders")
+    else:
+        key = p.value("Private key (64 hex characters, typed hidden)", secret=True, check=_private_key)
+    if key:
+        values["MYRIAD_PRIVATE_KEY"] = _with_0x(key)
+    else:
+        account = p.value("Wallet address, 0x and 40 hex (public, not the private key)",
+                          check=lambda raw: None if ADDRESS.match(raw) else _not_an_address(raw))
+        values["MYRIAD_ACCOUNT_ADDRESS"] = account
+    return values
+
+
 def ask_betfair(p: Prompter) -> dict[str, str]:
     p.say("\nBetfair: your application key (the delayed key is free: developer.betfair.com, or the Accounts API")
     p.say("visualiser) and your Betfair login. Every Betfair call, market data included, logs in. The key and the")
@@ -287,6 +310,7 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("predict.fun", ("PREDICT_FUN_API_KEY", "PREDICT_FUN_PRIVATE_KEY"), ask_predict_fun),
     ("Limitless", ("LIMITLESS_PRIVATE_KEY",), ask_limitless),
     ("SX Bet", ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY"), ask_sx_bet),
+    ("Myriad", ("MYRIAD_PRIVATE_KEY", "MYRIAD_API_KEY"), ask_myriad),
     ("Betfair", ("BETFAIR_APP_KEY",), ask_betfair),
     ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
 ]

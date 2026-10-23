@@ -41,6 +41,8 @@ asyncio.run(main())
 | `LimitlessUserStream` | `ws.limitless.exchange` | a Limitless API token | orders; fills as matched, then mined or failed on chain |
 | `SxBetMarketStream` | `realtime.sx.bet` (or the testnet) | SX Bet API key (every channel needs one) | whole books, top of book, the tape of taker bets, market changes and settlements |
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
+| `MyriadMarketStream` | `ws.myriadprotocol.com/ws` | none | order books (both outcomes), top of book and last per outcome, the tape of matches, markets created and resolved |
+| `MyriadUserStream` | `ws.myriadprotocol.com/ws` | the wallet's address, and a subscription token per account channel (`MyriadTrading.subscription_token`) | orders; fills from the wallet's public tape; share balances |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
 
@@ -64,6 +66,7 @@ variable `synpath serve` reads it from:
 | Polymarket | nothing | |
 | Hyperliquid | nothing | |
 | Limitless | nothing | |
+| Myriad | nothing | |
 | Opinion | the Open API key | `OPINION_API_KEY` |
 | predict.fun | the API key (`pred_sk_...`, from developers.predict.fun); mainnet only | `PREDICT_FUN_API_KEY` |
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
@@ -171,6 +174,18 @@ jittered exponential backoff between attempts.
   grows, and a quiet market publishes nothing, so each book is seeded from the
   REST snapshot when its subscription is confirmed. Trades and market changes
   are venue-wide channels, filtered here to the markets asked for.
+- *Myriad* speaks Centrifugo's JSON protocol too, anonymously: the books,
+  prices, trades and markets channels are public, and so is one wallet's tape
+  on every market (`trades:56:*:<wallet>`), which carries the account's fills.
+  The account's orders and positions channels each take a short-lived token
+  that the REST API issues for the signed-in wallet's own channels; the user
+  stream asks the trading adapter for one per channel on every subscribe. A
+  book delta is the new size of each changed level, for both outcomes at once;
+  both books are seeded from REST when the subscription is confirmed, and
+  deltas that arrived first are replayed on the snapshot, which is safe since
+  each is a level's absolute size. A reconnect reseeds them. Publications are
+  coalesced into windows of about 100 ms. Order-book markets only: pools
+  publish nothing here.
 - *Betfair* is not a WebSocket: its Exchange Stream API is one TLS socket to
   `stream-api.betfair.com:443` carrying CRLF-delimited JSON. The stream
   authenticates with the application key and a session token straight away

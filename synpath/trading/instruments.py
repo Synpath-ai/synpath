@@ -52,6 +52,10 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # so contracts take any size to a millionth.
     "sx_bet": {"default_tick": Decimal("0.00125"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
                "whole": False, "min_notional": Decimal("1")},
+    # Order books only: prices in whole cents; sizes are 18-decimal shares and
+    # the venue publishes no minimum, so a millionth of a share is the step.
+    "myriad": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
+               "whole": False},
     # No order entry yet; written down for when there is. Prices are decimal
     # odds on Betfair's ladder (1.01 to 1000), so the step in YES price runs
     # from about 0.0097 near 1.01 to 0.00001 near 1000: the tick here is the
