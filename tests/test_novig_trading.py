@@ -564,7 +564,7 @@ class TestSetup:
 
         pem = tmp_path / "desk-1.pem"
         pem.write_text(ED25519["private_key_pkcs8_pem"])
-        answers = iter(["n"] * 10 + ["y", "paper", KEY_ID, str(pem), ""])
+        answers = iter(["n"] * 10 + ["y", "paper", KEY_ID, str(pem), ""] + ["n"] * 5)  # then Matchbook to Gemini
         p = Prompter(ask=lambda _q: next(answers), ask_secret=lambda _q: "", say=lambda _: None)
         env = tmp_path / ".env"
         assert run(env, p) == 0
