@@ -559,14 +559,17 @@ class FeeSchedule(_Base):
           Kalshi schedule) the fee for the order is rounded up to the cent, as
           the venue charges it. Kalshi's `flat` type follows a separate table
           this library does not have, so it returns `None`.
-        * `quadratic_theta` (Polymarket US, Polymarket) — `theta * C *
+        * `quadratic_theta` (Polymarket US, Polymarket, Gemini) — `theta * C *
           (P * (1 - P)) ** exponent`, the same shape with the coefficient
           published directly: `taker_rate` and `maker_rate` hold the venue's
           thetas, and a negative maker theta is a rebate, returned here as a
           negative fee. `exponent` is 1 unless the venue says otherwise.
-        * `min_price` (predict.fun) — `rate * min(P, 1 - P) * C` for a
-          taker, on the cheaper side of the market; a maker pays `maker_rate`
-          (zero on every market read so far).
+          Gemini's rates are 0.07 and 0.0175, rounded up to the cent
+          (`rounding="up_to_cent"`).
+        * `min_price` (predict.fun, Gemini's legacy schedule) — `rate *
+          min(P, 1 - P) * C` for a taker, on the cheaper side of the market;
+          a maker pays `maker_rate` (zero on every predict.fun market read so
+          far). Rounded up to the cent where `rounding="up_to_cent"`.
         * `hyperliquid_outcome` (Hyperliquid) — `rate * P * C`, the notional
           of the fill, charged only when the fill closes a position (and at
           settlement); a fill that opens one pays nothing. The estimate is the
@@ -611,7 +614,7 @@ class FeeSchedule(_Base):
                 fee = max(fee, self.min_fee)
             return round(fee, 6)
         if self.fee_type == "min_price" and rate is not None:
-            return round(rate * min(price, 1 - price) * contracts, 6)
+            return self._rounded(rate * min(price, 1 - price) * contracts)
         if self.fee_type == "hyperliquid_outcome" and rate is not None:
             return round(rate * price * contracts, 6)
         if self.fee_type == "limitless_curve" and rate is not None:
@@ -622,8 +625,16 @@ class FeeSchedule(_Base):
             return round(rate * (1 - price) * contracts, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent
-            return round(rate * contracts * (price * (1 - price)) ** power, 6)
+            return self._rounded(rate * contracts * (price * (1 - price)) ** power)
         return None
+
+    def _rounded(self, fee: float) -> float:
+        """A fee as the venue charges it: up to the cent where `rounding` is
+        `up_to_cent` (a rebate, negative, rounds toward zero), else to six
+        decimals."""
+        if self.rounding == "up_to_cent":
+            fee = math.ceil(round(fee, 9) * 100 - 1e-9) / 100
+        return round(fee, 6)
 
 
 LIMITLESS_FEE_CEILING = 0.03

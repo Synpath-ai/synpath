@@ -45,6 +45,10 @@ def doctor(dotenv: str | None) -> int:
                          "SMARKETS_PASSWORD for undelayed quotes, or run synpath init. Betting needs Smarkets' "
                          "approved API access (£150 one-off), not supported yet"))
             continue
+        if creds is None and venue == "gemini":
+            rows.append((venue, "no key (optional)", "market data needs no key; set GEMINI_API_KEY / "
+                         "GEMINI_API_SECRET to trade (a US account with Prediction Markets access), or run synpath init"))
+            continue
         if creds is None and venue in market_data:
             stage = "testnet" if market_data[venue].testnet else "mainnet"
             private = ENV_NAMES[venue][0]
@@ -91,6 +95,9 @@ def doctor(dotenv: str | None) -> int:
             stage = creds.jurisdiction
             login = "certificate" if creds.cert_path else "interactive"
             identity = f"user {creds.username}, app key loaded, {login} login"
+        elif venue == "gemini":
+            sub = f", subaccount {creds.account}" if creds.account else ""
+            identity = f"api key {creds.api_key[:12]}…{sub} (account-scoped, time-based nonce for streams)"
         elif venue == "smarkets":
             stage = "login"
             identity = f"user {creds.username}: undelayed quotes; betting needs approved API access, not supported yet"

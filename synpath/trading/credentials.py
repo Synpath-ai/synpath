@@ -45,6 +45,9 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       (certificate login) and BETFAIR_JURISDICTION
   Smarkets            optionally SMARKETS_USERNAME and SMARKETS_PASSWORD: market
     (market data)     data needs no login; one gives undelayed quotes
+  Gemini              GEMINI_API_KEY, GEMINI_API_SECRET, and optionally
+                      GEMINI_ACCOUNT (a master key's subaccount) and GEMINI_ENV
+                      (prod, the default, or sandbox); market data needs neither
 """
 from __future__ import annotations
 
@@ -357,10 +360,36 @@ class SmarketsCredentials:
         return [self.password]
 
 
+@dataclass(frozen=True, repr=False)
+class GeminiCredentials:
+    """Gemini Predictions: an API key pair from exchange.gemini.com/settings/api.
+
+    Account-scoped, with the Trader role and a time-based nonce: the
+    WebSocket takes no other key, and the REST nonces here are Unix seconds.
+    The account needs Prediction Markets access (US) and the current
+    Prediction Markets terms accepted."""
+
+    api_key: str
+    """The key id, `account-...` (or `master-...` for a master key)."""
+    api_secret: str = field(repr=False)
+    """The secret shown once at creation. Signs every private request (HMAC-SHA384)."""
+    account: str | None = None
+    """The subaccount a master key acts for (its short name). Unset for an
+    account-scoped key."""
+    env: Literal["prod", "sandbox"] = "prod"
+    """`prod` trades on Gemini itself; `sandbox` on api.sandbox.gemini.com with a sandbox key."""
+    _public = ("api_key", "account", "env")
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.api_secret]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
     | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
-    | BetfairCredentials | SmarketsCredentials
+    | BetfairCredentials | SmarketsCredentials | GeminiCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -389,6 +418,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "BETFAIR_JURISDICTION",
     ),
     "smarkets": ("SMARKETS_USERNAME", "SMARKETS_PASSWORD"),
+    "gemini": ("GEMINI_API_KEY", "GEMINI_API_SECRET", "GEMINI_ACCOUNT", "GEMINI_ENV"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -685,6 +715,25 @@ def load_smarkets(env: Mapping[str, str]) -> SmarketsCredentials | None:
     return SmarketsCredentials(username=username, password=password)
 
 
+def load_gemini(env: Mapping[str, str]) -> GeminiCredentials | None:
+    api_key = (env.get("GEMINI_API_KEY") or "").strip()
+    secret = (env.get("GEMINI_API_SECRET") or "").strip()
+    if not api_key:
+        if secret:
+            raise CredentialsMissing("GEMINI_API_SECRET is set but GEMINI_API_KEY is not")
+        return None
+    if not secret:
+        raise CredentialsMissing("GEMINI_API_KEY is set but GEMINI_API_SECRET is not; it is shown once when the key "
+                                 "is created (exchange.gemini.com/settings/api)")
+    if secret == api_key:
+        raise CredentialsMissing("GEMINI_API_SECRET is the same as GEMINI_API_KEY; the secret is the other half of the pair")
+    stage = (env.get("GEMINI_ENV") or "prod").strip().lower()
+    if stage not in ("prod", "sandbox"):
+        raise CredentialsMissing(f"GEMINI_ENV must be prod or sandbox, got {stage!r}")
+    account = (env.get("GEMINI_ACCOUNT") or "").strip() or None
+    return GeminiCredentials(api_key=api_key, api_secret=secret, account=account, env=stage)  # type: ignore[arg-type]
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -697,6 +746,7 @@ LOADERS = {
     "sx_bet": load_sx_bet,
     "betfair": load_betfair,
     "smarkets": load_smarkets,
+    "gemini": load_gemini,
 }
 
 

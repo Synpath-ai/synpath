@@ -13,6 +13,7 @@ Venue rules that are not in any payload:
                   market's price ladder, 0.01 when it publishes none
   Polymarket      five shares minimum; tick per market, 0.01 by default
   Polymarket US   whole contracts only; tick per market
+  Gemini          tick per contract (`priceIncrement`), contracts in hundredths
 """
 from __future__ import annotations
 
@@ -66,6 +67,11 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # £0.05.
     "smarkets": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.0001"), "quantity_step": Decimal("0.0001"),
                  "whole": False, "min_notional": Decimal("0.05")},
+    # Each contract publishes its grid (priceIncrement, quantityIncrement,
+    # quantityMinimum); every one read so far is a cent and a hundredth of a
+    # contract, which is the default here. The tick comes from the market.
+    "gemini": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.01"),
+               "whole": False},
 }
 
 

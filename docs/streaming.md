@@ -43,6 +43,8 @@ asyncio.run(main())
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
+| `GeminiMarketStream` | `ws.gemini.com` (or the sandbox) | none | differential books in YES space from a snapshot, top of book with the last trade, public prints, contract status and strikes |
+| `GeminiUserStream` | `ws.gemini.com` | an account-scoped Gemini API key with a time-based nonce (the handshake is signed) | orders; each execution with its fee and maker flag; positions, settlement payouts included; balances |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -69,6 +71,7 @@ variable `synpath serve` reads it from:
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
 | Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
+| Gemini | nothing | |
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
@@ -204,6 +207,26 @@ jittered exponential backoff between attempts.
   says so in `info["delayed"]`. A change shows at the next poll, not as it
   happens, so its `watch_*` keys are `partial`. No `watch_trades`: the recent
   tape is short and unpaged; read it with `Smarkets.fetch_trades`.
+- *Gemini* takes `{"id", "method": "SUBSCRIBE", "params": [stream names]}`
+  and answers each with its `id` and a status. The market stream connects
+  with `snapshot=-1` and subscribes `{symbol}@depth@100ms`, so the first frame
+  for a book is the whole book and the rest are the levels that changed (a
+  size of zero removes one). Frames chain by update id: each frame's first id
+  `U` is the last id `u` of the frame before, ids being the exchange's own
+  across all books. A frame whose `U` is past the last applied `u` is a gap:
+  the book is dropped, the stream unsubscribes and subscribes again, and the
+  fresh snapshot is reported `resynced`. Books are in YES space; `book(id,
+  "no")` mirrors one. `@bookTicker` is the top of book (and the last trade
+  price once there is one), `@trade` the tape (`m` says the buyer was the
+  maker, so the taker sold), `contractStatus` every contract's status changes.
+  Gemini sends symbols lower case; events carry them upper case, as REST
+  does. The account stream signs its handshake (`X-GEMINI-APIKEY`, `-NONCE`,
+  `-PAYLOAD`, `-SIGNATURE`) with an account-scoped key that uses a time-based
+  nonce; master keys are refused. An order frame carries only what changed,
+  so the stream keeps each order's last known fields; a `FILLED` or
+  `PARTIALLY_FILLED` frame is also a `FillEvent` (`Z` the execution's size,
+  `L` its price, `n` its fee). The first `positions@account` frame is the open
+  positions, then changes; a settlement closes a position with its payout.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

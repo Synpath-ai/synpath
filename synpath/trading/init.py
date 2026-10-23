@@ -278,6 +278,22 @@ def ask_smarkets(p: Prompter) -> dict[str, str]:
     return {"SMARKETS_USERNAME": username, "SMARKETS_PASSWORD": password}
 
 
+def ask_gemini(p: Prompter) -> dict[str, str]:
+    p.say("\nGemini Predictions: market data needs no key. Trading needs a Gemini account with Prediction Markets")
+    p.say("access (US) and an API key from exchange.gemini.com/settings/api: account-scoped, Trader role, and")
+    p.say("'Uses a time-based nonce' ticked (the WebSocket takes no other kind). The secret is typed hidden.")
+    key = p.value("API key (account-...)", check=_required("The API key"))
+    secret = p.value("API secret (typed hidden)", secret=True,
+                     check=lambda raw: "The API secret is required." if not raw else
+                     "That is the API key again; the secret is the other half of the pair." if raw == key else None)
+    env = p.value("Environment (prod trades real money; sandbox uses api.sandbox.gemini.com)", default="prod",
+                  check=_choice("prod", "sandbox"))
+    values = {"GEMINI_API_KEY": key, "GEMINI_API_SECRET": secret}
+    if env != "prod":
+        values["GEMINI_ENV"] = env
+    return values
+
+
 VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", ("KALSHI_KEY_ID",), ask_kalshi),
     ("Polymarket", ("POLYMARKET_PRIVATE_KEY",), ask_polymarket),
@@ -289,6 +305,7 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("SX Bet", ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY"), ask_sx_bet),
     ("Betfair", ("BETFAIR_APP_KEY",), ask_betfair),
     ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
+    ("Gemini Predictions (market data needs no key)", ("GEMINI_API_KEY",), ask_gemini),
 ]
 """Each venue, the settings any of which means it is set up already (an API
 key alone is, for market data), and the questions."""

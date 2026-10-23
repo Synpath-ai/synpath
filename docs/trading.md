@@ -25,7 +25,7 @@ pip install synpath
 
 Order entry ships in the base package. The install carries the venues' signing
 stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet,
-Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
+Ed25519 and private-key JWT for Polymarket US, HMAC-SHA384 for Gemini. Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
 (`synpath._core`), in about 20 microseconds rather than the 3 milliseconds
@@ -71,6 +71,7 @@ private key. `synpath init` tells them apart.
 | predict.fun | mainnet: the API key (`pred_sk_...`). Test network: nothing | the API key and a private key: a plain wallet's, or a Predict account's owner key with its deposit address | the key at developers.predict.fun; a web-app account's owner key under Account -> Settings -> Privy wallet |
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
+| Gemini | nothing | an API key and its secret: account-scoped, Trader role, time-based nonce; a Gemini account with Prediction Markets access (US) that has accepted the current Prediction Markets terms | exchange.gemini.com/settings/api -> Create API key; tick "Uses a time-based nonce"; the secret is shown once |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
@@ -95,6 +96,7 @@ The variables each venue reads:
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
+| Gemini | `GEMINI_API_KEY` (`account-...`), `GEMINI_API_SECRET`, `GEMINI_ACCOUNT` (optional; the subaccount a `master-...` key acts for, REST only: the WebSocket refuses master keys), `GEMINI_ENV` = `prod` (the default, real money) or `sandbox` (api.sandbox.gemini.com, with a sandbox key) |
 
 Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
 optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
@@ -573,3 +575,58 @@ each market on the YES leg. The balance is the proxy wallet's USDC: what is
 free to bet, and what matched bets hold in escrow.
 
 Check SX Bet's terms for where it may be used before trading.
+
+## Gemini
+
+`GeminiTrading`, on Gemini's private REST API for Prediction Markets. It needs
+a Gemini account with Prediction Markets access, which Gemini offers in the
+US, and an API key from exchange.gemini.com/settings/api: account-scoped,
+with the Trader role, and a time-based nonce, which the account stream
+requires. The account must have accepted Gemini's current Prediction Markets
+terms: `fetch_terms_status()` says whether it has, `fetch_terms()` reads
+them, and `accept_terms()` accepts them for the account group. Nothing here
+accepts them on its own; an order sent before is refused with
+`PermissionDenied`.
+
+Every private request sends an empty body. The JSON payload (the request path,
+a nonce, and the endpoint's fields) goes base64-encoded in `X-GEMINI-PAYLOAD`,
+signed with HMAC-SHA384 under the API secret into `X-GEMINI-SIGNATURE`. The
+nonce is Unix seconds, which a time-based key accepts within 30 seconds of
+Gemini's clock. Signed requests go one at a time, as Gemini's own SDK sends
+them, under the venue's 600 requests a minute. A rate-limited read is signed
+again and retried; a write is sent once.
+
+An order names its outcome. `buy` at *p* is sent as buying YES at *p*;
+`sell` at *p* as buying NO at `1 - p`, Gemini's way to hold NO. With
+`reduce_only`, the order sells what is held instead: `sell` sells YES at *p*,
+`buy` sells NO at `1 - p`. Orders, fills and positions read back on the YES
+leg, with the venue's side and outcome in `info`. Positions net on YES:
+`inventory_yes` and `inventory_no` keep what each outcome holds, and
+`entry_price` is on the YES leg.
+
+The venue takes limit orders. `market` and `ioc` are sent as
+`immediate-or-cancel` at the price given as the worst accepted, `fok` as
+`fill-or-kill`; post-only is `makerOrCancel`. There is no good-till-date, no
+amend and no client order id on the wire: `client_order_id` stays on the
+returned `Order`. Prices and quantities are checked against the cent tick
+and the hundredth-contract grid unless a `Precision` from the contract's own
+grid is passed. `create_orders` and `cancel_orders` send twenty a request;
+Gemini checks a whole batch before sending any of it.
+
+There is no single-order route, so `fetch_order` searches the active orders
+and the latest thousand of the history. `fetch_orders` reads the history
+(`filled` or `cancelled`) by offset, or a time window with `since`. There is
+no fills route either: `fetch_my_trades` is one aggregate fill per order at
+its average price (`info["aggregate"]`), and `GeminiUserStream` carries each
+execution with its fee and whether it made or took ([Streaming](streaming.md)).
+`fetch_settlements` reads settled positions with their payouts.
+`fetch_balance` is the account's USD: `available` to trade, `total`
+confirmed.
+
+Fees follow the contract's listing date and are rounded up to the cent; see
+[Gemini](capabilities.md#gemini). `fetch_fee_estimate` reads the contract's
+schedule with one public request.
+
+Combo RFQ (Gemini's sealed WebSocket auction for multi-leg combos, in beta
+and run by market makers) is not offered, and nor are WebSocket order
+placement and `cancelOnDisconnect`.

@@ -77,7 +77,7 @@ and spot exchanges do not.
 | Method | Returns | Notes |
 |---|---|---|
 | `fetch_markets(query, limit, cursor, status, sort)` | `Page[Market]` | `limit` up to 100 |
-| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read), order preserved, closed and settled markets included |
+| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read; Gemini one event read per event), order preserved, closed and settled markets included |
 | `fetch_events(query, limit, cursor, status)` | `Page[Event]` | markets nested |
 | `fetch_market(market_id)` | `Market` | |
 | `fetch_order_book(market_id, side, depth)` | `OrderBook` | `side="yes"` (default) or `"no"` |
@@ -120,6 +120,22 @@ contracts = smk.fetch_markets(domain="football", market_type="WINNER_3_WAY", lim
 book = smk.fetch_order_book(contracts[0].id)  # Smarkets bids are YES bids, offers YES asks
 book.info["bids"], book.info["offers"]     # Smarkets' own [price bps, quantity] pairs
 smk.fetch_trades(contracts[0].id)          # the short recent tape
+```
+
+Gemini needs no account for market data. It adds `fetch_event(id)` (one event
+with its contracts, any status), `fetch_gemini_event(ticker)` (the raw event,
+its child events included), `fetch_categories(status)` and `fetch_strike(id)`
+(a crypto Up/Down event's strike once set), and takes `category` and the sports
+taxonomy, `sport`, `sports_market_type`, `sports_market_subject`,
+`sports_market_scope` and `sports_market_metric` (each a value or a list), on
+`fetch_markets` and `fetch_events`. See [Gemini](capabilities.md#gemini).
+
+```python
+gemini = synpath.Gemini()                 # no account
+lines = gemini.fetch_markets(sport="basketball", sports_market_type="spread", limit=9)
+lines[0].info["sports_market"]            # {"sport": "basketball", "type": "spread", "subject": "team", ...}
+lines[0].info["strike"]                   # {"type": "spread", "value": "1.5"}
+book = gemini.fetch_order_book(lines[0].id)   # YES space; side="no" mirrors it
 ```
 
 Polymarket also has
@@ -204,7 +220,7 @@ result.matched     # MarketLink | None
 
 Matching covers every venue this library speaks: `kalshi`, `polymarket`,
 `polymarket_us`, `opinion`, `hyperliquid`, `predict_fun`, `limitless` and
-`sx_bet` (not Betfair or Smarkets yet). `venue=` asks one of them in particular; without it the answer is
+`sx_bet` (not Betfair, Smarkets or Gemini yet). `venue=` asks one of them in particular; without it the answer is
 the first venue listing the same question, in the order Polymarket, Kalshi,
 Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Polymarket US.
 
@@ -256,13 +272,14 @@ A venue that cannot filter by one of them raises `NotSupported`. Polymarket
 does for `settled`, since its catalog does not publish resolution status, and
 Betfair for everything but `open`, since a closed market leaves its catalogue
 (read it by id instead). Smarkets filters on its events' states: `closed` is an
-ended or suspended event, `settled` a settled or cancelled one.
+ended or suspended event, `settled` a settled or cancelled one. Gemini's `closed`
+is a closed or under-review event, `settled` a settled or invalid one.
 Anything outside the four raises `BadRequest` rather than being handed to the
 venue to interpret for itself.
 
 ### Identifiers
 
-One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
+One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. On Gemini a market is a contract named by its instrument symbol, `gemini:GEMI-NBA-2610232000-CHI-MIL-M-MIL`, and its event the Gemini event, `gemini:NBA-2610232000-CHI-MIL-M`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
 
 ### Paging
 
