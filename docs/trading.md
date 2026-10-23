@@ -24,7 +24,7 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet and Azuro,
+stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Azuro and Myriad,
 Ed25519 and private-key JWT for Polymarket US, Ed25519 or P-256 request signing (NOVIG-V3) for Novig; ProphetX signs nothing (a key pair buys a bearer token). Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
@@ -75,6 +75,7 @@ private key. `synpath init` tells them apart.
 | Matchbook | nothing | the account's login: username and password (an account with two-factor login passes a session token made elsewhere) | your matchbook.com account; higher API limits need an API plan from api@matchbook.com |
 | ProphetX | the Trading API key pair, or a Market Data API key | the Trading API key pair: an access key and a secret key, exchanged for a ten-minute bearer token | prophetx.co -> Menu -> API Integration, on any KYC-approved account (sandbox.prophetx.dev for the sandbox); the secret is shown once. The Market Data API key is issued by ProphetX on request |
 | Azuro | nothing | the private key of the wallet that signs each bet and holds the bet token, which must allow Azuro's relayer to spend it (`approve()`, once) | exported from the wallet |
+| Myriad | nothing (an API key and secret raise the rate limit) | the private key of the wallet the Myriad account is connected to (it signs every order and cancel), and an API key with its secret, or nothing more: without a key the wallet signs in (SIWE) for a session token. A key alone reads the account, with `MYRIAD_ACCOUNT_ADDRESS` | Myriad Account settings, or `MyriadTrading.create_api_key()` from a signed-in session; the secret is shown once |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
@@ -98,6 +99,7 @@ The variables each venue reads:
 | Hyperliquid | `HYPERLIQUID_PRIVATE_KEY` (an API wallet's key is safest: it trades but cannot withdraw), `HYPERLIQUID_ACCOUNT_ADDRESS` (the account an API wallet trades for; not needed with the account's own key), `HYPERLIQUID_TESTNET` (`1` for the test network) |
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
+| Myriad | `MYRIAD_PRIVATE_KEY` (signs orders and cancels, and the sign-in when there is no key), `MYRIAD_API_KEY` and `MYRIAD_API_SECRET` (optional together: HMAC-signed requests; the venue refuses a key without its signature), `MYRIAD_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address when no private key names it), `MYRIAD_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
 | Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
 | Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
@@ -766,3 +768,60 @@ which this library does not do.
 
 Gnosis and Chiliz are discontinued and take no bets. Azuro's bet API answers
 some regions with a 503; check where Azuro may be used before betting.
+
+## Myriad
+
+`MyriadTrading`, built to Myriad's API reference, for its order book on BNB
+Chain. Order hashes and signatures are checked against an independent
+EIP-712 encoder and fixed known answers.
+
+Every order is the venue's nine-field EIP-712 `Order` (trader, market,
+outcome, side, amount, price, minimum fill, nonce, expiration), signed by the
+wallet under the domain `MyriadCTFExchange` on chain 56; its digest is the
+order's hash, the id every lookup and cancel takes, known before it is sent.
+Requests to the account's endpoints are signed with the API key and its secret
+(HMAC-SHA256 over the timestamp, method, path with query, and body), or,
+without a key, carry a session token the wallet signs in for (SIWE: the
+venue's login message signed as a personal message; the session is renewed
+before it lapses). The first sign-in of a wallet creates its Myriad account
+and ties it to that wallet; orders must be that wallet's own.
+
+An order trades one outcome of a binary market. `buy` buys outcome 0 (YES) at
+the price given; `sell` buys outcome 1 at `1 - price`; with `reduce_only`,
+`sell` sells outcome 0 held and `buy` sells outcome 1 held. Prices are whole
+cents and sizes shares to 18 decimals. Limits rest until cancelled (`gtc`), or
+until `expires_at` (`gtd`), post-only (`PO`) on request; `market` and `ioc` go
+as the venue's fill-and-kill (`FAK`) at the price given as the worst accepted,
+`fok` as its fill-or-kill. The matcher settles fills on chain after the order
+is accepted, so what an order filled is read from the order, its stream, or
+the account's history. `create_orders` sends up to 200 a request, and the
+venue checks the collateral of a batch at match time rather than on arrival.
+A client order id is sent only with an API key, as the venue requires.
+
+A cancel repeats the order and its signature. Orders placed through the
+adapter are remembered; any other is read back from the venue and signed
+again, which gives the same signature. `cancel_all_orders` is one signed
+`CancelAll`, for a market or the whole account. `edit_order` is the venue's
+atomic cancel-and-place: the matcher never sees both orders, and the queue
+place is lost.
+
+Fees are taker-only: a share of the notional by price, from the market's own
+table (3 bps at 1c, 180 bps at 50c). Before the first order the wallet
+approves USD1 and its outcome shares to the exchange: `approval_calls()`
+returns the two transactions for the wallet to send. `position_calldata()`
+returns the venue's calldata to split collateral into YES and NO, merge them
+back, or redeem after resolution.
+
+Orders are read by status (`open`, `filled`, `cancelled`, `expired`). The
+account's trade history names neither the order behind a fill nor its fee,
+so `fetch_my_trades` is partial; `MyriadUserStream` carries orders, fills
+from the wallet's public tape with their orders and fees, and share balances
+([Streaming](streaming.md)). Positions come from the venue's portfolio, order
+book and AMM alike, netted per binary market on the YES leg. The balance is
+the wallet's USD1 on BNB Chain, less what open buy orders reserve.
+
+AMM markets trade through on-chain contract calls (the venue's quote route
+returns the calldata), one per trade with gas, on BNB Chain, Abstract and
+Linea; they are not traded here, and an order for one is refused.
+
+Check Myriad's terms for where it may be used before trading.

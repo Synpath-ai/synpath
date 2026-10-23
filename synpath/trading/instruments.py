@@ -92,6 +92,10 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # millionth; the pool's own minimum bet is read per selection.
     "azuro": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
               "whole": False},
+    # Order books only: prices in whole cents; sizes are 18-decimal shares and
+    # the venue publishes no minimum, so a millionth of a share is the step.
+    "myriad": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
+               "whole": False},
 }
 
 

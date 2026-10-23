@@ -47,6 +47,7 @@ from .hyperliquid import Hyperliquid
 from .predict_fun import PredictFun
 from .limitless import Limitless
 from .sx_bet import SxBet
+from .myriad import Myriad
 from .betfair import Betfair
 from .smarkets import Smarkets
 from .novig import Novig
@@ -103,6 +104,7 @@ exchanges: dict[str, type[Exchange]] = {
     "matchbook": Matchbook,
     "prophetx": ProphetX,
     "azuro": Azuro,
+    "myriad": Myriad,
 }
 """Every venue this library speaks, by id."""
 
@@ -123,7 +125,7 @@ def exchange(venue: str, **kwargs) -> Exchange:
 # keeps working. Imported last, after the read API it builds on.
 from .trading import (
     TradingExchange, KalshiTrading, PolymarketTrading, PolymarketUSTrading, PolymarketUSExchangeTrading,
-    OpinionTrading, HyperliquidTrading, PredictFunTrading, LimitlessTrading, SxBetTrading, NovigTrading, MatchbookTrading, ProphetXTrading, AzuroTrading,
+    OpinionTrading, HyperliquidTrading, PredictFunTrading, LimitlessTrading, SxBetTrading, NovigTrading, MatchbookTrading, ProphetXTrading, AzuroTrading, MyriadTrading,
     Account, Balance, EditRequest, FeeEstimate, Fill, HeldBy, Liquidity,
     Order, OrderRequest, OrderStatus, OrderType, Position, PositionSide,
     Precision, Settlement, SettlementState, Side, TimeInForce, TriggerSource,
@@ -153,7 +155,7 @@ _STREAM_CLASSES = (
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
     "OpinionMarketStream", "OpinionUserStream", "HyperliquidMarketStream", "HyperliquidUserStream",
     "PredictFunMarketStream", "PredictFunUserStream", "LimitlessMarketStream", "LimitlessUserStream", "SxBetMarketStream", "SxBetUserStream",
-    "BetfairMarketStream", "SmarketsMarketStream", "NovigMarketStream", "NovigUserStream", "MatchbookMarketStream", "ProphetXMarketStream", "ProphetXUserStream", "AzuroMarketStream",
+    "BetfairMarketStream", "SmarketsMarketStream", "NovigMarketStream", "NovigUserStream", "MatchbookMarketStream", "ProphetXMarketStream", "ProphetXUserStream", "AzuroMarketStream", "MyriadMarketStream", "MyriadUserStream",
 )
 _SERVER_NAMES = ("create_app", "create_trading_app", "VenueRegistry", "ControlStore", "Principal")
 
@@ -175,7 +177,7 @@ def __getattr__(name: str):
 
 
 __all__ = [
-    "Kalshi", "Polymarket", "PolymarketUS", "Opinion", "Hyperliquid", "PredictFun", "Limitless", "SxBet", "Betfair", "Smarkets", "Novig", "Matchbook", "ProphetX", "Azuro", "Exchange", "exchange", "exchanges",
+    "Kalshi", "Polymarket", "PolymarketUS", "Opinion", "Hyperliquid", "PredictFun", "Limitless", "SxBet", "Betfair", "Smarkets", "Novig", "Matchbook", "ProphetX", "Azuro", "Myriad", "Exchange", "exchange", "exchanges",
     "Capability", "HttpClient", "RateLimiter",
     "Market", "Event", "Outcome", "Quote", "MarketStats", "OrderBook",
     "OrderLevel", "Trade", "Candle", "FeeSchedule", "Series", "Page",
@@ -192,7 +194,7 @@ __all__ = [
     "MarketNotFound", "NotSupported", "AuthenticationError",
     # order entry
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
-    "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading", "NovigTrading", "MatchbookTrading", "ProphetXTrading", "AzuroTrading",
+    "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading", "NovigTrading", "MatchbookTrading", "ProphetXTrading", "AzuroTrading", "MyriadTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",

@@ -41,6 +41,7 @@ def test_it_writes_every_venue_asked_for_readable_by_the_owner_only(tmp_path: Pa
          "n",                                     # predict.fun
          "n",                                     # Limitless
          "n",                                     # SX Bet
+         "n",                                     # Myriad
          "n",                                     # Betfair
          "n",                                     # Smarkets
          "n",                                     # Novig
@@ -252,3 +253,31 @@ def test_an_api_key_alone_counts_as_set_up_already(tmp_path: Path):
     p = Prompter(ask=lambda question: asked.append(question) or "n", ask_secret=lambda _q: "", say=lambda _: None)
     assert run(env, p) == 0
     assert any("Set up SX Bet (already set)?" in question for question in asked)
+
+
+def test_myriad_takes_an_api_key_and_the_wallet(tmp_path: Path):
+    env = tmp_path / ".env"
+    p, _ = scripted(["n"] * 8 + ["y", "key-1", "n", "n"], secrets=["secret-1", KEY[2:]])
+    assert run(env, p) == 0
+    values = read_dotenv(env)
+    assert values == {"MYRIAD_API_KEY": "key-1", "MYRIAD_API_SECRET": "secret-1", "MYRIAD_PRIVATE_KEY": KEY}
+    loaded = load_credentials({}, dotenv=env, redact_logs=False)["myriad"]
+    assert loaded is not None and loaded.api_key == "key-1" and loaded.private_key == KEY
+
+
+def test_myriad_without_an_api_key_signs_in_with_the_wallet(tmp_path: Path):
+    env = tmp_path / ".env"
+    p, said = scripted(["n"] * 8 + ["y", "", "n", "n"], secrets=[KEY])
+    assert run(env, p) == 0
+    assert read_dotenv(env) == {"MYRIAD_PRIVATE_KEY": KEY}
+    assert any("signs in for a session" in line for line in said)
+
+
+def test_myriad_with_only_an_api_key_needs_the_wallet_address(tmp_path: Path):
+    env = tmp_path / ".env"
+    p, said = scripted(["n"] * 8 + ["y", "key-1", KEY, WALLET, "n", "n"], secrets=["secret-1", ""])
+    assert run(env, p) == 0
+    assert read_dotenv(env) == {"MYRIAD_API_KEY": "key-1", "MYRIAD_API_SECRET": "secret-1", "MYRIAD_ACCOUNT_ADDRESS": WALLET}
+    assert any("That looks like a private key" in line for line in said)
+    loaded = load_credentials({}, dotenv=env, redact_logs=False)["myriad"]
+    assert loaded is not None and loaded.private_key is None and loaded.address == WALLET

@@ -153,6 +153,20 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
                 market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
                 private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=address) if address else None,
             )
+        elif venue == "myriad" and creds is not None:
+            # Books are public; the account's orders and positions channels take a
+            # subscription token the adapter signs for, fills the public per-wallet tape.
+            from ..ws.myriad import MyriadMarketStream, MyriadUserStream
+            catalog = getattr(adapter, "catalog", None)
+            address = getattr(creds, "address", None)
+            token = getattr(adapter, "subscription_token", None)
+            if not address:
+                log.warning("synpath.engine.feeds: myriad has an API key but no wallet address, so its orders "
+                            "reach the engine by polling; set MYRIAD_ACCOUNT_ADDRESS for the account stream")
+            out[venue] = VenueStreams(
+                market=MyriadMarketStream(catalog=catalog),
+                private=MyriadUserStream(address=address, token=token) if address and token else None,
+            )
         elif venue == "betfair" and creds is not None:
             # Market data only: no Betfair order entry, so no account stream.
             # Every Betfair stream, books included, logs in with the account.

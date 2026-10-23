@@ -539,6 +539,10 @@ class FeeSchedule(_Base):
     min_fee: float | None = None
     """Smallest fee one taker order is charged, in collateral, where the venue
     has a floor (Opinion: 0.25 USDT). `None` means no floor."""
+    taker_bps_by_cent: list[float] | None = None
+    maker_bps_by_cent: list[float] | None = None
+    """`bps_by_price` (Myriad): the rate at each whole-cent price, in basis
+    points of the notional, entry 0 at 1c and entry 99 at $1."""
     info: dict[str, Any] = Field(default_factory=dict)
 
     def estimate(self, price: float, contracts: float, *, taker: bool = True) -> float | None:
@@ -606,6 +610,15 @@ class FeeSchedule(_Base):
           through Azuro's relayer pays it a flat fee per bet, in the bet
           token, which is not a function of price or size and is left out
           here (`AzuroTrading.fetch_fee_estimate` reads it).
+        * `bps_by_price` (Myriad order books) — `table[cents - 1] / 10,000 *
+          P * C`, a share of the notional that depends on the price, read
+          from the venue's table at the whole cent `P` rounds to
+          (`taker_bps_by_cent`, `maker_bps_by_cent`): 3 bps at 1c, 180 at 50c.
+          `taker_rate` and `maker_rate` are the tables' ceilings. Pass the
+          price of the outcome actually traded.
+        * `share_of_value` (Myriad AMM markets) — `rate * P * C`, a share of
+          the value traded, set per market; `taker_rate` is the buy rate
+          (the sell rate is in `info`).
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:
@@ -631,6 +644,14 @@ class FeeSchedule(_Base):
             return round(rate * (1 - price) * contracts, 6)
         if self.fee_type == "pool_margin":
             return 0.0
+        if self.fee_type == "bps_by_price":
+            table = self.taker_bps_by_cent if taker else self.maker_bps_by_cent
+            if table:
+                cents = min(len(table), max(1, round(price * 100)))
+                return round(table[cents - 1] / 10_000 * price * contracts, 6)
+            return round(rate * price * contracts, 6) if rate is not None else None
+        if self.fee_type == "share_of_value" and rate is not None:
+            return round(rate * price * contracts, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent
             return round(rate * contracts * (price * (1 - price)) ** power, 6)

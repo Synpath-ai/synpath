@@ -403,6 +403,11 @@ def _azuro(creds: Credentials) -> TradingExchange:
     return AzuroTrading(creds)  # type: ignore[arg-type]
 
 
+def _myriad(creds: Credentials) -> TradingExchange:
+    from .trading.myriad import MyriadTrading
+    return MyriadTrading(creds)  # type: ignore[arg-type]
+
+
 _TRADING = {
     "kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion,
     "hyperliquid": _hyperliquid, "predict_fun": _predict_fun, "limitless": _limitless, "sx_bet": _sx_bet,
@@ -410,4 +415,5 @@ _TRADING = {
     "matchbook": _matchbook,
     "prophetx": _prophetx,
     "azuro": _azuro,
+    "myriad": _myriad,
 }

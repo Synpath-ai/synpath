@@ -49,6 +49,8 @@ asyncio.run(main())
 | `MatchbookMarketStream` | `api.matchbook.com` REST, polled (Matchbook has no push API) | none | runner books, top of book and runner status at every poll (5 s by default) |
 | `ProphetXMarketStream` | the host `GET /websocket/connection-config` names (ProphetX's Talaria, Pusher protocol 7) | the Trading API key pair (every channel is private) | each line's ten best levels a side on every change, top of book, the tournament's tape of fills |
 | `ProphetXUserStream` | the same host | the Trading API key pair | orders on every change; a fill with each match |
+| `MyriadMarketStream` | `ws.myriadprotocol.com/ws` | none | order books (both outcomes), top of book and last per outcome, the tape of matches, markets created and resolved |
+| `MyriadUserStream` | `ws.myriadprotocol.com/ws` | the wallet's address, and a subscription token per account channel (`MyriadTrading.subscription_token`) | orders; fills from the wallet's public tape; share balances |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -70,6 +72,7 @@ variable `synpath serve` reads it from:
 | Polymarket | nothing | |
 | Hyperliquid | nothing | |
 | Limitless | nothing | |
+| Myriad | nothing | |
 | Opinion | the Open API key | `OPINION_API_KEY` |
 | predict.fun | the API key (`pred_sk_...`, from developers.predict.fun); mainnet only | `PREDICT_FUN_API_KEY` |
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
@@ -181,6 +184,18 @@ jittered exponential backoff between attempts.
   grows, and a quiet market publishes nothing, so each book is seeded from the
   REST snapshot when its subscription is confirmed. Trades and market changes
   are venue-wide channels, filtered here to the markets asked for.
+- *Myriad* speaks Centrifugo's JSON protocol too, anonymously: the books,
+  prices, trades and markets channels are public, and so is one wallet's tape
+  on every market (`trades:56:*:<wallet>`), which carries the account's fills.
+  The account's orders and positions channels each take a short-lived token
+  that the REST API issues for the signed-in wallet's own channels; the user
+  stream asks the trading adapter for one per channel on every subscribe. A
+  book delta is the new size of each changed level, for both outcomes at once;
+  both books are seeded from REST when the subscription is confirmed, and
+  deltas that arrived first are replayed on the snapshot, which is safe since
+  each is a level's absolute size. A reconnect reseeds them. Publications are
+  coalesced into windows of about 100 ms. Order-book markets only: pools
+  publish nothing here.
 - *Betfair* is not a WebSocket: its Exchange Stream API is one TLS socket to
   `stream-api.betfair.com:443` carrying CRLF-delimited JSON. The stream
   authenticates with the application key and a session token straight away

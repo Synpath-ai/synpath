@@ -77,7 +77,7 @@ and spot exchanges do not.
 | Method | Returns | Notes |
 |---|---|---|
 | `fetch_markets(query, limit, cursor, status, sort)` | `Page[Market]` | `limit` up to 100 |
-| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read; Novig one request each; Matchbook 20 events a request, every market of each; ProphetX 20 events a request; Azuro reads each game's conditions once, ten games a request), order preserved, closed and settled markets included |
+| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read; Novig one request each; Matchbook 20 events a request, every market of each; ProphetX 20 events a request; Azuro reads each game's conditions once, ten games a request; Myriad 100 a request per network and kind of market), order preserved, closed and settled markets included |
 | `fetch_events(query, limit, cursor, status)` | `Page[Event]` | markets nested |
 | `fetch_market(market_id)` | `Market` | |
 | `fetch_order_book(market_id, side, depth)` | `OrderBook` | `side="yes"` (default) or `"no"` |
@@ -188,6 +188,22 @@ market = markets[0]
 market.yes.quote.ask, market.info["odds"]   # 1 / odds, and the venue's odds
 azuro.fetch_limits(market.id)               # {"min_bet", "max_bet", "max_payout", ...}
 azuro.fetch_trades(market.id)               # single bets, from the bets subgraph
+```
+
+Myriad needs no key (an API key and secret raise its rate limit). It takes
+`topic` (`"sports"`, `"crypto"`), `tag` (a league, team or asset slug),
+`in_play`, `trading_model` (`"all"`, the default, `"ob"` or `"amm"`) and
+`network` (56 BNB Chain, 2741 Abstract, 59144 Linea) on `fetch_markets` and
+`fetch_events`, and adds `fetch_event(id)`, `fetch_topics()`, `fetch_tags(type)`
+and `raw_market(id)`. Any id also takes the market's slug. See
+[Myriad](capabilities.md#myriad).
+
+```python
+myriad = synpath.Myriad()                  # no key needed
+games = myriad.fetch_markets(topic="sports", trading_model="ob", limit=9)
+book = myriad.fetch_order_book(games[0].id, side="no")   # outcome 1's own book
+pool = myriad.fetch_order_book("myriad:56-amm-120473")   # built from the pool: book.info["depth_source"] == "amm"
+myriad.fetch_fee_schedule(games[0].id).estimate(0.40, 100)   # the taker fee at 40c
 ```
 
 Polymarket also has
@@ -337,7 +353,7 @@ venue to interpret for itself.
 
 ### Identifiers
 
-One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. On Novig a market is a two-outcome market, `novig:<market id>` (`novig:01a1577c-d666-7e81-852e-68bed1446801`), and its event the game, `novig:<event id>`. On Matchbook a market is a runner, `matchbook:<event id>-<market id>-<runner id>` (`matchbook:34569494493900023-34569495835700023-34569495836701023`), and its event the Matchbook market, `matchbook:<event id>-<market id>`. On ProphetX a market is a line, `prophetx:<event id>-<strike id>` with the strike id of its YES side (`prophetx:44285780-90de769f4f4977a04446ed203e957351`), and its event the game, `prophetx:44285780`. On Azuro a two-outcome condition is one market, `azuro:<condition id>`, a condition with three or more outcomes one market per outcome, `azuro:<condition id>-<outcome id>`, and the game is the event, `azuro:<game id>`; the ids are the same on every chain. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
+One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. On Novig a market is a two-outcome market, `novig:<market id>` (`novig:01a1577c-d666-7e81-852e-68bed1446801`), and its event the game, `novig:<event id>`. On Matchbook a market is a runner, `matchbook:<event id>-<market id>-<runner id>` (`matchbook:34569494493900023-34569495835700023-34569495836701023`), and its event the Matchbook market, `matchbook:<event id>-<market id>`. On ProphetX a market is a line, `prophetx:<event id>-<strike id>` with the strike id of its YES side (`prophetx:44285780-90de769f4f4977a04446ed203e957351`), and its event the game, `prophetx:44285780`. On Azuro a two-outcome condition is one market, `azuro:<condition id>`, a condition with three or more outcomes one market per outcome, `azuro:<condition id>-<outcome id>`, and the game is the event, `azuro:<game id>`; the ids are the same on every chain. On Myriad a market is `myriad:<network>-<market id>` on an order book (`myriad:56-2385`) and `myriad:<network>-amm-<market id>` on a pool (`myriad:56-amm-120473`), since the two number their markets separately; one outcome of a pool with more than two is `myriad:<network>-amm-<market id>-<outcome>`, and that pool its event. A venue event is `myriad:<uuid>`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
 
 ### Paging
 
