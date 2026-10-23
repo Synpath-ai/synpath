@@ -43,6 +43,8 @@ asyncio.run(main())
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
+| `NovigMarketStream` | `api.novig.com/v3/ws` (or Paper's); without a key, the public REST book polled | a subaccount's trading key for the WebSocket (the handshake is signed); none to poll | books kept per order, top of book, the tape, market transitions (going in play voids resting orders) |
+| `NovigUserStream` | `api.novig.com/v3/ws` | a subaccount's trading key | orders (open, fill, cancel, reject) and positions of that subaccount |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -69,6 +71,7 @@ variable `synpath serve` reads it from:
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
 | Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
+| Novig | the WebSocket: a subaccount's trading key (key id and private key file; the handshake is signed). Without one the public book is polled | `NOVIG_KEY_ID`, `NOVIG_PRIVATE_KEY_PATH`, `NOVIG_ENV` |
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
@@ -204,6 +207,36 @@ jittered exponential backoff between attempts.
   says so in `info["delayed"]`. A change shows at the next poll, not as it
   happens, so its `watch_*` keys are `partial`. No `watch_trades`: the recent
   tape is short and unpaged; read it with `Smarkets.fetch_trades`.
+- *Novig* carries every channel on one WebSocket, `wss://api.novig.com/v3/ws`
+  (Paper: `wss://api.paper.novig.com/v3/ws`), opened with a subaccount's
+  `trading` or `trading::read` key: the upgrade is signed like any request
+  (NOVIG-V3 over `GET /v3/ws`). Requests are JSON verbs with nonces that
+  grow within a connection. `subscribe` sets one channel per market --
+  `book`, `bbo`, `trades` or `lifecycle`, the first three carrying
+  `lifecycle` too -- and is answered with a snapshot at a `seq`; each delta
+  carries the next `seq` of its market and channel, and a skipped one is a
+  gap, recovered with a `snapshot` request that leaves the subscriptions as
+  they are. Books are kept per resting order (`add`, `update`, `remove`) and
+  read on YES like the REST book: the YES outcome's bids are bids, the NO
+  outcome's asks at one minus their price, sizes in dollar contracts. A
+  market watched for its book and its trades is subscribed on `book`, and
+  its trades are read off the book's fills, without the tape's ids; a market
+  watched for trades alone is on `trades`, for its ticker alone on `bbo`.
+  `GOLIVE` voids every resting order on the event, so the book empties and a
+  `MarketStatusEvent` says so. Subscriptions go out sixteen markets a
+  request, paced under the venue's `stream` throttle. Without a key,
+  `NovigMarketStream` polls the public book (every 5 s by default), the tape
+  for watched trades and the market for its status, and its `watch_*` keys
+  are `partial`; the edge caches those answers for up to fifteen seconds. A
+  poll the edge throttles keeps the last answer and is retried at the next.
+  `NovigUserStream` subscribes the subaccount's `orders` and `positions`:
+  the snapshot lists the resting orders and the nonzero positions, then
+  `open`, `fill`, `cancel` and `reject` events and position changes follow,
+  each channel with its own `seq`. A heartbeat every 15 s names the last
+  `seq` of each; one ahead of the stream's is a gap, reported with
+  `reconcile_required` and recovered with a snapshot. Fills matched on entry
+  arrive before the order's `open`. A `fill` carries no fee; read it with
+  `NovigTrading.fetch_my_trades`.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

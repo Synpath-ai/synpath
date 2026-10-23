@@ -1,0 +1,53 @@
+{
+ "items": [
+  {
+   "eventId": "01a1696f-6a01-7980-8ca5-81bfd7a21ea7",
+   "description": "Toronto Maple Leafs @ Edmonton Oilers",
+   "sport": "ICE_HOCKEY",
+   "league": "NHL",
+   "status": "OPEN_PREGAME",
+   "startsTs": 1792882800000
+  },
+  {
+   "eventId": "01a1577c-d5f2-7a31-85bc-3a2230bd25f9",
+   "description": "Tampa Bay Rays @ Milwaukee Brewers",
+   "sport": "BASEBALL",
+   "league": "MLB",
+   "status": "OPEN_PREGAME",
+   "startsTs": 1792800000000
+  },
+  {
+   "eventId": "019fcbf2-0856-7553-bfb1-c7f7db11f420",
+   "description": "Defensive Player Of The Year Winner",
+   "sport": "FOOTBALL",
+   "league": "NFL",
+   "status": "OPEN_PREGAME",
+   "startsTs": 1802647860000
+  },
+  {
+   "eventId": "01a1659d-8667-7c52-a486-0f35d45d48a9",
+   "description": "Kevin Roy @ Ben Kohles Round 2",
+   "sport": "GOLF",
+   "league": "PGA",
+   "status": "OPEN_INGAME",
+   "startsTs": 1792769880000
+  },
+  {
+   "eventId": "01a15f1b-8192-7ab3-9f0b-a8016fb33365",
+   "description": "Henrique Rocha @ Elmer Moller Quarterfinals",
+   "sport": "TENNIS",
+   "league": "ATP",
+   "status": "FINAL",
+   "startsTs": 1792763700000
+  },
+  {
+   "eventId": "01a15444-e60c-78d2-9b82-92733edac5d8",
+   "description": "Iga Swiatek @ Marie Bouzkova Round of 16",
+   "sport": "TENNIS",
+   "league": "WTA",
+   "status": "CANCELED",
+   "startsTs": 1792558800000
+  }
+ ],
+ "next": "01a15444-e60c-78d2-9b82-92733edac5d8"
+}

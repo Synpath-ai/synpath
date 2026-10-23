@@ -559,11 +559,14 @@ class FeeSchedule(_Base):
           Kalshi schedule) the fee for the order is rounded up to the cent, as
           the venue charges it. Kalshi's `flat` type follows a separate table
           this library does not have, so it returns `None`.
-        * `quadratic_theta` (Polymarket US, Polymarket) — `theta * C *
+        * `quadratic_theta` (Polymarket US, Polymarket, Novig) — `theta * C *
           (P * (1 - P)) ** exponent`, the same shape with the coefficient
           published directly: `taker_rate` and `maker_rate` hold the venue's
           thetas, and a negative maker theta is a rebate, returned here as a
           negative fee. `exponent` is 1 unless the venue says otherwise.
+          Novig's maker theta is its maker credit, a share of the taker's
+          fee; on a game market both apply only while the event is in play
+          (`info["charged"]` is `WHEN_LIVE`).
         * `min_price` (predict.fun) — `rate * min(P, 1 - P) * C` for a
           taker, on the cheaper side of the market; a maker pays `maker_rate`
           (zero on every market read so far).

@@ -5,7 +5,7 @@
 # Synpath – One API for prediction markets <a href="https://x.com/Synpath_Dev"><img src="https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2FSynpath_Dev&style=social&label=Follow" alt="Follow @Synpath_Dev on X" height="28"></a>
 
 **Build on prediction markets without building against each one.**<br/>
-One open-source API across 8 venues (Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet): market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
+One open-source API across 9 venues (Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet and Novig): market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
 
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <a href="https://pepy.tech/projects/synpath"><img src="https://img.shields.io/pepy/dt/synpath?label=Total%20Downloads&color=blue" alt="Total Downloads"></a>
@@ -82,14 +82,17 @@ No silent gaps: if we weren't recording at a moment, you get the reason instead 
 | | [SX Bet](https://sx.bet) | `sx_bet` | ✓ sports | ✓ | WebSocket | one book per market, both sides read it |
 | | [Betfair Exchange](https://www.betfair.com/exchange) | `betfair` | ✓ your own account and app key (delayed key: 1-180 s late, 3 levels) | — | Exchange Stream API (TLS socket) | one book per runner, back and lay read as YES |
 | | [Smarkets](https://smarkets.com) | `smarkets` | ✓ no account (quotes delayed without a login) | — | polled from REST quotes | one book per contract, bids are YES bids |
+| | [Novig](https://novig.com) | `novig` | ✓ sports, no key | ✓ (US, identity and location checks; Paper for play money) | WebSocket (trading key), else polled from the public book | one book per market, both sides read it |
 
 Betfair is a betting exchange, not a prediction market, read here the same way: each runner (selection) is a yes/no market, `betfair:1.234567890-47972`, and the Betfair market holding the runners is the event. Every Betfair call needs your own Betfair account and application key, and the API is refused from several countries (the US, Germany, France, the Netherlands, Singapore, India, Turkey, the UAE and others). Betfair's keys are for your own betting: showing its prices to anyone else needs a data licence from Betfair. See [capabilities](docs/capabilities.md#betfair).
 
 Smarkets, a UK betting exchange, is read the same way: each contract is a yes/no market, `smarkets:164973231-456060183`, and the Smarkets market holding the contracts is the event. Its market data needs no account (quotes are delayed without a login); betting needs Smarkets' approved API access, which this library does not use yet. Smarkets' API terms allow viewing prices and betting on your own account, and prohibit odds scraping. See [capabilities](docs/capabilities.md#smarkets).
 
+Novig, a US sports exchange, lists two-outcome markets (a moneyline, a spread, a total, a Yes/No prop), each one yes/no market, `novig:01a1577c-d666-7e81-852e-68bed1446801`, under its game as the event. Its catalog, books and trades are public and need no key. Trading signs each request with a subaccount's key; Production trades real money for verified US customers outside Arizona, Michigan and Nevada, and Paper (`NOVIG_ENV=paper`) is the same API with play money. Novig's parlay RFQ, for registered liquidity providers, is not supported yet. See [capabilities](docs/capabilities.md#novig).
+
 ## Why Synpath
 
-- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
+- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet and Novig, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
 
 - **Traders deserve advanced order types.** Stops, trailing stops, icebergs, OCO, brackets, TWAP and pegs, on every venue, even where the exchange has none. Orders are journaled before they're sent, so a crash never places one twice.
 
@@ -135,7 +138,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'betfair', 'smarkets'] (Betfair and predict.fun need keys)
+for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'betfair', 'smarkets', 'novig'] (Betfair and predict.fun need keys)
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 

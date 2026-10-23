@@ -29,6 +29,14 @@ def sx_bet_identity(creds: Any) -> str:
     return f"{wallet}; API key: market data, account, cancels; {placing}"
 
 
+def novig_identity(creds: Any) -> str:
+    """Which Novig keys loaded: the subaccount's trading key trades; the
+    management key opens and funds subaccounts."""
+    trading = f"trading key {creds.key_id}" if creds.key_id else "no trading key: set NOVIG_KEY_ID to trade"
+    management = f", management key {creds.management_key_id}" if creds.management_key_id else ""
+    return trading + management
+
+
 def doctor(dotenv: str | None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
@@ -52,11 +60,13 @@ def doctor(dotenv: str | None) -> int:
             continue
         if creds is None:
             names = ENV_NAMES[venue]
-            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair") else ""
+            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair", "novig") else ""
             rows.append((venue, "not configured", f"set {names[0]}{hint}"))
             continue
         stage = getattr(creds, "env", "-")
-        if getattr(creds, "key_id", None):
+        if venue == "novig":
+            identity = novig_identity(creds)
+        elif getattr(creds, "key_id", None):
             identity = f"key id {creds.key_id}"
         elif getattr(creds, "participant_id", None):
             identity = f"participant {creds.participant_id}"

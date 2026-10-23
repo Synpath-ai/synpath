@@ -164,6 +164,16 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
             # login, when configured, only undelays the quotes.
             from ..ws.smarkets import SmarketsMarketStream
             out[venue] = VenueStreams(market=SmarketsMarketStream(credentials=creds), private=None)
+        elif venue == "novig":
+            # The websocket takes a subaccount's trading key; without one the
+            # market stream polls the public book.
+            from ..ws.novig import NovigMarketStream, NovigUserStream
+            catalog = getattr(adapter, "catalog", None)
+            keyed = bool(getattr(creds, "key_id", None))
+            out[venue] = VenueStreams(
+                market=NovigMarketStream(credentials=creds, catalog=catalog),
+                private=NovigUserStream(credentials=creds, trading=adapter, catalog=catalog) if keyed else None,
+            )
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out
