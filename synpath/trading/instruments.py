@@ -66,6 +66,12 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # £0.05.
     "smarkets": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.0001"), "quantity_step": Decimal("0.0001"),
                  "whole": False, "min_notional": Decimal("0.05")},
+    # Prices are decimal odds on Matchbook's ladder (1.01 to 1000, the same
+    # bands as Betfair's), so the tick here is the finest and the trading
+    # adapter snaps each order onto the ladder in odds. Stakes are in the
+    # account's currency to the penny; Matchbook publishes no minimum.
+    "matchbook": {"default_tick": Decimal("0.00001"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.0001"),
+                  "whole": False},
 }
 
 

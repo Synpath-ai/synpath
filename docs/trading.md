@@ -71,6 +71,7 @@ private key. `synpath init` tells them apart.
 | predict.fun | mainnet: the API key (`pred_sk_...`). Test network: nothing | the API key and a private key: a plain wallet's, or a Predict account's owner key with its deposit address | the key at developers.predict.fun; a web-app account's owner key under Account -> Settings -> Privy wallet |
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
+| Matchbook | nothing | the account's login: username and password (an account with two-factor login passes a session token made elsewhere) | your matchbook.com account; higher API limits need an API plan from api@matchbook.com |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
@@ -95,6 +96,7 @@ The variables each venue reads:
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
+| Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
 
 Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
 optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
@@ -573,3 +575,58 @@ each market on the YES leg. The balance is the proxy wallet's USDC: what is
 free to bet, and what matched bets hold in escrow.
 
 Check SX Bet's terms for where it may be used before trading.
+
+## Matchbook
+
+`MatchbookTrading`, built to Matchbook's API reference
+(developers.matchbook.com). Every call carries the session token of an
+account login (`MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD`), made on the first
+call and kept in memory only. A session lasts about six hours: one older than
+five is replaced before the next call, and a 401 logs in again once. An
+account with two-factor login cannot log in from here; pass
+`session_token=` from a login made elsewhere.
+
+An order is an offer to back or lay one runner,
+`matchbook:<event id>-<market id>-<runner id>`. `buy` backs it (takes its
+YES) at decimal odds `1 / price`; `sell` lays it (takes its NO) at the same
+odds. Matchbook counts both in the backer's stake, so `n` contracts stake
+`n / odds`, rounded down to the penny; a lay's liability is that stake times
+`odds - 1`. Prices are snapped onto Matchbook's odds ladder (1.01 to 1000, the
+same bands as Betfair's) on the cheaper side: a buy at the next higher odds, a
+sell at the next lower, so an order never pays more than asked.
+
+Limits rest until matched or cancelled (`gtc`). Matchbook has no
+immediate-or-cancel offer, so `market` and `ioc` are offers at the price
+given as the worst accepted, whose unmatched rest is cancelled at once; in
+play, the offer first waits out Matchbook's delay (1 to 10 seconds), then
+the rest is cancelled. `fok`, `gtd` and post-only are refused, and so is
+`reduce_only`, since every bet on a runner nets. An offer's unmatched part is
+cancelled when its event goes in play unless it is sent with
+`params={"keep_in_play": True}`. `create_orders` sends fifty offers a request
+and returns one result each. `edit_order` changes the odds or the remaining
+stake in place (`quantity` is the order's new total, filled contracts
+included).
+
+Matchbook takes no client order id: `client_order_id` stays on the returned
+order only. After a timeout, read the open offers on the runner
+(`fetch_open_orders(market_id=...)`) to see what was placed.
+
+Offers and their matched bets are readable while their market is unsettled:
+`fetch_order`, `fetch_open_orders`, `fetch_orders` (by status) and
+`fetch_my_trades` (one fill per matched bet). Settled bets are
+`fetch_settlements`. Positions net the account's current matched bets per
+runner on the YES leg: backs are YES contracts, lays NO contracts. The
+balance is the account's cash, what its bets hold (exposure and the
+commission reserve, `locked`), and what is free to bet, in the account's
+currency.
+
+`heartbeat(seconds)` arms Matchbook's dead man's switch: unless it is called
+again in time, every open offer on the account is cancelled; `heartbeat(0)`
+turns it off. Commission is charged at settlement on net winnings per market
+(2% in the UK and Ireland, 4% elsewhere), makers and takers alike, unless the
+account is on volume commission. Betting writes are free at a reasonable
+rate; reads count towards the GETs Matchbook's API plans charge for.
+
+Check Matchbook's terms for where it may be used before trading: it is
+licensed in the UK and Alderney, and its terms allow betting on your own
+account only.

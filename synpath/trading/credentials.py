@@ -45,6 +45,8 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       (certificate login) and BETFAIR_JURISDICTION
   Smarkets            optionally SMARKETS_USERNAME and SMARKETS_PASSWORD: market
     (market data)     data needs no login; one gives undelayed quotes
+  Matchbook           MATCHBOOK_USERNAME, MATCHBOOK_PASSWORD: betting logs in;
+                      market data needs no login
 """
 from __future__ import annotations
 
@@ -357,10 +359,26 @@ class SmarketsCredentials:
         return [self.password]
 
 
+@dataclass(frozen=True, repr=False)
+class MatchbookCredentials:
+    """Matchbook: the account's login. Betting and the account's reads (offers,
+    bets, balance) log in with it; market data needs none. An account with
+    two-factor login cannot log in from here (pass a session token instead)."""
+
+    username: str
+    password: str = field(repr=False)
+    _public = ("username",)
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.password]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
     | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
-    | BetfairCredentials | SmarketsCredentials
+    | BetfairCredentials | SmarketsCredentials | MatchbookCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -389,6 +407,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "BETFAIR_JURISDICTION",
     ),
     "smarkets": ("SMARKETS_USERNAME", "SMARKETS_PASSWORD"),
+    "matchbook": ("MATCHBOOK_USERNAME", "MATCHBOOK_PASSWORD"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -685,6 +704,15 @@ def load_smarkets(env: Mapping[str, str]) -> SmarketsCredentials | None:
     return SmarketsCredentials(username=username, password=password)
 
 
+def load_matchbook(env: Mapping[str, str]) -> MatchbookCredentials | None:
+    username, password = env.get("MATCHBOOK_USERNAME"), env.get("MATCHBOOK_PASSWORD")
+    if not username and not password:
+        return None
+    if not username or not password:
+        raise CredentialsMissing("a Matchbook login needs both MATCHBOOK_USERNAME and MATCHBOOK_PASSWORD")
+    return MatchbookCredentials(username=username, password=password)
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -697,6 +725,7 @@ LOADERS = {
     "sx_bet": load_sx_bet,
     "betfair": load_betfair,
     "smarkets": load_smarkets,
+    "matchbook": load_matchbook,
 }
 
 

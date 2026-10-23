@@ -1,0 +1,14 @@
+{
+ "not_found": {
+  "errors": [
+   {
+    "messages": [
+     "Resource not found."
+    ],
+    "codes": [
+     null
+    ]
+   }
+  ]
+ }
+}

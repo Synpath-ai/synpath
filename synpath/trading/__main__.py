@@ -45,6 +45,11 @@ def doctor(dotenv: str | None) -> int:
                          "SMARKETS_PASSWORD for undelayed quotes, or run synpath init. Betting needs Smarkets' "
                          "approved API access (£150 one-off), not supported yet"))
             continue
+        if creds is None and venue == "matchbook":
+            # Market data is public; the login is for betting.
+            rows.append((venue, "not configured", "market data needs no login; set MATCHBOOK_USERNAME / "
+                         "MATCHBOOK_PASSWORD to bet, or run synpath init"))
+            continue
         if creds is None and venue in market_data:
             stage = "testnet" if market_data[venue].testnet else "mainnet"
             private = ENV_NAMES[venue][0]
@@ -94,6 +99,9 @@ def doctor(dotenv: str | None) -> int:
         elif venue == "smarkets":
             stage = "login"
             identity = f"user {creds.username}: undelayed quotes; betting needs approved API access, not supported yet"
+        elif venue == "matchbook":
+            stage = "login"
+            identity = f"user {creds.username}"
         elif getattr(creds, "api_key", None):
             identity = f"api key {creds.api_key[:8]}…"
         else:

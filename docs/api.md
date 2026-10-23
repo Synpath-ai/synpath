@@ -77,11 +77,11 @@ and spot exchanges do not.
 | Method | Returns | Notes |
 |---|---|---|
 | `fetch_markets(query, limit, cursor, status, sort)` | `Page[Market]` | `limit` up to 100 |
-| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read), order preserved, closed and settled markets included |
+| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read; Matchbook 20 events a request, every market of each), order preserved, closed and settled markets included |
 | `fetch_events(query, limit, cursor, status)` | `Page[Event]` | markets nested |
 | `fetch_market(market_id)` | `Market` | |
 | `fetch_order_book(market_id, side, depth)` | `OrderBook` | `side="yes"` (default) or `"no"` |
-| `fetch_order_books(market_ids, side, depth)` | `dict[str, OrderBook]` | many books; one request on Polymarket (500 books), on Betfair (40 Betfair markets, every runner of each) and on Smarkets (200 Smarkets markets, every contract of each), one per market elsewhere |
+| `fetch_order_books(market_ids, side, depth)` | `dict[str, OrderBook]` | many books; one request on Polymarket (500 books), on Betfair (40 Betfair markets, every runner of each) on Smarkets (200 Smarkets markets, every contract of each) and on Matchbook (20 Matchbook events, every runner of each), one per market elsewhere |
 | `fetch_trades(market_id, since, limit, cursor)` | `Page[Trade]` | newest page first, each page oldest first; `since` in ms; `next_cursor` null at the end |
 | `fetch_ohlcv(market_id, timeframe, since, until, limit)` | `list[Candle]` | in the YES price; check `price_source`. With `since`, the first `limit` bars from it; without, the newest `limit` |
 | `fetch_series(series_id)` | `Series` | Kalshi only |
@@ -120,6 +120,24 @@ contracts = smk.fetch_markets(domain="football", market_type="WINNER_3_WAY", lim
 book = smk.fetch_order_book(contracts[0].id)  # Smarkets bids are YES bids, offers YES asks
 book.info["bids"], book.info["offers"]     # Smarkets' own [price bps, quantity] pairs
 smk.fetch_trades(contracts[0].id)          # the short recent tape
+```
+
+Matchbook needs no account. It adds `fetch_event(id)` (one Matchbook market
+with its runners, open or closed), `fetch_sports()`,
+`fetch_matchbook_events(ids)` (Matchbook's own events with their markets and
+prices) and `fetch_runner_prices(event_id, market_id, runner_id)`, and takes
+`sport` (an id or a name, `"Soccer"`), `tag` (Matchbook's tag url names,
+`"england-premier-league"`) and `market_type` (`"one_x_two"`, `"total"`) on
+`fetch_markets` and `fetch_events`. It has no text search. `currency=` asks
+for prices in USD, EUR, GBP, AUD, CAD or HKD instead of the region's default,
+and `depth=` sets the price levels read a side. See
+[Matchbook](capabilities.md#matchbook).
+
+```python
+mb = synpath.Matchbook()                   # no account
+runners = mb.fetch_markets(sport="Soccer", market_type="one_x_two", limit=9)
+book = mb.fetch_order_book(runners[0].id, depth=5)  # lay prices are YES bids, back prices YES asks
+book.info["back"], book.info["lay"]        # Matchbook's own [odds, available amount] pairs
 ```
 
 Polymarket also has
@@ -204,7 +222,7 @@ result.matched     # MarketLink | None
 
 Matching covers every venue this library speaks: `kalshi`, `polymarket`,
 `polymarket_us`, `opinion`, `hyperliquid`, `predict_fun`, `limitless` and
-`sx_bet` (not Betfair or Smarkets yet). `venue=` asks one of them in particular; without it the answer is
+`sx_bet` (not Betfair, Smarkets or Matchbook yet). `venue=` asks one of them in particular; without it the answer is
 the first venue listing the same question, in the order Polymarket, Kalshi,
 Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Polymarket US.
 
@@ -256,13 +274,15 @@ A venue that cannot filter by one of them raises `NotSupported`. Polymarket
 does for `settled`, since its catalog does not publish resolution status, and
 Betfair for everything but `open`, since a closed market leaves its catalogue
 (read it by id instead). Smarkets filters on its events' states: `closed` is an
-ended or suspended event, `settled` a settled or cancelled one.
+ended or suspended event, `settled` a settled or cancelled one. Matchbook
+lists only open events with their markets and raises `NotSupported` for the
+rest (read a closed market by id).
 Anything outside the four raises `BadRequest` rather than being handed to the
 venue to interpret for itself.
 
 ### Identifiers
 
-One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
+One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. On Matchbook a market is a runner, `matchbook:<event id>-<market id>-<runner id>` (`matchbook:34569494493900023-34569495835700023-34569495836701023`), and its event the Matchbook market, `matchbook:<event id>-<market id>`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
 
 ### Paging
 

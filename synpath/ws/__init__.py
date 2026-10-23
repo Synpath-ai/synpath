@@ -56,6 +56,9 @@ def __getattr__(name: str):
     if name == "SmarketsMarketStream":
         from .smarkets import SmarketsMarketStream
         return SmarketsMarketStream
+    if name == "MatchbookMarketStream":
+        from .matchbook import MatchbookMarketStream
+        return MatchbookMarketStream
     if name in ("HyperliquidMarketStream", "HyperliquidUserStream"):
         from . import hyperliquid
         return getattr(hyperliquid, name)
@@ -75,5 +78,5 @@ __all__ = [
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
     "OpinionMarketStream", "OpinionUserStream", "HyperliquidMarketStream", "HyperliquidUserStream",
     "PredictFunMarketStream", "PredictFunUserStream", "LimitlessMarketStream", "LimitlessUserStream", "SxBetMarketStream", "SxBetUserStream",
-    "BetfairMarketStream", "SmarketsMarketStream",
+    "BetfairMarketStream", "SmarketsMarketStream", "MatchbookMarketStream",
 ]

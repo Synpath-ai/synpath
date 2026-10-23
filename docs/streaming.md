@@ -43,6 +43,7 @@ asyncio.run(main())
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
+| `MatchbookMarketStream` | `api.matchbook.com` REST, polled (Matchbook has no push API) | none | runner books, top of book and runner status at every poll (5 s by default) |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -69,6 +70,7 @@ variable `synpath serve` reads it from:
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
 | Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
+| Matchbook | nothing | |
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
@@ -204,6 +206,23 @@ jittered exponential backoff between attempts.
   says so in `info["delayed"]`. A change shows at the next poll, not as it
   happens, so its `watch_*` keys are `partial`. No `watch_trades`: the recent
   tape is short and unpaged; read it with `Smarkets.fetch_trades`.
+- *Matchbook* has no push API: no WebSocket, SSE or FIX. `MatchbookMarketStream`
+  polls `GET /edge/rest/events` with prices, twenty Matchbook events a
+  request, and emits the difference between one answer and the next: a
+  snapshot first, then deltas of the levels that changed, nothing when
+  nothing did. One read carries every market, runner and price of an event,
+  so books, tickers and runner status (suspended, closed, withdrawn) come from
+  the same polls. Polls share the adapter's `LIMITER` (Matchbook's events
+  group allows 700 requests a minute). Every GET is chargeable on Matchbook's
+  API plans (£100 per million a month): the default 5 s interval is 12
+  requests a minute for up to twenty events, about 520,000 a month if left
+  running, so raise `interval` to spend less. The stream polls without a
+  session, so the polls are not the account's. A refused or failed poll is a
+  dropped connection: the base loop backs off and reconnects, and the next
+  poll rebuilds every book and reports it `resynced`. A change shows at the
+  next poll, so its `watch_*` keys are `partial`. Matchbook publishes no
+  trades, so there is no `watch_trades`, and no account stream: the engine
+  polls the account's offers.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

@@ -82,10 +82,13 @@ No silent gaps: if we weren't recording at a moment, you get the reason instead 
 | | [SX Bet](https://sx.bet) | `sx_bet` | ✓ sports | ✓ | WebSocket | one book per market, both sides read it |
 | | [Betfair Exchange](https://www.betfair.com/exchange) | `betfair` | ✓ your own account and app key (delayed key: 1-180 s late, 3 levels) | — | Exchange Stream API (TLS socket) | one book per runner, back and lay read as YES |
 | | [Smarkets](https://smarkets.com) | `smarkets` | ✓ no account (quotes delayed without a login) | — | polled from REST quotes | one book per contract, bids are YES bids |
+| | [Matchbook](https://www.matchbook.com) | `matchbook` | ✓ no account | ✓ your own login | polled from REST | one book per runner, back and lay read as YES |
 
 Betfair is a betting exchange, not a prediction market, read here the same way: each runner (selection) is a yes/no market, `betfair:1.234567890-47972`, and the Betfair market holding the runners is the event. Every Betfair call needs your own Betfair account and application key, and the API is refused from several countries (the US, Germany, France, the Netherlands, Singapore, India, Turkey, the UAE and others). Betfair's keys are for your own betting: showing its prices to anyone else needs a data licence from Betfair. See [capabilities](docs/capabilities.md#betfair).
 
 Smarkets, a UK betting exchange, is read the same way: each contract is a yes/no market, `smarkets:164973231-456060183`, and the Smarkets market holding the contracts is the event. Its market data needs no account (quotes are delayed without a login); betting needs Smarkets' approved API access, which this library does not use yet. Smarkets' API terms allow viewing prices and betting on your own account, and prohibit odds scraping. See [capabilities](docs/capabilities.md#smarkets).
+
+Matchbook, a betting exchange licensed in the UK and Alderney, is read the same way: each runner is a yes/no market, `matchbook:<event id>-<market id>-<runner id>`, and the Matchbook market holding the runners is the event. Its market data needs no account; betting logs in with your own Matchbook username and password. Every GET is chargeable on Matchbook's API plans (£100 per million a month), and its terms allow viewing prices and betting on your own account only. See [capabilities](docs/capabilities.md#matchbook).
 
 ## Why Synpath
 
@@ -135,7 +138,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'betfair', 'smarkets'] (Betfair and predict.fun need keys)
+for venue_id in synpath.exchanges:                 # [..., 'sx_bet', 'betfair', 'smarkets', 'matchbook'] (Betfair and predict.fun need keys)
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 
