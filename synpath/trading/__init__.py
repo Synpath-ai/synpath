@@ -96,13 +96,16 @@ def __getattr__(name: str):
     if name == "MyriadTrading":
         from .myriad import MyriadTrading
         return MyriadTrading
+    if name == "GeminiTrading":
+        from .gemini import GeminiTrading
+        return GeminiTrading
     raise AttributeError(name)
 
 
 __all__ = [
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
     "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading", "NovigTrading",
-    "MatchbookTrading", "ProphetXTrading", "AzuroTrading", "MyriadTrading",
+    "MatchbookTrading", "ProphetXTrading", "AzuroTrading", "MyriadTrading", "GeminiTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",

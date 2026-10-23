@@ -47,7 +47,8 @@ def test_it_writes_every_venue_asked_for_readable_by_the_owner_only(tmp_path: Pa
          "n",                                     # Novig
          "n",                                     # Matchbook
          "n",                                     # ProphetX
-         "n"],                                    # Azuro
+         "n",                                     # Azuro
+         "n"],                                    # Gemini
         secrets=[KEY, "us-secret"],
     )
     assert run(env, p) == 0
@@ -281,3 +282,15 @@ def test_myriad_with_only_an_api_key_needs_the_wallet_address(tmp_path: Path):
     assert any("That looks like a private key" in line for line in said)
     loaded = load_credentials({}, dotenv=env, redact_logs=False)["myriad"]
     assert loaded is not None and loaded.private_key is None and loaded.address == WALLET
+
+
+def test_gemini_takes_a_key_pair_and_checks_the_secret_is_not_the_key(tmp_path: Path):
+    env = tmp_path / ".env"
+    p, said = scripted(["n"] * 10 + ["y", "account-abc", "staging", "sandbox"], secrets=["account-abc", "gem-secret"])
+    assert run(env, p) == 0
+    assert any("the secret is the other half" in line for line in said)
+    assert any("Enter one of: prod, sandbox" in line for line in said)
+    values = read_dotenv(env)
+    assert values == {"GEMINI_API_KEY": "account-abc", "GEMINI_API_SECRET": "gem-secret", "GEMINI_ENV": "sandbox"}
+    loaded = load_credentials({}, dotenv=env, redact_logs=False)["gemini"]
+    assert loaded is not None and loaded.env == "sandbox"

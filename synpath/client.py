@@ -408,6 +408,11 @@ def _myriad(creds: Credentials) -> TradingExchange:
     return MyriadTrading(creds)  # type: ignore[arg-type]
 
 
+def _gemini(creds: Credentials) -> TradingExchange:
+    from .trading.gemini import GeminiTrading
+    return GeminiTrading(creds)  # type: ignore[arg-type]
+
+
 _TRADING = {
     "kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion,
     "hyperliquid": _hyperliquid, "predict_fun": _predict_fun, "limitless": _limitless, "sx_bet": _sx_bet,
@@ -416,4 +421,5 @@ _TRADING = {
     "prophetx": _prophetx,
     "azuro": _azuro,
     "myriad": _myriad,
+    "gemini": _gemini,
 }

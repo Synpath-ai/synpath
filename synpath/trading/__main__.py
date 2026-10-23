@@ -76,6 +76,10 @@ def doctor(dotenv: str | None) -> int:
             rows.append((venue, f"market data ({stage})", "affiliate key loaded; set PROPHETX_ACCESS_KEY / "
                          "PROPHETX_SECRET_KEY to trade and stream"))
             continue
+        if creds is None and venue == "gemini":
+            rows.append((venue, "no key (optional)", "market data needs no key; set GEMINI_API_KEY / "
+                         "GEMINI_API_SECRET to trade (a US account with Prediction Markets access), or run synpath init"))
+            continue
         if creds is None and venue in market_data:
             stage = "testnet" if market_data[venue].testnet else "mainnet"
             private = ENV_NAMES[venue][0]
@@ -135,6 +139,9 @@ def doctor(dotenv: str | None) -> int:
             stage = creds.chain
             affiliate = f", affiliate {creds.affiliate}" if creds.affiliate else ""
             identity = f"wallet {creds.address}{affiliate}"
+        elif venue == "gemini":
+            sub = f", subaccount {creds.account}" if creds.account else ""
+            identity = f"api key {creds.api_key[:12]}…{sub} (account-scoped, time-based nonce for streams)"
         elif venue == "smarkets":
             stage = "login"
             identity = f"user {creds.username}: undelayed quotes; betting needs approved API access, not supported yet"

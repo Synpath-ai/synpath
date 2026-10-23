@@ -51,6 +51,8 @@ asyncio.run(main())
 | `ProphetXUserStream` | the same host | the Trading API key pair | orders on every change; a fill with each match |
 | `MyriadMarketStream` | `ws.myriadprotocol.com/ws` | none | order books (both outcomes), top of book and last per outcome, the tape of matches, markets created and resolved |
 | `MyriadUserStream` | `ws.myriadprotocol.com/ws` | the wallet's address, and a subscription token per account channel (`MyriadTrading.subscription_token`) | orders; fills from the wallet's public tape; share balances |
+| `GeminiMarketStream` | `ws.gemini.com` (or the sandbox) | none | differential books in YES space from a snapshot, top of book with the last trade, public prints, contract status and strikes |
+| `GeminiUserStream` | `ws.gemini.com` | an account-scoped Gemini API key with a time-based nonce (the handshake is signed) | orders; each execution with its fee and maker flag; positions, settlement payouts included; balances |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -82,6 +84,7 @@ variable `synpath serve` reads it from:
 | Matchbook | nothing | |
 | ProphetX | the Trading API key pair (prophetx.co -> API Integration); the Market Data API key has no stream | `PROPHETX_ACCESS_KEY`, `PROPHETX_SECRET_KEY` |
 | Azuro | nothing | `AZURO_CHAIN` picks the pool when trading |
+| Gemini | nothing | |
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
@@ -313,6 +316,26 @@ jittered exponential backoff between attempts.
   every 30 s and answers the server's. Every channel is private, so both
   streams need the Trading API key pair; the engine runs them on the trading
   adapter's session, since ProphetX counts sessions per key.
+- *Gemini* takes `{"id", "method": "SUBSCRIBE", "params": [stream names]}`
+  and answers each with its `id` and a status. The market stream connects
+  with `snapshot=-1` and subscribes `{symbol}@depth@100ms`, so the first frame
+  for a book is the whole book and the rest are the levels that changed (a
+  size of zero removes one). Frames chain by update id: each frame's first id
+  `U` is the last id `u` of the frame before, ids being the exchange's own
+  across all books. A frame whose `U` is past the last applied `u` is a gap:
+  the book is dropped, the stream unsubscribes and subscribes again, and the
+  fresh snapshot is reported `resynced`. Books are in YES space; `book(id,
+  "no")` mirrors one. `@bookTicker` is the top of book (and the last trade
+  price once there is one), `@trade` the tape (`m` says the buyer was the
+  maker, so the taker sold), `contractStatus` every contract's status changes.
+  Gemini sends symbols lower case; events carry them upper case, as REST
+  does. The account stream signs its handshake (`X-GEMINI-APIKEY`, `-NONCE`,
+  `-PAYLOAD`, `-SIGNATURE`) with an account-scoped key that uses a time-based
+  nonce; master keys are refused. An order frame carries only what changed,
+  so the stream keeps each order's last known fields; a `FILLED` or
+  `PARTIALLY_FILLED` frame is also a `FillEvent` (`Z` the execution's size,
+  `L` its price, `n` its fee). The first `positions@account` frame is the open
+  positions, then changes; a settlement closes a position with its payout.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

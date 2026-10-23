@@ -71,6 +71,9 @@ def __getattr__(name: str):
     if name == "AzuroMarketStream":
         from .azuro import AzuroMarketStream
         return AzuroMarketStream
+    if name in ("GeminiMarketStream", "GeminiUserStream"):
+        from . import gemini
+        return getattr(gemini, name)
     if name in ("HyperliquidMarketStream", "HyperliquidUserStream"):
         from . import hyperliquid
         return getattr(hyperliquid, name)
@@ -90,5 +93,5 @@ __all__ = [
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
     "OpinionMarketStream", "OpinionUserStream", "HyperliquidMarketStream", "HyperliquidUserStream",
     "PredictFunMarketStream", "PredictFunUserStream", "LimitlessMarketStream", "LimitlessUserStream", "SxBetMarketStream", "SxBetUserStream",
-    "BetfairMarketStream", "SmarketsMarketStream", "NovigMarketStream", "NovigUserStream", "MatchbookMarketStream", "ProphetXMarketStream", "ProphetXUserStream", "AzuroMarketStream", "MyriadMarketStream", "MyriadUserStream",
+    "BetfairMarketStream", "SmarketsMarketStream", "NovigMarketStream", "NovigUserStream", "MatchbookMarketStream", "ProphetXMarketStream", "ProphetXUserStream", "AzuroMarketStream", "MyriadMarketStream", "MyriadUserStream", "GeminiMarketStream", "GeminiUserStream",
 ]

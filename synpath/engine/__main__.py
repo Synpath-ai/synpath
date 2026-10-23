@@ -70,6 +70,7 @@ ADAPTERS = {
     "prophetx": ("..trading.prophetx", "ProphetXTrading"),
     "azuro": ("..trading.azuro", "AzuroTrading"),
     "myriad": ("..trading.myriad", "MyriadTrading"),
+    "gemini": ("..trading.gemini", "GeminiTrading"),
 }
 
 

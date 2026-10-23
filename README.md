@@ -5,7 +5,7 @@
 # Synpath – One API for prediction markets <a href="https://x.com/Synpath_Dev"><img src="https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2FSynpath_Dev&style=social&label=Follow" alt="Follow @Synpath_Dev on X" height="28"></a>
 
 **Build on prediction markets without building against each one.**<br/>
-One open-source API across 10 venues (Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Novig and Myriad): market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
+One open-source API across 16 venues (Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Myriad and Gemini, and the sports betting venues Betfair, Smarkets, Novig, Matchbook, ProphetX and Azuro): market data, order entry, live streams, and an execution engine that remembers what it sent. In-process from Python, over REST and WebSocket from anywhere.
 
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <a href="https://pepy.tech/projects/synpath"><img src="https://img.shields.io/pepy/dt/synpath?label=Total%20Downloads&color=blue" alt="Total Downloads"></a>
@@ -80,6 +80,7 @@ No silent gaps: if we weren't recording at a moment, you get the reason instead 
 | | [predict.fun](https://predict.fun) | `predict_fun` | ✓ (API key) | ✓ | WebSocket (API key) | one book per market, both sides read it |
 | | [Limitless](https://limitless.exchange) | `limitless` | ✓ | ✓ | WebSocket | one book per market, both sides read it |
 | | [SX Bet](https://sx.bet) | `sx_bet` | ✓ sports | ✓ | WebSocket | one book per market, both sides read it |
+| | [Gemini Predictions](https://www.gemini.com/predictions) | `gemini` | ✓ no account, sports taxonomy | ✓ US accounts with Prediction Markets access | WebSocket (no key for books) | one book per contract, in YES space |
 | | [Betfair Exchange](https://www.betfair.com/exchange) | `betfair` | ✓ your own account and app key (delayed key: 1-180 s late, 3 levels) | — | Exchange Stream API (TLS socket) | one book per runner, back and lay read as YES |
 | | [Smarkets](https://smarkets.com) | `smarkets` | ✓ no account (quotes delayed without a login) | — | polled from REST quotes | one book per contract, bids are YES bids |
 | | [Novig](https://novig.com) | `novig` | ✓ sports, no key | ✓ (US, identity and location checks; Paper for play money) | WebSocket (trading key), else polled from the public book | one book per market, both sides read it |
@@ -89,6 +90,8 @@ No silent gaps: if we weren't recording at a moment, you get the reason instead 
 | | [Myriad](https://myriad.markets) | `myriad` | ✓ order-book and AMM markets, sports | ✓ order book | WebSocket (no key) | one book per market, both sides read it; AMM books built from the pool |
 
 Betfair is a betting exchange, not a prediction market, read here the same way: each runner (selection) is a yes/no market, `betfair:1.234567890-47972`, and the Betfair market holding the runners is the event. Every Betfair call needs your own Betfair account and application key, and the API is refused from several countries (the US, Germany, France, the Netherlands, Singapore, India, Turkey, the UAE and others). Betfair's keys are for your own betting: showing its prices to anyone else needs a data licence from Betfair. See [capabilities](docs/capabilities.md#betfair).
+
+Gemini Predictions is Gemini Titan's CFTC-registered event-contract exchange. Each contract is a yes/no market named by its instrument symbol, `gemini:GEMI-NBA-2610232000-CHI-MIL-M-MIL`, and the Gemini event holding the contracts is the event. Sports events carry Gemini's taxonomy (moneyline, spread, total, prop; the sport, scope and statistic), which listings filter on. Market data needs no account; trading needs a Gemini account with Prediction Markets access (US) and an API key. See [capabilities](docs/capabilities.md#gemini).
 
 Smarkets, a UK betting exchange, is read the same way: each contract is a yes/no market, `smarkets:164973231-456060183`, and the Smarkets market holding the contracts is the event. Its market data needs no account (quotes are delayed without a login); betting needs Smarkets' approved API access, which this library does not use yet. Smarkets' API terms allow viewing prices and betting on your own account, and prohibit odds scraping. See [capabilities](docs/capabilities.md#smarkets).
 
@@ -104,7 +107,7 @@ Myriad runs order-book markets on BNB Chain and AMM (pool) markets on BNB Chain,
 
 ## Why Synpath
 
-- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Novig and Myriad, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
+- **Liquidity is fragmented. Your time shouldn't be.** The same market trades on Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Myriad and Gemini, and the sports betting venues Betfair, Smarkets, Novig, Matchbook, ProphetX and Azuro, each with its own API, units and quirks. Synpath gives you one interface for all of them, and smart order routing buys from whichever book is cheapest. Spend your time on alpha, not plumbing.
 
 - **Traders deserve advanced order types.** Stops, trailing stops, icebergs, OCO, brackets, TWAP and pegs, on every venue, even where the exchange has none. Orders are journaled before they're sent, so a crash never places one twice.
 
@@ -150,7 +153,7 @@ fee.estimate(price=0.50, contracts=100)            # 1.75
 **Same code, every venue**
 
 ```python
-for venue_id in synpath.exchanges:                 # [..., 'betfair', 'smarkets', 'novig', 'matchbook', 'prophetx', 'azuro', 'myriad'] (Betfair, predict.fun and ProphetX need keys)
+for venue_id in synpath.exchanges:                 # [..., 'betfair', 'smarkets', 'novig', 'matchbook', 'prophetx', 'azuro', 'myriad', 'gemini'] (Betfair, predict.fun and ProphetX need keys)
     with synpath.exchange(venue_id) as venue:
         page = venue.fetch_markets(limit=5)
 

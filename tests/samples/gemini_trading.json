@@ -1,0 +1,347 @@
+{
+ "note": "documented response examples, specs/openapi/prediction-markets.yaml and specs/openapi/rest.yaml (developer.gemini.com), 2026-10-23; contract descriptions and image URLs dropped",
+ "order": {
+  "orderId": 12345678901,
+  "status": "open",
+  "symbol": "GEMI-FEDJAN26-DN25",
+  "side": "buy",
+  "outcome": "yes",
+  "orderType": "limit",
+  "quantity": "100",
+  "filledQuantity": "0",
+  "remainingQuantity": "100",
+  "price": "0.65",
+  "avgExecutionPrice": null,
+  "createdAt": "2025-12-15T10:30:00.000Z",
+  "updatedAt": "2025-12-15T10:30:00.000Z",
+  "cancelledAt": null,
+  "contractMetadata": {
+   "contractId": "contract_123",
+   "contractName": "FEDJAN26-DN25",
+   "contractTicker": "FEDJAN26-DN25",
+   "eventTicker": "FEDJAN26",
+   "eventName": "Will Fed Funds Rate drop at least 0.25% at January 2026 meeting?",
+   "category": "economics",
+   "contractStatus": "active",
+   "expiryDate": "2026-01-31T23:59:59.000Z",
+   "resolvedAt": null
+  }
+ },
+ "active_orders": {
+  "orders": [
+   {
+    "orderId": 12345678901,
+    "status": "open",
+    "symbol": "GEMI-FEDJAN26-DN25",
+    "side": "buy",
+    "outcome": "yes",
+    "orderType": "limit",
+    "quantity": "100",
+    "filledQuantity": "25",
+    "remainingQuantity": "75",
+    "price": "0.65",
+    "avgExecutionPrice": "0.64",
+    "createdAt": "2025-12-15T10:30:00.000Z",
+    "updatedAt": "2025-12-15T11:00:00.000Z",
+    "cancelledAt": null,
+    "contractMetadata": {
+     "contractId": "contract_123",
+     "contractName": "FEDJAN26-DN25",
+     "contractTicker": "FEDJAN26-DN25",
+     "eventTicker": "FEDJAN26",
+     "eventName": "Will Fed Funds Rate drop at least 0.25% at January 2026 meeting?",
+     "category": "economics",
+     "contractStatus": "active",
+     "expiryDate": "2026-01-31T23:59:59.000Z",
+     "resolvedAt": null
+    }
+   },
+   {
+    "orderId": 12345678902,
+    "status": "open",
+    "symbol": "GEMI-FEDJAN26-DN25",
+    "side": "sell",
+    "outcome": "yes",
+    "orderType": "limit",
+    "quantity": "50",
+    "filledQuantity": "0",
+    "remainingQuantity": "50",
+    "price": "0.65",
+    "avgExecutionPrice": null,
+    "createdAt": "2025-12-15T12:00:00.000Z",
+    "updatedAt": "2025-12-15T12:00:00.000Z",
+    "cancelledAt": null,
+    "contractMetadata": {
+     "contractId": "contract_123",
+     "contractName": "FEDJAN26-DN25",
+     "contractTicker": "FEDJAN26-DN25",
+     "eventTicker": "FEDJAN26",
+     "eventName": "Will Fed Funds Rate drop at least 0.25% at January 2026 meeting?",
+     "category": "economics",
+     "contractStatus": "active",
+     "expiryDate": "2026-01-31T23:59:59.000Z",
+     "resolvedAt": null
+    }
+   }
+  ],
+  "pagination": {
+   "limit": 50,
+   "offset": 0,
+   "count": 2
+  }
+ },
+ "order_batch": {
+  "results": [
+   {
+    "order": {
+     "orderId": 12345678901,
+     "status": "open",
+     "symbol": "GEMI-FEDJAN26-DN25",
+     "side": "buy",
+     "outcome": "yes",
+     "orderType": "limit",
+     "timeInForce": "good-til-cancel",
+     "quantity": "100",
+     "filledQuantity": "0",
+     "remainingQuantity": "100",
+     "price": "0.65",
+     "createdAt": "2025-12-15T10:30:00.000Z",
+     "updatedAt": "2025-12-15T10:30:00.000Z"
+    }
+   },
+   {
+    "error": "InsufficientFunds",
+    "message": "Insufficient funds"
+   }
+  ]
+ },
+ "cancel_batch": {
+  "results": [
+   {
+    "orderId": 12345678,
+    "result": "ok"
+   },
+   {
+    "orderId": 12345679,
+    "error": "OrderNotFound",
+    "message": "Order 12345679 not found"
+   }
+  ]
+ },
+ "positions": {
+  "positions": [
+   {
+    "symbol": "GEMI-FEDJAN26-DN25",
+    "instrumentId": 1001,
+    "totalQuantity": "125",
+    "quantityOnHold": "10",
+    "avgPrice": "0.63",
+    "outcome": "yes",
+    "contractMetadata": {
+     "contractId": "contract_123",
+     "contractName": "FEDJAN26-DN25",
+     "contractTicker": "FEDJAN26-DN25",
+     "eventTicker": "FEDJAN26",
+     "eventName": "Will Fed Funds Rate drop at least 0.25% at January 2026 meeting?",
+     "category": "economics",
+     "contractStatus": "active",
+     "eventType": "binary",
+     "expiryDate": "2026-01-31T23:59:59.000Z",
+     "resolvedAt": null,
+     "resolutionSide": null,
+     "sortOrder": null,
+     "parentEventTicker": null,
+     "template": "binary",
+     "color": null,
+     "startTime": null
+    },
+    "prices": {
+     "buy": {
+      "true": "0.63",
+      "false": "0.37"
+     },
+     "sell": {
+      "true": "0.61",
+      "false": "0.35"
+     },
+     "bestBid": "0.61",
+     "bestAsk": "0.63",
+     "lastTradePrice": "0.62"
+    },
+    "resolutionSide": null,
+    "isAboveAutoStartThreshold": false,
+    "isLive": true,
+    "realizedPl": "0",
+    "marketValue": "78.75",
+    "unrealizedPnl": "0",
+    "unrealizedPct": 0
+   },
+   {
+    "symbol": "GEMI-FEDJAN26-DN25",
+    "instrumentId": 1001,
+    "totalQuantity": "200",
+    "quantityOnHold": "0",
+    "avgPrice": "0.36",
+    "outcome": "no",
+    "contractMetadata": {
+     "contractId": "contract_123",
+     "contractName": "FEDJAN26-DN25",
+     "contractTicker": "FEDJAN26-DN25",
+     "eventTicker": "FEDJAN26",
+     "eventName": "Will Fed Funds Rate drop at least 0.25% at January 2026 meeting?",
+     "category": "economics",
+     "contractStatus": "active",
+     "eventType": "binary",
+     "expiryDate": "2026-01-31T23:59:59.000Z",
+     "resolvedAt": null,
+     "resolutionSide": null,
+     "sortOrder": null,
+     "parentEventTicker": null,
+     "template": "binary",
+     "color": null,
+     "startTime": null
+    },
+    "prices": {
+     "buy": {
+      "true": "0.37",
+      "false": "0.63"
+     },
+     "sell": {
+      "true": "0.35",
+      "false": "0.61"
+     },
+     "bestBid": "0.35",
+     "bestAsk": "0.37",
+     "lastTradePrice": "0.36"
+    },
+    "resolutionSide": null,
+    "isAboveAutoStartThreshold": false,
+    "isLive": true,
+    "realizedPl": "0",
+    "marketValue": "72.00",
+    "unrealizedPnl": "0",
+    "unrealizedPct": 0
+   }
+  ],
+  "total": 2
+ },
+ "settled": {
+  "positions": [
+   {
+    "accountId": 12345,
+    "instrumentId": 1001,
+    "instrumentSymbol": "GEMI-FEDJAN26-DN25",
+    "position": "125",
+    "positionQuantity": "125",
+    "outcome": "yes",
+    "payout": "125.00",
+    "resolutionSide": "yes",
+    "settledAt": "2026-01-31T23:59:59.000Z",
+    "contractMetadata": {
+     "contractId": "contract_123",
+     "contractName": "FEDJAN26-DN25",
+     "contractTicker": "FEDJAN26-DN25",
+     "eventTicker": "FEDJAN26",
+     "eventName": "Will Fed Funds Rate drop at least 0.25% at January 2026 meeting?",
+     "category": "economics",
+     "contractStatus": "resolved",
+     "eventType": "binary",
+     "expiryDate": "2026-01-31T23:59:59.000Z",
+     "resolvedAt": "2026-01-31T23:59:59.000Z",
+     "resolutionSide": "yes",
+     "sortOrder": null,
+     "parentEventTicker": null,
+     "template": "binary",
+     "color": null,
+     "startTime": null
+    },
+    "costBasis": "78.75",
+    "realizedPnl": "0",
+    "netProfit": "46.25"
+   },
+   {
+    "accountId": 12345,
+    "instrumentId": 1002,
+    "instrumentSymbol": "GEMI-FEDJAN26-NOCUT",
+    "position": "-200",
+    "positionQuantity": "200",
+    "outcome": "no",
+    "payout": "0",
+    "resolutionSide": "yes",
+    "settledAt": "2026-01-31T23:59:59.000Z",
+    "contractMetadata": {
+     "contractId": "contract_124",
+     "contractName": "FEDJAN26-NOCUT",
+     "contractTicker": "FEDJAN26-NOCUT",
+     "eventTicker": "FEDJAN26",
+     "eventName": "Will Fed Funds Rate drop at least 0.25% at January 2026 meeting?",
+     "category": "economics",
+     "contractStatus": "resolved",
+     "eventType": "binary",
+     "expiryDate": "2026-01-31T23:59:59.000Z",
+     "resolvedAt": "2026-01-31T23:59:59.000Z",
+     "resolutionSide": "yes",
+     "sortOrder": null,
+     "parentEventTicker": null,
+     "template": "binary",
+     "color": null,
+     "startTime": null
+    },
+    "costBasis": "72.00",
+    "realizedPnl": "0",
+    "netProfit": "-72.00"
+   }
+  ],
+  "total": 2
+ },
+ "terms_status": {
+  "hasAcceptedLatest": false,
+  "acceptedVersion": 2,
+  "latestVersion": 3
+ },
+ "balances": [
+  {
+   "type": "exchange",
+   "currency": "BTC",
+   "amount": "5.0",
+   "available": "4.5",
+   "availableForWithdrawal": "4.5",
+   "_timestamp": "2024-03-16T00:00:00.000000Z"
+  },
+  {
+   "type": "exchange",
+   "currency": "USD",
+   "amount": "15000.00",
+   "available": "5000.00",
+   "availableForWithdrawal": "5000.00",
+   "_timestamp": "2024-03-16T00:00:00.000000Z"
+  }
+ ],
+ "cancel": {
+  "result": "ok",
+  "message": "Order 12345678 cancelled successfully"
+ },
+ "errors": {
+  "terms": {
+   "error": "TERMS_NOT_ACCEPTED",
+   "message": "Prediction markets terms must be accepted before placing orders"
+  },
+  "blocked": {
+   "error": "This account is not permitted to trade prediction markets",
+   "code": "ACCOUNT_GROUP_BLOCKED"
+  },
+  "auth": {
+   "result": "error",
+   "reason": "MissingNonce",
+   "message": "Must provide unique monotonic increasing 'nonce' field in payload"
+  },
+  "funds": {
+   "error": "InsufficientFunds",
+   "message": "Insufficient funds"
+  },
+  "not_found": {
+   "error": "OrderNotFound",
+   "message": "Order 12345679 not found"
+  }
+ }
+}

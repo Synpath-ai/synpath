@@ -172,6 +172,15 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
             # Every Betfair stream, books included, logs in with the account.
             from ..ws.betfair import BetfairMarketStream
             out[venue] = VenueStreams(market=BetfairMarketStream(credentials=creds), private=None)
+        elif venue == "gemini":
+            # Books are public; the account stream signs its handshake with
+            # the API key, which must be account-scoped and time-based.
+            from ..ws.gemini import GeminiMarketStream, GeminiUserStream
+            sandbox = getattr(creds, "env", "prod") == "sandbox"
+            out[venue] = VenueStreams(
+                market=GeminiMarketStream(sandbox=sandbox),
+                private=GeminiUserStream(creds) if creds is not None else None,
+            )
         elif venue == "smarkets":
             # Market data only, and public: a polled stream on REST quotes
             # (Smarkets' socket stream is for approved market makers). The
