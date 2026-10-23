@@ -43,7 +43,8 @@ def test_it_writes_every_venue_asked_for_readable_by_the_owner_only(tmp_path: Pa
          "n",                                     # SX Bet
          "n",                                     # Betfair
          "n",                                     # Smarkets
-         "n"],                                    # Novig
+         "n",                                     # Novig
+         "n"],                                    # Matchbook
         secrets=[KEY, "us-secret"],
     )
     assert run(env, p) == 0

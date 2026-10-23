@@ -45,6 +45,7 @@ asyncio.run(main())
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
 | `NovigMarketStream` | `api.novig.com/v3/ws` (or Paper's); without a key, the public REST book polled | a subaccount's trading key for the WebSocket (the handshake is signed); none to poll | books kept per order, top of book, the tape, market transitions (going in play voids resting orders) |
 | `NovigUserStream` | `api.novig.com/v3/ws` | a subaccount's trading key | orders (open, fill, cancel, reject) and positions of that subaccount |
+| `MatchbookMarketStream` | `api.matchbook.com` REST, polled (Matchbook has no push API) | none | runner books, top of book and runner status at every poll (5 s by default) |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -72,6 +73,7 @@ variable `synpath serve` reads it from:
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
 | Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
 | Novig | the WebSocket: a subaccount's trading key (key id and private key file; the handshake is signed). Without one the public book is polled | `NOVIG_KEY_ID`, `NOVIG_PRIVATE_KEY_PATH`, `NOVIG_ENV` |
+| Matchbook | nothing | |
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
@@ -237,6 +239,23 @@ jittered exponential backoff between attempts.
   `reconcile_required` and recovered with a snapshot. Fills matched on entry
   arrive before the order's `open`. A `fill` carries no fee; read it with
   `NovigTrading.fetch_my_trades`.
+- *Matchbook* has no push API: no WebSocket, SSE or FIX. `MatchbookMarketStream`
+  polls `GET /edge/rest/events` with prices, twenty Matchbook events a
+  request, and emits the difference between one answer and the next: a
+  snapshot first, then deltas of the levels that changed, nothing when
+  nothing did. One read carries every market, runner and price of an event,
+  so books, tickers and runner status (suspended, closed, withdrawn) come from
+  the same polls. Polls share the adapter's `LIMITER` (Matchbook's events
+  group allows 700 requests a minute). Every GET is chargeable on Matchbook's
+  API plans (£100 per million a month): the default 5 s interval is 12
+  requests a minute for up to twenty events, about 520,000 a month if left
+  running, so raise `interval` to spend less. The stream polls without a
+  session, so the polls are not the account's. A refused or failed poll is a
+  dropped connection: the base loop backs off and reconnects, and the next
+  poll rebuilds every book and reports it `resynced`. A change shows at the
+  next poll, so its `watch_*` keys are `partial`. Matchbook publishes no
+  trades, so there is no `watch_trades`, and no account stream: the engine
+  polls the account's offers.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

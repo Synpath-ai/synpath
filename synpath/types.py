@@ -588,7 +588,7 @@ class FeeSchedule(_Base):
         * `profit_on_win` (SX Bet) — `rate * (1 - P) * C`, a share of the
           profit, charged at settlement and only if the bet wins. The estimate
           is that charge, so on a bet that loses it is an upper bound.
-        * `net_market_winnings` (Betfair, Smarkets) — `rate * (1 - P) * C`, the
+        * `net_market_winnings` (Betfair, Smarkets, Matchbook) — `rate * (1 - P) * C`, the
           commission on what this fill wins if it wins, at the market's base
           rate (`taker_rate` and `maker_rate` alike: Betfair charges both
           sides). Betfair cannot be priced per fill exactly: it charges the
@@ -599,7 +599,8 @@ class FeeSchedule(_Base):
           upper bound when other bets in the market lose and leaves the
           Expert Fee out.
           Smarkets charges the same way (2% on its standard tier, no
-          Expert Fee), on net winnings per Smarkets market.
+          Expert Fee), on net winnings per Smarkets market, and Matchbook
+          too (2% in the UK and Ireland, 4% elsewhere), per Matchbook market.
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:

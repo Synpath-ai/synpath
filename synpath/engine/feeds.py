@@ -174,6 +174,12 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
                 market=NovigMarketStream(credentials=creds, catalog=catalog),
                 private=NovigUserStream(credentials=creds, trading=adapter, catalog=catalog) if keyed else None,
             )
+        elif venue == "matchbook":
+            # Polled, as Matchbook has no push API: books from public REST
+            # reads, with no session so the polls are not the account's. No
+            # account stream; the engine polls the offers.
+            from ..ws.matchbook import MatchbookMarketStream
+            out[venue] = VenueStreams(market=MatchbookMarketStream(), private=None)
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

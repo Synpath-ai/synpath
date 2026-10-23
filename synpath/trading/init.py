@@ -303,6 +303,14 @@ def ask_novig(p: Prompter) -> dict[str, str]:
     return values
 
 
+def ask_matchbook(p: Prompter) -> dict[str, str]:
+    p.say("\nMatchbook: your Matchbook login, for betting. Market data needs no login. An account with")
+    p.say("two-factor login cannot log in from here. The password is typed hidden.")
+    username = p.value("Matchbook username", check=_required("The username"))
+    password = p.value("Matchbook password (typed hidden)", secret=True, check=_required("The password"))
+    return {"MATCHBOOK_USERNAME": username, "MATCHBOOK_PASSWORD": password}
+
+
 VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", ("KALSHI_KEY_ID",), ask_kalshi),
     ("Polymarket", ("POLYMARKET_PRIVATE_KEY",), ask_polymarket),
@@ -315,6 +323,7 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("Betfair", ("BETFAIR_APP_KEY",), ask_betfair),
     ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
     ("Novig", ("NOVIG_KEY_ID", "NOVIG_MANAGEMENT_KEY_ID"), ask_novig),
+    ("Matchbook", ("MATCHBOOK_USERNAME",), ask_matchbook),
 ]
 """Each venue, the settings any of which means it is set up already (an API
 key alone is, for market data), and the questions."""

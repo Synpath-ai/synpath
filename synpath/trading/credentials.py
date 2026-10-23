@@ -49,6 +49,8 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       key, PEM, Ed25519 or P-256), NOVIG_ENV (production, the
                       default, or paper), and optionally NOVIG_MANAGEMENT_KEY_ID /
                       NOVIG_MANAGEMENT_PRIVATE_KEY_PATH (subaccounts and funding)
+  Matchbook           MATCHBOOK_USERNAME, MATCHBOOK_PASSWORD: betting logs in;
+                      market data needs no login
 """
 from __future__ import annotations
 
@@ -389,10 +391,26 @@ class NovigCredentials:
         return [pem.decode(errors="ignore") for pem in (self.private_key_pem, self.management_private_key_pem) if pem]
 
 
+@dataclass(frozen=True, repr=False)
+class MatchbookCredentials:
+    """Matchbook: the account's login. Betting and the account's reads (offers,
+    bets, balance) log in with it; market data needs none. An account with
+    two-factor login cannot log in from here (pass a session token instead)."""
+
+    username: str
+    password: str = field(repr=False)
+    _public = ("username",)
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.password]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
     | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
-    | BetfairCredentials | SmarketsCredentials | NovigCredentials
+    | BetfairCredentials | SmarketsCredentials | NovigCredentials | MatchbookCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -425,6 +443,7 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "NOVIG_KEY_ID", "NOVIG_PRIVATE_KEY_PATH", "NOVIG_ENV", "NOVIG_MANAGEMENT_KEY_ID",
         "NOVIG_MANAGEMENT_PRIVATE_KEY_PATH",
     ),
+    "matchbook": ("MATCHBOOK_USERNAME", "MATCHBOOK_PASSWORD"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -753,6 +772,15 @@ def load_novig(env: Mapping[str, str]) -> NovigCredentials | None:
     )
 
 
+def load_matchbook(env: Mapping[str, str]) -> MatchbookCredentials | None:
+    username, password = env.get("MATCHBOOK_USERNAME"), env.get("MATCHBOOK_PASSWORD")
+    if not username and not password:
+        return None
+    if not username or not password:
+        raise CredentialsMissing("a Matchbook login needs both MATCHBOOK_USERNAME and MATCHBOOK_PASSWORD")
+    return MatchbookCredentials(username=username, password=password)
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -766,6 +794,7 @@ LOADERS = {
     "betfair": load_betfair,
     "smarkets": load_smarkets,
     "novig": load_novig,
+    "matchbook": load_matchbook,
 }
 
 

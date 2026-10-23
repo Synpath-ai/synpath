@@ -66,6 +66,7 @@ ADAPTERS = {
     "limitless": ("..trading.limitless", "LimitlessTrading"),
     "sx_bet": ("..trading.sx_bet", "SxBetTrading"),
     "novig": ("..trading.novig", "NovigTrading"),
+    "matchbook": ("..trading.matchbook", "MatchbookTrading"),
 }
 
 
