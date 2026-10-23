@@ -590,8 +590,10 @@ def add_rfq_routes(router: APIRouter) -> None:
                                                                                  f"{PAGE_LIMIT})")] = None,
         q: Annotated[str | None, Query(max_length=100, description="Only events whose title, category or "
                                                                     "participants hold every word")] = None,
-        sort: Annotated[BoardSort, Query(description="`board` (start time), `volume` (largest first) or `start`, "
-                                                     "within each category")] = "board",
+        sort: Annotated[BoardSort, Query(description="`board` (start time), `volume` (largest first) within each "
+                                                     "category, or `start` (games ahead first, soonest first)")] = "board",
+        competition: Annotated[str | None, Query(max_length=120, description="Only this league's events, as a "
+                                                                             "category's `competitions` name it")] = None,
     ) -> ComboBoard:
         """What a combo builder draws (`synpath/engine/combo_board.py`):
         games (participants, and moneyline / spread / total picks where the
@@ -612,10 +614,11 @@ def add_rfq_routes(router: APIRouter) -> None:
         name = rfq_venue(engine, venue, capability="combos")
         require_view(principal, engine, name)
         board = await whole_board(request, engine, name, pages)
-        if category is None and cursor is None and limit is None and not q and sort == "board":
+        if category is None and cursor is None and limit is None and not q and sort == "board" and not competition:
             return board
         try:
-            return board_page(board, category=category, cursor=cursor, limit=limit or PAGE_LIMIT, query=q, sort=sort)
+            return board_page(board, category=category, cursor=cursor, limit=limit or PAGE_LIMIT, query=q, sort=sort,
+                              competition=competition)
         except BadRequest as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from None
 

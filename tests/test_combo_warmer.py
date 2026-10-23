@@ -59,7 +59,7 @@ def no_saved_key(monkeypatch, tmp_path):
 
 def question(n: int, tag: str) -> ComboMarket:
     return ComboMarket(market_id=f"polymarket:{n}", venue="polymarket", title=f"Will thing {n} happen?", tags=[tag],
-                       info={"volume": str(n), "outcome_prices": ["0.5", "0.5"]})
+                       info={"volume": str(n), "outcome_prices": ["0.4", "0.6"]})
 
 
 class PagedVenue(PaperRfqVenue):
@@ -275,7 +275,7 @@ class Registry:
 def catalogue_row(raw: dict) -> ComboMarket:
     tags = ["sports", "games", "soccer", "saudi-professional-league"] if raw.get("sportsMarketType") else ["politics"]
     return ComboMarket(market_id=f"polymarket:{raw['id']}", venue="polymarket", title=raw["question"], tags=tags,
-                       position_ids={"yes": f"{raw['id']}-Y", "no": f"{raw['id']}-N"}, info={"volume": raw.get("volume")})
+                       position_ids={"yes": f"{raw['id']}-Y", "no": f"{raw['id']}-N"}, info={"volume": raw.get("volume"), "outcome_prices": raw.get("outcomePrices")})
 
 
 # Hosted matching's answers for Yuki's legs on 2026-10-22: Al Fayha is listed on
@@ -334,7 +334,10 @@ class CountingGamma(GammaReader):
 
 
 class TestGammaCache:
-    async def test_a_rebuild_reads_gamma_only_for_new_markets_and_keeps_prices_fresh(self):
+    async def test_a_rebuild_reads_gamma_only_for_new_markets_and_keeps_prices_fresh(self, monkeypatch):
+        # Before the sample's games start: a game under way is read again each build (its result can come in).
+        import synpath.engine.combo_board as combo_board
+        monkeypatch.setattr(combo_board.time, "time", lambda: 1_790_000_000.0)
         rows = [catalogue_row(raw) for raw in SAMPLE["gamma_markets"]]
         venue = ListedVenue(venue="polymarket", eligible=[])
         venue.eligible = rows

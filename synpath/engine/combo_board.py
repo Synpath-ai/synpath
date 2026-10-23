@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import asyncio
 import gc
+import logging
 import inspect
 import re
 import time
@@ -42,6 +43,8 @@ from typing import Any, Awaitable, Callable, Iterable, Literal
 from pydantic import Field
 
 from ..types import Event, Market, _Base
+
+log = logging.getLogger(__name__)
 
 MarketKind = Literal["moneyline", "spread", "total"]
 KINDS: tuple[MarketKind, ...] = ("moneyline", "spread", "total")
@@ -113,6 +116,8 @@ class BoardEvent(_Base):
     category: str = Field(description="The category key: a league (`nfl`) or a kind (`crypto`), else `other`")
     category_label: str
     group: Literal["sports", "other"]
+    competition: str | None = Field(default=None, description="The league, tournament or series the venue files it "
+                                    "under (`Premier League`, `NCAA Football`, `Dota 2`), where it names one")
     start_time: int | None = Field(default=None, description="Game start or market close, ms")
     volume: Decimal | None = None
     market_types: list[str] = Field(default_factory=list, description="The game's market types, in board order")
@@ -127,6 +132,8 @@ class BoardCategory(_Base):
     label: str
     group: Literal["sports", "other"]
     count: int = Field(description="Events on the board in this category")
+    competitions: list[str] = Field(default_factory=list, description="Its leagues, tournaments or series "
+                                    "(`Premier League`, `La Liga`), the most traded first: a combo board's chips")
 
 
 BoardStatus = Literal["building", "ready"]
@@ -201,6 +208,9 @@ class BoardMarket(_Base):
                                                            "2.5), a total's line")
     tags: list[str] = Field(default_factory=list)
     series: str | None = None
+    competition: str | None = Field(default=None, description="The venue's league, tournament or series name")
+    yes_price: Decimal | None = Field(default=None, description="The venue's own YES price (Polymarket's "
+                                      "`outcomePrices`, Kalshi's last trade), for a side the book leaves empty")
     yes_bid: Decimal | None = None
     yes_ask: Decimal | None = None
     start_time: int | None = None
@@ -227,12 +237,16 @@ def board_of(venue: str, markets: Iterable[BoardMarket], *, complete: bool = Tru
     normalised as `BoardMarket`s: `polymarket_markets`, `polymarket_us_markets`,
     `kalshi_markets`)."""
     rows = [m for m in markets if m.market_id]
+    empty_winners = {m.event_key for m in rows if is_empty(m) and m.kind == "moneyline"}
     by_event: dict[str, list[BoardMarket]] = {}
-    for market in rows:
+    for market in (m for m in rows if not is_empty(m)):
         by_event.setdefault(market.event_key, []).append(market)
     events: list[BoardEvent] = []
     for events_done, (key, members) in enumerate(by_event.items(), 1):
         share_the_lock(events_done)
+        if key in empty_winners:
+            # A side of the winner market has nothing on it: the game is not offered.
+            members = [m for m in members if m.kind not in KINDS]
         game = game_of(venue, key, members)
         if game is not None:
             events.append(game)
@@ -244,8 +258,20 @@ def board_of(venue: str, markets: Iterable[BoardMarket], *, complete: bool = Tru
                       complete=complete, as_of=as_of)
 
 
+def is_empty(market: BoardMarket) -> bool:
+    """No bids, no asks and no trades: nothing to price, chart or fill, so the
+    market stays off the board (a venue lists such markets as `--`)."""
+    return market.yes_bid is None and market.yes_ask is None and market.yes_price is None
+
+
+COMPETITIONS_PER_CATEGORY = 40
+"""At most this many of a category's leagues are named, the most traded."""
+
+
 def categories_of(events: list[BoardEvent]) -> list[BoardCategory]:
     counts: dict[str, BoardCategory] = {}
+    traded: dict[str, dict[str, Decimal]] = {}
+    games: dict[str, dict[str, int]] = {}
     for event in events:
         held = counts.get(event.category)
         if held is None:
@@ -253,6 +279,15 @@ def categories_of(events: list[BoardEvent]) -> list[BoardCategory]:
                                                    group=event.group, count=1)
         else:
             held.count += 1
+        if event.competition:
+            by_league = traded.setdefault(event.category, {})
+            by_league[event.competition] = by_league.get(event.competition, Decimal(0)) + (event.volume or Decimal(0))
+            in_league = games.setdefault(event.category, {})
+            in_league[event.competition] = in_league.get(event.competition, 0) + 1
+    for key, category in counts.items():
+        # The most traded first; a venue that reports no volume (Polymarket US): the most games first.
+        leagues, played = traded.get(key, {}), games.get(key, {})
+        category.competitions = sorted(leagues, key=lambda name: (-leagues[name], -played[name], name))[:COMPETITIONS_PER_CATEGORY]
     return sorted(counts.values(), key=lambda c: (c.group != "sports", -c.count, c.label))
 
 
@@ -278,6 +313,7 @@ def game_of(venue: str, key: str, members: list[BoardMarket]) -> BoardEvent | No
     return BoardEvent(
         id=key, venue=venue, kind="game", title=first.event_title or " vs. ".join(s.name for s in sides),
         category=category, category_label=label, group=group,
+        competition=next((m.competition for m in members if m.competition), None),
         start_time=min((m.start_time for m in members if m.start_time), default=None),
         volume=sum((m.volume for m in members if m.volume is not None), Decimal(0)) or None,
         market_types=kinds, rows=rows, market_ids=used)
@@ -288,7 +324,7 @@ def questions_of(venue: str, members: list[BoardMarket]) -> list[BoardEvent]:
     the nearest even first. A market whose outcomes are named (`Cavaliers` /
     `76ers`, `Odd` / `Even`) says them on its buttons."""
     def evenness(m: BoardMarket) -> Decimal:
-        price = mid(m)
+        price = display_price(m)
         return abs(price - Decimal("0.5")) if price is not None else Decimal(1)
 
     out = []
@@ -301,7 +337,8 @@ def questions_of(venue: str, members: list[BoardMarket]) -> list[BoardEvent]:
         yes_label, no_label = (market.outcomes[0], market.outcomes[1]) if named else ("YES", "NO")
         out.append(BoardEvent(
             id=market.market_id, venue=venue, kind="question", title=title, category=category,
-            category_label=label, group=group, start_time=market.start_time, volume=market.volume,
+            category_label=label, group=group, competition=market.competition,
+            start_time=market.start_time, volume=market.volume,
             yes=pick_of(market, "yes", yes_label, "question"), no=pick_of(market, "no", no_label, "question"),
             market_ids=[market.market_id]))
     return out
@@ -326,6 +363,10 @@ def participants(typed: list[BoardMarket]) -> list[Side]:
 def picks_for(kind: str, markets: list[BoardMarket], sides: list[Side]) -> list[BoardPick | None]:
     """One pick per participant for this market type (None where the venue has none)."""
     out: list[BoardPick | None] = [None] * len(sides)
+    if kind != "moneyline":
+        # A line with only the edges of a book (1¢ / 97¢) and never traded is not offered;
+        # with no other line, the game has no spread or total column.
+        markets = [m for m in markets if not edges_only(m)]
     if not markets:
         return out
     if kind == "total":
@@ -365,11 +406,21 @@ def button_label(kind: str, side: Side, line: Decimal | None) -> str:
 
 
 def pick_of(market: BoardMarket, outcome: Literal["yes", "no"], label: str, kind: str) -> BoardPick:
-    price = market.yes_ask if outcome == "yes" else (1 - market.yes_bid if market.yes_bid is not None else None)
+    # The outcome's price on the book (YES ask, or 1 - YES bid); where that
+    # side of the book is empty, the venue's own price for it (Polymarket's
+    # `outcomePrices`, Kalshi's last trade), as its own board then shows; with
+    # neither, the book's other side (the YES bid, or 1 - YES ask), where the
+    # market stands.
+    book = market.yes_ask if outcome == "yes" else (1 - market.yes_bid if market.yes_bid is not None else None)
+    venue_price = None
+    if market.yes_price is not None:
+        venue_price = market.yes_price if outcome == "yes" else 1 - market.yes_price
+    other_side = market.yes_bid if outcome == "yes" else (1 - market.yes_ask if market.yes_ask is not None else None)
+    price = next((p for p in (book, venue_price, other_side) if p is not None and 0 < p < 1), None)
     return BoardPick(market_id=market.market_id, outcome=outcome, label=label, kind=kind,
                      line=format_line(market.line) if market.line is not None else None, title=market.title,
                      yes_bid=market.yes_bid, yes_ask=market.yes_ask,
-                     price=price if price is not None and 0 < price < 1 else None)
+                     price=price)
 
 
 # ---------------------------------------------------------------------------
@@ -380,6 +431,8 @@ def pick_of(market: BoardMarket, outcome: Literal["yes", "no"], label: str, kind
 # `sportsMarketTypeV2`): the full-game types a game card draws. Every other
 # type (a half, a map, an exact score, a player prop) is a question.
 POLYMARKET_KINDS = {"moneyline": "moneyline", "spreads": "spread", "totals": "total"}
+SETTLING = {"proposed", "resolved"}
+"""Gamma `umaResolutionStatus` values of a market whose result is in (proposed, or final)."""
 POLYMARKET_US_KINDS = {"moneyline": "moneyline", "drawable_outcome": "moneyline", "spread": "spread",
                        "spreads": "spread", "total": "total", "totals": "total",
                        "SPORTS_MARKET_TYPE_MONEYLINE": "moneyline",
@@ -390,6 +443,38 @@ POLYMARKET_US_KINDS = {"moneyline": "moneyline", "drawable_outcome": "moneyline"
 KALSHI_SCOPES = {"game": "moneyline", "match": "moneyline", "fight": "moneyline", "spread": "spread",
                  "point total": "total", "total": "total"}
 DRAW_WORDS = ("draw", "tie")
+
+
+def unlisted_polymarket(gamma: dict[str, Any], info: dict[str, Any]) -> bool:
+    """Polymarket's own boards (its Combos and Sports pages) list a market with
+    money resting on its book (Gamma's `liquidity`, however thin) or one that
+    has traded (`volume`); one with neither, never quoted, they leave off. A
+    market Gamma was not read for is not judged."""
+    if not gamma:
+        return False
+    if book_price(gamma.get("bestBid")) is not None or book_price(gamma.get("bestAsk")) is not None:
+        return False  # an order rests on it
+    liquidity = to_decimal(gamma.get("liquidityNum") or gamma.get("liquidity"))
+    volume = to_decimal(info.get("volume") or gamma.get("volumeNum") or gamma.get("volume"))
+    return not liquidity and not volume
+
+
+def book_price(value: Any) -> Decimal | None:
+    """A best bid or ask, where one rests: Gamma says 0 (bid) and 1 (ask) for an empty side."""
+    price = to_decimal(value)
+    return price if price is not None and 0 < price < 1 else None
+
+
+def venue_prices(bid: Decimal | None, ask: Decimal | None, prices: list[Decimal | None],
+                 unlisted: bool = False) -> dict[str, Decimal | None]:
+    """A Polymarket market's YES bid, ask and price. An empty side of the book
+    takes the venue's price (`outcomePrices`), as its own board shows. An
+    `unlisted` market (`unlisted_polymarket`) has no price: its 0.5 / 0.5 is
+    Gamma's default, and it is left off the board (`is_empty`)."""
+    price = prices[0] if prices and prices[0] is not None else None
+    if unlisted or price is None or not 0 < price < 1:
+        return {"yes_price": None, "yes_bid": bid, "yes_ask": ask}
+    return {"yes_price": price, "yes_bid": bid or price, "yes_ask": ask or price}
 
 
 def polymarket_markets(rows: Iterable[Any], details: dict[str, dict[str, Any]] | None = None,
@@ -406,7 +491,11 @@ def polymarket_markets(rows: Iterable[Any], details: dict[str, dict[str, Any]] |
         info = dict(getattr(row, "info", None) or {})
         native = str(row.market_id).partition(":")[2] or str(row.market_id)
         gamma = details.get(native) or {}
+        if str(gamma.get("umaResolutionStatus") or "").lower() in SETTLING:
+            continue  # its result is in: Polymarket's own board offers it no more, and no maker quotes it
         event = (gamma.get("events") or [{}])[0] if isinstance(gamma.get("events"), list) else {}
+        if event.get("ended") is True:
+            continue  # the game is over (its score is final) and its result not yet proposed: Polymarket shows it as final
         event_id = str(event.get("id") or "")
         teams = teams_of((events.get(event_id) or {}).get("teams") or event.get("teams") or [])
         outcomes = outcome_names(gamma.get("outcomes") or info.get("outcomes"))
@@ -421,24 +510,28 @@ def polymarket_markets(rows: Iterable[Any], details: dict[str, dict[str, Any]] |
             event_title=event.get("title") or None, kind=kind if yes_side is not None or kind == "total" else None,
             outcomes=outcomes, label=label, participants=teams, yes_side=yes_side, no_side=no_side,
             line=to_decimal(gamma.get("line")), tags=[str(t) for t in row.tags or []],
-            series=event.get("seriesSlug") or None,
-            yes_bid=to_decimal(gamma.get("bestBid")) or (prices[0] if prices and prices[0] else None),
-            yes_ask=to_decimal(gamma.get("bestAsk")) or (prices[0] if prices and prices[0] else None),
+            series=event.get("seriesSlug") or None, competition=competition_of_event(event),
+            **venue_prices(book_price(gamma.get("bestBid")), book_price(gamma.get("bestAsk")), prices,
+                           unlisted_polymarket(gamma, info)),
             start_time=millis(gamma.get("gameStartTime") or event.get("startTime") or gamma.get("endDate")),
             volume=to_decimal(info.get("volume") or gamma.get("volume")),
         ))
     return out
 
 
-def polymarket_us_markets(rows: Iterable[Any]) -> list[BoardMarket]:
+def polymarket_us_markets(rows: Iterable[Any], series_titles: dict[str, str] | None = None) -> list[BoardMarket]:
     """Polymarket US's eligible rows (`ComboMarket`, `info` the gateway's
     market with its `event`): the type from `marketType` /
     `sportsMarketTypeV2`, each outcome's participant from `marketSides[].team`
-    (`name`, `displayAbbreviation`), the event's `teams` in order."""
+    (`name`, `displayAbbreviation`), the event's `teams` in order, its league
+    from `series_titles` (the gateway's names its series slugs only)."""
+    series_titles = series_titles or {}
     out = []
     for rows_done, row in enumerate(rows, 1):
         share_the_lock(rows_done)
         info = dict(getattr(row, "info", None) or {})
+        if is_finished_us_market(info):
+            continue  # its combo list can still name a game already settled: nothing to price or quote
         event = info.get("event") if isinstance(info.get("event"), dict) else {}
         teams = teams_of(event.get("teams") or [], abbr_field="displayAbbreviation")
         outcomes = outcome_names(info.get("outcomes"))
@@ -460,10 +553,9 @@ def polymarket_us_markets(rows: Iterable[Any]) -> list[BoardMarket]:
             label=info.get("titleShort") or None, participants=teams, yes_side=yes_side, no_side=no_side,
             line=to_decimal(info.get("line")), tags=[str(t) for t in row.tags or []],
             series=info.get("seriesSlug") or event.get("seriesSlug"),
-            yes_bid=to_decimal(best_bid.get("value") if isinstance(best_bid, dict) else None)
-            or (prices[0] if prices and prices[0] else None),
-            yes_ask=to_decimal(best_ask.get("value") if isinstance(best_ask, dict) else None)
-            or (prices[0] if prices and prices[0] else None),
+            competition=us_competition(info.get("seriesSlug") or event.get("seriesSlug"), series_titles),
+            **venue_prices(book_price(best_bid.get("value") if isinstance(best_bid, dict) else None),
+                           book_price(best_ask.get("value") if isinstance(best_ask, dict) else None), prices),
             start_time=millis(info.get("gameStartTime") or event.get("startTime") or info.get("endDate")),
             volume=to_decimal(info.get("volume")),
         ))
@@ -511,7 +603,8 @@ def kalshi_markets(events: Iterable[Event]) -> list[BoardMarket]:
                 kind=kind if side is not None or kind == "total" else None,
                 label=label if label and label.lower() not in ("yes", "no") else None,
                 participants=teams, yes_side=side, line=line, tags=tags,
-                series=series.upper().removeprefix("KX"), yes_bid=to_decimal(quote.bid), yes_ask=to_decimal(quote.ask),
+                series=series.upper().removeprefix("KX"), competition=kalshi_competition(meta.get("competition")),
+                yes_bid=to_decimal(quote.bid), yes_ask=to_decimal(quote.ask), yes_price=to_decimal(quote.last),
                 start_time=market.close_timestamp,
                 volume=to_decimal(market.stats.volume_total) if getattr(market, "stats", None) else None,
             ))
@@ -615,6 +708,60 @@ def category_of(tags: Iterable[str], series: str | None = None) -> tuple[str, st
     return OTHER[0], OTHER[1], "other"
 
 
+def kalshi_competition(name: Any) -> str | None:
+    """Kalshi's `product_metadata.competition`, unless it only restates the
+    category: its US leagues are `Pro Football`, `Pro Basketball (M)` and the
+    like, which the board already shows as NFL or NBA. `Serie A`,
+    `Genesis Championship` and `NCAA Football` are kept."""
+    text = str(name or "").strip()
+    if not text or re.fullmatch(r"Pro (Football|Basketball|Hockey|Baseball|Soccer)( \([MW]\))?", text):
+        return None
+    return text
+
+
+def is_finished_us_market(info: dict[str, Any]) -> bool:
+    """A Polymarket US market that no longer trades: closed, or resolved
+    (`MARKET_STATUS_RESOLVED`, its outcome prices then 0 and 1)."""
+    status = str(info.get("status") or "").upper()
+    return bool(info.get("closed")) or status.endswith(("RESOLVED", "SETTLED", "CLOSED"))
+
+
+def us_competition(slug: Any, series_titles: dict[str, str]) -> str | None:
+    """A Polymarket US game's league: the gateway's title for its series slug
+    (`alsv` is `Allsvenskan`), else the slug read as words."""
+    title = series_titles.get(str(slug or ""))
+    return without_season(title) if title else competition_of_series(slug)
+
+
+def competition_of_event(event: dict[str, Any]) -> str | None:
+    """A Polymarket game's competition: its Gamma series' title ("LigaPro
+    Primera A", "Premier League"), else its series slug read as words. The
+    slugs are often codes (`ecu1-games`, `soccer-fpd`), so the title wins."""
+    titles = [str(x.get("title")) for x in event.get("series") or [] if isinstance(x, dict) and x.get("title")]
+    if titles:
+        return without_season(titles[0])
+    return competition_of_series(event.get("seriesSlug"))
+
+
+def without_season(name: str) -> str:
+    """`Premier League 2025` and `La Liga 2025-26` without their season: the board shows one season."""
+    return re.sub(r"\s+(19|20)\d\d(\s*[-/]\s*(\d\d){1,2})?$", "", name.strip()) or name.strip()
+
+
+def competition_of_series(slug: Any) -> str | None:
+    """A Polymarket series slug as the name a person reads: `premier-league-2025`
+    is `Premier League`, `dota-2` is `Dota 2` (a season's year is dropped; a
+    number that is part of the name stays)."""
+    words = [w for w in str(slug or "").strip().split("-") if w]
+    if words and re.fullmatch(r"(19|20)\d\d", words[-1]) and len(words) > 1:
+        words = words[:-1]
+    return " ".join(w.upper() if w in SERIES_ACRONYMS else w.capitalize() for w in words) or None
+
+
+SERIES_ACRONYMS = {"nfl", "nba", "mlb", "nhl", "mls", "ufc", "epl", "ucl", "uel", "atp", "wta", "ncaa", "ncaaf", "ncaab",
+                   "wnba", "pga", "lpga", "lol", "cs", "f1", "nascar", "ipl", "bbl", "afl", "nrl", "cfb", "cbb", "kbo", "npb"}
+
+
 def league_of(tags: Iterable[str], series: str | None = None) -> str:
     return category_of(tags, series)[0]
 
@@ -665,10 +812,37 @@ def short(outcome: str) -> str:
 
 
 def nearest_even(markets: list[BoardMarket]) -> BoardMarket:
-    def distance(m: BoardMarket) -> Decimal:
-        price = mid(m)
-        return abs(price - Decimal("0.5")) if price is not None else Decimal(1)
+    """The main line, as the venues' boards pick it: the one whose displayed
+    price is nearest 50¢; then, by midpoint, lines with a wide book; a book
+    with only its edges (`edges_only`) last, whatever its midpoint."""
+    def distance(m: BoardMarket) -> tuple[int, Decimal]:
+        price = display_price(m)
+        if price is not None:
+            return 0, abs(price - Decimal("0.5"))
+        middle = mid(m)
+        return (1, abs(middle - Decimal("0.5"))) if middle is not None and not edges_only(m) else (2, Decimal(1))
     return min(markets, key=distance)
+
+
+EDGES_ONLY = Decimal("0.90")
+"""A spread at least this wide (a 1¢ bid under a 97¢ ask) is only the edges of a book: nobody prices the market."""
+
+
+def edges_only(market: BoardMarket) -> bool:
+    bid, ask = market.yes_bid or Decimal(0), market.yes_ask if market.yes_ask is not None else Decimal(1)
+    return ask - bid >= EDGES_ONLY and market.yes_price is None
+
+
+DISPLAY_SPREAD = Decimal("0.10")
+"""Polymarket's rule for the price it shows: the midpoint while the spread is at most 10¢, else the last trade."""
+
+
+def display_price(market: BoardMarket) -> Decimal | None:
+    """The market's price as Polymarket shows one (`DISPLAY_SPREAD`): a 1¢ bid
+    under a 97¢ ask has a midpoint near 50¢ but says nothing, so it is not used."""
+    if market.yes_bid is not None and market.yes_ask is not None and market.yes_ask - market.yes_bid <= DISPLAY_SPREAD:
+        return (market.yes_bid + market.yes_ask) / 2
+    return market.yes_price if market.yes_price is not None and 0 < market.yes_price < 1 else None
 
 
 def mid(market: BoardMarket) -> Decimal | None:
@@ -821,25 +995,45 @@ def categories_view(board: ComboBoard) -> ComboBoardCategories:
                                 categories=board.categories, error=board.error)
 
 
+LIVE_HOURS = 4
+"""How long after its start a game counts as under way; one listed longer
+than that (postponed, unsettled) is put after the games still to come."""
+
+
+def start_order_key(now_ms: int) -> Callable[[BoardEvent], tuple]:
+    """The `start` order: (tier, start, title), tier 0 for a game under way or
+    ahead, 1 for one that started more than LIVE_HOURS ago, 2 for a question."""
+    def key(event: BoardEvent) -> tuple:
+        start = event.start_time
+        if event.kind != "game" or start is None:
+            return (2, start or 2**62, event.title)
+        return (0 if start >= now_ms - LIVE_HOURS * 3_600_000 else 1, start, event.title)
+    return key
+
+
 def board_page(board: ComboBoard, *, category: str | None = None, cursor: str | None = None,
-               limit: int = PAGE_LIMIT, query: str | None = None, sort: BoardSort = "board") -> ComboBoard:
+               limit: int = PAGE_LIMIT, query: str | None = None, sort: BoardSort = "board",
+               competition: str | None = None) -> ComboBoard:
     """One page of the board: the events of `category` (`all` or none: every
     one) whose title, category or participants hold every word of `query`,
-    in board order (sports first, the most events first, by start), or by
-    `volume` (largest first) or `start` within each category; from `cursor`
+    in board order (sports first, the most events first, by start), by
+    `volume` (largest first) within each category, or by `start` across
+    categories as the venues' own combo boards list them: games under way or
+    ahead first, soonest first, then games that started more than
+    `LIVE_HOURS` ago and are still listed, then questions; from `cursor`
     (an offset from the last page), `limit` events. The categories are the
     whole board's, for the rail."""
     events = [e for e in board.events if category in (None, "", "all") or e.category == category]
+    if competition:  # one league, exactly: "Serie A" is not "Brazil Serie A"
+        events = [e for e in events if e.competition == competition]
     words = [w for w in (query or "").lower().split() if w]
     if words:
         events = [e for e in events if all(w in searchable(e) for w in words)]
-    if sort != "board":
+    if sort == "volume":
         order = {c.key: index for index, c in enumerate(board.categories)}
-
-        def key(e: BoardEvent) -> tuple:
-            within = -(e.volume or Decimal(0)) if sort == "volume" else Decimal(e.start_time or 2**62)
-            return (order.get(e.category, len(order)), within, e.title)
-        events = sorted(events, key=key)
+        events = sorted(events, key=lambda e: (order.get(e.category, len(order)), -(e.volume or Decimal(0)), e.title))
+    elif sort == "start":
+        events = sorted(events, key=start_order_key(int(time.time() * 1000)))
     start = page_offset(cursor)
     limit = max(1, min(int(limit), MAX_PAGE_LIMIT))
     page = events[start:start + limit]
@@ -849,7 +1043,7 @@ def board_page(board: ComboBoard, *, category: str | None = None, cursor: str | 
 
 
 def searchable(event: BoardEvent) -> str:
-    return " ".join([event.title, event.category_label,
+    return " ".join([event.title, event.category_label, event.competition or "",
                      *(f"{r.name} {r.abbr or ''} {r.alias or ''}" for r in event.rows)]).lower()
 
 
@@ -897,14 +1091,19 @@ class BoardCache:
     def __init__(self) -> None:
         self.markets: dict[str, dict[str, Any]] = {}
         self.events: dict[str, dict[str, Any]] = {}
+        self.series_titles: dict[str, str] = {}
+        """Polymarket US's series titles by slug, read once per build."""
 
     def prune(self, market_natives: set[str], event_ids: set[str]) -> None:
         self.markets = {k: v for k, v in self.markets.items() if k in market_natives}
         self.events = {k: v for k, v in self.events.items() if k in event_ids}
+        self.series_titles = {}  # read again next build: a venue adds series
 
 
-GAMMA_FIELDS = ("question", "sportsMarketType", "line", "groupItemTitle", "gameStartTime", "endDate", "outcomes")
-GAMMA_EVENT_FIELDS = ("id", "title", "seriesSlug", "startTime", "teams")
+GAMMA_FIELDS = ("question", "sportsMarketType", "line", "groupItemTitle", "gameStartTime", "endDate", "outcomes",
+                "liquidityNum")
+"""`liquidityNum` moves, but only whether it is above 0 is read (`unlisted_polymarket`); a game under way is read again each build."""
+GAMMA_EVENT_FIELDS = ("id", "title", "seriesSlug", "series", "startTime", "teams")
 
 
 def static_gamma(info: dict[str, Any]) -> dict[str, Any]:
@@ -912,7 +1111,10 @@ def static_gamma(info: dict[str, Any]) -> dict[str, Any]:
     out = {k: info[k] for k in GAMMA_FIELDS if info.get(k) is not None}
     events = info.get("events")
     if isinstance(events, list) and events and isinstance(events[0], dict):
-        out["events"] = [{k: events[0][k] for k in GAMMA_EVENT_FIELDS if events[0].get(k) is not None}]
+        event = {k: events[0][k] for k in GAMMA_EVENT_FIELDS if events[0].get(k) is not None}
+        if isinstance(event.get("series"), list):  # only the names are read: a series object is large
+            event["series"] = [{"title": x["title"]} for x in event["series"] if isinstance(x, dict) and x.get("title")]
+        out["events"] = [event]
     return out
 
 
@@ -1009,7 +1211,12 @@ async def listed_markets_of(venue: str, rows: list[Any], reader: Any | None, pau
         return []
     can_read = reader is not None and callable(getattr(reader, "fetch_markets_by_ids", None))
     if venue == "polymarket_us" or all(getattr(r, "venue", "") == "polymarket_us" for r in rows):
-        markets = await asyncio.to_thread(polymarket_us_markets, rows)
+        if can_read and not cache.series_titles and callable(getattr(reader, "fetch_series_titles", None)):
+            try:
+                cache.series_titles = await asyncio.to_thread(reader.fetch_series_titles)
+            except Exception as exc:  # names are a nicety: the board builds with the slugs read as words
+                log.info("polymarket_us: no series titles (%s)", exc)
+        markets = await asyncio.to_thread(polymarket_us_markets, rows, cache.series_titles)
         if can_read:
             await with_catalogue_quotes(markets, reader, pause_s)
         return markets
@@ -1031,14 +1238,24 @@ async def listed_markets_of(venue: str, rows: list[Any], reader: Any | None, pau
 # The bookkeeping of one chunk of Polymarket rows (about 40,000 markets), kept
 # off serve's event loop like the builders above (`share_the_lock`).
 
-def natives_not_cached(rows: list[Any], cache: BoardCache) -> tuple[dict[str, str], list[str]]:
+def natives_not_cached(rows: list[Any], cache: BoardCache, now_ms: int | None = None) -> tuple[dict[str, str], list[str]]:
     """Each row's native Gamma id, by market id, and the market ids whose
-    Gamma market the cache does not hold yet."""
+    Gamma market is read now: the ones the cache does not hold, and every
+    game already under way, whose resolution status moves while it plays
+    (a game with a result proposed leaves the board)."""
+    now_ms = now_ms if now_ms is not None else int(time.time() * 1000)
     natives: dict[str, str] = {}
     for rows_done, row in enumerate(rows, 1):
         share_the_lock(rows_done)
         natives[row.market_id] = str(row.market_id).partition(":")[2] or str(row.market_id)
-    return natives, [m for m, n in natives.items() if n not in cache.markets]
+
+    def read_now(native: str) -> bool:
+        cached = cache.markets.get(native)
+        if cached is None:
+            return True
+        started = millis(cached.get("gameStartTime"))
+        return started is not None and started <= now_ms
+    return natives, [m for m, n in natives.items() if read_now(n)]
 
 
 def remember_gamma_markets(natives: dict[str, str], unseen: list[str], quotes: dict[str, Market],

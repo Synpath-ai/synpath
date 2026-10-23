@@ -98,6 +98,11 @@ class TestPolymarketLive:
         assert picks(nfl, "spread") == [("NE +2.5", "no", "polymarket:5377299"), ("CHI -2.5", "yes", "polymarket:5377299")]
         assert [p[:2] for p in picks(nfl, "total")] == [("O 50.5", "yes"), ("U 50.5", "no")]
 
+    def test_a_game_names_its_competition_from_the_events_series(self):
+        board = poly_board()
+        assert game(board, "Rayo Vallecano de Madrid vs. Athletic Club").competition == "La Liga"
+        assert game(board, "Patriots vs. Bears").competition == "NFL"
+
     def test_an_nba_game(self):
         nba = game(poly_board(), "Cavaliers vs. 76ers")
         assert nba.category == "nba" and rows(nba) == [("Cavaliers", "CLE"), ("76ers", "PHI")]
@@ -169,6 +174,11 @@ class TestKalshiLive:
                                         ("CHI -2.5", "yes", "kalshi:KXNFLSPREAD-26OCT22NECHI-CHI3")]
         assert picks(nfl, "total") == [("O 50.5", "yes", "kalshi:KXNFLTOTAL-26OCT22NECHI-51"),
                                        ("U 50.5", "no", "kalshi:KXNFLTOTAL-26OCT22NECHI-51")]
+
+    def test_a_game_names_its_competition_unless_the_category_already_does(self):
+        board = board_of("kalshi", kalshi_markets(kalshi_events()))
+        assert game(board, "Monza vs Napoli").competition == "Serie A"
+        assert game(board, "New England vs Chicago").competition is None  # "Pro Football": the category says NFL
 
     def test_nhl_nba_and_a_soccer_match_with_its_tie(self):
         board = board_of("kalshi", kalshi_markets(kalshi_events()))
@@ -305,3 +315,192 @@ def test_names_match_by_whole_words_only():
     assert same_name("Patriots", "New England Patriots") and same_name("Chidekh", "Clement Chidekh")
     assert not same_name("Ohio State", "Penn State"), "two teams sharing a last word are two teams"
     assert not same_name("Bears", "Bearsden")
+
+
+def test_series_slugs_read_as_names():
+    from synpath.engine.combo_board import competition_of_series
+    assert competition_of_series("premier-league-2025") == "Premier League"
+    assert competition_of_series("la-liga") == "La Liga"
+    assert competition_of_series("dota-2") == "Dota 2"
+    assert competition_of_series("atp-shanghai") == "ATP Shanghai"
+    assert competition_of_series(None) is None
+
+
+def test_the_board_search_finds_a_game_by_its_competition():
+    from synpath.engine.combo_board import board_page
+    board = poly_board()
+    found = board_page(board, query="la liga").events
+    assert found and all(e.competition == "La Liga" for e in found)
+
+
+def test_a_polymarket_game_takes_its_series_title_over_its_slug():
+    from synpath.engine.combo_board import competition_of_event
+    assert competition_of_event({"seriesSlug": "ecu1-games", "series": [{"title": "LigaPro Primera A"}]}) == "LigaPro Primera A"
+    assert competition_of_event({"seriesSlug": "premier-league-2025", "series": [{"title": "Premier League 2025"}]}) == "Premier League"
+    assert competition_of_event({"series": [{"title": "La Liga 2025-26"}]}) == "La Liga"
+    assert competition_of_event({"seriesSlug": "dota-2"}) == "Dota 2"
+    assert competition_of_event({}) is None
+
+
+def test_the_cached_gamma_event_keeps_only_series_titles():
+    from synpath.engine.combo_board import static_gamma
+    kept = static_gamma({"events": [{"id": "1", "seriesSlug": "ecu1-games", "series": [{"title": "LigaPro Primera A", "image": "x", "id": 9}]}]})
+    assert kept["events"][0]["series"] == [{"title": "LigaPro Primera A"}]
+
+
+
+def test_the_start_order_puts_games_ahead_first_then_old_games_then_questions():
+    from synpath.engine.combo_board import BoardEvent, ComboBoard, board_page
+    now = int(__import__("time").time() * 1000)
+    hour = 3_600_000
+
+    def event(event_id, kind, start, category="soccer"):
+        return BoardEvent(id=event_id, venue="polymarket", kind=kind, title=event_id, category=category,
+                          category_label=category.title(), group="sports", start_time=start)
+    board = ComboBoard(venue="polymarket", count=5, complete=True, events=[
+        event("question-soon", "question", now + hour),
+        event("stale", "game", now - 300 * hour),
+        event("tomorrow", "game", now + 24 * hour, category="nba"),
+        event("live", "game", now - hour),
+        event("tonight", "game", now + 5 * hour),
+    ])
+    page = board_page(board, sort="start")
+    assert [e.id for e in page.events] == ["live", "tonight", "tomorrow", "stale", "question-soon"]
+
+
+def test_a_category_names_its_leagues_by_volume_and_a_page_takes_one_league():
+    from synpath.engine.combo_board import BoardEvent, board_page, categories_of, ComboBoard
+    from decimal import Decimal
+
+    def event(event_id, competition, volume):
+        return BoardEvent(id=event_id, venue="polymarket", kind="game", title=event_id, category="soccer",
+                          category_label="Soccer", group="sports", competition=competition, volume=Decimal(volume))
+    events = [event("a", "Eerste Divisie", 5_000), event("b", "Eerste Divisie", 4_000), event("c", "Premier League", 434_000),
+              event("d", "Brazil Serie A", 8_000), event("e", "Serie A", 20_000)]
+    soccer = categories_of(events)[0]
+    assert soccer.competitions == ["Premier League", "Serie A", "Eerste Divisie", "Brazil Serie A"]
+    board = ComboBoard(venue="polymarket", count=5, complete=True, events=events)
+    assert [e.id for e in board_page(board, competition="Serie A").events] == ["e"]
+
+
+def test_a_polymarket_us_game_takes_the_gateways_series_title():
+    from synpath.engine.combo_board import us_competition
+    titles = {"alsv": "Allsvenskan", "eflch": "EFL Championship", "ipl-2026": "IPL 2026"}
+    assert us_competition("alsv", titles) == "Allsvenskan"
+    assert us_competition("ipl-2026", titles) == "IPL"
+    assert us_competition("odi-cr", titles) == "Odi Cr"  # not listed: the slug read as words
+
+
+def test_a_settled_polymarket_us_market_is_left_off_the_board():
+    from synpath.engine.combo_board import is_finished_us_market
+    assert is_finished_us_market({"status": "MARKET_STATUS_RESOLVED", "closed": True, "outcomePrices": ["0", "1"]})
+    assert is_finished_us_market({"closed": True})
+    assert not is_finished_us_market({"status": "MARKET_STATUS_OPEN", "closed": False})
+
+
+def test_a_market_with_its_result_proposed_leaves_the_board_and_an_empty_side_takes_the_venues_price():
+    from synpath.engine.combo_board import polymarket_markets, pick_of
+    from types import SimpleNamespace
+    rows = [SimpleNamespace(market_id="polymarket:1", title="A vs B", tags=[], info={}),
+            SimpleNamespace(market_id="polymarket:2", title="C vs D", tags=[], info={})]
+    details = {"1": {"question": "A vs B", "umaResolutionStatus": "proposed", "outcomePrices": '["0.0005", "0.9995"]'},
+               "2": {"question": "C vs D", "outcomePrices": '["0.30", "0.70"]', "bestAsk": "0.31"}}
+    markets = polymarket_markets(rows, details, {})
+    assert [m.market_id for m in markets] == ["polymarket:2"]
+    market = markets[0].model_copy(update={"yes_bid": None})
+    assert pick_of(market, "no", "D", "moneyline").price == __import__("decimal").Decimal("0.70")  # 1 - the venue's YES price
+
+
+
+def test_a_game_polymarket_marks_ended_leaves_the_board_before_its_result_is_proposed():
+    from synpath.engine.combo_board import polymarket_markets
+    from types import SimpleNamespace
+    rows = [SimpleNamespace(market_id="polymarket:1", title="maybe vs eternal premium", tags=[], info={})]
+    ended = {"1": {"question": "maybe vs eternal premium", "outcomePrices": '["0.9995", "0.0005"]',
+                   "events": [{"id": "9", "ended": True, "score": "000-000|2-1|Bo3", "period": "3/3"}]}}
+    assert polymarket_markets(rows, ended, {}) == []
+    ended["1"]["events"][0].update(ended=False, live=True)
+    assert len(polymarket_markets(rows, ended, {})) == 1
+
+def test_games_under_way_are_read_from_gamma_again_each_build():
+    from synpath.engine.combo_board import BoardCache, natives_not_cached
+    from types import SimpleNamespace
+    cache = BoardCache()
+    cache.markets = {"10": {"gameStartTime": "2026-10-23 10:00:00+00"}, "11": {"gameStartTime": "2027-01-01 10:00:00+00"}}
+    rows = [SimpleNamespace(market_id=f"polymarket:{n}") for n in ("10", "11", "12")]
+    now = 1_792_760_000_000  # 2026-10-23, after market 10's start
+    _, read_now = natives_not_cached(rows, cache, now_ms=now)
+    assert read_now == ["polymarket:10", "polymarket:12"]
+
+
+
+def test_an_empty_side_takes_the_last_trade_then_the_other_side_of_the_book():
+    from decimal import Decimal as D
+
+    from synpath.engine.combo_board import BoardMarket, pick_of
+
+    traded = BoardMarket(market_id="k:A", title="A", event_key="g", yes_bid=D("0.40"), yes_price=D("0.45"))
+    assert pick_of(traded, "yes", "A", "moneyline").price == D("0.45")
+    bid_only = BoardMarket(market_id="k:B", title="B", event_key="g", yes_bid=D("0.40"))
+    assert pick_of(bid_only, "yes", "B", "moneyline").price == D("0.40")
+    assert pick_of(bid_only, "no", "B", "moneyline").price == D("0.60")
+
+
+def test_a_game_whose_winner_side_is_empty_stays_off_the_board():
+    from decimal import Decimal as D
+
+    from synpath.engine.combo_board import BoardMarket, Side, board_of
+
+    sp, boom = Side(key="sp", name="Saigon Phantom", abbr="SP"), Side(key="boom", name="BOOM Esports", abbr="BOOM")
+    def game(ask_sp):
+        return [
+            BoardMarket(market_id="k:SP", title="SP", event_key="g", kind="moneyline", yes_side=sp,
+                        participants=[sp, boom], yes_ask=ask_sp),
+            BoardMarket(market_id="k:BOOM", title="BOOM", event_key="g", kind="moneyline", yes_side=boom,
+                        participants=[sp, boom], yes_ask=D("0.50")),
+        ]
+    assert board_of("kalshi", game(None)).events == []
+    assert [e.kind for e in board_of("kalshi", game(D("0.52"))).events] == ["game"]
+    question = BoardMarket(market_id="k:Q", title="Will it rain?", event_key="q")
+    assert board_of("kalshi", [question]).events == []
+
+
+
+def test_a_polymarket_game_with_no_liquidity_and_no_volume_stays_off_the_board():
+    from synpath.engine.combo_board import board_of, polymarket_markets
+    from types import SimpleNamespace
+    teams = [{"name": "Hermans/Houkes", "abbreviation": "HERMHOU", "ordering": "home"},
+             {"name": "Bianchi/Vrba", "abbreviation": "BIANVRB", "ordering": "away"}]
+    def game(**prices):
+        return {"1": {"question": "Florence (Doubles): Hermans/Houkes vs Bianchi/Vrba", "sportsMarketType": "moneyline",
+                      "outcomes": '["Hermans/Houkes", "Bianchi/Vrba"]',
+                      "events": [{"id": "9", "title": "Florence (Doubles): Hermans/Houkes vs Bianchi/Vrba", "teams": teams}],
+                      **prices}}
+    rows = [SimpleNamespace(market_id="polymarket:1", title="Florence", tags=["sports", "tennis"], info={})]
+    never_quoted = polymarket_markets(rows, game(outcomePrices='["0.5", "0.5"]', bestAsk=1, liquidity=None), {})
+    assert board_of("polymarket", never_quoted).events == []
+    # A thin book (money resting, nothing traded, no best bid or ask read) is listed, as Polymarket lists it.
+    thin = polymarket_markets(rows, game(outcomePrices='["0.715", "0.285"]', liquidityNum=1601.07), {})
+    assert [e.kind for e in board_of("polymarket", thin).events] == ["game"]
+    traded = polymarket_markets([SimpleNamespace(market_id="polymarket:1", title="Florence", tags=["sports", "tennis"],
+                                                 info={"volume": "12.5"})], game(outcomePrices='["0.5", "0.5"]'), {})
+    assert [e.kind for e in board_of("polymarket", traded).events] == ["game"]
+
+
+
+def test_the_main_total_is_the_line_priced_nearest_even_not_a_wide_book_whose_midpoint_is():
+    from decimal import Decimal as D
+
+    from synpath.engine.combo_board import BoardMarket, Side, picks_for
+
+    buf, wsh = Side(key="buf", name="Buffalo", abbr="BUF"), Side(key="wsh", name="Washington", abbr="WSH")
+    def line(n, bid, ask, last=None):
+        return BoardMarket(market_id=f"k:T{n}", title=f"Over {n}", event_key="g", kind="total", line=D(n),
+                           yes_bid=D(bid), yes_ask=D(ask), yes_price=D(last) if last else None)
+    # Kalshi, 2026-10-23: Buffalo vs Washington's 8.5 had a 1¢ bid and a 97¢ ask; 6.5 traded at 57¢.
+    lines = [line("8.5", "0.01", "0.97"), line("6.5", "0.45", "0.51", "0.57"), line("7.5", "0.21", "0.32")]
+    over, under = picks_for("total", lines, [buf, wsh])
+    assert over.market_id == "k:T6.5" and over.price == D("0.51") and under.price == D("0.55")
+    wide = picks_for("total", [line("8.5", "0.01", "0.97"), line("7.5", "0.21", "0.32")], [buf, wsh])
+    assert wide[0].market_id == "k:T7.5", "a wide book is still a market; only the edges of one are not"
+    assert picks_for("total", [line("3.5", "0.01", "0.99")], [buf, wsh]) == [None, None], "only edges: no total"

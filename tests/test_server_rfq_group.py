@@ -275,8 +275,7 @@ class TestBoard:
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["venue"] == "polymarket" and body["count"] == 2 and body["complete"]
-        assert [e["kind"] for e in body["events"]] == ["question", "question"]
-        assert body["events"][0]["yes"]["market_id"] in ("polymarket:111", "polymarket:222")
+        assert body["events"] == [], "neither market has a bid, an ask or a trade: both stay off the board"
 
     async def test_kalshi_without_a_catalogue_is_empty_and_a_venue_without_combos_is_400(self, server):
         client = server["client"]

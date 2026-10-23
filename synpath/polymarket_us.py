@@ -52,6 +52,9 @@ from .types import (
 )
 
 GATEWAY_URL = "https://gateway.polymarket.us/v1"
+SERIES_PAGE = 300
+SERIES_PAGES = 10
+"""`/series` answers at most SERIES_PAGE rows a page; SERIES_PAGES pages is far more than it lists."""
 SITE_URL = "https://polymarket.us"
 VENUE = "polymarket_us"
 
@@ -623,6 +626,19 @@ class PolymarketUS(Exchange):
             "open_interest": to_float(data.get("openInterest")),
             "liquidity": liquidity,
         })})
+
+    def fetch_series_titles(self) -> dict[str, str]:
+        """The gateway's series by slug, as people read them: `alsv` is
+        `Allsvenskan`, `eflch` `EFL Championship`. An event names its league
+        only by this slug (`seriesSlug`), so a board looks the title up here.
+        Offset paging, at most SERIES_PAGE a page."""
+        titles: dict[str, str] = {}
+        for page in range(SERIES_PAGES):
+            rows = (self.http.get("/series", {"limit": SERIES_PAGE, "offset": page * SERIES_PAGE}) or {}).get("series") or []
+            titles.update({str(r["slug"]): str(r["title"]) for r in rows if r.get("slug") and r.get("title")})
+            if len(rows) < SERIES_PAGE:
+                break
+        return titles
 
     def fetch_markets_by_ids(self, market_ids: list[str]) -> list[Market]:
         """Many markets in one request, in the order asked for.
