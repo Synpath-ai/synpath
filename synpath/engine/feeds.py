@@ -180,6 +180,17 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
             # account stream; the engine polls the offers.
             from ..ws.matchbook import MatchbookMarketStream
             out[venue] = VenueStreams(market=MatchbookMarketStream(), private=None)
+        elif venue == "prophetx" and getattr(creds, "trades", False):
+            # Every ProphetX channel is private: both streams register on the
+            # trading adapter's session, which ProphetX counts per key.
+            from ..ws.prophetx import ProphetXMarketStream, ProphetXUserStream
+            session = getattr(adapter, "session", None)
+            catalog = getattr(adapter, "catalog", None)
+            resolver = getattr(adapter, "side", None)
+            out[venue] = VenueStreams(
+                market=ProphetXMarketStream(credentials=creds, session=session, catalog=catalog),
+                private=ProphetXUserStream(credentials=creds, session=session, catalog=catalog, resolver=resolver),
+            )
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

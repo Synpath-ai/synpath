@@ -1,0 +1,124 @@
+{
+  "connection_config": {
+    "app_id": "<app_id>",
+    "key": "<app_key>",
+    "cluster": "<cluster>",
+    "ws_host": "<talaria_host>",
+    "service": "pusher"
+  },
+  "connection_established": {
+    "event": "pusher:connection_established",
+    "data": "{\"socket_id\":\"123.456\"}"
+  },
+  "register": {
+    "auth": "<app_key>:<hmac_signature>",
+    "data": {
+      "success": true,
+      "status": "CONNECTED",
+      "updated_at": 1784813285,
+      "subscriptions": [
+        {
+          "type": "tournament",
+          "ids": [
+            "109"
+          ]
+        }
+      ],
+      "authorized_channel": [
+        {
+          "channel_name": "private-broadcast-service=6-device_type=5",
+          "auth": "<app_key>:<hmac_signature_1>",
+          "binding_events": [
+            {
+              "name": "tournament_109",
+              "type": "tournament"
+            },
+            {
+              "name": "general",
+              "type": "general"
+            }
+          ]
+        },
+        {
+          "channel_name": "private-service=6-device_type=5-user=<your_account_id>",
+          "auth": "<app_key>:<hmac_signature_2>",
+          "binding_events": [
+            {
+              "name": "orders",
+              "type": "orders"
+            },
+            {
+              "name": "health_check",
+              "type": "private_system_signal"
+            }
+          ]
+        },
+        {
+          "channel_name": "private-broadcast-service=6-device_type=5-event=10078829",
+          "auth": "<app_key>:<hmac_signature_3>",
+          "binding_events": [
+            {
+              "name": "market_selections",
+              "type": "market_selections"
+            },
+            {
+              "name": "v2.market_selections",
+              "type": "market_selections"
+            }
+          ],
+          "scope": {
+            "event_id": 10078829
+          }
+        },
+        {
+          "channel_name": "private-broadcast-service=6-device_type=5-event=10078829-subtype=player_total_hits",
+          "auth": "<app_key>:<hmac_signature_4>",
+          "binding_events": [
+            {
+              "name": "market_selections",
+              "type": "market_selections"
+            },
+            {
+              "name": "v2.market_selections",
+              "type": "market_selections"
+            }
+          ],
+          "scope": {
+            "event_id": 10078829,
+            "sub_type": "player_total_hits"
+          }
+        }
+      ],
+      "channel_count": 4,
+      "channel_limit": 400,
+      "authenticated": {
+        "auth": "<app_key>:<hmac_signature_5>",
+        "user_data": "{\"id\":\"<your_account_id>\"}"
+      }
+    }
+  },
+  "trade_execution": {
+    "info": {
+      "strike": 0,
+      "strike_id": "cffa7ddc4fd50acbe51684e7addabe00",
+      "market_id": 219,
+      "fill_price": 124,
+      "filled_quantity": 45.3,
+      "price": 124,
+      "origin_market_strike": 0,
+      "outcome_id": 4,
+      "sequence_number": 1709130007835319000,
+      "sport_event_id": 44285780,
+      "aggressive": true
+    }
+  },
+  "health_check": {
+    "event": "health_check",
+    "data": {
+      "change_type": "private_system_signal",
+      "op": "u",
+      "payload": "e30=",
+      "timestamp": 1717689526365275600
+    }
+  }
+}

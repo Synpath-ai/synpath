@@ -58,6 +58,12 @@ def doctor(dotenv: str | None) -> int:
             rows.append((venue, "not configured", "market data needs no login; set MATCHBOOK_USERNAME / "
                          "MATCHBOOK_PASSWORD to bet, or run synpath init"))
             continue
+        if creds is not None and venue == "prophetx" and not creds.trades:
+            # The affiliate key alone: ProphetX's Market Data API.
+            stage = "sandbox" if creds.sandbox else "production"
+            rows.append((venue, f"market data ({stage})", "affiliate key loaded; set PROPHETX_ACCESS_KEY / "
+                         "PROPHETX_SECRET_KEY to trade and stream"))
+            continue
         if creds is None and venue in market_data:
             stage = "testnet" if market_data[venue].testnet else "mainnet"
             private = ENV_NAMES[venue][0]
@@ -65,7 +71,7 @@ def doctor(dotenv: str | None) -> int:
             continue
         if creds is None:
             names = ENV_NAMES[venue]
-            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair", "novig") else ""
+            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair", "novig", "prophetx") else ""
             rows.append((venue, "not configured", f"set {names[0]}{hint}"))
             continue
         stage = getattr(creds, "env", "-")
@@ -106,6 +112,10 @@ def doctor(dotenv: str | None) -> int:
             stage = creds.jurisdiction
             login = "certificate" if creds.cert_path else "interactive"
             identity = f"user {creds.username}, app key loaded, {login} login"
+        elif venue == "prophetx":
+            stage = "sandbox" if creds.sandbox else "production"
+            affiliate = "; affiliate key loaded: market data from the Market Data API" if creds.affiliate_key else ""
+            identity = f"Trading API key pair loaded: market data, streams, orders{affiliate}"
         elif venue == "smarkets":
             stage = "login"
             identity = f"user {creds.username}: undelayed quotes; betting needs approved API access, not supported yet"

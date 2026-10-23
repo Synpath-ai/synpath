@@ -78,6 +78,13 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # account's currency to the penny; Matchbook publishes no minimum.
     "matchbook": {"default_tick": Decimal("0.00001"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.0001"),
                   "whole": False},
+    # Prices are American odds on ProphetX's ladder (-10000 to +10000), whose
+    # steps are 0.0017 to 0.0076 in YES price: the tick here is finer than
+    # any, and the adapter snaps an order onto the ladder on the cheaper side.
+    # The stake is what is counted, in USD to the cent, at least $1, so
+    # contracts take any size to a millionth.
+    "prophetx": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.000001"),
+                 "quantity_step": Decimal("0.000001"), "whole": False, "min_notional": Decimal("1")},
 }
 
 

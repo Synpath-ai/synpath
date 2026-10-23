@@ -311,6 +311,23 @@ def ask_matchbook(p: Prompter) -> dict[str, str]:
     return {"MATCHBOOK_USERNAME": username, "MATCHBOOK_PASSWORD": password}
 
 
+def ask_prophetx(p: Prompter) -> dict[str, str]:
+    p.say("\nProphetX: the Trading API key pair reads market data, streams it and places orders. Any KYC-approved")
+    p.say("account makes one at prophetx.co -> Menu -> API Integration (sandbox.prophetx.dev for the sandbox);")
+    p.say("the secret key is shown once. A Market Data API key (optional) is issued by ProphetX's market data")
+    p.say("team on request and reads market data only. Every key is typed hidden.")
+    access = p.value("Access key (typed hidden)", secret=True, check=_required("The access key"))
+    secret = p.value("Secret key (typed hidden)", secret=True, check=_required("The secret key"))
+    affiliate = p.value("Market Data API key (typed hidden, empty for none)", secret=True, default="",
+                        check=lambda raw: None)
+    values = {"PROPHETX_ACCESS_KEY": access, "PROPHETX_SECRET_KEY": secret}
+    if affiliate:
+        values["PROPHETX_AFFILIATE_KEY"] = affiliate
+    if p.value("Use the sandbox? (y/n)", check=_choice("y", "n"), default="n") == "y":
+        values["PROPHETX_SANDBOX"] = "1"
+    return values
+
+
 VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", ("KALSHI_KEY_ID",), ask_kalshi),
     ("Polymarket", ("POLYMARKET_PRIVATE_KEY",), ask_polymarket),
@@ -324,6 +341,7 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
     ("Novig", ("NOVIG_KEY_ID", "NOVIG_MANAGEMENT_KEY_ID"), ask_novig),
     ("Matchbook", ("MATCHBOOK_USERNAME",), ask_matchbook),
+    ("ProphetX", ("PROPHETX_ACCESS_KEY", "PROPHETX_AFFILIATE_KEY"), ask_prophetx),
 ]
 """Each venue, the settings any of which means it is set up already (an API
 key alone is, for market data), and the questions."""

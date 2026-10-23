@@ -77,11 +77,11 @@ and spot exchanges do not.
 | Method | Returns | Notes |
 |---|---|---|
 | `fetch_markets(query, limit, cursor, status, sort)` | `Page[Market]` | `limit` up to 100 |
-| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read; Novig one request each; Matchbook 20 events a request, every market of each), order preserved, closed and settled markets included |
+| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read; Novig one request each; Matchbook 20 events a request, every market of each; ProphetX 20 events a request), order preserved, closed and settled markets included |
 | `fetch_events(query, limit, cursor, status)` | `Page[Event]` | markets nested |
 | `fetch_market(market_id)` | `Market` | |
 | `fetch_order_book(market_id, side, depth)` | `OrderBook` | `side="yes"` (default) or `"no"` |
-| `fetch_order_books(market_ids, side, depth)` | `dict[str, OrderBook]` | many books; one request on Polymarket (500 books), on Betfair (40 Betfair markets, every runner of each) on Smarkets (200 Smarkets markets, every contract of each) and on Matchbook (20 Matchbook events, every runner of each), one per market elsewhere |
+| `fetch_order_books(market_ids, side, depth)` | `dict[str, OrderBook]` | many books; one request on Polymarket (500 books), on Betfair (40 Betfair markets, every runner of each), on Smarkets (200 Smarkets markets, every contract of each), on Matchbook (20 Matchbook events, every runner of each) and on ProphetX (20 events, every line of each), one per market elsewhere |
 | `fetch_trades(market_id, since, limit, cursor)` | `Page[Trade]` | newest page first, each page oldest first; `since` in ms; `next_cursor` null at the end |
 | `fetch_ohlcv(market_id, timeframe, since, until, limit)` | `list[Candle]` | in the YES price; check `price_source`. With `since`, the first `limit` bars from it; without, the newest `limit` |
 | `fetch_series(series_id)` | `Series` | Kalshi only |
@@ -154,6 +154,22 @@ mb = synpath.Matchbook()                   # no account
 runners = mb.fetch_markets(sport="Soccer", market_type="one_x_two", limit=9)
 book = mb.fetch_order_book(runners[0].id, depth=5)  # lay prices are YES bids, back prices YES asks
 book.info["back"], book.info["lay"]        # Matchbook's own [odds, available amount] pairs
+```
+
+ProphetX needs a key for every call: the Trading API key pair
+(`PROPHETX_ACCESS_KEY`, `PROPHETX_SECRET_KEY`) or a Market Data API key
+(`PROPHETX_AFFILIATE_KEY`). It adds `fetch_event(id)` (one open game with its
+lines), `fetch_tournaments()`, `fetch_sport_events(tournament_id, event_ids)`,
+the raw `fetch_event_markets(event_ids)` and `lines(event_id)`, and, with the
+key pair, `fetch_strikes(strike_ids)`; it takes `tournament_id` on
+`fetch_markets` and `fetch_events`. It lists only games not started or live,
+and serves no trades or candles over REST. See [ProphetX](capabilities.md#prophetx).
+
+```python
+px = synpath.ProphetX()                    # PROPHETX_ACCESS_KEY / _SECRET_KEY, or PROPHETX_AFFILIATE_KEY
+lines = px.fetch_markets(tournament_id=31, limit=9)   # 31 is the NFL
+book = px.fetch_order_book(lines[0].id)    # side one's offers are YES asks, side two's YES bids
+book.info["yes"], book.info["no"]          # ProphetX's own levels, American prices
 ```
 
 Polymarket also has
@@ -238,7 +254,7 @@ result.matched     # MarketLink | None
 
 Matching covers every venue this library speaks: `kalshi`, `polymarket`,
 `polymarket_us`, `opinion`, `hyperliquid`, `predict_fun`, `limitless` and
-`sx_bet` (not Betfair, Smarkets, Novig or Matchbook yet). `venue=` asks one of them in particular; without it the answer is
+`sx_bet` (not Betfair, Smarkets, Novig, Matchbook or ProphetX yet). `venue=` asks one of them in particular; without it the answer is
 the first venue listing the same question, in the order Polymarket, Kalshi,
 Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Polymarket US.
 
@@ -295,13 +311,14 @@ on its events' states too, `closed` being a final or cancelled event whose
 markets await their grades; its public catalog drops a market once it
 settles, so `settled` raises (read a settled market by id with a key). Matchbook
 lists only open events with their markets and raises `NotSupported` for the
-rest (read a closed market by id).
+rest (read a closed market by id). ProphetX lists
+only games not started or live, so it raises for everything but `open`.
 Anything outside the four raises `BadRequest` rather than being handed to the
 venue to interpret for itself.
 
 ### Identifiers
 
-One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. On Novig a market is a two-outcome market, `novig:<market id>` (`novig:01a1577c-d666-7e81-852e-68bed1446801`), and its event the game, `novig:<event id>`. On Matchbook a market is a runner, `matchbook:<event id>-<market id>-<runner id>` (`matchbook:34569494493900023-34569495835700023-34569495836701023`), and its event the Matchbook market, `matchbook:<event id>-<market id>`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
+One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. On Novig a market is a two-outcome market, `novig:<market id>` (`novig:01a1577c-d666-7e81-852e-68bed1446801`), and its event the game, `novig:<event id>`. On Matchbook a market is a runner, `matchbook:<event id>-<market id>-<runner id>` (`matchbook:34569494493900023-34569495835700023-34569495836701023`), and its event the Matchbook market, `matchbook:<event id>-<market id>`. On ProphetX a market is a line, `prophetx:<event id>-<strike id>` with the strike id of its YES side (`prophetx:44285780-90de769f4f4977a04446ed203e957351`), and its event the game, `prophetx:44285780`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
 
 ### Paging
 
