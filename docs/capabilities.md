@@ -496,9 +496,14 @@ WebSocket takes no other kind). The account must have accepted Gemini's
 current Prediction Markets terms; `GeminiTrading.fetch_terms_status()` says
 whether it has. See [trading](trading.md#gemini).
 
-Combo RFQ is not offered. It is a sealed one-second auction for market makers
-over the WebSocket, in beta, and does not map onto the request-and-accept RFQ
-the Kalshi adapter has.
+Combos are instruments (`gemini:GEMI-CMB-...`) with their own books, and
+`GeminiTrading` lists, looks up and creates them; Gemini's documentation says
+the combo routes are not enabled in production yet, where they raise
+`CombosUnavailable`. Combo RFQ is a sealed one-second auction over the
+WebSocket, in beta: `GeminiRfqStream` is the maker side (watch auctions,
+submit, withdraw and confirm quotes). The requester side is in the Gemini
+app only, with no API, so the request-and-accept calls the Kalshi adapter
+has raise `NotSupported` here. See [trading](trading.md#gemini).
 
 Matching spans venues, so no adapter claims it. `synpath.match_market(id)`
 and `synpath.match_event(id)` are answered by Synpath's hosted matching service
@@ -539,7 +544,7 @@ onboarded firms.
 | `fetch_settlements` | yes | yes, from the redemption activity | yes | no | no | no | no | no | no | no | yes, from the settled-bets report | no | yes, settled bets: won, lost or cancelled | no | yes |
 | `fetch_queue_position` | yes | no | no | no | no | no | no | no | no | no | no | no | no | no | no |
 | `fetch_fee_estimate` | yes | yes | yes | yes | yes, from the fee contract, 0.25 USDT minimum | yes, the closing charge; opening fills pay nothing | yes, `rate * min(p, 1 - p)` a share | yes, the venue's buy-fee curve on the token bought | yes, 1% of a winning taker bet's profit | yes, the market's coefficient, and the maker credit as a negative fee | yes, commission on what the bet wins, makers and takers alike | no: no published rate | yes, the relayer's flat fee per bet | yes, the market's taker table at the price of the outcome bought | yes, the contract's schedule, up to the cent |
-| `rfq` | yes | no | no | no | no | no | no | no | no | no; Novig's parlay RFQ for liquidity providers is not supported yet | no | no | no | no | no: combo RFQ is a WebSocket auction for market makers, in beta |
+| `rfq` | yes | no | no | no | no | no | no | no | no | no; Novig's parlay RFQ for liquidity providers is not supported yet | no | no | no | no | partial: the maker side of the combo RFQ auction (`GeminiRfqStream`); requesting is app-only |
 | `split_merge` | no; contracts are not tokens | partial: Deposit Wallets and EOAs | no | no | no | no | no | no | no | no | no | no | no | no; `position_calldata()` returns the venue's calldata for the wallet to send | no |
 
 Order types are a separate question. A venue holds `limit` and `market`;
@@ -586,6 +591,7 @@ Every stream answers the `watch_*` keys the same way
 | `MyriadUserStream` | no | no | no | no | yes | yes | partial: one outcome's balance per update | no |
 | `GeminiMarketStream` | yes, differential, from a snapshot; a skipped update resubscribes | yes, top of book and last trade | yes | yes, contract status and strikes | no | no | no | no |
 | `GeminiUserStream` | no | no | no | no | yes | yes, each execution with its fee | yes, settlement payouts included | yes |
+| `GeminiRfqStream` | no | no | no | no | no | no | no | no |
 
 The exchange API's other gRPC streams carry one thing each and say so:
 drop copy and trade capture carry fills, position and position-change carry

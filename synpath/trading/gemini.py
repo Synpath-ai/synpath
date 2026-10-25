@@ -33,6 +33,18 @@ wire; a `client_order_id` is kept on the returned `Order` only.
 **Fills.** The REST API has no fills endpoint. `fetch_my_trades` reads one
 aggregate fill per order from the order history; the account stream
 (`synpath.ws.gemini.GeminiUserStream`) delivers each execution.
+
+**Combos and their RFQ.** A combo (two to six contracts, each on a YES or NO
+outcome, settling YES only if every leg does) is its own instrument,
+`GEMI-CMB-...`, with its own book: `create_order`, the order history and
+`fetch_positions` take it like any contract. `fetch_combos`, `fetch_combo`
+and `create_combo` are Gemini's combo routes, which its documentation says
+are not enabled in production yet; there they fail with `CombosUnavailable`
+carrying Gemini's own answer. Combo RFQ is a sealed one-second auction run
+on the WebSocket. Gemini publishes the maker side
+(`synpath.ws.gemini.GeminiRfqStream`); the requester side, opening an RFQ
+and accepting its winning quote, is in the Gemini app and website only, with
+no API, so `create_rfq` and `accept_quote` raise `NotSupported`.
 """
 from __future__ import annotations
 
@@ -47,7 +59,7 @@ from typing import Any
 
 from .. import ids
 from ..base import AsyncHttpClient, Capability
-from ..errors import AuthenticationError, BadRequest, ExchangeError, MarketNotFound, RateLimitExceeded
+from ..errors import AuthenticationError, BadRequest, ExchangeError, MarketNotFound, NotSupported, RateLimitExceeded
 from ..gemini import (
     API_URL, SANDBOX_URL, candidate_event_tickers, fee_schedule_of, native_symbol, parse_ts,
 )
@@ -394,6 +406,129 @@ def balance_of(rows: list[dict[str, Any]], *, account: Account, currency: str = 
     )
 
 
+# ---------------------------------------------------------------------------
+# Combos
+# ---------------------------------------------------------------------------
+
+COMBO_LEGS = (2, 6)
+"""Fewest and most legs a combo takes."""
+
+COMBO_PAGE = 50
+"""Combos per listing page unless `limit` says otherwise."""
+
+RFQ_APP_ONLY = (
+    f"{VENUE}: combo RFQs are opened, and their winning quote accepted, in the Gemini app and website; Gemini "
+    f"publishes no API for the requester side (developer.gemini.com/prediction-markets/combos-rfq/maker-integration). "
+    f"Trade a combo on its own book with create_order on its GEMI-CMB symbol, or quote RFQs as a maker with "
+    f"synpath.ws.gemini.GeminiRfqStream"
+)
+
+
+class CombosUnavailable(ExchangeError):
+    """Gemini answered that combos are not available on this host. Its
+    documentation says the combo routes are not enabled in production yet;
+    `body` and `status` are Gemini's own answer. The sandbox has them."""
+
+
+def _outcome_word(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    if text not in ("yes", "no"):
+        raise InvalidOrder(f"{VENUE}: a combo leg's outcome is yes or no, got {value!r}")
+    return text
+
+
+def _instrument(value: Any) -> str | None:
+    """A Synpath id for a contract ticker that is an instrument symbol."""
+    text = native_symbol(str(value or ""))
+    return ids.qualify(VENUE, text) if text.startswith("GEMI-") else None
+
+
+def combo_legs_of(legs: list[Any]) -> list[dict[str, str]]:
+    """`create_combo` legs as the wire's `[{"contractId", "requiredOutcome"}]`.
+
+    A leg is a `(contract_id, outcome)` pair or a dict with `contract_id` (or
+    the wire's `contractId`) and `outcome` (or `requiredOutcome`). The id is
+    Gemini's numeric contract id (a combo leg's `contractId`, an RFQ leg's
+    `c`), not an instrument symbol. Two to six legs, each contract once,
+    checked before anything is signed."""
+    out: list[dict[str, str]] = []
+    for leg in legs:
+        if isinstance(leg, dict):
+            contract, outcome = leg.get("contract_id", leg.get("contractId")), leg.get("outcome", leg.get("requiredOutcome"))
+        else:
+            contract, outcome = leg
+        contract = str(contract or "").strip()
+        if not contract.isdigit():
+            raise InvalidOrder(f"{VENUE}: a combo leg names Gemini's numeric contract id, got {contract!r}")
+        out.append({"contractId": contract, "requiredOutcome": _outcome_word(outcome).capitalize()})
+    low, high = COMBO_LEGS
+    if not low <= len(out) <= high:
+        raise InvalidOrder(f"{VENUE}: a combo takes {low} to {high} legs, got {len(out)}")
+    if len({leg["contractId"] for leg in out}) != len(out):
+        raise InvalidOrder(f"{VENUE}: a combo names each contract once")
+    return out
+
+
+def combo_of(raw: dict[str, Any]) -> dict[str, Any]:
+    """A combo as one shape, from either of Gemini's: a listing or lookup row
+    (`{"contract", "legs"}`) or a create answer's `combo` (`ComboSummary`).
+
+    `market_id` is the combo's own instrument (`gemini:GEMI-CMB-...`), `None`
+    while Gemini has not registered one; each leg carries its `contract_id`,
+    the `outcome` the combo needs from it (`yes` / `no`), its own `market_id`
+    where Gemini names its symbol, and `result` once it has resolved."""
+    contract = raw.get("contract") if isinstance(raw.get("contract"), dict) else None
+    if contract is not None:
+        symbol = contract.get("contractTicker")
+        combo_id, title, status = contract.get("contractId"), contract.get("contractName"), contract.get("contractStatus")
+        registered = _instrument(symbol) is not None
+        expiry = contract.get("expiryDate")
+    else:
+        symbol = raw.get("instrumentSymbol")
+        combo_id, title, status = raw.get("id"), raw.get("displayName"), raw.get("status")
+        registered = bool(raw.get("instrumentRegistered"))
+        expiry = raw.get("latestExpiryDate")
+    legs = []
+    for leg in sorted(raw.get("legs") or [], key=lambda row: int(row.get("legIndex") or 0)):
+        inner = leg.get("contract") if isinstance(leg.get("contract"), dict) else {}
+        result = leg.get("legOutcome")
+        legs.append({
+            "contract_id": str(leg.get("contractId") or ""),
+            "outcome": _outcome_word(leg.get("requiredOutcome")),
+            "market_id": _instrument(inner.get("contractTicker")),
+            "title": inner.get("contractName"),
+            "result": str(result).lower() if result else None,
+            "resolved_at": parse_ts(leg.get("resolvedAt")),
+        })
+    return {
+        "market_id": _instrument(symbol) if registered or contract is not None else None,
+        "combo_id": str(combo_id) if combo_id not in (None, "") else None,
+        "title": title,
+        "status": str(status).lower() if status else None,
+        "registered": registered,
+        "expires_at": parse_ts(expiry),
+        "legs": legs,
+        "info": raw,
+    }
+
+
+def _combo_error(exc: ExchangeError, *, base_url: str) -> ExchangeError:
+    """Gemini's documented "combos unavailable" answer (a 404 with no code
+    and the generic `Not Found`, where a missing combo says `Combo not found`
+    and a missing leg `COMBO_LEG_NOT_FOUND`) as `CombosUnavailable`; anything
+    else as it came. A 503 stays `ExchangeNotAvailable`: temporary."""
+    body = exc.body if isinstance(exc.body, dict) else {}
+    if not (exc.status == 404 and not body.get("code") and str(body.get("message") or "") == "Not Found"):
+        return exc
+    host = "production" if base_url.rstrip("/") == API_URL.rstrip("/") else base_url
+    said = " ".join(str(part) for part in (exc.status, body.get("error"), body.get("message")) if part)
+    return CombosUnavailable(
+        f"{VENUE}: combos are not available on {host} (Gemini answered {said or exc}); Gemini's documentation says "
+        f"the combo routes are not enabled in production yet; the sandbox (env sandbox) has them",
+        body=exc.body, status=exc.status,
+    )
+
+
 def _code(body: Any) -> tuple[str, str]:
     """(the venue's error code, its message) from Gemini's error payloads:
     `{"result": "error", "reason", "message"}` (authentication),
@@ -480,8 +615,9 @@ class GeminiTrading(TradingExchange):
         "fetch_settlements": True,
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
-        # Combo RFQ is a WebSocket auction for market makers, in beta; not offered.
-        "rfq": False,
+        # Combo RFQ is a sealed WebSocket auction: the maker side is
+        # `synpath.ws.gemini.GeminiRfqStream`; requesting is app-only.
+        "rfq": "partial",
         "split_merge": False,
         # The account streams are `synpath.ws.gemini.GeminiUserStream`.
         "watch_orders": False,
@@ -781,6 +917,72 @@ class GeminiTrading(TradingExchange):
             maker_fee=D(str(maker)) if maker is not None else None,
             currency="USD", info={"schedule": schedule.model_dump()},
         )
+
+    # -- combos and RFQ ---------------------------------------------------------
+
+    async def _combos(self, path: str, *, params: dict[str, Any] | None = None, fields: Any = None,
+                      write: bool = False) -> Any:
+        try:
+            if write:
+                return await self._call(path, fields, kind="write")
+            return await self._public(path, params)
+        except ExchangeError as exc:
+            raise _combo_error(exc, base_url=self.base_url) from None
+
+    async def fetch_combos(
+        self, *, status: str | None = None, contract_id: str | None = None,
+        registered: bool | None = None, limit: int | None = None, cursor: str | None = None,
+    ) -> Page[dict[str, Any]]:
+        """Combos (public), `Active` ones unless `status` says otherwise
+        (`Settled`, `Voided`: Gemini's words), each with its legs (`combo_of`).
+        `contract_id` keeps those with that contract as a leg; `registered`
+        those with (or without) an instrument to trade. Pages by offset.
+        Any listed contract can be a leg: there is no separate eligibility
+        list. Not enabled in production yet (`CombosUnavailable`)."""
+        wanted = max(1, limit or COMBO_PAGE)
+        offset = int(cursor) if cursor and cursor.isdigit() else 0
+        if cursor and not cursor.isdigit():
+            raise BadRequest(f"{VENUE}: {cursor!r} is not a cursor this API issued")
+        params = {
+            "status": status, "contractId": contract_id,
+            "instrumentRegistered": None if registered is None else str(registered).lower(),
+            "limit": wanted, "offset": offset or None,
+        }
+        raw = await self._combos(f"{PREFIX}/combos", params={k: v for k, v in params.items() if v is not None}) or {}
+        rows = raw.get("combos") or []
+        total = (raw.get("pagination") or {}).get("total")
+        more = offset + len(rows) < int(total) if total is not None else len(rows) >= wanted
+        return Page([combo_of(row) for row in rows], next_cursor=str(offset + len(rows)) if more and rows else None)
+
+    async def fetch_combo(self, market_id: str) -> dict[str, Any]:
+        """One combo by its instrument (`gemini:GEMI-CMB-...`), with its legs
+        and how each has resolved (public)."""
+        symbol = symbol_of(market_id)
+        try:
+            raw = await self._combos(f"{PREFIX}/combos/{symbol}")
+        except MarketNotFound as exc:
+            raise MarketNotFound(f"{VENUE}: no combo {symbol}", body=exc.body, status=exc.status) from None
+        return combo_of(raw or {})
+
+    async def create_combo(self, legs: list[Any]) -> dict[str, Any]:
+        """The canonical combo for these legs, created if Gemini has none:
+        the same set of legs in any order answers the same combo
+        (`info["alreadyExisted"]`). Legs name Gemini's numeric contract ids
+        (`combo_legs_of`). Signed; needs the key's `PredictionsNewOrder`
+        permission. It places nothing: trade the combo with `create_order` on
+        its `market_id`. Not enabled in production yet (`CombosUnavailable`)."""
+        raw = await self._combos(f"{PREFIX}/combos", fields={"legs": combo_legs_of(legs)}, write=True) or {}
+        combo = combo_of(raw.get("combo") or {})
+        return {**combo, "info": raw}
+
+    async def create_rfq(self, *args: Any, **kwargs: Any) -> Any:
+        """Not offered by Gemini's API: see `RFQ_APP_ONLY`."""
+        raise NotSupported(RFQ_APP_ONLY)
+
+    async def accept_quote(self, *args: Any, **kwargs: Any) -> Any:
+        """Not offered by Gemini's API: see `RFQ_APP_ONLY`. A requester's
+        winning quote still arrives on `GeminiRfqStream.watch_deliveries()`."""
+        raise NotSupported(RFQ_APP_ONLY)
 
     async def _contract(self, symbol: str) -> dict[str, Any]:
         """The public contract record for a symbol, found through its event."""

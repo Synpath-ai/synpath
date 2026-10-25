@@ -879,6 +879,68 @@ Fees follow the contract's listing date and are rounded up to the cent; see
 [Gemini](capabilities.md#gemini). `fetch_fee_estimate` reads the contract's
 schedule with one public request.
 
-Combo RFQ (Gemini's sealed WebSocket auction for multi-leg combos, in beta
-and run by market makers) is not offered, and nor are WebSocket order
-placement and `cancelOnDisconnect`.
+A combo (two to six contracts, each on a YES or NO outcome, settling YES
+only if every leg does) is its own instrument, `gemini:GEMI-CMB-...`, with
+its own book, orders and positions: `create_order`, `fetch_orders` and
+`fetch_positions` take it as they take any contract. `fetch_combos` and
+`fetch_combo` (public) list combos and look one up with its legs, each leg
+Gemini's numeric contract id with the outcome the combo needs from it;
+any listed contract can be a leg. `create_combo([("101", "yes"), ("202",
+"no")])` returns the canonical combo for a set of legs, creating it if
+Gemini has none (signed; it places nothing). Gemini's documentation says
+these combo routes are not enabled in production yet: there they raise
+`CombosUnavailable`, carrying Gemini's answer. The sandbox
+(`GEMINI_ENV=sandbox`) has them.
+
+Combo RFQ is a sealed auction on Gemini's WebSocket, in beta. A requester
+opens an RFQ and `requestForQuote` broadcasts it, anonymously, with its legs
+and its size in contracts or USD. Makers each send one immutable,
+single-sided quote (the price they sell the combo's YES at) within one
+second. At the close only the best eligible quote (lowest price, then
+earliest) is disclosed, privately, to the requester, who has five seconds to
+accept. The winning maker then has one second to confirm or decline (its
+last look). The requester side, opening an RFQ and accepting its quote, is
+in the Gemini app and website only, and Gemini publishes no API for it, so
+`create_rfq` and `accept_quote` raise `NotSupported`.
+
+The maker side is `synpath.ws.gemini.GeminiRfqStream`:
+
+```python
+from synpath.ws.gemini import GeminiRfqStream
+
+async with GeminiRfqStream(creds) as stream:     # GEMINI_ENV=sandbox for the sandbox
+    await stream.watch_rfqs()                    # public, anonymous
+    await stream.watch_deliveries()              # this account's acceptances and outcomes
+    async for event in stream:
+        if getattr(event, "name", None) == "rfq" and event.payload["state"] == "OPEN":
+            await stream.submit_quote(event.payload["rfq_id"], "0.55", "100")
+        elif getattr(event, "name", None) == "rfq_delivery" and event.payload["transition"] == "ACCEPTED":
+            await stream.confirm_quote(event.payload["rfq_id"], event.payload["quote_id"], True)
+```
+
+| Request, quotes, accept | Gemini |
+|---|---|
+| Ask for a price | the requester opens an RFQ in the Gemini app; no API |
+| Quotes arrive | sealed: none while the window is open; at close one `rfq_delivery` with `transition="CLOSED"` and the winning quote (`quote_id`, `price`, `size`), to the requester only |
+| Quote expires | five seconds after the close (`PENDING_ACCEPTANCE`), or at the RFQ's `expires_at` if sooner; `valid_until` only decides eligibility at the close |
+| Accept | the requester, in the app; no API |
+| Maker confirms | `confirm_quote(rfq_id, quote_id, True or False)` within one second of the `ACCEPTED` delivery |
+| Fill, position | the RFQ ends `FINALIZED` (`fill_quantity` is the requester's); the trade is an order on the combo's instrument, on `GeminiUserStream` and `fetch_positions` |
+
+Quotes are checked before sending: a price on the cent tick inside (0, 1), a
+quantity on the hundredth-contract grid that must cover the whole request
+to win (`quantity * price >= notional` on a USD-sized RFQ), a `client_id`
+of at most 36 printable ASCII characters (it comes back as the maker fill's
+client order id), and an RFQ the stream saw close is refused. A quote
+method is sent only on a live connection and never resent: no answer, or a
+connection lost before one, is an unknown outcome to reconcile on the
+delivery stream. Gemini's errors come back typed with its code (`-2010`, a
+quote it refused, is `OrderRejected`). Deliveries are at least once and are
+deduplicated by Gemini's delivery id. The maker's order rests on the book
+before the requester's fill-or-kill order arrives, so it can fill in part,
+or not at all, whatever the RFQ's outcome: read the maker's fills from
+`GeminiUserStream`, not from the RFQ's state. Quoting needs an
+account-scoped key on the signed handshake and an account Gemini has made
+eligible; `withdraw_quote` also needs the session's `cancel_orders`.
+
+WebSocket order placement and `cancelOnDisconnect` are not offered.
