@@ -55,12 +55,14 @@ separate execution/authentication design.
 
 ## Schema and migration compatibility
 
-The current logical version is 10. Alembic revision `0001_journal_v6` adopts the
+The current logical version is 11. Alembic revision `0001_journal_v6` adopts the
 frozen pre-Alembic baseline; `0002_single_user` adds the owner and foreign keys;
 `0003_bucket_member_enabled` adds `bucket_members.enabled` (existing members stay on);
 `0004_orders_recent` indexes `orders` newest first, overall and per market, and
 gives any row without a `created_ts` its `updated_ts`; `0005_drop_fair_values` drops
-the unused `fair_values` table.
+the unused `fair_values` table. `0006_routed_execution_scope` adds indexed
+execution-account membership for routed parents and removes their nominal venue
+from snapshots and readable projections. See the upgrade preflight below.
 See the [migration entry point](migrations/README.md). Historical SQLite
 conversions prepare old files for the baseline; new changes use new revisions.
 
@@ -179,3 +181,63 @@ all venue guarantees. International Polymarket eligibility remains blocked on th
 previous test host. Polymarket/US do not echo client keys; automatic adoption after
 response loss needs persisted native identities. US ordinary orders lack general
 reduce-only support. Its already-eligible test is not evidence of a future crossing.
+
+
+## Cross-venue parent identity and upgrade preflight
+
+A bucket order is owned by the engine's stable `user_id`, with `venue=null` and
+`account=null`. `execution_accounts` captures each enabled venue's exact Account;
+venue children keep their concrete venue/account. A single captured bucket/account
+scope is authorized, risk-checked and saved before routing; later bucket edits do
+not alter it. One transaction commits the snapshot, account membership, readable
+projection, submission result and events. The private `__managed__` storage key
+must never be configured as a venue. Normal venue orders retain their concrete
+identity. Without an explicit account mapping, the engine uses an adapter's
+reported Account when available, otherwise the venue's default Account.
+
+Bucket requests cannot name a singular account or venue. Configure per-venue
+accounts instead. Admission requires full-quantity capacity at every eligible
+member (including correctly flipped outcome/price), then every actual child
+passes current risk checks again. A valid split can therefore be refused when
+no individual destination has capacity for the whole quantity. This reserves
+neither funds nor capacity. Existing parent and venue states are unchanged.
+
+Viewing a complete parent/report or its audit history requires visibility of all
+captured accounts; acting on it requires trade permission on all of them. Child
+records retain their individual account access. `/journal`, `/order-log`, live
+events and replay use the same parent-scope rules. Caller-provided request params
+never establish audit visibility. Old order-list cursors must be discarded; the
+new opaque cursor has version 2. Parent lookup works after the order finishes
+and the process restarts; venue/account filters use captured membership.
+
+Back up and verify restore before upgrading. Migration preserves user, parent,
+client and child IDs, status and fills, and records old nominal attribution as
+`legacy_execution_identity`. It infers historical accounts only from the saved
+parent account and persisted child orders/intents. When an enabled venue has no
+unambiguous historical account evidence, startup refuses the migration and names
+the affected parent/venue. Do not replace it with today's configured account.
+
+For a reviewed historical mapping, while the old engine is stopped, store a JSON
+object under `meta.key='legacy_execution_accounts'`: parent ID -> venue -> complete
+Account object (`venue`, `name`, optional `subaccount`). For example, an explicitly
+reviewed mapping has shape `{"mo-example":{"polymarket":{"venue":"polymarket",
+"name":"historical-desk","subaccount":null}}}`. This is an operator decision,
+not an automatically generated guess. Insert/update that meta row in the existing
+backend with bound values, retain the review evidence, then start the new engine
+through its normal locked migration path. Conflicting historical evidence still
+fails; an explicit mapping cannot silently override a persisted account. Missing
+and conflicting cases roll back and can be retried after review on both backends.
+
+A legacy client ID without a verifiable submission reservation is refused rather
+than submitted again; retrieve its existing parent by ID. New bucket client-ID
+retries use the original captured scope even after a bucket edit. A mismatched
+configured/adapter account blocks affected submissions, early uncertain-intent
+recovery, child refresh, polling, reconciliation and cancellation. The original
+activity stays unresolved until the original execution identity is available;
+absence in a replacement account cannot establish that an order is lost.
+
+Do not run older code on the migrated store: restore a compatible backup, with
+outstanding venue activity reviewed first. Do not run both engines concurrently.
+This upgrade does not resolve the broader uncertain-send/resync limitations in
+[the routed lifecycle](orders/lifecycle/routed.md). All PRE-6 verification uses
+offline scripted venues; this documentation does not authorize actual trades.

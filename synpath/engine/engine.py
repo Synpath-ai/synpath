@@ -42,7 +42,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from .. import ids
 from ..bucket import Bucket, bucket_id_of, is_bucket_id
@@ -54,6 +54,7 @@ from ..trading.types import (
     Settlement, Side, Precision,
 )
 from ..trading.instruments import MarketMaster
+from .execution_scope import MANAGED_NAMESPACE, BucketNotFound, validate_execution_accounts
 from .events import EventBus
 from .journal import IntentState, LeaseLost, now_ms
 from .storage import JournalStore, create_journal
@@ -192,6 +193,8 @@ class Engine:
         matcher: Matcher | None = None,
     ):
         self.config = config or EngineConfig()
+        if MANAGED_NAMESPACE in adapters or MANAGED_NAMESPACE in (accounts or {}):
+            raise ValueError("the managed storage namespace cannot be configured as a venue")
         self.adapters: dict[str, TradingExchange] = dict(adapters)
         if not self.config.user_id.strip():
             raise ValueError("user_id must not be empty")
@@ -207,7 +210,9 @@ class Engine:
         for venue in self.adapters:
             # Every configured venue trades under some account; name the
             # default one, so listing accounts shows what orders will use.
-            self.accounts.setdefault(venue, Account(venue=venue))
+            adapter_account = getattr(self.adapters[venue], "account", None)
+            self.accounts.setdefault(venue, adapter_account if isinstance(adapter_account, Account)
+                                     else Account(venue=venue))
         self.clock = clock
         self.running = False
         self.started_ts: int | None = None
@@ -297,7 +302,8 @@ class Engine:
     # -- submitting -----------------------------------------------------------
 
     async def submit(self, request: OrderRequest, *, venue: str | None = None, risk_reference_price: Decimal | None = None,
-                     precision: Precision | None = None) -> Order:
+                     precision: Precision | None = None,
+                     authorize_execution_accounts: Callable[[dict[str, Account]], None] | None = None) -> Order:
         """Retry the same instruction, never repeat an uncertain venue send.
 
         `risk_reference_price` overrides the book midpoint for the limit-price risk check.
@@ -309,8 +315,13 @@ class Engine:
         request = request.model_copy(update={"user_id": self.config.user_id})
         if request.type in (OrderType.RFQ_TAKER, OrderType.RFQ_MAKER):
             raise BadRequest(f"a {request.type.value} order comes from a quote: use accept_quote or confirm_quote")
+        if is_bucket_id(request.market_id):
+            if venue is not None:
+                raise BadRequest("a bucket parent has no singular execution venue")
+            return await self._submit_bucket(request, risk_reference_price=risk_reference_price,
+                                             authorize_execution_accounts=authorize_execution_accounts)
         supported = VENUE_ORDER_TYPES | {OrderType.STOP_MARKET, OrderType.STOP_LIMIT}
-        if is_bucket_id(request.market_id) or request.type not in supported or request.params.get("walk"):
+        if request.type not in supported or request.params.get("walk"):
             return await self._submit_once(request, venue=venue, risk_reference_price=risk_reference_price, precision=precision)
         venue = venue or self._venue_of(request)
         account = request.account or self.accounts.get(venue) or Account(venue=venue)
@@ -469,38 +480,122 @@ class Engine:
         await self.bus.publish("order.accepted", order.model_dump(mode="json"), key=f"{venue}:{order.id}", persist=False)
         return order
 
-    async def _submit_bucket(self, request: OrderRequest, *, risk_reference_price: Decimal | None) -> Order:
-        """An order on a bucket is a market order the engine holds as a
-        `routed_limit` parent. The request stores the enabled-member bucket
-        configuration captured at submission; later edits to the saved bucket
-        do not change this running order. Its `price` is the worst price the
-        caller accepts, in bucket terms, as on any market order here. The
-        nominal venue is the first member's; the legs each carry their own."""
+    async def _submit_bucket(self, request: OrderRequest, *, risk_reference_price: Decimal | None,
+                             authorize_execution_accounts: Callable[[dict[str, Account]], None] | None = None) -> Order:
+        """Capture, authorize and persist one cross-venue instruction.
+
+        The mutable bucket is read once. A reservation retains the captured
+        bucket/account scope if acceptance is interrupted before parent creation.
+        Retrying an accepted client ID returns its original parent.
+        """
         if request.type != OrderType.MARKET:
-            raise BadRequest("an order on a bucket is a market order: set type to market, "
-                             "and price to the worst price you accept")
+            raise BadRequest("an order on a bucket is a market order: set type to market")
         if request.price is None:
-            raise BadRequest("a market order on a bucket needs price: the worst price you accept, in bucket terms")
-        row = await self.journal.bucket(bucket_id_of(request.market_id))
-        if row is None:
-            raise BadRequest(f"{request.market_id}: no such bucket in this journal")
-        bucket = Bucket.model_validate(row)
-        if bucket.status != "active":
-            raise BadRequest(f"{request.market_id}: the bucket is {bucket.status}")
-        # Capture the bucket configuration for this order, keeping only enabled members.
-        # The parent uses this configuration throughout execution, including after restart;
-        # later edits to the saved bucket do not change which members this order trades.
-        # Disabled members receive no child orders and require no venue adapters here.
-        # The saved bucket definition remains unchanged.
-        bucket = bucket.routable()
-        missing = bucket.venues() - set(self.adapters)
-        if missing:
-            raise BadRequest(f"{request.market_id}: no adapter configured for {', '.join(sorted(missing))}")
-        nominal = ids.venue_of(bucket.members[0].market_id)
-        account = request.account or self.accounts.get(nominal) or Account(venue=nominal)
-        params = {**request.params, "managed_kind": "routed_limit", "bucket": bucket.model_dump(mode="json")}
-        request = request.model_copy(update={"params": params, "account": account})
-        return await self.submit_managed(request, venue=nominal, account=account, risk_reference_price=risk_reference_price)
+            raise BadRequest("a market order on a bucket needs price: the worst price you accept")
+        if request.account is not None:
+            raise BadRequest("a bucket parent has no singular account; configure each venue's execution account")
+        request = request.model_copy(update={"client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"})
+        async with self._lock(f"submission:{request.client_order_id}"):
+            previous = await self.journal.submission(request.client_order_id)
+            if previous is not None:
+                if previous["request"] != request_identity(request):
+                    raise BadRequest("client_order_id already identifies a different instruction")
+                effective = OrderRequest.stored(previous["effective_request"])
+                accounts = validate_execution_accounts({venue: Account.model_validate(account)
+                    for venue, account in effective.params["execution_accounts"].items()})
+                if authorize_execution_accounts:
+                    authorize_execution_accounts(accounts)
+                result = await self._existing_submission_result(previous)
+                if result is not None:
+                    return result
+            else:
+                if await self.journal.order_by_client_id(request.client_order_id) is not None:
+                    raise BadRequest("client_order_id belongs to an older bucket order without a verifiable instruction; look it up by parent ID")
+                row = await self.journal.bucket(bucket_id_of(request.market_id))
+                if row is None:
+                    raise BucketNotFound(f"{request.market_id}: no such bucket in this journal")
+                bucket = Bucket.model_validate(row)
+                if bucket.status != "active":
+                    raise BadRequest(f"{request.market_id}: the bucket is {bucket.status}")
+                bucket = bucket.routable()
+                missing = bucket.venues() - set(self.adapters)
+                if missing:
+                    raise BadRequest(f"no adapter configured for {', '.join(sorted(missing))}")
+                accounts = validate_execution_accounts({venue: self.accounts.get(venue) or Account(venue=venue)
+                                                        for venue in bucket.venues()})
+                if authorize_execution_accounts:
+                    authorize_execution_accounts(accounts)
+                params = {**request.params, "managed_kind": "routed_limit", "bucket": bucket.model_dump(mode="json"),
+                          "execution_accounts": {venue: account.model_dump(mode="json") for venue, account in accounts.items()}}
+                effective = request.model_copy(update={"params": params})
+                await self.journal.record_submission(request, effective, venue=MANAGED_NAMESPACE, account=None)
+            try:
+                bucket = Bucket.model_validate(effective.params["bucket"])
+                self._evaluate_bucket_risk(effective, bucket, accounts)
+                return await self.submit_managed(effective, venue=None, account=None,
+                                                  execution_accounts=accounts, risk_reference_price=risk_reference_price)
+            except (RiskRejected, BadRequest) as error:
+                await self.journal.reject_submission(request.client_order_id,
+                    {"kind": type(error).__name__, "message": str(error), "rule": getattr(error, "rule", None)})
+                raise
+
+    def _evaluate_bucket_risk(self, request: OrderRequest, bucket: Bucket, accounts: dict[str, Account]) -> None:
+        """Check the instruction once, then full capacity in each possible destination.
+
+        Destinations are alternatives, not summed exposure. Only actual venue
+        children count as resting venue orders; parent projections are not orders
+        at an exchange. No capacity is reserved by these admission checks.
+        """
+        decision = self.order_risk_checks.evaluate_order_risk(request, venue=None, account=None, instruction_only=True)
+        if not decision.ok:
+            raise RiskRejected(decision.message, rule=decision.rule)
+        resting = [order for order in self.open_orders() if order.held_by == HeldBy.VENUE]
+        for member in sorted(bucket.members, key=lambda item: item.market_id):
+            venue = ids.venue_of(member.market_id)
+            self.assert_execution_account(venue, accounts[venue])
+            outcome = request.outcome
+            if member.flip and outcome is not None:
+                outcome = "no" if outcome == "yes" else "yes"
+            projected = request.model_copy(update={"market_id": member.market_id,
+                "side": (Side.SELL if request.side == Side.BUY else Side.BUY) if member.flip else request.side,
+                "price": Decimal("1") - request.price if member.flip else request.price,
+                "outcome": outcome, "account": accounts[venue], "tags": {**request.tags, "parent": "admission"}})
+            decision = self.order_risk_checks.evaluate_order_risk(projected, venue=venue, account=accounts[venue],
+                open_orders=[order for order in resting if order.venue == venue],
+                market_close_ts=self.market_close.get(member.market_id), event_id=self.event_of.get(member.market_id),
+                venue_notional=sum((abs(state.contracts) for (key, _, _), state in self.ledger.positions.items()
+                                    if key == accounts[venue].key), ZERO))
+            if not decision.ok:
+                raise RiskRejected(f"{venue}/{accounts[venue].key}: {decision.message}", rule=decision.rule)
+
+    def assert_execution_account(self, venue: str, account: Account) -> None:
+        """Refuse account-bound I/O when a saved routed account no longer matches.
+
+        The engine supports one configured execution identity per venue. It
+        cannot reconcile or cancel the old account through replacement credentials.
+        """
+        configured = self.accounts.get(venue) or Account(venue=venue)
+        adapter_account = getattr(self.adapters.get(venue), "account", None)
+        if (account.venue != venue or account != configured
+                or (isinstance(adapter_account, Account) and adapter_account != account)):
+            raise SubmissionPending(f"{venue}: saved execution account {account.key} differs from configured "
+                                    f"{configured.key}; restore the original account before recovery or execution")
+
+    async def guard_routed_order_account(self, order: Order) -> None:
+        parent_id = order.parent_id or order.tags.get("parent")
+        if parent_id:
+            stored = await self.journal.managed_one(parent_id)
+            if stored and stored[0] == "routed_limit":
+                if order.account is None:
+                    raise SubmissionPending("routed child has no persisted execution account")
+                self.assert_execution_account(order.venue, order.account)
+
+    async def guard_routed_venue_accounts(self, venue: str) -> None:
+        for saved_key in await self.journal.routed_account_keys(venue):
+            configured = self.accounts.get(venue) or Account(venue=venue)
+            if saved_key != configured.key:
+                raise SubmissionPending(f"{venue}: saved routed account {saved_key} differs from configured {configured.key}")
+            self.assert_execution_account(venue, configured)
 
     async def save_bucket(self, bucket: Bucket) -> Bucket:
         """Store or update a bucket definition in this engine's journal."""
@@ -508,13 +603,14 @@ class Engine:
         await self.journal.save_bucket(bucket.model_dump(mode="json"))
         return bucket
 
-    async def submit_managed(self, request: OrderRequest, *, venue: str, account: Account,
+    async def submit_managed(self, request: OrderRequest, *, venue: str | None, account: Account | None,
+                             execution_accounts: dict[str, Account] | None = None,
                              risk_reference_price: Decimal | None = None) -> Order:
         """Accept an engine-held order: check it, journal it, start it."""
         check_managed_fields(request, now_ms=int(self.clock() * 1000))
-        decision = self.evaluate_order_risk(
+        decision = (Decision(ok=True) if execution_accounts else self.evaluate_order_risk(
             request, venue=venue, account=account, risk_reference_price=risk_reference_price,
-        )
+        ))
         if not decision.ok:
             await self.bus.publish("risk.rejected", {
                 "rule": decision.rule, "message": decision.message, "market_id": request.market_id,
@@ -523,7 +619,7 @@ class Engine:
             raise RiskRejected(decision.message, rule=decision.rule)
         request = request.model_copy(update={"user_id": request.user_id or self.config.user_id,
                                              "client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"})
-        parent = await self.managed_order_controller.create(request, venue=venue, account=account)
+        parent = await self.managed_order_controller.create(request, venue=venue, account=account, execution_accounts=execution_accounts)
         return parent.as_order()
 
     async def submit_child(self, parent: Any, request: OrderRequest, **kw: Any) -> Order:
@@ -535,7 +631,13 @@ class Engine:
         no venue falls back to the parent's, which is every single-venue type."""
         venue = self._child_venue(parent, request)
         account = parent.account
-        if venue != parent.venue:
+        if parent.execution_accounts:
+            account = parent.execution_accounts.get(venue)
+            if account is None:
+                raise BadRequest(f"{venue}: child is outside the saved execution scope")
+            self.assert_execution_account(venue, account)
+            request = request.model_copy(update={"account": account})
+        elif venue != parent.venue:
             # `child_request` stamps the parent's account on every child; a
             # leg on another venue must carry that venue's instead.
             account = self.accounts.get(venue) or Account(venue=venue)
@@ -552,6 +654,8 @@ class Engine:
         try:
             return ids.venue_of(request.market_id)
         except BadRequest:
+            if parent.venue is None:
+                raise BadRequest("a routed child must name its concrete venue") from None
             return parent.venue
 
     async def cancel_child(self, parent: Any, order_id: str, venue: str | None = None) -> Order | None:
@@ -579,7 +683,7 @@ class Engine:
             risk_reference_price = self.book_mid(market_id)
         return self.order_risk_checks.evaluate_order_risk(
             request, venue=venue, account=account,
-            open_orders=[o for o in self.open_orders(venue=venue)],
+            open_orders=[o for o in self.open_orders(venue=venue) if not o.execution_accounts],
             risk_reference_price=risk_reference_price, market_close_ts=self.market_close.get(market_id),
             event_id=self.event_of.get(market_id),
             caller_supplied_order_id=caller_supplied_order_id,
@@ -602,6 +706,7 @@ class Engine:
             # engine-held parent this process no longer runs because it
             # finished before a restart (live parents are always restored).
             return order
+        await self.guard_routed_order_account(order)
         venue = venue or order.venue
         adapter = self._adapter(venue)
         key = f"cancel:{venue}:{order_id}"
@@ -610,6 +715,7 @@ class Engine:
             price=order.price, book=order.book, trader=order.trader, client_order_id=key,
         )
         account = order.account or self.accounts.get(venue) or Account(venue=venue)
+        request = request.model_copy(update={"account": account, "tags": dict(order.tags)})
         await self.journal.record_intent(request, client_order_id=key, venue=venue, account=account,
                                          operation="cancel", target_order_id=order_id)
         async with self._lock(key):
@@ -659,6 +765,9 @@ class Engine:
         """Amend a resting order. The edit carries its own idempotency key, so
         a retry is the same edit rather than a second one."""
         order = await self._known(request.order_id, venue)
+        if order.held_by == HeldBy.ENGINE:
+            raise BadRequest("engine-held parents cannot be amended; cancel and submit a new instruction")
+        await self.guard_routed_order_account(order)
         venue = venue or order.venue
         adapter = self._adapter(venue)
         key = request.client_order_id or f"edit:{venue}:{request.order_id}:{uuid.uuid4().hex[:8]}"
@@ -675,6 +784,7 @@ class Engine:
                 "rule": decision.rule, "message": decision.message, "order_id": order.id, "operation": "edit",
             }, key=key)
             raise RiskRejected(decision.message, rule=decision.rule)
+        intent_request = intent_request.model_copy(update={"account": account, "tags": dict(order.tags)})
         await self.journal.record_intent(intent_request, client_order_id=key, venue=venue, account=account,
                                          operation="edit", target_order_id=order.id)
         async with self._lock(key):
@@ -762,6 +872,7 @@ class Engine:
                 if scope not in ("*", venue):
                     continue
                 try:
+                    await self.guard_routed_venue_accounts(venue)
                     count = await adapter.cancel_all_orders()
                     result["canceled"][venue] = count
                 except Exception as exc:  # a venue that cannot be reached must not stop the others
@@ -771,7 +882,8 @@ class Engine:
                 if left:
                     result["remaining"][venue] = left
             for order in self.open_orders():
-                if scope in ("*", order.venue):
+                if (order.held_by == HeldBy.VENUE and scope in ("*", order.venue)
+                        and not isinstance(result["canceled"].get(order.venue), str)):
                     canceled = order.model_copy(update={"status": OrderStatus.CANCELED})
                     await self.journal.upsert_order(canceled, event="order.canceled")
                     self._remember(canceled)
@@ -870,6 +982,17 @@ class Engine:
             await self.bus.publish("intent.unresolved", base | {"reason": "no adapter for this venue"})
             return base | {"result": "unresolved", "reason": "no adapter"}
         try:
+            persisted = OrderRequest.stored(intent.request)
+            parent_id = persisted.tags.get("parent")
+            stored = await self.journal.managed_one(parent_id) if parent_id else None
+            if stored and stored[0] == "routed_limit":
+                if persisted.account is None:
+                    raise SubmissionPending("routed intent has no saved execution account")
+                self.assert_execution_account(intent.venue, persisted.account)
+            if intent.target_order_id:
+                target = await self.journal.order(intent.venue, intent.target_order_id)
+                if target is not None:
+                    await self.guard_routed_order_account(target)
             found = await self._find_by_client_id(adapter, intent)
         except Exception as exc:
             await self.bus.publish("intent.unresolved", base | {"reason": f"{type(exc).__name__}: {exc}"})
@@ -927,7 +1050,7 @@ class Engine:
     def open_orders(self, *, venue: str | None = None, book: str | None = None) -> list[Order]:
         """Open orders as the engine believes them, from memory of the journal."""
         return [o for o in self._open_cache.values()
-                if (venue is None or o.venue == venue) and (book is None or o.book == book)]
+                if (venue is None or o.venue == venue or venue in o.execution_accounts) and (book is None or o.book == book)]
 
     async def refresh_open_orders(self) -> list[Order]:
         orders = await self.journal.open_orders()
@@ -1197,6 +1320,7 @@ class Engine:
                     log.exception("synpath.engine: polling %s failed", venue)
 
     async def poll(self, venue: str, adapter: TradingExchange | None = None) -> None:
+        await self.guard_routed_venue_accounts(venue)
         adapter = adapter or self._adapter(venue)
         for order in await adapter.fetch_open_orders():
             await self.on_order(order)
@@ -1232,6 +1356,11 @@ class Engine:
                          "use a Synpath id (venue:native), pass venue=, or name an account")
 
     async def _known(self, order_id: str, venue: str | None) -> Order:
+        managed = await self.journal.managed_one(order_id)
+        if managed is not None:
+            parent = self._rebuilt(*managed)
+            if parent is not None:
+                return parent.as_order()
         if venue is not None:
             order = await self.journal.order(venue, order_id)
             if order is not None:

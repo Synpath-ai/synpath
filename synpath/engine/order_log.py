@@ -147,7 +147,10 @@ async def order_keys(engine: Any, order_id: str) -> list[str]:
         if managed is not None:
             _, snapshot = managed
             venue = snapshot.get("venue")
-            keys += [f"{venue}:{current}"] if venue else []
+            keys += [f"{venue}:{current}"] if venue else [f"__managed__:{current}"]
+            legacy_venue = (snapshot.get("legacy_execution_identity") or {}).get("venue")
+            if legacy_venue:
+                keys.append(f"{legacy_venue}:{current}")
             client = snapshot.get("client_order_id") or (snapshot.get("request") or {}).get("client_order_id")
             keys += [client] if client else []
             family += [str(child.get("order_id") if isinstance(child, dict) else child)
@@ -160,7 +163,7 @@ async def order_keys(engine: Any, order_id: str) -> list[str]:
 
 
 async def order_log(engine: Any, *, order_id: str | None = None, limit: int = 200,
-                    before: int | None = None) -> tuple[list[dict[str, Any]], int | None]:
+                    before: int | None = None, allow_event=None) -> tuple[list[dict[str, Any]], int | None]:
     """The log newest first, for one order (and its family) or the whole
     account, with the `before` cursor for the next page (`None` at the end).
     Raw events are read in batches until the folded page is full: a waiting
@@ -171,7 +174,8 @@ async def order_log(engine: Any, *, order_id: str | None = None, limit: int = 20
     while True:
         batch = await engine.journal.events_page(kinds=ORDER_EVENT_KINDS, prefixes=ORDER_EVENT_PREFIXES, keys=keys,
                                                  before=cursor, limit=RAW_BATCH)
-        events += [event for event in batch if event.kind not in NOT_ORDER_KINDS]
+        events += [event for event in batch if event.kind not in NOT_ORDER_KINDS
+                   and (allow_event is None or await allow_event(event))]
         exhausted = len(batch) < RAW_BATCH
         if batch:
             cursor = batch[-1].seq

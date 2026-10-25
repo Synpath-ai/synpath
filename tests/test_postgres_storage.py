@@ -373,7 +373,7 @@ async def test_failed_schema_initialization_rolls_back_then_retries(database, mo
         assert await cursor.fetchone() is None
     monkeypatch.setattr(store, "_apply_schema", original)
     async with store:
-        assert await store.schema_version() == 10
+        assert await store.schema_version() == 11
 
 
 async def test_commit_failure_rolls_back_before_next_writer(journal, monkeypatch):

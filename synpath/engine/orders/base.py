@@ -188,7 +188,8 @@ class Context:
 
     async def plan_child(self, request: OrderRequest) -> None:
         await self.engine.journal.plan_managed_child(self.parent.snapshot(), request,
-                                                     venue=self.parent.venue, account=self.parent.account)
+                                                     venue=self.parent.venue, account=self.parent.account,
+                                                     parent_order=self.parent.as_order())
 
     async def observe_pending_child(self, client_order_id: str) -> tuple[Order | None, Intent | None]:
         order = await self.engine.journal.order_by_client_id(client_order_id)
@@ -228,14 +229,17 @@ class ManagedOrder:
         request: OrderRequest,
         *,
         id: str | None = None,
-        venue: str,
-        account: Account,
+        venue: str | None,
+        account: Account | None,
+        execution_accounts: dict[str, Account] | None = None,
         state: State = "waiting",
     ):
         self.id = id or f"mo-{uuid.uuid4().hex[:16]}"
         self.request = request
         self.venue = venue
         self.account = account
+        self.execution_accounts = execution_accounts or {}
+        self.legacy_execution_identity = None
         self.state: State = state
         self.children: list[Child] = []
         self.created_ms = now_ms()
@@ -252,8 +256,8 @@ class ManagedOrder:
         return self.request.market_id
 
     @property
-    def account_key(self) -> str:
-        return self.account.key
+    def account_key(self) -> str | None:
+        return self.account.key if self.account else None
 
     @property
     def side(self) -> Side:
@@ -295,7 +299,7 @@ class ManagedOrder:
         """Every venue this parent has or may put a child on. A single-venue
         parent is its own venue; a parent across venues overrides this so a
         halt scoped to any one of them reaches it."""
-        return {self.venue} | {c.venue for c in self.children}
+        return ({self.venue} if self.venue else set()) | set(self.execution_accounts) | {c.venue for c in self.children}
 
     # -- hooks ----------------------------------------------------------------
 
@@ -480,10 +484,13 @@ class ManagedOrder:
         """Everything needed to rebuild this parent after a restart."""
         return {
             "id": self.id, "kind": self.kind, "state": self.state, "venue": self.venue,
-            "account": self.account.model_dump(mode="json"), "request": self.request.model_dump(mode="json"),
+            "account": self.account.model_dump(mode="json") if self.account else None,
+            "execution_accounts": {venue: account.model_dump(mode="json") for venue, account in self.execution_accounts.items()},
+            "request": self.request.model_dump(mode="json"),
             "filled": str(self.filled), "children": [c.to_dict() for c in self.children],
             "created_ms": self.created_ms, "updated_ms": self.updated_ms, "detail": self.detail,
             "owner_id": self.owner_id, "extra": self.extra(),
+            "legacy_execution_identity": self.legacy_execution_identity,
         }
 
     def extra(self) -> dict[str, Any]:
@@ -497,12 +504,16 @@ class ManagedOrder:
     def from_snapshot(cls, snapshot: Mapping[str, Any]) -> "ManagedOrder":
         request = OrderRequest.stored(snapshot["request"])
         parent = cls(request, id=snapshot["id"], venue=snapshot["venue"],
-                     account=Account.model_validate(snapshot["account"]), state=snapshot["state"])
+                     account=Account.model_validate(snapshot["account"]) if snapshot.get("account") else None,
+                     execution_accounts={venue: Account.model_validate(account)
+                                         for venue, account in (snapshot.get("execution_accounts") or {}).items()},
+                     state=snapshot["state"])
         parent.children = [Child.of(row) for row in snapshot.get("children") or []]
         parent.created_ms = int(snapshot.get("created_ms") or now_ms())
         parent.updated_ms = int(snapshot.get("updated_ms") or parent.created_ms)
         parent.detail = snapshot.get("detail") or ""
         parent.owner_id = snapshot.get("owner_id")
+        parent.legacy_execution_identity = snapshot.get("legacy_execution_identity")
         parent.load_extra(snapshot.get("extra") or {})
         return parent
 
@@ -516,6 +527,7 @@ class ManagedOrder:
             average = sum((child.filled * child.average_price for child in filled_children), ZERO) / self.filled
         return Order(
             user_id=self.request.user_id, id=self.id, client_order_id=self.request.client_order_id, venue=self.venue, account=self.account,
+            execution_accounts=dict(self.execution_accounts),
             market_id=self.market_id, side=self.side, type=self.order_type,
             time_in_force=self.request.time_in_force, status=STATUS_OF[self.state], held_by=HeldBy.ENGINE,
             price=self.request.price, stop_price=self.request.stop_price, quantity=self.quantity, filled=self.filled,

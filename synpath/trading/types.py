@@ -379,8 +379,22 @@ class Order(_Base):
     user_id: str | None = None
     id: str
     client_order_id: str | None = None
-    venue: str
+    venue: str | None
     account: Account | None = None
+    execution_accounts: dict[str, Account] = Field(default_factory=dict)
+    """Eligible execution accounts captured by a routed engine parent.
+    Its venue and singular account are null; actual children remain venue orders."""
+
+    @model_validator(mode="after")
+    def validate_execution_identity(self):
+        if self.execution_accounts:
+            if self.held_by != HeldBy.ENGINE or self.venue is not None or self.account is not None:
+                raise ValueError("cross-venue execution scope belongs to an engine parent without a singular venue/account")
+            if any(venue != account.venue for venue, account in self.execution_accounts.items()):
+                raise ValueError("execution account venue does not match its scope")
+        elif self.venue is None:
+            raise ValueError("an order without a venue needs its captured execution accounts")
+        return self
     market_id: str
     """Synpath id, `venue:native`."""
     side: Side

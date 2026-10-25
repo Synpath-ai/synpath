@@ -184,6 +184,8 @@ class RoutedLimit(ManagedOrder):
             if adapter is None:
                 continue
             try:
+                if self.execution_accounts:
+                    ctx.engine.assert_execution_account(child.venue, self.execution_accounts[child.venue])
                 order = await adapter.fetch_order(child.order_id)
             except Exception as exc:
                 await ctx.publish("managed.resync_failed", {"order_id": child.order_id, "venue": child.venue,
