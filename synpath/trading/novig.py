@@ -384,7 +384,7 @@ class NovigTrading(TradingExchange):
         "fetch_settlements": False,
         "fetch_queue_position": False,
         "fetch_fee_estimate": True,
-        # Novig's parlay RFQ is for registered liquidity providers; not here.
+        # Novig's parlay RFQ is priced by liquidity providers: `synpath.trading.novig_rfq.NovigPricer`.
         "rfq": False,
         "split_merge": False,
         "watch_orders": False,

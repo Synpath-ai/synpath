@@ -218,8 +218,16 @@ Novig's identity check, from a US location outside Arizona, Michigan and
 Nevada, with a recent device geolocation from the Novig app; a refused
 location is a `PermissionDenied` naming the check. Paper (`api.paper.novig.com`,
 `NOVIG_ENV=paper`) is the same API with play money and no location check.
-Ids and keys differ between the two. Novig's parlay RFQ, for registered
-liquidity providers, is not supported yet.
+Ids and keys differ between the two.
+
+Novig's parlay RFQ is supported from the liquidity provider's side:
+`NovigPricer` answers rounds over the maker WebSocket or signed webhooks
+(`/quote`, `/confirm`, `/ping`), handles the 1-second last look, and tracks
+the 60% confirm rate; `NovigRFQ` reads the RFQs won and the collateral in
+open parlays. It needs an LP account and Novig's OAuth market-maker token
+(`NOVIG_RFQ_CLIENT_ID`, `NOVIG_RFQ_CLIENT_SECRET`), not a NOVIG-V3 key.
+Asking for a parlay quote, the user's side, is not offered. See
+[Novig parlay RFQ](trading.md#novig-parlay-rfq).
 
 **What you may do with it.** Smarkets' API terms allow viewing prices and
 betting on your own account; odds scraping is prohibited. Which countries
@@ -552,7 +560,7 @@ onboarded firms.
 | `fetch_settlements` | yes | yes, from the redemption activity | yes | no | no | no | no | no | no | yes, settled bets from the cleared orders | partial: recently settled orders, before commission | no | yes, from the settled-bets report | no | yes, settled bets: won, lost or cancelled | no | yes |
 | `fetch_queue_position` | yes | no | no | no | no | no | no | no | no | no | no | no | no | no | no | no | no |
 | `fetch_fee_estimate` | yes | yes | yes | yes | yes, from the fee contract, 0.25 USDT minimum | yes, the closing charge; opening fills pay nothing | yes, `rate * min(p, 1 - p)` a share | yes, the venue's buy-fee curve on the token bought | yes, 1% of a winning taker bet's profit | yes, the market's base rate on what the bet wins, makers and takers alike | yes, the account's commission on what the bet wins, makers and takers alike | yes, the market's coefficient, and the maker credit as a negative fee | yes, commission on what the bet wins, makers and takers alike | no: no published rate | yes, the relayer's flat fee per bet | yes, the market's taker table at the price of the outcome bought | yes, the contract's schedule, up to the cent |
-| `rfq` | yes | no | no | no | no | no | no | no | no | no | no | no; Novig's parlay RFQ for liquidity providers is not supported yet | no | no | no | no | partial: the maker side of the combo RFQ auction (`GeminiRfqStream`); requesting is app-only |
+| `rfq` | yes | no | no | no | no | no | no | no | no | no | no | no on `NovigTrading`; liquidity providers price parlay RFQs with `NovigPricer` | no | no | no | no | partial: the maker side of the combo RFQ auction (`GeminiRfqStream`); requesting is app-only |
 | `split_merge` | no; contracts are not tokens | partial: Deposit Wallets and EOAs | no | no | no | no | no | no | no | no | no | no | no | no | no | no; `position_calldata()` returns the venue's calldata for the wallet to send | no |
 
 Order types are a separate question. A venue holds `limit` and `market`;

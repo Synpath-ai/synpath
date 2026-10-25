@@ -128,8 +128,8 @@ play. Production needs Novig's identity check and a US location outside
 Arizona, Michigan and Nevada, with a recent device geolocation from the Novig
 app (a VPN is refused); Paper is the same API with play money and no location
 check. `NovigTrading.echo()` proves the host, key, clock and signature in one
-call. Novig's parlay RFQ, for registered liquidity providers, is not
-supported yet. See [Novig](capabilities.md#novig).
+call. Liquidity providers can price Novig's parlay RFQs with `NovigPricer`
+([Novig parlay RFQ](#novig-parlay-rfq)). See [Novig](capabilities.md#novig).
 
 ```python
 from decimal import Decimal
@@ -1136,3 +1136,110 @@ account-scoped key on the signed handshake and an account Gemini has made
 eligible; `withdraw_quote` also needs the session's `cancel_orders`.
 
 WebSocket order placement and `cancelOnDisconnect` are not offered.
+
+## Novig parlay RFQ
+
+Novig sends every parlay a user builds (2 to 20 legs, as outcome ids) to
+each registered liquidity provider's pricer as an RFQ. The auction lasts 3
+seconds; the lowest `price` wins (a tie goes to the larger `max_wager`),
+and the winner gets a 1-second last look at the user's actual stake to
+confirm or reject. `synpath.trading.novig_rfq.NovigPricer` is that pricer:
+you supply the pricing callback, and it answers over the maker WebSocket,
+over webhooks, or both. Registering is self-serve but needs an LP account
+(developers@novig.com), and the pricer is separate from order entry: the
+RFQ routes take Novig's OAuth market-maker bearer token, not a NOVIG-V3
+key.
+
+```bash
+NOVIG_RFQ_CLIENT_ID=...         # the OAuth client credentials Novig issues to LPs
+NOVIG_RFQ_CLIENT_SECRET=...     # (or NOVIG_RFQ_ACCESS_TOKEN, a token used as it is)
+NOVIG_RFQ_SHARED_SECRET=...     # webhooks only: 64 hex characters, returned once by POST /rfq/pricer
+NOVIG_RFQ_ENV=qa                # production (the default) or qa; registrations are separate
+```
+
+```python
+from decimal import Decimal
+
+from synpath.trading.credentials import load_novig_rfq
+from synpath.trading.novig_rfq import NovigPricer, ParlayQuote
+
+async def price(rfq):                      # a ParlayRFQ: rfq_id, outcome_ids, min_wager, deadline()
+    if rfq.legs > 6:
+        return None                        # decline
+    return ParlayQuote(price=Decimal("0.18"), max_wager=Decimal("500"), quote_id="mm-1")
+
+pricer = NovigPricer(price, credentials=load_novig_rfq())
+
+async with pricer.stream() as stream:      # the maker WebSocket
+    async for event in stream:             # every frame as a VenueEvent, and the stream's status
+        print(event)
+
+app = pricer.webhook_app(prefix="/novig")  # or webhooks: POST /novig/quote, /confirm, /ping
+```
+
+**A round.** `price` gets each round as a `ParlayRFQ` and returns a
+`ParlayQuote` or `None`, and may be a coroutine. `price` is the taker's
+stake per $1 of payout (0.18 means the taker stakes $0.18 to win $1.00, so
+the pricer puts up $0.82 a dollar); it is rounded up onto Novig's 0.001
+grid, and a quote Novig would drop (a price outside 0.001 to 0.999, a
+`max_wager` of zero, a `quote_id` over 256 bytes) is refused before it is
+sent. The callback has until the auction closes, less `margin` (0.25 s); a
+slower answer, an exception, or a `max_wager` below the round's minimum
+stake declines. On the socket a decline is sent as `decline`, on a webhook
+as `204`. A round reaching both transports is priced once and Novig keeps
+the first quote.
+
+**The last look.** `confirm` gets each win as a `LastLook` (the stake,
+the price, and the pricer's own round and quote) and returns whether to
+take it, within `confirm_timeout` (0.75 s) or the trade is rejected.
+Without one, the pricer confirms a trade that matches the quote it sent: its
+price, no more than its `max_wager`, its `quote_id`.
+
+**The confirm rate.** Novig locks a pricer out of quoting for 5 minutes
+when it confirms fewer than 60% of its last looks over 30 minutes, once 20
+count. `pricer.confirm_rate` keeps the same count (`standing()`,
+`would_lock(False)`, `rejects_left()`), records a lock from the socket's
+`FORBIDDEN` error, and the pricer stops quoting while one is known.
+`await pricer.sync_standing()` takes Novig's own count from
+`GET /rfq/pricer`, which also sees the last looks this process did not.
+
+**Webhooks.** `webhook_app` checks `X-Novig-Signature` (a BLAKE3 keyed hash
+of the raw body under the shared secret; the `blake3` package is used when
+installed, a pure-Python version otherwise) on every request and answers a
+bad one `401` without reading it. Serve it over public HTTPS at the base URL
+you register. `handle_webhook(route, raw_body, signature)` is the same logic
+for another web framework.
+
+**Executions and collateral.** `NovigRFQ` reads the RFQs won
+(`fetch_executions`, newest first, paged with `after`; `iter_executions`),
+catches up after a gap (`reconcile_executions(known_ids)`, paging from the
+newest until a held id), and the collateral held in open parlays
+(`fetch_collateral`). `NovigExecutionFeed` is the public tape of every RFQ
+execution, marking a jump in `offset` as a gap. The maker socket is never
+replayed, so a reconnect is marked `reconcile_required`.
+
+```python
+from synpath.trading.novig_rfq import NovigRFQ, settle
+
+async with NovigRFQ(load_novig_rfq()) as rfq:
+    print(await rfq.fetch_pricer())                 # registration, confirm standing, any lock
+    for row in await rfq.fetch_executions(status="open"):
+        print(row.rfq_id, row.wager, row.price, row.liability)
+    print(await rfq.fetch_collateral())
+
+settle("42", "0.42", [1, "0.5", 1])   # a voided leg at 0.5: the taker gets $50 of the $100 pot
+```
+
+**Settlement.** A parlay settles as one position: any losing leg settles it
+at once as a loss, a voided leg counts at its fair market value, and the
+taker gets the pot times the product of the leg values (rounded to three
+places, at least 0.001). `settle` and `settlement_scalar` compute it;
+`RFQExecution.pricer_payout` reads it off a settled execution.
+`eligibility_problems` checks legs against Novig's published combination
+rules (2 to 20 legs, no same-kind lines on one game, no NO side of a
+yes-or-no market, ...), from leg details you supply; Novig changes the
+blocked pairs over time, so its own answer is the RFQ arriving or not.
+
+`register_pricer(webhook_url=None)` and `ping_webhook()` are there for the
+one-time setup; the shared secret is returned only by the first
+registration with a webhook URL, so store it then.

@@ -47,6 +47,8 @@ asyncio.run(main())
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
 | `NovigMarketStream` | `api.novig.com/v3/ws` (or Paper's); without a key, the public REST book polled | a subaccount's trading key for the WebSocket (the handshake is signed); none to poll | books kept per order, top of book, the tape, market transitions (going in play voids resting orders) |
 | `NovigUserStream` | `api.novig.com/v3/ws` | a subaccount's trading key | orders (open, fill, cancel, reject) and positions of that subaccount |
+| `NovigPricerStream` (`synpath.ws.novig_rfq`) | `api.novig.com/rfq/ws` (or QA's) | Novig's OAuth market-maker token and a registered pricer | parlay RFQ rounds, answered by a `NovigPricer`; the pricer's quotes, last looks and fills, as `VenueEvent`s ([Novig parlay RFQ](trading.md#novig-parlay-rfq)) |
+| `NovigExecutionFeed` (`synpath.ws.novig_rfq`) | `api.novig.com/rfq/executions/feed` | Novig's OAuth market-maker token | every RFQ execution on Novig, naming no pricer; a jump in `offset` is a gap |
 | `MatchbookMarketStream` | `api.matchbook.com` REST, polled (Matchbook has no push API) | none | runner books, top of book and runner status at every poll (5 s by default) |
 | `ProphetXMarketStream` | the host `GET /websocket/connection-config` names (ProphetX's Talaria, Pusher protocol 7) | the Trading API key pair (every channel is private) | each line's ten best levels a side on every change, top of book, the tournament's tape of fills |
 | `ProphetXUserStream` | the same host | the Trading API key pair | orders on every change; a fill with each match |
