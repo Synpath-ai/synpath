@@ -72,6 +72,7 @@ private key. `synpath init` tells them apart.
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
 | Novig | REST: nothing. Books over the WebSocket: a subaccount's trading key (without one, the public book is polled) | a subaccount's trading key: a key id and its private key file (PEM, Ed25519 or P-256). The management key, optional, opens, funds and labels subaccounts and never trades | the management key on novig.com (paper.novig.com for Paper) -> Profile -> Settings -> Novig API; then `NovigTrading.open_subaccount` with a keypair from `novig_signing.generate_key()` issues the trading key. The private key is never sent |
+| Betfair | the application key (the free delayed key) and the account's login, for every call | a live application key (Betfair activates it on request) and the same login: username and password, interactive or by a self-signed client certificate | developer.betfair.com (or the Accounts API visualiser) for the keys; for certificate login, a self-signed certificate uploaded at myaccount.betfair.com/accountdetails/mysecurity?showAPI=1 (Automated Betting Program Access) |
 | Matchbook | nothing | the account's login: username and password (an account with two-factor login passes a session token made elsewhere) | your matchbook.com account; higher API limits need an API plan from api@matchbook.com |
 | ProphetX | the Trading API key pair, or a Market Data API key | the Trading API key pair: an access key and a secret key, exchanged for a ten-minute bearer token | prophetx.co -> Menu -> API Integration, on any KYC-approved account (sandbox.prophetx.dev for the sandbox); the secret is shown once. The Market Data API key is issued by ProphetX on request |
 | Azuro | nothing | the private key of the wallet that signs each bet and holds the bet token, which must allow Azuro's relayer to spend it (`approve()`, once) | exported from the wallet |
@@ -103,16 +104,11 @@ The variables each venue reads:
 | Myriad | `MYRIAD_PRIVATE_KEY` (signs orders and cancels, and the sign-in when there is no key), `MYRIAD_API_KEY` and `MYRIAD_API_SECRET` (optional together: HMAC-signed requests; the venue refuses a key without its signature), `MYRIAD_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address when no private key names it), `MYRIAD_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
 | Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
+| Betfair | `BETFAIR_APP_KEY` (a live key bets; the delayed key reads market data and the account), `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`, `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` (optional together; Betfair's certificate login), `BETFAIR_JURISDICTION` (optional; `com`, the default, `it`, `es`, `ro` or `com.au`, the site the account is on) |
 | Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
 | ProphetX | `PROPHETX_ACCESS_KEY` and `PROPHETX_SECRET_KEY` (the Trading API: market data, streams, orders), `PROPHETX_AFFILIATE_KEY` (optional; the Market Data API, market data only), `PROPHETX_SANDBOX=1` (optional; ProphetX's sandbox, with demo funds) |
 | Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance and allowance are read from and the approval is sent through; a public one when unset) |
 | Gemini | `GEMINI_API_KEY` (`account-...`), `GEMINI_API_SECRET`, `GEMINI_ACCOUNT` (optional; the subaccount a `master-...` key acts for, REST only: the WebSocket refuses master keys), `GEMINI_ENV` = `prod` (the default, real money) or `sandbox` (api.sandbox.gemini.com, with a sandbox key) |
-
-Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
-optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
-load the same way and `synpath doctor` reports them, but they serve market data
-and the stream only: there is no Betfair order entry yet. See
-[Betfair](capabilities.md#betfair).
 
 Smarkets needs no credentials for market data. `SMARKETS_USERNAME` and
 `SMARKETS_PASSWORD` are optional: they log in for undelayed quotes, and
@@ -612,6 +608,94 @@ each market on the YES leg. The balance is the proxy wallet's USDC: what is
 free to bet, and what matched bets hold in escrow.
 
 Check SX Bet's terms for where it may be used before trading.
+
+## Betfair
+
+`BetfairTrading`, built to Betfair's Betting API (`placeOrders`,
+`cancelOrders`, `replaceOrders`, `updateOrders`, `listCurrentOrders`,
+`listClearedOrders`, `listMarketProfitAndLoss`) and Accounts API
+(`getAccountFunds`, `getAccountDetails`) documentation. Every call carries
+the application key and the session token of the account's login, made the
+way the read adapter makes it: by certificate when `BETFAIR_CERT_PATH` and
+`BETFAIR_KEY_PATH` are set, else interactively, extended with `keepAlive`
+and kept in memory only; a refused session logs in again once.
+`session_token=` reuses a login made elsewhere. **Betting needs a live
+application key**: Betfair refuses every bet from the delayed key
+(`PermissionDenied`), which still reads orders, positions and the balance.
+
+An order is a bet to back or lay one runner,
+`betfair:<market id>-<selection id>` (with `-<handicap>` on a handicap
+runner). `buy` backs it (takes its YES) at decimal odds `1 / price`; `sell`
+lays it (takes its NO) at the same odds. Betfair counts both in the backer's
+stake, so `n` contracts stake `n / odds`, rounded down to the penny; a lay's
+liability is that stake times `odds - 1`. Prices are snapped onto Betfair's
+CLASSIC odds ladder (1.01 to 1000) on the cheaper side: a buy at the next
+higher odds, a sell at the next lower, so an order never pays more than
+asked. A bet stakes at least the currency's minimum bet size (£1, €1, $1)
+unless its payout (stake times odds, its contracts) reaches the minimum bet
+payout (£10, €20, $20); the payout rule is not offered on the .it and .es
+sites. Orders below both are refused before anything is sent.
+
+Limits (`gtc`) are Betfair's `LIMIT` with persistence `LAPSE`: the unmatched
+part is cancelled when the market turns in play. `params={"persistence":
+"PERSIST"}` (or `keep_in_play=True`) keeps it in play, and
+`"MARKET_ON_CLOSE"` moves it into the starting-price auction at the off.
+`fok` is Betfair's `FILL_OR_KILL`, whose price Betfair reads as the worst
+*average* matched price; `params={"min_fill": contracts}` accepts a part of
+at least that much. Betfair has no immediate-or-cancel bet, so `market` and
+`ioc` are `LAPSE` bets at the price given as the worst accepted, whose
+unmatched rest is cancelled as soon as Betfair answers. `gtd`, day and
+post-only orders are refused, and so is `reduce_only`, since every bet on a
+runner nets. `params={"market_version": n}` lapses the bet if the market has
+changed materially since version `n` (a runner removed, turned in play).
+
+On an in-play market Betfair holds a bet for the market's delay (1 to 10
+seconds) before matching it, and answers only then, so `create_order`
+returns the bet already matched or resting. `create_orders` sends one
+`placeOrders` per Betfair market, 200 bets a request (50 on the Italian
+exchange), which Betfair places all or none, and returns one result each.
+
+`client_order_id` (up to 32 characters) is sent as the bet's
+`customerOrderRef`, which Betfair keeps on every record and on the order
+stream; a single order's id also de-duplicates a resubmission within 60
+seconds (`customerRef`), refused as `DuplicateClientOrderId`. A placement
+Betfair could not finish in time (`TIMEOUT`) is looked up by that id; without
+one it raises `RequestTimeout`. `fetch_order_by_client_id` reads a bet by it.
+
+`edit_order` with a smaller `quantity` (the order's new total, filled
+contracts included) is a partial cancel, which keeps the bet's place in the
+queue; a new price is `replaceOrders`, which cancels the unmatched part and
+places it again at the new odds as a new bet with a new id
+(`queue_priority_preserved` is false, `info["replaced"]` names the old bet).
+Betfair cannot raise a stake. `update_persistence(order_id, "PERSIST")`
+changes what happens at the off in place. Cancels and edits name the bet's
+Betfair market; one this adapter did not place is read first to find it.
+
+Bets on unsettled markets are `fetch_order`, `fetch_open_orders` and
+`fetch_orders` (by status: `open`, `closed`, `canceled`); a bet that has left
+them (cancelled, lapsed, settled, voided) is found by `fetch_order` among the
+cleared orders. Betfair lists bets, not their matched fragments, so
+`fetch_my_trades` is one fill per bet at its average matched odds, for bets
+that have stopped matching; each match as it happens is on
+`BetfairUserStream` ([Streaming](streaming.md)). Settled bets are
+`fetch_settlements`, one per bet. Positions net the matched bets per runner
+on the YES leg: backs are YES contracts, lays NO contracts.
+`fetch_profit_and_loss(market_ids)` is Betfair's own if-win and if-lose
+profit per runner. The balance is what is free to bet
+(`availableToBetBalance`), what open bets hold (`exposure`, `locked`), and
+the two together, in the account's currency.
+
+Commission is charged at settlement on net winnings per Betfair market, at
+the market's base rate (5% on most .com markets), before the account's
+discount; `fetch_fee_estimate` is that rate on what one bet would win, an
+upper bound for a bet among others on the same market. Betfair charges
+accounts that send very many bets and changes (its Transaction Charges), so
+batch where you can.
+
+Check Betfair's terms for where it may be used before trading: its API is
+refused from several countries (the US, Germany, France, the Netherlands,
+Singapore, India, Turkey, the UAE and others), and its keys are for an
+account holder's own betting.
 
 ## Matchbook
 

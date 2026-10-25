@@ -275,8 +275,9 @@ def ask_myriad(p: Prompter) -> dict[str, str]:
 
 def ask_betfair(p: Prompter) -> dict[str, str]:
     p.say("\nBetfair: your application key (the delayed key is free: developer.betfair.com, or the Accounts API")
-    p.say("visualiser) and your Betfair login. Every Betfair call, market data included, logs in. The key and the")
-    p.say("password are typed hidden. A client certificate (optional) switches to Betfair's certificate login.")
+    p.say("visualiser; betting needs the live key, which Betfair activates on request) and your Betfair login.")
+    p.say("Every Betfair call, market data included, logs in. The key and the password are typed hidden. A client")
+    p.say("certificate (optional) switches to Betfair's certificate login.")
     app_key = p.value("Application key (typed hidden)", secret=True, check=_required("The application key"))
     username = p.value("Betfair username", check=_required("The username"))
     password = p.value("Betfair password (typed hidden)", secret=True, check=_required("The password"))

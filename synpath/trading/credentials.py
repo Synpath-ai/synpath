@@ -45,9 +45,10 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       when there is no API key), and optionally
                       MYRIAD_API_KEY with MYRIAD_API_SECRET (HMAC-signed
                       requests), MYRIAD_ACCOUNT_ADDRESS, MYRIAD_RPC_URL
-  Betfair             BETFAIR_APP_KEY, BETFAIR_USERNAME, BETFAIR_PASSWORD, and
-    (market data)     optionally BETFAIR_CERT_PATH / BETFAIR_KEY_PATH
-                      (certificate login) and BETFAIR_JURISDICTION
+  Betfair             BETFAIR_APP_KEY (a live key bets; a delayed one reads),
+                      BETFAIR_USERNAME, BETFAIR_PASSWORD, and optionally
+                      BETFAIR_CERT_PATH / BETFAIR_KEY_PATH (certificate
+                      login) and BETFAIR_JURISDICTION
   Smarkets            optionally SMARKETS_USERNAME and SMARKETS_PASSWORD: market
     (market data)     data needs no login; one gives undelayed quotes
   Novig               NOVIG_KEY_ID, NOVIG_PRIVATE_KEY_PATH (a subaccount's trading
@@ -380,7 +381,8 @@ class MyriadCredentials:
 class BetfairCredentials:
     """Betfair: the account's application key and its login. Every Betfair
     call, market data included, needs both: the key names the application,
-    the login's session token the account."""
+    the login's session token the account. Betting needs a live key; a
+    delayed key reads market data and the account only."""
 
     app_key: str = field(repr=False)
     """The application key (delayed or live) from the account's developer
