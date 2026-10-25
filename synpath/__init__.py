@@ -127,7 +127,7 @@ def exchange(venue: str, **kwargs) -> Exchange:
 # keeps working. Imported last, after the read API it builds on.
 from .trading import (
     TradingExchange, KalshiTrading, PolymarketTrading, PolymarketUSTrading, PolymarketUSExchangeTrading,
-    OpinionTrading, HyperliquidTrading, PredictFunTrading, LimitlessTrading, SxBetTrading, NovigTrading, MatchbookTrading, ProphetXTrading, AzuroTrading, MyriadTrading, GeminiTrading,
+    OpinionTrading, HyperliquidTrading, PredictFunTrading, LimitlessTrading, SxBetTrading, NovigTrading, SmarketsTrading, MatchbookTrading, ProphetXTrading, AzuroTrading, MyriadTrading, GeminiTrading,
     Account, Balance, EditRequest, FeeEstimate, Fill, HeldBy, Liquidity,
     Order, OrderRequest, OrderStatus, OrderType, Position, PositionSide,
     Precision, Settlement, SettlementState, Side, TimeInForce, TriggerSource,
@@ -196,7 +196,7 @@ __all__ = [
     "MarketNotFound", "NotSupported", "AuthenticationError",
     # order entry
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
-    "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading", "NovigTrading", "MatchbookTrading", "ProphetXTrading", "AzuroTrading", "MyriadTrading", "GeminiTrading",
+    "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading", "NovigTrading", "SmarketsTrading", "MatchbookTrading", "ProphetXTrading", "AzuroTrading", "MyriadTrading", "GeminiTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",

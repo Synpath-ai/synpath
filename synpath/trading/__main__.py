@@ -61,9 +61,9 @@ def doctor(dotenv: str | None) -> int:
     for venue, creds in loaded.items():
         if creds is None and venue == "smarkets":
             # Optional: Smarkets serves its market data without a login.
-            rows.append((venue, "no login (optional)", "market data needs none; set SMARKETS_USERNAME / "
-                         "SMARKETS_PASSWORD for undelayed quotes, or run synpath init. Betting needs Smarkets' "
-                         "approved API access (£150 one-off), not supported yet"))
+            rows.append((venue, "not configured", "market data needs no login; set SMARKETS_USERNAME / "
+                         "SMARKETS_PASSWORD to bet and for undelayed quotes, or run synpath init. Placing orders "
+                         "needs Smarkets' approved API access"))
             continue
         if creds is None and venue == "matchbook":
             # Market data is public; the login is for betting.
@@ -144,7 +144,7 @@ def doctor(dotenv: str | None) -> int:
             identity = f"api key {creds.api_key[:12]}…{sub} (account-scoped, time-based nonce for streams)"
         elif venue == "smarkets":
             stage = "login"
-            identity = f"user {creds.username}: undelayed quotes; betting needs approved API access, not supported yet"
+            identity = f"user {creds.username}: undelayed quotes and the account; placing orders needs approved API access"
         elif venue == "matchbook":
             stage = "login"
             identity = f"user {creds.username}"

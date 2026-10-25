@@ -113,6 +113,8 @@ with its contracts, open or settled), `fetch_smarkets_events(ids)`,
 market id, and takes `domain` (`"football"`, `"politics"`), `scope`
 (`"single_event"`, `"outright"`) and `market_type` (`"WINNER_3_WAY"`) on
 `fetch_markets` and `fetch_events`. See [Smarkets](capabilities.md#smarkets).
+Order entry is `SmarketsTrading`, with the same login; see
+[trading](trading.md#smarkets).
 
 ```python
 smk = synpath.Smarkets()                   # no account; SMARKETS_USERNAME / _PASSWORD undelay the quotes

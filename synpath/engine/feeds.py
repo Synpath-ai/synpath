@@ -182,11 +182,13 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
                 private=GeminiUserStream(creds) if creds is not None else None,
             )
         elif venue == "smarkets":
-            # Market data only, and public: a polled stream on REST quotes
-            # (Smarkets' socket stream is for approved market makers). The
-            # login, when configured, only undelays the quotes.
+            # A polled stream on REST quotes (Smarkets' socket stream is for
+            # approved market makers), on the trading adapter's session when
+            # there is one, so the login undelays the quotes. No account
+            # stream; the engine polls the orders.
             from ..ws.smarkets import SmarketsMarketStream
-            out[venue] = VenueStreams(market=SmarketsMarketStream(credentials=creds), private=None)
+            session = getattr(adapter, "session", None)
+            out[venue] = VenueStreams(market=SmarketsMarketStream(credentials=creds, session=session), private=None)
         elif venue == "novig":
             # The websocket takes a subaccount's trading key; without one the
             # market stream polls the public book.

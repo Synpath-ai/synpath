@@ -72,6 +72,7 @@ private key. `synpath init` tells them apart.
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
 | Novig | REST: nothing. Books over the WebSocket: a subaccount's trading key (without one, the public book is polled) | a subaccount's trading key: a key id and its private key file (PEM, Ed25519 or P-256). The management key, optional, opens, funds and labels subaccounts and never trades | the management key on novig.com (paper.novig.com for Paper) -> Profile -> Settings -> Novig API; then `NovigTrading.open_subaccount` with a keypair from `novig_signing.generate_key()` issues the trading key. The private key is never sent |
+| Smarkets | nothing (a login undelays the quotes) | the account's login: username and password (an account with two-factor login passes a session token made elsewhere); placing orders needs Smarkets' approved API access | your smarkets.com account; API access is applied for from Smarkets (a one-off £150 fee) |
 | Matchbook | nothing | the account's login: username and password (an account with two-factor login passes a session token made elsewhere) | your matchbook.com account; higher API limits need an API plan from api@matchbook.com |
 | ProphetX | the Trading API key pair, or a Market Data API key | the Trading API key pair: an access key and a secret key, exchanged for a ten-minute bearer token | prophetx.co -> Menu -> API Integration, on any KYC-approved account (sandbox.prophetx.dev for the sandbox); the secret is shown once. The Market Data API key is issued by ProphetX on request |
 | Azuro | nothing | the private key of the wallet that signs each bet and holds the bet token, which must allow Azuro's relayer to spend it (`approve()`, once) | exported from the wallet |
@@ -103,6 +104,7 @@ The variables each venue reads:
 | Myriad | `MYRIAD_PRIVATE_KEY` (signs orders and cancels, and the sign-in when there is no key), `MYRIAD_API_KEY` and `MYRIAD_API_SECRET` (optional together: HMAC-signed requests; the venue refuses a key without its signature), `MYRIAD_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address when no private key names it), `MYRIAD_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
 | Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
+| Smarkets | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` (betting and the account's orders, statement and balance; market data needs neither, and with them its quotes are undelayed) |
 | Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
 | ProphetX | `PROPHETX_ACCESS_KEY` and `PROPHETX_SECRET_KEY` (the Trading API: market data, streams, orders), `PROPHETX_AFFILIATE_KEY` (optional; the Market Data API, market data only), `PROPHETX_SANDBOX=1` (optional; ProphetX's sandbox, with demo funds) |
 | Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance and allowance are read from and the approval is sent through; a public one when unset) |
@@ -115,10 +117,9 @@ and the stream only: there is no Betfair order entry yet. See
 [Betfair](capabilities.md#betfair).
 
 Smarkets needs no credentials for market data. `SMARKETS_USERNAME` and
-`SMARKETS_PASSWORD` are optional: they log in for undelayed quotes, and
-`synpath doctor` reports them. There is no Smarkets order entry yet: betting
-through Smarkets' API needs its approved API access (applied for, with a
-one-off £150 fee). See [Smarkets](capabilities.md#smarkets).
+`SMARKETS_PASSWORD` log in for undelayed quotes and for order entry; placing
+orders through Smarkets' API needs its approved API access (applied for, with
+a one-off £150 fee). See [Smarkets](#smarkets).
 
 Novig trades on one subaccount per trading key. An order buys an outcome:
 `buy` the market's YES outcome at the price given, `sell` its NO outcome at
@@ -612,6 +613,85 @@ each market on the YES leg. The balance is the proxy wallet's USDC: what is
 free to bet, and what matched bets hold in escrow.
 
 Check SX Bet's terms for where it may be used before trading.
+
+## Smarkets
+
+`SmarketsTrading`, built to Smarkets' trading API reference
+(docs.smarkets.com, API v3). Every call carries the session token of an
+account login (`SMARKETS_USERNAME`, `SMARKETS_PASSWORD`), made on the first
+call and kept in memory only, as `Authorization: Session-Token <token>`. A
+token lasts 30 minutes from its last use: one idle for 25 is replaced before
+the next call, and a 401 logs in again once. Smarkets allows five logins per
+five minutes. An account with two-factor login cannot log in from here; pass
+`session_token=` from a login made elsewhere. **Placing orders needs
+Smarkets' approved API access** (applied for, with a one-off £150 fee): any
+account reads its balance, orders and statement, and an account without it
+is refused a new order with `PermissionDenied`.
+
+An order buys or sells one contract's YES, `smarkets:<market id>-<contract
+id>`. `buy` backs the contract (takes its YES), `sell` lays it (takes its
+NO), and the price is the YES price, as Smarkets' book reads: its `bids` are
+resting backs, YES bids. Smarkets prices in basis points of 100%, and only on
+its odds ladder (decimal odds 1.01 to 1000 in Betfair's bands, as basis
+points, and the ends 1 and 9999). A price within half a basis point of a tick
+is that tick; any other is snapped onto the ladder on the cheaper side: a buy
+at the tick below, a sell at the tick above. An order's size is its pot (back
+stake plus lay liability) in 1/10,000 of the account's currency, so `n`
+contracts send `n * 10,000`, rounded down; the smallest back stake is £0.05.
+
+A limit is `good_til_halted` by default, Smarkets' own default: it rests
+through the market going in play and is cancelled when the market halts (a
+goal, a red card). `params={"order_type": "keep_in_play"}` (or
+`{"keep_in_play": True}`) keeps it through halts as well, and
+`"good_til_cancelled"` cancels it when the market goes in play. Smarkets
+cancels every resting order when it applies a reduction factor (a withdrawn
+runner). `market` and `ioc` are `immediate_or_cancel` at the price given as
+the worst accepted, answered once they have matched what they could; `fok` is
+the same with `minimum_accepted_quantity` set to the whole order, and
+`params={"minimum_quantity": n}` sets a smaller floor on an `ioc`. One that
+cannot meet its floor is refused (`OrderRejected`,
+`ORDER_CANCELLED_INSUFFICIENT_LIQUIDITY`). `gtd`, `day`, post-only and
+`reduce_only` are refused. There is no amend route, so `edit_order` is not
+offered; cancel and replace. `create_orders` and `cancel_orders` send one
+request per order and return one result each.
+
+Smarkets takes no client order id, but every order carries a free `label`:
+`client_order_id` (or `params["label"]`) is sent as the label and read back
+as `client_order_id`. After a timeout, list the open orders on the contract
+(`fetch_open_orders(market_id=...)`) and match the label to see what was
+placed.
+
+Orders are read from `GET /v3/orders/`, which lists current and recently
+settled orders: `fetch_order`, `fetch_open_orders`, `fetch_orders` (by
+status, oldest first) and `fetch_settlements` (settled orders, one per
+contract and side, with `payout` and `pnl` before commission). Smarkets has
+no cancelled state: an order with nothing left unmatched that did not match
+in full is `canceled`. `cancel_order` reads the order back; one the exchange
+has not finished cancelling reads `pending_cancel`. `cancel_all_orders`
+cancels the account's orders, or a Smarkets market's
+(`smarkets:<market id>`), in one request that Smarkets acknowledges without
+a count, once a minute; a second inside the minute, or one naming a single
+contract, cancels the open orders one by one and returns how many. In play,
+matched bets wait about eight seconds for confirmation and can be voided in
+that time; the pending part counts as filled (`info["quantity_filled_pending"]`).
+
+Fills are the account statement's executions (`order.execute` rows of
+`/v3/accounts/activity/`), newest first. Positions net the account's matched,
+unsettled orders per contract on the YES leg: backs are YES contracts, lays
+NO contracts, and `margin` is the most the contract can lose. The balance is
+the account's cash, what its bets hold (`exposure`, `locked`), and what is
+free to bet, in the account's currency. Commission is charged at settlement
+on net winnings per Smarkets market, 2% on the standard tier; fee estimates
+use the account's own rate (`commission_type`).
+
+Smarkets allows 1,200 requests a minute per account, ten order placements
+and ten cancels a second, and one cancel-all a minute; the adapter paces
+itself inside them. Smarkets' trading API is HTTP only (its socket feed is
+for approved market makers), so there is no account stream and the engine
+polls the orders.
+
+Check Smarkets' terms for where it may be used before trading: its API terms
+allow viewing prices and betting on your own account only.
 
 ## Matchbook
 

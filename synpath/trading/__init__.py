@@ -84,6 +84,9 @@ def __getattr__(name: str):
     if name == "NovigTrading":
         from .novig import NovigTrading
         return NovigTrading
+    if name == "SmarketsTrading":
+        from .smarkets import SmarketsTrading
+        return SmarketsTrading
     if name == "MatchbookTrading":
         from .matchbook import MatchbookTrading
         return MatchbookTrading
@@ -105,7 +108,7 @@ def __getattr__(name: str):
 __all__ = [
     "TradingExchange", "KalshiTrading", "PolymarketTrading", "PolymarketUSTrading", "PolymarketUSExchangeTrading",
     "OpinionTrading", "HyperliquidTrading", "PredictFunTrading", "LimitlessTrading", "SxBetTrading", "NovigTrading",
-    "MatchbookTrading", "ProphetXTrading", "AzuroTrading", "MyriadTrading", "GeminiTrading",
+    "SmarketsTrading", "MatchbookTrading", "ProphetXTrading", "AzuroTrading", "MyriadTrading", "GeminiTrading",
     "Account", "Balance", "EditRequest", "FeeEstimate", "Fill", "HeldBy", "Liquidity",
     "Order", "OrderRequest", "OrderStatus", "OrderType", "Position", "PositionSide",
     "Precision", "Settlement", "SettlementState", "Side", "TimeInForce", "TriggerSource",
