@@ -80,7 +80,7 @@ variable `synpath serve` reads it from:
 | predict.fun | the API key (`pred_sk_...`, from developers.predict.fun); mainnet only | `PREDICT_FUN_API_KEY` |
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
-| Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
+| Smarkets | nothing; a login undelays the quotes (the same one `SmarketsTrading` uses) | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
 | Novig | the WebSocket: a subaccount's trading key (key id and private key file; the handshake is signed). Without one the public book is polled | `NOVIG_KEY_ID`, `NOVIG_PRIVATE_KEY_PATH`, `NOVIG_ENV` |
 | Matchbook | nothing | |
 | ProphetX | the Trading API key pair (prophetx.co -> API Integration); the Market Data API key has no stream | `PROPHETX_ACCESS_KEY`, `PROPHETX_SECRET_KEY` |
@@ -263,7 +263,11 @@ jittered exponential backoff between attempts.
   reports it `resynced`. Quotes are delayed without a login, and every event
   says so in `info["delayed"]`. A change shows at the next poll, not as it
   happens, so its `watch_*` keys are `partial`. No `watch_trades`: the recent
-  tape is short and unpaged; read it with `Smarkets.fetch_trades`.
+  tape is short and unpaged; read it with `Smarkets.fetch_trades`. There is
+  no account stream either (Smarkets' trading API is HTTP only), so the
+  engine polls `SmarketsTrading` for orders and fills; under the engine the
+  market stream polls on the trading adapter's session, so its quotes are
+  undelayed.
 - *Novig* carries every channel on one WebSocket, `wss://api.novig.com/v3/ws`
   (Paper: `wss://api.paper.novig.com/v3/ws`), opened with a subaccount's
   `trading` or `trading::read` key: the upgrade is signed like any request

@@ -49,8 +49,10 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       BETFAIR_USERNAME, BETFAIR_PASSWORD, and optionally
                       BETFAIR_CERT_PATH / BETFAIR_KEY_PATH (certificate
                       login) and BETFAIR_JURISDICTION
-  Smarkets            optionally SMARKETS_USERNAME and SMARKETS_PASSWORD: market
-    (market data)     data needs no login; one gives undelayed quotes
+  Smarkets            SMARKETS_USERNAME, SMARKETS_PASSWORD: betting and the
+                      account log in (placing orders needs Smarkets' approved
+                      API access); market data needs no login, and one gives
+                      undelayed quotes
   Novig               NOVIG_KEY_ID, NOVIG_PRIVATE_KEY_PATH (a subaccount's trading
                       key, PEM, Ed25519 or P-256), NOVIG_ENV (production, the
                       default, or paper), and optionally NOVIG_MANAGEMENT_KEY_ID /
@@ -405,9 +407,11 @@ class BetfairCredentials:
 
 @dataclass(frozen=True, repr=False)
 class SmarketsCredentials:
-    """Smarkets: an optional account login. Market data needs none; a session
-    from it gives undelayed quotes and the account's own rate limits. Betting
-    needs Smarkets' approved API access, which this library does not use yet."""
+    """Smarkets: the account's login. Betting and the account's reads (orders,
+    statement, balance) log in with it; market data needs none, and a session
+    from it gives undelayed quotes and the account's own rate limits. Placing
+    orders needs Smarkets' approved API access. An account with two-factor
+    login cannot log in from here (pass a session token instead)."""
 
     username: str
     password: str = field(repr=False)

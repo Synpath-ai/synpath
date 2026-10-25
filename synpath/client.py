@@ -393,6 +393,11 @@ def _betfair(creds: Credentials) -> TradingExchange:
     return BetfairTrading(creds)  # type: ignore[arg-type]
 
 
+def _smarkets(creds: Credentials) -> TradingExchange:
+    from .trading.smarkets import SmarketsTrading
+    return SmarketsTrading(creds)  # type: ignore[arg-type]
+
+
 def _matchbook(creds: Credentials) -> TradingExchange:
     from .trading.matchbook import MatchbookTrading
     return MatchbookTrading(creds)  # type: ignore[arg-type]
@@ -423,6 +428,7 @@ _TRADING = {
     "hyperliquid": _hyperliquid, "predict_fun": _predict_fun, "limitless": _limitless, "sx_bet": _sx_bet,
     "novig": _novig,
     "betfair": _betfair,
+    "smarkets": _smarkets,
     "matchbook": _matchbook,
     "prophetx": _prophetx,
     "azuro": _azuro,

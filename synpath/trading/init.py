@@ -294,9 +294,9 @@ def ask_betfair(p: Prompter) -> dict[str, str]:
 
 
 def ask_smarkets(p: Prompter) -> dict[str, str]:
-    p.say("\nSmarkets: market data needs no login at all. A login (optional) sends a session token for")
-    p.say("undelayed quotes and your account's own rate limits. Betting needs Smarkets' approved API access")
-    p.say("(a one-off £150 fee), which this library does not support yet. The password is typed hidden.")
+    p.say("\nSmarkets: market data needs no login at all. A login sends a session token for undelayed")
+    p.say("quotes, your account's own rate limits and its orders, balance and positions. Placing orders")
+    p.say("needs Smarkets' approved API access (a one-off £150 fee). The password is typed hidden.")
     username = p.value("Smarkets username (your email)", check=_required("The username"))
     password = p.value("Smarkets password (typed hidden)", secret=True, check=_required("The password"))
     return {"SMARKETS_USERNAME": username, "SMARKETS_PASSWORD": password}
@@ -391,7 +391,7 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("Limitless", ("LIMITLESS_PRIVATE_KEY",), ask_limitless),
     ("SX Bet", ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY"), ask_sx_bet),
     ("Betfair", ("BETFAIR_APP_KEY",), ask_betfair),
-    ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
+    ("Smarkets (market data needs no login)", ("SMARKETS_USERNAME",), ask_smarkets),
     ("Novig", ("NOVIG_KEY_ID", "NOVIG_MANAGEMENT_KEY_ID"), ask_novig),
     ("Matchbook", ("MATCHBOOK_USERNAME",), ask_matchbook),
     ("ProphetX", ("PROPHETX_ACCESS_KEY", "PROPHETX_AFFILIATE_KEY"), ask_prophetx),

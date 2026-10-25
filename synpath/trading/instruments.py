@@ -61,11 +61,11 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # which the adapter checks; the notional here is the plain minimum.
     "betfair": {"default_tick": Decimal("0.00001"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.0001"),
                 "whole": False, "min_notional": Decimal("1")},
-    # No order entry yet; written down for when there is. Prices are basis
-    # points of 100% on an odds ladder (5000, 4762, 4545 are odds 2.0, 2.1,
-    # 2.2), so the tick here is the finest, one basis point. Quantities are
-    # pots in 1/10,000 GBP, so contracts step by 0.0001; the minimum stake is
-    # £0.05.
+    # Prices are basis points of 100% on an odds ladder (5000, 4762, 4545 are
+    # odds 2.0, 2.1, 2.2), so the tick here is the finest, one basis point,
+    # and the trading adapter snaps each order onto the ladder. Quantities
+    # are pots in 1/10,000 of the account's currency, so contracts step by
+    # 0.0001; the minimum back stake is £0.05.
     "smarkets": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.0001"), "quantity_step": Decimal("0.0001"),
                  "whole": False, "min_notional": Decimal("0.05")},
     # Prices on a grid of 0.001 near the ends (to 0.050, from 0.950) and
