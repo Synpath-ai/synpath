@@ -113,8 +113,9 @@ session token in memory only, extending it with `keepAlive`. The free
 side, with no full ladder and no traded volume per runner; every book and
 market says `info["delayed"]` (Betfair's own `isMarketDataDelayed` when it
 sends it). Requests are batched to stay inside Betfair's weight limit (200 a
-request: best offers weigh 5 a market). There is no order entry for Betfair
-yet.
+request: best offers weigh 5 a market). Betting (`BetfairTrading`) needs a
+live application key, which Betfair activates on request; it refuses bets
+from the delayed key. See [trading](trading.md#betfair).
 
 **Where it works, and what you may do with it.** Betfair refuses its API from
 several countries, among them the US, Germany, France, the Netherlands,
@@ -170,8 +171,9 @@ per 60 s (50 on `/quotes/`) for an API account. Every book and market says
 `SMARKETS_PASSWORD`) sends a session token (`Authorization: Session-Token`)
 for undelayed quotes; it lasts 30 minutes from its last use, and Smarkets
 allows 5 logins per 5 minutes. Accounts with two-factor login are refused with
-a clear error. **Betting needs Smarkets' approved API access** (applied for,
-with a one-off £150 fee); there is no Smarkets order entry here yet.
+a clear error. The same login places and cancels orders with
+`SmarketsTrading` (see [trading](trading.md#smarkets)); **placing orders needs
+Smarkets' approved API access** (applied for, with a one-off £150 fee).
 
 Requests carry a `synpath/<version>` User-Agent: Smarkets' Cloudflare front
 answers the default ones of HTTP libraries (python-httpx, curl) with a 403
@@ -216,8 +218,16 @@ Novig's identity check, from a US location outside Arizona, Michigan and
 Nevada, with a recent device geolocation from the Novig app; a refused
 location is a `PermissionDenied` naming the check. Paper (`api.paper.novig.com`,
 `NOVIG_ENV=paper`) is the same API with play money and no location check.
-Ids and keys differ between the two. Novig's parlay RFQ, for registered
-liquidity providers, is not supported yet.
+Ids and keys differ between the two.
+
+Novig's parlay RFQ is supported from the liquidity provider's side:
+`NovigPricer` answers rounds over the maker WebSocket or signed webhooks
+(`/quote`, `/confirm`, `/ping`), handles the 1-second last look, and tracks
+the 60% confirm rate; `NovigRFQ` reads the RFQs won and the collateral in
+open parlays. It needs an LP account and Novig's OAuth market-maker token
+(`NOVIG_RFQ_CLIENT_ID`, `NOVIG_RFQ_CLIENT_SECRET`), not a NOVIG-V3 key.
+Asking for a parlay quote, the user's side, is not offered. See
+[Novig parlay RFQ](trading.md#novig-parlay-rfq).
 
 **What you may do with it.** Smarkets' API terms allow viewing prices and
 betting on your own account; odds scraping is prohibited. Which countries
@@ -377,7 +387,8 @@ returns the feed's sports, countries and leagues with their open game counts.
 
 The tape is every single bet on a condition, from Azuro's bets subgraph
 (`thegraph.onchainfeed.org`), in the YES price with the bettor's side; combo
-bets are left out. There is no fee on top of the odds (`pool_margin`); a bet
+bets are left out (`AzuroTrading` places and reads combos; see
+[trading](trading.md#azuro)). There is no fee on top of the odds (`pool_margin`); a bet
 placed through the relayer pays it a flat fee per bet in the bet token, which
 `AzuroTrading.fetch_fee_estimate` reads.
 
@@ -431,6 +442,12 @@ Fees: an order-book taker pays a share of the notional that depends on the
 price, from the market's own table of basis points by cent (3 bps at 1c, 180
 at 50c; `bps_by_price`); a maker pays nothing. A pool charges a share of the
 value traded on each side, set per market (`share_of_value`), often zero.
+
+Order entry covers both kinds. Order-book orders are signed EIP-712 orders;
+an AMM market trades as market orders only (`market`, `ioc`, `fok` at a worst
+price), each one transaction from the wallet to the network's pool contract,
+its size and on-chain bound worked out from the pool, and its fill read from
+the receipt ([Trading](trading.md#myriad)).
 
 No key for market data, at 30 requests per 10 seconds; an API key and its
 secret (`Myriad(api_key=..., api_secret=...)`) raise that to 200 a second, and
@@ -496,9 +513,14 @@ WebSocket takes no other kind). The account must have accepted Gemini's
 current Prediction Markets terms; `GeminiTrading.fetch_terms_status()` says
 whether it has. See [trading](trading.md#gemini).
 
-Combo RFQ is not offered. It is a sealed one-second auction for market makers
-over the WebSocket, in beta, and does not map onto the request-and-accept RFQ
-the Kalshi adapter has.
+Combos are instruments (`gemini:GEMI-CMB-...`) with their own books, and
+`GeminiTrading` lists, looks up and creates them; Gemini's documentation says
+the combo routes are not enabled in production yet, where they raise
+`CombosUnavailable`. Combo RFQ is a sealed one-second auction over the
+WebSocket, in beta: `GeminiRfqStream` is the maker side (watch auctions,
+submit, withdraw and confirm quotes). The requester side is in the Gemini
+app only, with no API, so the request-and-accept calls the Kalshi adapter
+has raise `NotSupported` here. See [trading](trading.md#gemini).
 
 Matching spans venues, so no adapter claims it. `synpath.match_market(id)`
 and `synpath.match_event(id)` are answered by Synpath's hosted matching service
@@ -527,20 +549,20 @@ install. Polymarket US has two, because the venue has
 two: a retail API any verified account uses, and an exchange API for
 onboarded firms.
 
-| Method | `kalshi` | `polymarket` | `polymarket_us` (retail) | `polymarket_us` (exchange) | `opinion` | `hyperliquid` | `predict_fun` | `limitless` | `sx_bet` | `novig` | `matchbook` | `prophetx` | `azuro` | `myriad` | `gemini` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `create_order`, `create_orders` | yes | yes | yes | yes | one at a time; `market` and `ioc` are limits with the rest cancelled | yes, a batch is one signed action; `market` and `ioc` are `Ioc` limits | one at a time; `market`, `ioc` and `fok` are the venue's `MARKET` strategy at the worst price given | one at a time; `market` and `ioc` are the venue's fill-and-kill at the worst price given | yes, ten a request; `market` and `ioc` are the venue's `IOC` at the worst price given, `fok` its `FOK` | yes, 256 a request, all or nothing; queued (`pending`) until the private stream says it rests; `market` and `ioc` are `IOC` at the worst price given, `fok` `FOK`, post-only `PO` | yes, fifty a request; `market` and `ioc` are offers at the worst price given with the rest cancelled (after the in-play delay); no `fok`, `gtd` or post-only | one at a time (the batch route is off on the default tier); answered before matching, so `pending`; `market` and `ioc` are the venue's `fillOrKill` at the worst price given, `post_only` its `ALO`; no `fok` or `gtd` | one at a time; `market`, `ioc` and `fok` are a bet with minimum odds `1 / price`, taken whole by the pool or refused | yes, 200 a request; `market` and `ioc` are the venue's `FAK` at the worst price given, `fok` its `FOK`, post-only its `PO`; order books only | yes, twenty a request; `market` and `ioc` are the venue's `immediate-or-cancel` at the worst price given, `fok` its `fill-or-kill` |
-| `cancel_order`, `cancel_orders`, `cancel_all_orders` | yes | yes | yes | yes | one at a time; `cancel_all_orders` lists then cancels | yes; `cancel_all_orders` is one action | yes, up to 100 a request, off the book (not on chain) | yes, up to 50 a request; `cancel_all_orders` per market | yes, up to 100 a request; `cancel_all_orders` per market or account-wide | yes, up to 256 a request; `cancel_all_orders` per market or the whole subaccount | yes, fifty a request; `cancel_all_orders` per runner, market or account-wide | one at a time; `cancel_all_orders` per line (both sides) or account-wide, in the background | no: a signed bet cannot be cancelled; `cash_out` where the venue offers it | yes, up to 200 a request, each repeating the signed order; `cancel_all_orders` one signed message, per market or account-wide | yes, twenty a request; `cancel_all_orders` lists then cancels |
-| `edit_order` | yes, amend or decrease | no; an edit is a cancel and a new order | yes, price, quantity and time in force | yes | no | no | no | no | no | no | yes, odds and remaining stake in place | no | no | yes, the venue's atomic cancel-and-place (the queue place is lost) | no |
-| `fetch_order`, `fetch_open_orders` | yes | yes | yes | yes | yes | yes | yes | yes | yes; any order by id, in any state | yes; any order by id, in any state | yes, while the market is unsettled | yes; reads lag placing by seconds | yes; open orders are bets not yet on chain | yes | yes; an order by id is searched among the active orders and the latest thousand of the history |
-| `fetch_orders` (by status or time) | yes | no | no | yes, rationed to 12 requests a minute | yes, by status | partial: the venue's last 2000, filtered here | yes, open or filled | partial: per market, open or closed | no; the venue lists only resting orders | yes, by status | partial: offers on unsettled markets, by status | yes, by status and creation time, sixty days a read | yes, the wallet's bets, open or closed | yes, by status | yes, filled or cancelled, by offset or a time window |
-| `fetch_my_trades` | yes | yes | no; the activity feed carries no order id | yes | yes, confirmed fills | yes, from a time with `since` | yes, settled matches | yes, settled fills from the account's history | yes, the account's fills | yes, the subaccount's fills, each with its fee | partial: the matched bets on unsettled markets | yes, the account's fills, or one order's | yes, accepted bets, one fill each | partial: the account's history names neither the order nor the fee | partial: one aggregate fill per order, at its average price; each execution is on `GeminiUserStream` |
-| `fetch_positions`, `fetch_balance` | yes | yes | yes | yes | yes | yes, the spot side's USDC and outcome coins | yes, USDT on chain less what orders hold | yes, USDC on Base less what orders hold | yes, the proxy wallet's USDC, free and escrowed | yes, both outcomes' holdings netted on YES; the subaccount's USD balance | yes, current matched bets netted per runner; the account's balance, exposure and free funds | partial: positions built from the live orders' matched stakes; the wallet's USD, free and locked | yes, accepted unsettled bets netted on YES; the wallet's bet token on chain | yes, USD1 on BNB Chain less what open buys hold; positions on books and pools | yes, netted on YES with both inventories kept; USD available and total |
-| `fetch_settlements` | yes | yes, from the redemption activity | yes | no | no | no | no | no | no | no | yes, from the settled-bets report | no | yes, settled bets: won, lost or cancelled | no | yes |
-| `fetch_queue_position` | yes | no | no | no | no | no | no | no | no | no | no | no | no | no | no |
-| `fetch_fee_estimate` | yes | yes | yes | yes | yes, from the fee contract, 0.25 USDT minimum | yes, the closing charge; opening fills pay nothing | yes, `rate * min(p, 1 - p)` a share | yes, the venue's buy-fee curve on the token bought | yes, 1% of a winning taker bet's profit | yes, the market's coefficient, and the maker credit as a negative fee | yes, commission on what the bet wins, makers and takers alike | no: no published rate | yes, the relayer's flat fee per bet | yes, the market's taker table at the price of the outcome bought | yes, the contract's schedule, up to the cent |
-| `rfq` | yes | no | no | no | no | no | no | no | no | no; Novig's parlay RFQ for liquidity providers is not supported yet | no | no | no | no | no: combo RFQ is a WebSocket auction for market makers, in beta |
-| `split_merge` | no; contracts are not tokens | partial: Deposit Wallets and EOAs | no | no | no | no | no | no | no | no | no | no | no | no; `position_calldata()` returns the venue's calldata for the wallet to send | no |
+| Method | `kalshi` | `polymarket` | `polymarket_us` (retail) | `polymarket_us` (exchange) | `opinion` | `hyperliquid` | `predict_fun` | `limitless` | `sx_bet` | `betfair` | `smarkets` | `novig` | `matchbook` | `prophetx` | `azuro` | `myriad` | `gemini` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `create_order`, `create_orders` | yes | yes | yes | yes | one at a time; `market` and `ioc` are limits with the rest cancelled | yes, a batch is one signed action; `market` and `ioc` are `Ioc` limits | one at a time; `market`, `ioc` and `fok` are the venue's `MARKET` strategy at the worst price given | one at a time; `market` and `ioc` are the venue's fill-and-kill at the worst price given | yes, ten a request; `market` and `ioc` are the venue's `IOC` at the worst price given, `fok` its `FOK` | yes, 200 a request per Betfair market (50 on the Italian exchange), all or none; `market` and `ioc` are bets at the worst price given with the rest cancelled, `fok` its `FILL_OR_KILL`; no `gtd` or post-only | one at a time; `market` and `ioc` are the venue's `immediate_or_cancel` at the worst price given, `fok` the same with the whole order as its minimum; limits rest `good_til_halted` (or `keep_in_play`); no `gtd` or post-only; placing needs Smarkets' approved API access | yes, 256 a request, all or nothing; queued (`pending`) until the private stream says it rests; `market` and `ioc` are `IOC` at the worst price given, `fok` `FOK`, post-only `PO` | yes, fifty a request; `market` and `ioc` are offers at the worst price given with the rest cancelled (after the in-play delay); no `fok`, `gtd` or post-only | one at a time (the batch route is off on the default tier); answered before matching, so `pending`; `market` and `ioc` are the venue's `fillOrKill` at the worst price given, `post_only` its `ALO`; no `fok` or `gtd` | one at a time; `market`, `ioc` and `fok` are a bet with minimum odds `1 / price`, taken whole by the pool or refused | yes, 200 a request; `market` and `ioc` are the venue's `FAK` at the worst price given, `fok` its `FOK`, post-only its `PO`; AMM markets take `market`, `ioc` and `fok` only, each one on-chain transaction bounded by the worst average price | yes, twenty a request; `market` and `ioc` are the venue's `immediate-or-cancel` at the worst price given, `fok` its `fill-or-kill` |
+| `cancel_order`, `cancel_orders`, `cancel_all_orders` | yes | yes | yes | yes | one at a time; `cancel_all_orders` lists then cancels | yes; `cancel_all_orders` is one action | yes, up to 100 a request, off the book (not on chain) | yes, up to 50 a request; `cancel_all_orders` per market | yes, up to 100 a request; `cancel_all_orders` per market or account-wide | yes, sixty a request; `cancel_all_orders` per runner, Betfair market or account-wide | one at a time; `cancel_all_orders` per Smarkets market or account-wide, once a minute, and otherwise (or per contract) lists then cancels | yes, up to 256 a request; `cancel_all_orders` per market or the whole subaccount | yes, fifty a request; `cancel_all_orders` per runner, market or account-wide | one at a time; `cancel_all_orders` per line (both sides) or account-wide, in the background | no: a signed bet cannot be cancelled; `cash_out` where the venue offers it | yes, up to 200 a request, each repeating the signed order; `cancel_all_orders` one signed message, per market or account-wide | yes, twenty a request; `cancel_all_orders` lists then cancels |
+| `edit_order` | yes, amend or decrease | no; an edit is a cancel and a new order | yes, price, quantity and time in force | yes | no | no | no | no | no | yes: a smaller quantity in place (a partial cancel); a new price is the venue's cancel-and-place (`replaceOrders`, a new bet id, the queue place lost) | no | no | yes, odds and remaining stake in place | no | no | yes, the venue's atomic cancel-and-place (the queue place is lost) | no |
+| `fetch_order`, `fetch_open_orders` | yes | yes | yes | yes | yes | yes | yes | yes | yes; any order by id, in any state | yes; a bet that has left the current orders is found among the cleared ones | yes, while Smarkets lists it (current and recently settled orders) | yes; any order by id, in any state | yes, while the market is unsettled | yes; reads lag placing by seconds | yes; open orders are bets not yet on chain | yes | yes; an order by id is searched among the active orders and the latest thousand of the history |
+| `fetch_orders` (by status or time) | yes | no | no | yes, rationed to 12 requests a minute | yes, by status | partial: the venue's last 2000, filtered here | yes, open or filled | partial: per market, open or closed | no; the venue lists only resting orders | partial: bets on unsettled markets, by status and placed time | partial: current and recently settled orders, by status | yes, by status | partial: offers on unsettled markets, by status | yes, by status and creation time, sixty days a read | yes, the wallet's bets, open or closed | yes, by status | yes, filled or cancelled, by offset or a time window |
+| `fetch_my_trades` | yes | yes | no; the activity feed carries no order id | yes | yes, confirmed fills | yes, from a time with `since` | yes, settled matches | yes, settled fills from the account's history | yes, the account's fills | partial: one aggregate fill per bet once it has stopped matching, at its average odds; each match is on `BetfairUserStream` | yes, the statement's executions | yes, the subaccount's fills, each with its fee | partial: the matched bets on unsettled markets | yes, the account's fills, or one order's | yes, accepted bets, one fill each | partial: the account's history names neither the order nor the fee | partial: one aggregate fill per order, at its average price; each execution is on `GeminiUserStream` |
+| `fetch_positions`, `fetch_balance` | yes | yes | yes | yes | yes | yes, the spot side's USDC and outcome coins | yes, USDT on chain less what orders hold | yes, USDC on Base less what orders hold | yes, the proxy wallet's USDC, free and escrowed | yes, matched bets netted per runner; the account's free funds and exposure | yes, matched unsettled orders netted per contract; the account's balance, exposure and available balance | yes, both outcomes' holdings netted on YES; the subaccount's USD balance | yes, current matched bets netted per runner; the account's balance, exposure and free funds | partial: positions built from the live orders' matched stakes; the wallet's USD, free and locked | yes, accepted unsettled bets netted on YES, and settled ones still to claim as `redeemable` (`redeem()` claims them); the wallet's bet token on chain | yes, USD1 on BNB Chain less what open buys hold; positions on books and pools | yes, netted on YES with both inventories kept; USD available and total |
+| `fetch_settlements` | yes | yes, from the redemption activity | yes | no | no | no | no | no | no | yes, settled bets from the cleared orders | partial: recently settled orders, before commission | no | yes, from the settled-bets report | no | yes, settled bets and combos: won, lost or cancelled, each with whether its payout is claimed | no | yes |
+| `fetch_queue_position` | yes | no | no | no | no | no | no | no | no | no | no | no | no | no | no | no | no |
+| `fetch_fee_estimate` | yes | yes | yes | yes | yes, from the fee contract, 0.25 USDT minimum | yes, the closing charge; opening fills pay nothing | yes, `rate * min(p, 1 - p)` a share | yes, the venue's buy-fee curve on the token bought | yes, 1% of a winning taker bet's profit | yes, the market's base rate on what the bet wins, makers and takers alike | yes, the account's commission on what the bet wins, makers and takers alike | yes, the market's coefficient, and the maker credit as a negative fee | yes, commission on what the bet wins, makers and takers alike | no: no published rate | yes, the relayer's flat fee per bet | yes, the market's taker table at the price of the outcome bought | yes, the contract's schedule, up to the cent |
+| `rfq` | yes | no | no | no | no | no | no | no | no | no | no | no on `NovigTrading`; liquidity providers price parlay RFQs with `NovigPricer` | no | no | no; a combo needs no quote: the pool prices it from its legs (`fetch_combo_quote`, `create_combo_order`) | no | partial: the maker side of the combo RFQ auction (`GeminiRfqStream`); requesting is app-only |
+| `split_merge` | no; contracts are not tokens | partial: Deposit Wallets and EOAs | no | no | no | no | no | no | no | no | no | no | no | no | no | no; `position_calldata()` returns the venue's calldata for the wallet to send | no |
 
 Order types are a separate question. A venue holds `limit` and `market`;
 everything else -- stops, icebergs, brackets, TWAP, pegs -- is held by the
@@ -575,6 +597,7 @@ Every stream answers the `watch_*` keys the same way
 | `SxBetMarketStream` | yes | partial | yes | yes | no | no | no | no |
 | `SxBetUserStream` | no | no | no | no | yes | yes | no | no |
 | `BetfairMarketStream` | yes, best offers to 10 levels | partial: top of book | no: no public trades | yes, per runner | no | no | no | no |
+| `BetfairUserStream` | no | no | no | no | yes | yes, each increase of a bet's matched stake | yes, the matched ladders per runner | no |
 | `SmarketsMarketStream` | partial: polled from REST quotes, every 5 s by default | partial: polled | no: read the recent tape with `fetch_trades` | partial: polled every few rounds | no | no | no | no |
 | `NovigMarketStream` | yes, per order, with a trading key; partial without one: the public book polled every 5 s | yes; partial when polled | yes; partial when polled | yes; partial when polled | no | no | no | no |
 | `NovigUserStream` | no | no | no | no | yes | yes | yes | no |
@@ -586,6 +609,7 @@ Every stream answers the `watch_*` keys the same way
 | `MyriadUserStream` | no | no | no | no | yes | yes | partial: one outcome's balance per update | no |
 | `GeminiMarketStream` | yes, differential, from a snapshot; a skipped update resubscribes | yes, top of book and last trade | yes | yes, contract status and strikes | no | no | no | no |
 | `GeminiUserStream` | no | no | no | no | yes | yes, each execution with its fee | yes, settlement payouts included | yes |
+| `GeminiRfqStream` | no | no | no | no | no | no | no | no |
 
 The exchange API's other gRPC streams carry one thing each and say so:
 drop copy and trade capture carry fills, position and position-change carry

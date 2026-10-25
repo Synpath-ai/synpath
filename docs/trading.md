@@ -72,6 +72,8 @@ private key. `synpath init` tells them apart.
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
 | Novig | REST: nothing. Books over the WebSocket: a subaccount's trading key (without one, the public book is polled) | a subaccount's trading key: a key id and its private key file (PEM, Ed25519 or P-256). The management key, optional, opens, funds and labels subaccounts and never trades | the management key on novig.com (paper.novig.com for Paper) -> Profile -> Settings -> Novig API; then `NovigTrading.open_subaccount` with a keypair from `novig_signing.generate_key()` issues the trading key. The private key is never sent |
+| Betfair | the application key (the free delayed key) and the account's login, for every call | a live application key (Betfair activates it on request) and the same login: username and password, interactive or by a self-signed client certificate | developer.betfair.com (or the Accounts API visualiser) for the keys; for certificate login, a self-signed certificate uploaded at myaccount.betfair.com/accountdetails/mysecurity?showAPI=1 (Automated Betting Program Access) |
+| Smarkets | nothing (a login undelays the quotes) | the account's login: username and password (an account with two-factor login passes a session token made elsewhere); placing orders needs Smarkets' approved API access | your smarkets.com account; API access is applied for from Smarkets (a one-off £150 fee) |
 | Matchbook | nothing | the account's login: username and password (an account with two-factor login passes a session token made elsewhere) | your matchbook.com account; higher API limits need an API plan from api@matchbook.com |
 | ProphetX | the Trading API key pair, or a Market Data API key | the Trading API key pair: an access key and a secret key, exchanged for a ten-minute bearer token | prophetx.co -> Menu -> API Integration, on any KYC-approved account (sandbox.prophetx.dev for the sandbox); the secret is shown once. The Market Data API key is issued by ProphetX on request |
 | Azuro | nothing | the private key of the wallet that signs each bet and holds the bet token, which must allow Azuro's relayer to spend it (`approve()`, once) | exported from the wallet |
@@ -100,25 +102,20 @@ The variables each venue reads:
 | Hyperliquid | `HYPERLIQUID_PRIVATE_KEY` (an API wallet's key is safest: it trades but cannot withdraw), `HYPERLIQUID_ACCOUNT_ADDRESS` (the account an API wallet trades for; not needed with the account's own key), `HYPERLIQUID_TESTNET` (`1` for the test network) |
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
-| Myriad | `MYRIAD_PRIVATE_KEY` (signs orders and cancels, and the sign-in when there is no key), `MYRIAD_API_KEY` and `MYRIAD_API_SECRET` (optional together: HMAC-signed requests; the venue refuses a key without its signature), `MYRIAD_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address when no private key names it), `MYRIAD_RPC_URL` (optional; the BNB Chain node the balance is read from) |
+| Myriad | `MYRIAD_PRIVATE_KEY` (signs orders and cancels, and the sign-in when there is no key), `MYRIAD_API_KEY` and `MYRIAD_API_SECRET` (optional together: HMAC-signed requests; the venue refuses a key without its signature), `MYRIAD_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address when no private key names it), `MYRIAD_RPC_URL` (optional; the BNB Chain node the balance is read from and AMM trades are sent to) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
 | Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
+| Betfair | `BETFAIR_APP_KEY` (a live key bets; the delayed key reads market data and the account), `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`, `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` (optional together; Betfair's certificate login), `BETFAIR_JURISDICTION` (optional; `com`, the default, `it`, `es`, `ro` or `com.au`, the site the account is on) |
+| Smarkets | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` (betting and the account's orders, statement and balance; market data needs neither, and with them its quotes are undelayed) |
 | Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
 | ProphetX | `PROPHETX_ACCESS_KEY` and `PROPHETX_SECRET_KEY` (the Trading API: market data, streams, orders), `PROPHETX_AFFILIATE_KEY` (optional; the Market Data API, market data only), `PROPHETX_SANDBOX=1` (optional; ProphetX's sandbox, with demo funds) |
-| Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance and allowance are read from and the approval is sent through; a public one when unset) |
+| Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance, allowance and claimable payouts are read from and the approval and claims are sent through; a public one when unset) |
 | Gemini | `GEMINI_API_KEY` (`account-...`), `GEMINI_API_SECRET`, `GEMINI_ACCOUNT` (optional; the subaccount a `master-...` key acts for, REST only: the WebSocket refuses master keys), `GEMINI_ENV` = `prod` (the default, real money) or `sandbox` (api.sandbox.gemini.com, with a sandbox key) |
 
-Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
-optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
-load the same way and `synpath doctor` reports them, but they serve market data
-and the stream only: there is no Betfair order entry yet. See
-[Betfair](capabilities.md#betfair).
-
 Smarkets needs no credentials for market data. `SMARKETS_USERNAME` and
-`SMARKETS_PASSWORD` are optional: they log in for undelayed quotes, and
-`synpath doctor` reports them. There is no Smarkets order entry yet: betting
-through Smarkets' API needs its approved API access (applied for, with a
-one-off £150 fee). See [Smarkets](capabilities.md#smarkets).
+`SMARKETS_PASSWORD` log in for undelayed quotes and for order entry; placing
+orders through Smarkets' API needs its approved API access (applied for, with
+a one-off £150 fee). See [Smarkets](#smarkets).
 
 Novig trades on one subaccount per trading key. An order buys an outcome:
 `buy` the market's YES outcome at the price given, `sell` its NO outcome at
@@ -131,8 +128,8 @@ play. Production needs Novig's identity check and a US location outside
 Arizona, Michigan and Nevada, with a recent device geolocation from the Novig
 app (a VPN is refused); Paper is the same API with play money and no location
 check. `NovigTrading.echo()` proves the host, key, clock and signature in one
-call. Novig's parlay RFQ, for registered liquidity providers, is not
-supported yet. See [Novig](capabilities.md#novig).
+call. Liquidity providers can price Novig's parlay RFQs with `NovigPricer`
+([Novig parlay RFQ](#novig-parlay-rfq)). See [Novig](capabilities.md#novig).
 
 ```python
 from decimal import Decimal
@@ -613,6 +610,173 @@ free to bet, and what matched bets hold in escrow.
 
 Check SX Bet's terms for where it may be used before trading.
 
+## Betfair
+
+`BetfairTrading`, built to Betfair's Betting API (`placeOrders`,
+`cancelOrders`, `replaceOrders`, `updateOrders`, `listCurrentOrders`,
+`listClearedOrders`, `listMarketProfitAndLoss`) and Accounts API
+(`getAccountFunds`, `getAccountDetails`) documentation. Every call carries
+the application key and the session token of the account's login, made the
+way the read adapter makes it: by certificate when `BETFAIR_CERT_PATH` and
+`BETFAIR_KEY_PATH` are set, else interactively, extended with `keepAlive`
+and kept in memory only; a refused session logs in again once.
+`session_token=` reuses a login made elsewhere. **Betting needs a live
+application key**: Betfair refuses every bet from the delayed key
+(`PermissionDenied`), which still reads orders, positions and the balance.
+
+An order is a bet to back or lay one runner,
+`betfair:<market id>-<selection id>` (with `-<handicap>` on a handicap
+runner). `buy` backs it (takes its YES) at decimal odds `1 / price`; `sell`
+lays it (takes its NO) at the same odds. Betfair counts both in the backer's
+stake, so `n` contracts stake `n / odds`, rounded down to the penny; a lay's
+liability is that stake times `odds - 1`. Prices are snapped onto Betfair's
+CLASSIC odds ladder (1.01 to 1000) on the cheaper side: a buy at the next
+higher odds, a sell at the next lower, so an order never pays more than
+asked. A bet stakes at least the currency's minimum bet size (£1, €1, $1)
+unless its payout (stake times odds, its contracts) reaches the minimum bet
+payout (£10, €20, $20); the payout rule is not offered on the .it and .es
+sites. Orders below both are refused before anything is sent.
+
+Limits (`gtc`) are Betfair's `LIMIT` with persistence `LAPSE`: the unmatched
+part is cancelled when the market turns in play. `params={"persistence":
+"PERSIST"}` (or `keep_in_play=True`) keeps it in play, and
+`"MARKET_ON_CLOSE"` moves it into the starting-price auction at the off.
+`fok` is Betfair's `FILL_OR_KILL`, whose price Betfair reads as the worst
+*average* matched price; `params={"min_fill": contracts}` accepts a part of
+at least that much. Betfair has no immediate-or-cancel bet, so `market` and
+`ioc` are `LAPSE` bets at the price given as the worst accepted, whose
+unmatched rest is cancelled as soon as Betfair answers. `gtd`, day and
+post-only orders are refused, and so is `reduce_only`, since every bet on a
+runner nets. `params={"market_version": n}` lapses the bet if the market has
+changed materially since version `n` (a runner removed, turned in play).
+
+On an in-play market Betfair holds a bet for the market's delay (1 to 10
+seconds) before matching it, and answers only then, so `create_order`
+returns the bet already matched or resting. `create_orders` sends one
+`placeOrders` per Betfair market, 200 bets a request (50 on the Italian
+exchange), which Betfair places all or none, and returns one result each.
+
+`client_order_id` (up to 32 characters) is sent as the bet's
+`customerOrderRef`, which Betfair keeps on every record and on the order
+stream; a single order's id also de-duplicates a resubmission within 60
+seconds (`customerRef`), refused as `DuplicateClientOrderId`. A placement
+Betfair could not finish in time (`TIMEOUT`) is looked up by that id; without
+one it raises `RequestTimeout`. `fetch_order_by_client_id` reads a bet by it.
+
+`edit_order` with a smaller `quantity` (the order's new total, filled
+contracts included) is a partial cancel, which keeps the bet's place in the
+queue; a new price is `replaceOrders`, which cancels the unmatched part and
+places it again at the new odds as a new bet with a new id
+(`queue_priority_preserved` is false, `info["replaced"]` names the old bet).
+Betfair cannot raise a stake. `update_persistence(order_id, "PERSIST")`
+changes what happens at the off in place. Cancels and edits name the bet's
+Betfair market; one this adapter did not place is read first to find it.
+
+Bets on unsettled markets are `fetch_order`, `fetch_open_orders` and
+`fetch_orders` (by status: `open`, `closed`, `canceled`); a bet that has left
+them (cancelled, lapsed, settled, voided) is found by `fetch_order` among the
+cleared orders. Betfair lists bets, not their matched fragments, so
+`fetch_my_trades` is one fill per bet at its average matched odds, for bets
+that have stopped matching; each match as it happens is on
+`BetfairUserStream` ([Streaming](streaming.md)). Settled bets are
+`fetch_settlements`, one per bet. Positions net the matched bets per runner
+on the YES leg: backs are YES contracts, lays NO contracts.
+`fetch_profit_and_loss(market_ids)` is Betfair's own if-win and if-lose
+profit per runner. The balance is what is free to bet
+(`availableToBetBalance`), what open bets hold (`exposure`, `locked`), and
+the two together, in the account's currency.
+
+Commission is charged at settlement on net winnings per Betfair market, at
+the market's base rate (5% on most .com markets), before the account's
+discount; `fetch_fee_estimate` is that rate on what one bet would win, an
+upper bound for a bet among others on the same market. Betfair charges
+accounts that send very many bets and changes (its Transaction Charges), so
+batch where you can.
+
+Check Betfair's terms for where it may be used before trading: its API is
+refused from several countries (the US, Germany, France, the Netherlands,
+Singapore, India, Turkey, the UAE and others), and its keys are for an
+account holder's own betting.
+
+## Smarkets
+
+`SmarketsTrading`, built to Smarkets' trading API reference
+(docs.smarkets.com, API v3). Every call carries the session token of an
+account login (`SMARKETS_USERNAME`, `SMARKETS_PASSWORD`), made on the first
+call and kept in memory only, as `Authorization: Session-Token <token>`. A
+token lasts 30 minutes from its last use: one idle for 25 is replaced before
+the next call, and a 401 logs in again once. Smarkets allows five logins per
+five minutes. An account with two-factor login cannot log in from here; pass
+`session_token=` from a login made elsewhere. **Placing orders needs
+Smarkets' approved API access** (applied for, with a one-off £150 fee): any
+account reads its balance, orders and statement, and an account without it
+is refused a new order with `PermissionDenied`.
+
+An order buys or sells one contract's YES, `smarkets:<market id>-<contract
+id>`. `buy` backs the contract (takes its YES), `sell` lays it (takes its
+NO), and the price is the YES price, as Smarkets' book reads: its `bids` are
+resting backs, YES bids. Smarkets prices in basis points of 100%, and only on
+its odds ladder (decimal odds 1.01 to 1000 in Betfair's bands, as basis
+points, and the ends 1 and 9999). A price within half a basis point of a tick
+is that tick; any other is snapped onto the ladder on the cheaper side: a buy
+at the tick below, a sell at the tick above. An order's size is its pot (back
+stake plus lay liability) in 1/10,000 of the account's currency, so `n`
+contracts send `n * 10,000`, rounded down; the smallest back stake is £0.05.
+
+A limit is `good_til_halted` by default, Smarkets' own default: it rests
+through the market going in play and is cancelled when the market halts (a
+goal, a red card). `params={"order_type": "keep_in_play"}` (or
+`{"keep_in_play": True}`) keeps it through halts as well, and
+`"good_til_cancelled"` cancels it when the market goes in play. Smarkets
+cancels every resting order when it applies a reduction factor (a withdrawn
+runner). `market` and `ioc` are `immediate_or_cancel` at the price given as
+the worst accepted, answered once they have matched what they could; `fok` is
+the same with `minimum_accepted_quantity` set to the whole order, and
+`params={"minimum_quantity": n}` sets a smaller floor on an `ioc`. One that
+cannot meet its floor is refused (`OrderRejected`,
+`ORDER_CANCELLED_INSUFFICIENT_LIQUIDITY`). `gtd`, `day`, post-only and
+`reduce_only` are refused. There is no amend route, so `edit_order` is not
+offered; cancel and replace. `create_orders` and `cancel_orders` send one
+request per order and return one result each.
+
+Smarkets takes no client order id, but every order carries a free `label`:
+`client_order_id` (or `params["label"]`) is sent as the label and read back
+as `client_order_id`. After a timeout, list the open orders on the contract
+(`fetch_open_orders(market_id=...)`) and match the label to see what was
+placed.
+
+Orders are read from `GET /v3/orders/`, which lists current and recently
+settled orders: `fetch_order`, `fetch_open_orders`, `fetch_orders` (by
+status, oldest first) and `fetch_settlements` (settled orders, one per
+contract and side, with `payout` and `pnl` before commission). Smarkets has
+no cancelled state: an order with nothing left unmatched that did not match
+in full is `canceled`. `cancel_order` reads the order back; one the exchange
+has not finished cancelling reads `pending_cancel`. `cancel_all_orders`
+cancels the account's orders, or a Smarkets market's
+(`smarkets:<market id>`), in one request that Smarkets acknowledges without
+a count, once a minute; a second inside the minute, or one naming a single
+contract, cancels the open orders one by one and returns how many. In play,
+matched bets wait about eight seconds for confirmation and can be voided in
+that time; the pending part counts as filled (`info["quantity_filled_pending"]`).
+
+Fills are the account statement's executions (`order.execute` rows of
+`/v3/accounts/activity/`), newest first. Positions net the account's matched,
+unsettled orders per contract on the YES leg: backs are YES contracts, lays
+NO contracts, and `margin` is the most the contract can lose. The balance is
+the account's cash, what its bets hold (`exposure`, `locked`), and what is
+free to bet, in the account's currency. Commission is charged at settlement
+on net winnings per Smarkets market, 2% on the standard tier; fee estimates
+use the account's own rate (`commission_type`).
+
+Smarkets allows 1,200 requests a minute per account, ten order placements
+and ten cancels a second, and one cancel-all a minute; the adapter paces
+itself inside them. Smarkets' trading API is HTTP only (its socket feed is
+for approved market makers), so there is no account stream and the engine
+polls the orders.
+
+Check Smarkets' terms for where it may be used before trading: its API terms
+allow viewing prices and betting on your own account only.
+
 ## Matchbook
 
 `MatchbookTrading`, built to Matchbook's API reference
@@ -723,9 +887,9 @@ Check ProphetX's terms for where it may be used before trading.
 
 ## Azuro
 
-`AzuroTrading`, built to `@azuro-org/toolkit` and the Azuro backend API. Bet
-and cash-out digests and signatures are checked against the ones the toolkit
-and viem produce.
+`AzuroTrading`, built to `@azuro-org/toolkit` and the Azuro backend API. Bet,
+combo and cash-out digests and signatures, and the claim calldata, are checked
+against the ones the toolkit and viem produce.
 
 The one credential is the wallet. Every bet is the EIP-712 message
 `ClientBetData` (the consent text, the affiliate, the pool's core contract, a
@@ -760,13 +924,64 @@ an accepted one can be closed early where the venue offers a price:
 the domain `Cash Out` `1.0.0`, the offer's odds as the minimum) and sends it,
 and `fetch_cashout(id)` follows it.
 
+A combo backs two or more outcomes of different games in one bet, which wins
+only if every leg does. Nobody quotes it: the pool prices it from the legs'
+odds by the protocol's combo rule, each leg's odds divided by 0.99 (the
+feed's fee) and rounded up to two decimals, multiplied, and times 0.99 once
+(1.58 and 1.58 make 2.5344, as the bets subgraph records it). A leg is a
+market and a side, as an order names them (`ComboLeg(market_id, side)`, a
+bare market id for its YES, or a `(market_id, side)` pair).
+
+```python
+from synpath.trading.azuro import ComboLeg
+
+legs = [ComboLeg("azuro:<conditionId>"), ComboLeg("azuro:<conditionId>", Side.SELL)]
+quote = await azuro.fetch_combo_quote(legs, stake=Decimal("5"))
+quote.odds, quote.price, quote.max_bet, quote.problems    # [] when the pool would take it
+order = await azuro.create_combo_order(legs, quantity=Decimal("10"), price=quote.price * Decimal("1.02"))
+await azuro.wait_for_order(order.id)
+```
+
+`fetch_combo_quote` reads the legs' conditions and the pool's limits on the
+combo for this wallet (`/bet/calculation`), and lists in `problems` what the
+venue's SDK checks before it signs one: two or more legs, each condition and
+each game once, no condition closed to combos (`isExpressForbidden`), every
+condition and outcome taking bets, a maximum stake above zero and the stake
+within the limits. There is no maximum number of legs in the toolkit or the
+SDK; the pool refuses what it will not take. `create_combo_order` is a market
+order with a worst price for the whole combo: `quantity` contracts (what it
+pays if every leg wins) at no more than `price` each, so minimum total odds
+`1 / price` and a stake of `quantity * price`. It raises the quote's problems
+before signing (`check=False` skips the quote), signs `ClientComboBetData`
+(the same `ClientData`, the minimum odds, the stake, the nonce and the legs'
+`ComboPart`s, under the same domain), and sends it to `/bet/orders/combo`.
+The relayer's fee is the same flat fee per bet. A combo order is followed like
+a single bet, and reported on its first leg's market as a `buy` at `1 /` its
+total odds, with `info["combo"]` and every leg in `info["legs"]`.
+
 `fetch_orders`, `fetch_open_orders` (bets not yet on chain), `fetch_my_trades`
-(one fill per accepted bet) and `fetch_settlements` (won, lost, or cancelled
-with the stake returned) read the wallet's bet orders. Positions net each
-market's accepted, unsettled single bets on the YES leg. Combo bets are read
-on their first leg's market and marked `info["combo"]`; this library places
-single bets only. A winning bet's payout is claimed on chain from the pool,
-which this library does not do.
+(one fill per accepted single bet) and `fetch_settlements` (won, lost, or
+cancelled with the stake returned; combos too, on their first leg's market)
+read the wallet's bet orders. Each settlement says whether its payout was
+claimed: `info["claimed"]` (`None` when it pays nothing), `info["claimable"]`
+(what is still in the pool) and `info["claim_transaction"]`. Positions net
+each market's accepted, unsettled single bets on the YES leg, and add the
+settled single bets whose payout is still to be claimed, `resolved` and
+`final`, with the amount in `redeemable`.
+
+A won or cancelled bet's payout stays in the pool until it is claimed on
+chain. `fetch_redeemable_bets()` lists the wallet's bets that can be, from
+the bets subgraph (won or cancelled, not cashed out, not yet claimed), each
+with its on-chain id, `won` or `canceled`, and the `amount` claiming pays.
+`redeem()` (also `claim_winnings()`) claims all of them, or those of
+`bet_ids`, as the venue's SDK does: one `withdrawPayouts(core, betIds)`
+transaction to the pool's liquidity contract for every fifty bets
+(`batch=`), one paymaster `withdrawPayouts` per free bet. The wallet sends
+them and pays their gas in the chain's coin; anyone may send a claim, and the
+pool pays each bet's owner. Every call is estimated first, so one that would
+revert (already claimed: `alreadypaid`) is refused before anything is sent.
+It returns each transaction's hash, bets and amount, and the total.
+`fetch_claimable(bet_id)` reads what one bet would pay now (`viewPayout`).
 
 Gnosis and Chiliz are discontinued and take no bets. Azuro's bet API answers
 some regions with a 503; check where Azuro may be used before betting.
@@ -774,8 +989,9 @@ some regions with a 503; check where Azuro may be used before betting.
 ## Myriad
 
 `MyriadTrading`, built to Myriad's API reference, for its order book on BNB
-Chain. Order hashes and signatures are checked against an independent
-EIP-712 encoder and fixed known answers.
+Chain and its AMM (pool) markets on BNB Chain, Abstract and Linea. Order
+hashes and signatures are checked against an independent EIP-712 encoder and
+fixed known answers; pool calls against the venue's own quote calldata.
 
 Every order is the venue's nine-field EIP-712 `Order` (trader, market,
 outcome, side, amount, price, minimum fill, nonce, expiration), signed by the
@@ -822,9 +1038,36 @@ from the wallet's public tape with their orders and fees, and share balances
 book and AMM alike, netted per binary market on the YES leg. The balance is
 the wallet's USD1 on BNB Chain, less what open buy orders reserve.
 
-AMM markets trade through on-chain contract calls (the venue's quote route
-returns the calldata), one per trade with gas, on BNB Chain, Abstract and
-Linea; they are not traded here, and an order for one is refused.
+AMM markets (`myriad:56-amm-120473`, one outcome of a larger pool
+`myriad:2741-amm-412-3`) trade as market orders: each is one transaction from
+the wallet to the network's `PredictionMarket` contract, which pays its gas in
+the chain's coin. There is nothing to rest, so a pool order is `market`,
+`ioc` or `fok` with a worst price; a `gtc` or `gtd` limit and post-only are
+refused. The worst price bounds the average price, fees in: the order is sized
+from the pool read on chain, `market` and `ioc` trading the most shares up to
+the quantity whose average is within it, `fok` the whole quantity or nothing
+(an order that fits nothing is `canceled` and sends nothing). The bound goes on
+chain as the contract's own guard, the minimum shares a buy's value must buy
+(`value / worst`) or the most shares a sell may burn for its payout, so the
+transaction reverts rather than fill worse if the pool moves first. YES and NO
+are outcomes 0 and 1 of a two-outcome pool, as on the order book; on one
+outcome of a larger pool YES is that outcome, and NO, the rest of the pool, is
+not one trade. A sell (`reduce_only`) checks the shares held, a buy the
+token's balance and its approval: `approve_amm(market_id)` approves the
+market's token (USD1 or USDT, USDC.e, USDC) to that network's contract once.
+`create_order` waits for the receipt (`params={"wait": False}` returns it
+`pending`, its id the transaction hash, for `fetch_order` to read again) and
+reports the fill from the receipt's `MarketActionTx`: shares, average price and
+the fee, a share of the value set per market (`share_of_value`; on a buy it
+comes out of the value spent, on a sell it is on top of the payout). The price
+is the value over the shares, fees in, as the account's history gives it, and
+the fill's id is the history's, so `fetch_my_trades`, which reads order-book
+and pool trades alike, shows the same trade once. A reverted trade comes back
+`rejected`. `plan_amm_order(request)` sizes an order and builds its call
+without sending it, and `redeem_amm(market_id)` claims a resolved market's
+winnings (or a voided one's shares). Nodes default to public ones;
+`MYRIAD_RPC_URL` sets BNB Chain's and `rpc_urls={2741: ..., 59144: ...}` the
+others.
 
 Check Myriad's terms for where it may be used before trading.
 
@@ -879,6 +1122,175 @@ Fees follow the contract's listing date and are rounded up to the cent; see
 [Gemini](capabilities.md#gemini). `fetch_fee_estimate` reads the contract's
 schedule with one public request.
 
-Combo RFQ (Gemini's sealed WebSocket auction for multi-leg combos, in beta
-and run by market makers) is not offered, and nor are WebSocket order
-placement and `cancelOnDisconnect`.
+A combo (two to six contracts, each on a YES or NO outcome, settling YES
+only if every leg does) is its own instrument, `gemini:GEMI-CMB-...`, with
+its own book, orders and positions: `create_order`, `fetch_orders` and
+`fetch_positions` take it as they take any contract. `fetch_combos` and
+`fetch_combo` (public) list combos and look one up with its legs, each leg
+Gemini's numeric contract id with the outcome the combo needs from it;
+any listed contract can be a leg. `create_combo([("101", "yes"), ("202",
+"no")])` returns the canonical combo for a set of legs, creating it if
+Gemini has none (signed; it places nothing). Gemini's documentation says
+these combo routes are not enabled in production yet: there they raise
+`CombosUnavailable`, carrying Gemini's answer. The sandbox
+(`GEMINI_ENV=sandbox`) has them.
+
+Combo RFQ is a sealed auction on Gemini's WebSocket, in beta. A requester
+opens an RFQ and `requestForQuote` broadcasts it, anonymously, with its legs
+and its size in contracts or USD. Makers each send one immutable,
+single-sided quote (the price they sell the combo's YES at) within one
+second. At the close only the best eligible quote (lowest price, then
+earliest) is disclosed, privately, to the requester, who has five seconds to
+accept. The winning maker then has one second to confirm or decline (its
+last look). The requester side, opening an RFQ and accepting its quote, is
+in the Gemini app and website only, and Gemini publishes no API for it, so
+`create_rfq` and `accept_quote` raise `NotSupported`.
+
+The maker side is `synpath.ws.gemini.GeminiRfqStream`:
+
+```python
+from synpath.ws.gemini import GeminiRfqStream
+
+async with GeminiRfqStream(creds) as stream:     # GEMINI_ENV=sandbox for the sandbox
+    await stream.watch_rfqs()                    # public, anonymous
+    await stream.watch_deliveries()              # this account's acceptances and outcomes
+    async for event in stream:
+        if getattr(event, "name", None) == "rfq" and event.payload["state"] == "OPEN":
+            await stream.submit_quote(event.payload["rfq_id"], "0.55", "100")
+        elif getattr(event, "name", None) == "rfq_delivery" and event.payload["transition"] == "ACCEPTED":
+            await stream.confirm_quote(event.payload["rfq_id"], event.payload["quote_id"], True)
+```
+
+| Request, quotes, accept | Gemini |
+|---|---|
+| Ask for a price | the requester opens an RFQ in the Gemini app; no API |
+| Quotes arrive | sealed: none while the window is open; at close one `rfq_delivery` with `transition="CLOSED"` and the winning quote (`quote_id`, `price`, `size`), to the requester only |
+| Quote expires | five seconds after the close (`PENDING_ACCEPTANCE`), or at the RFQ's `expires_at` if sooner; `valid_until` only decides eligibility at the close |
+| Accept | the requester, in the app; no API |
+| Maker confirms | `confirm_quote(rfq_id, quote_id, True or False)` within one second of the `ACCEPTED` delivery |
+| Fill, position | the RFQ ends `FINALIZED` (`fill_quantity` is the requester's); the trade is an order on the combo's instrument, on `GeminiUserStream` and `fetch_positions` |
+
+Quotes are checked before sending: a price on the cent tick inside (0, 1), a
+quantity on the hundredth-contract grid that must cover the whole request
+to win (`quantity * price >= notional` on a USD-sized RFQ), a `client_id`
+of at most 36 printable ASCII characters (it comes back as the maker fill's
+client order id), and an RFQ the stream saw close is refused. A quote
+method is sent only on a live connection and never resent: no answer, or a
+connection lost before one, is an unknown outcome to reconcile on the
+delivery stream. Gemini's errors come back typed with its code (`-2010`, a
+quote it refused, is `OrderRejected`). Deliveries are at least once and are
+deduplicated by Gemini's delivery id. The maker's order rests on the book
+before the requester's fill-or-kill order arrives, so it can fill in part,
+or not at all, whatever the RFQ's outcome: read the maker's fills from
+`GeminiUserStream`, not from the RFQ's state. Quoting needs an
+account-scoped key on the signed handshake and an account Gemini has made
+eligible; `withdraw_quote` also needs the session's `cancel_orders`.
+
+WebSocket order placement and `cancelOnDisconnect` are not offered.
+
+## Novig parlay RFQ
+
+Novig sends every parlay a user builds (2 to 20 legs, as outcome ids) to
+each registered liquidity provider's pricer as an RFQ. The auction lasts 3
+seconds; the lowest `price` wins (a tie goes to the larger `max_wager`),
+and the winner gets a 1-second last look at the user's actual stake to
+confirm or reject. `synpath.trading.novig_rfq.NovigPricer` is that pricer:
+you supply the pricing callback, and it answers over the maker WebSocket,
+over webhooks, or both. Registering is self-serve but needs an LP account
+(developers@novig.com), and the pricer is separate from order entry: the
+RFQ routes take Novig's OAuth market-maker bearer token, not a NOVIG-V3
+key.
+
+```bash
+NOVIG_RFQ_CLIENT_ID=...         # the OAuth client credentials Novig issues to LPs
+NOVIG_RFQ_CLIENT_SECRET=...     # (or NOVIG_RFQ_ACCESS_TOKEN, a token used as it is)
+NOVIG_RFQ_SHARED_SECRET=...     # webhooks only: 64 hex characters, returned once by POST /rfq/pricer
+NOVIG_RFQ_ENV=qa                # production (the default) or qa; registrations are separate
+```
+
+```python
+from decimal import Decimal
+
+from synpath.trading.credentials import load_novig_rfq
+from synpath.trading.novig_rfq import NovigPricer, ParlayQuote
+
+async def price(rfq):                      # a ParlayRFQ: rfq_id, outcome_ids, min_wager, deadline()
+    if rfq.legs > 6:
+        return None                        # decline
+    return ParlayQuote(price=Decimal("0.18"), max_wager=Decimal("500"), quote_id="mm-1")
+
+pricer = NovigPricer(price, credentials=load_novig_rfq())
+
+async with pricer.stream() as stream:      # the maker WebSocket
+    async for event in stream:             # every frame as a VenueEvent, and the stream's status
+        print(event)
+
+app = pricer.webhook_app(prefix="/novig")  # or webhooks: POST /novig/quote, /confirm, /ping
+```
+
+**A round.** `price` gets each round as a `ParlayRFQ` and returns a
+`ParlayQuote` or `None`, and may be a coroutine. `price` is the taker's
+stake per $1 of payout (0.18 means the taker stakes $0.18 to win $1.00, so
+the pricer puts up $0.82 a dollar); it is rounded up onto Novig's 0.001
+grid, and a quote Novig would drop (a price outside 0.001 to 0.999, a
+`max_wager` of zero, a `quote_id` over 256 bytes) is refused before it is
+sent. The callback has until the auction closes, less `margin` (0.25 s); a
+slower answer, an exception, or a `max_wager` below the round's minimum
+stake declines. On the socket a decline is sent as `decline`, on a webhook
+as `204`. A round reaching both transports is priced once and Novig keeps
+the first quote.
+
+**The last look.** `confirm` gets each win as a `LastLook` (the stake,
+the price, and the pricer's own round and quote) and returns whether to
+take it, within `confirm_timeout` (0.75 s) or the trade is rejected.
+Without one, the pricer confirms a trade that matches the quote it sent: its
+price, no more than its `max_wager`, its `quote_id`.
+
+**The confirm rate.** Novig locks a pricer out of quoting for 5 minutes
+when it confirms fewer than 60% of its last looks over 30 minutes, once 20
+count. `pricer.confirm_rate` keeps the same count (`standing()`,
+`would_lock(False)`, `rejects_left()`), records a lock from the socket's
+`FORBIDDEN` error, and the pricer stops quoting while one is known.
+`await pricer.sync_standing()` takes Novig's own count from
+`GET /rfq/pricer`, which also sees the last looks this process did not.
+
+**Webhooks.** `webhook_app` checks `X-Novig-Signature` (a BLAKE3 keyed hash
+of the raw body under the shared secret; the `blake3` package is used when
+installed, a pure-Python version otherwise) on every request and answers a
+bad one `401` without reading it. Serve it over public HTTPS at the base URL
+you register. `handle_webhook(route, raw_body, signature)` is the same logic
+for another web framework.
+
+**Executions and collateral.** `NovigRFQ` reads the RFQs won
+(`fetch_executions`, newest first, paged with `after`; `iter_executions`),
+catches up after a gap (`reconcile_executions(known_ids)`, paging from the
+newest until a held id), and the collateral held in open parlays
+(`fetch_collateral`). `NovigExecutionFeed` is the public tape of every RFQ
+execution, marking a jump in `offset` as a gap. The maker socket is never
+replayed, so a reconnect is marked `reconcile_required`.
+
+```python
+from synpath.trading.novig_rfq import NovigRFQ, settle
+
+async with NovigRFQ(load_novig_rfq()) as rfq:
+    print(await rfq.fetch_pricer())                 # registration, confirm standing, any lock
+    for row in await rfq.fetch_executions(status="open"):
+        print(row.rfq_id, row.wager, row.price, row.liability)
+    print(await rfq.fetch_collateral())
+
+settle("42", "0.42", [1, "0.5", 1])   # a voided leg at 0.5: the taker gets $50 of the $100 pot
+```
+
+**Settlement.** A parlay settles as one position: any losing leg settles it
+at once as a loss, a voided leg counts at its fair market value, and the
+taker gets the pot times the product of the leg values (rounded to three
+places, at least 0.001). `settle` and `settlement_scalar` compute it;
+`RFQExecution.pricer_payout` reads it off a settled execution.
+`eligibility_problems` checks legs against Novig's published combination
+rules (2 to 20 legs, no same-kind lines on one game, no NO side of a
+yes-or-no market, ...), from leg details you supply; Novig changes the
+blocked pairs over time, so its own answer is the RFQ arriving or not.
+
+`register_pricer(webhook_url=None)` and `ping_webhook()` are there for the
+one-time setup; the shared secret is returned only by the first
+registration with a webhook URL, so store it then.

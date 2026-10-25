@@ -115,7 +115,7 @@ CHAINS: dict[str, Chain] = {
         core="0xF9548Be470A4e130c90ceA8b179FCD66D2972AC7", relayer="0x8dA05c0021e6b35865FDC959c54dCeF3A4AbBa9d",
         lp="0x0FA7FB5407eA971694652E6E16C12A52625DE1b8", cashout="0x4a2BB4211cCF9b9eA6eF01D0a61448154ED19095",
         token="0xc2132d05d31c914a87c6611c10748aeb04b58e8f", symbol="USDT", decimals=6,
-        rpc_url="https://polygon-rpc.com",
+        rpc_url="https://polygon-bor-rpc.publicnode.com",
     ),
     "base": Chain(
         "base", 8453, "BaseWETH", "base",
@@ -689,6 +689,20 @@ class Azuro(Exchange):
         })
         rows = (data or {}).get("conditions") or [] if isinstance(data, dict) else []
         return [r for r in rows if isinstance(r, dict) and r.get("conditionId")]
+
+    def fetch_conditions(self, condition_ids: list[str]) -> dict[str, dict[str, Any]]:
+        """Many conditions by id, each as its game's condition listing has it
+        (`/market-manager/conditions-by-game-ids`): state, outcomes and odds,
+        the game, and `isExpressForbidden`. A condition whose id names no game
+        is read from the condition batch, without those last two."""
+        wanted = list(dict.fromkeys(str(c) for c in condition_ids))
+        games = list(dict.fromkeys(g for g in (game_of_condition(c) for c in wanted) if g))
+        found = {str(row["conditionId"]): row for rows in self._conditions(games).values() for row in rows
+                 if str(row["conditionId"]) in wanted}
+        missing = [c for c in wanted if c not in found]
+        if missing:
+            found.update({str(row["conditionId"]): row for row in self.fetch_condition_states(missing)})
+        return {c: found[c] for c in wanted if c in found}
 
     def condition_outcomes(self, condition_ids: list[str]) -> dict[str, list[str]]:
         """Each condition's outcome ids, lowest first: what decides its

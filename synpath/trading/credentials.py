@@ -45,15 +45,24 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
                       when there is no API key), and optionally
                       MYRIAD_API_KEY with MYRIAD_API_SECRET (HMAC-signed
                       requests), MYRIAD_ACCOUNT_ADDRESS, MYRIAD_RPC_URL
-  Betfair             BETFAIR_APP_KEY, BETFAIR_USERNAME, BETFAIR_PASSWORD, and
-    (market data)     optionally BETFAIR_CERT_PATH / BETFAIR_KEY_PATH
-                      (certificate login) and BETFAIR_JURISDICTION
-  Smarkets            optionally SMARKETS_USERNAME and SMARKETS_PASSWORD: market
-    (market data)     data needs no login; one gives undelayed quotes
+  Betfair             BETFAIR_APP_KEY (a live key bets; a delayed one reads),
+                      BETFAIR_USERNAME, BETFAIR_PASSWORD, and optionally
+                      BETFAIR_CERT_PATH / BETFAIR_KEY_PATH (certificate
+                      login) and BETFAIR_JURISDICTION
+  Smarkets            SMARKETS_USERNAME, SMARKETS_PASSWORD: betting and the
+                      account log in (placing orders needs Smarkets' approved
+                      API access); market data needs no login, and one gives
+                      undelayed quotes
   Novig               NOVIG_KEY_ID, NOVIG_PRIVATE_KEY_PATH (a subaccount's trading
                       key, PEM, Ed25519 or P-256), NOVIG_ENV (production, the
                       default, or paper), and optionally NOVIG_MANAGEMENT_KEY_ID /
                       NOVIG_MANAGEMENT_PRIVATE_KEY_PATH (subaccounts and funding)
+  Novig parlay RFQ    NOVIG_RFQ_CLIENT_ID, NOVIG_RFQ_CLIENT_SECRET (the liquidity
+                      provider's OAuth client credentials), or NOVIG_RFQ_ACCESS_TOKEN;
+                      NOVIG_RFQ_SHARED_SECRET (webhooks only; NOVIG_RFQ_SECRET is
+                      read too), NOVIG_RFQ_ENV (production, the default, or qa),
+                      NOVIG_RFQ_TOKEN_URL; read by `load_novig_rfq`, not
+                      `load_credentials`
   Matchbook           MATCHBOOK_USERNAME, MATCHBOOK_PASSWORD: betting logs in;
                       market data needs no login
   ProphetX            PROPHETX_ACCESS_KEY, PROPHETX_SECRET_KEY (the Trading API:
@@ -358,7 +367,7 @@ class MyriadCredentials:
     account_address: str | None = None
     """The wallet's address, when no private key names it. Public."""
     rpc_url: str | None = None
-    """A BNB Chain node for the balance read. A public one when unset."""
+    """A BNB Chain node for the balance read and AMM trades there. A public one when unset."""
     _public = ("api_key", "account_address", "rpc_url")
     __repr__ = _redacted_repr
 
@@ -380,7 +389,8 @@ class MyriadCredentials:
 class BetfairCredentials:
     """Betfair: the account's application key and its login. Every Betfair
     call, market data included, needs both: the key names the application,
-    the login's session token the account."""
+    the login's session token the account. Betting needs a live key; a
+    delayed key reads market data and the account only."""
 
     app_key: str = field(repr=False)
     """The application key (delayed or live) from the account's developer
@@ -403,9 +413,11 @@ class BetfairCredentials:
 
 @dataclass(frozen=True, repr=False)
 class SmarketsCredentials:
-    """Smarkets: an optional account login. Market data needs none; a session
-    from it gives undelayed quotes and the account's own rate limits. Betting
-    needs Smarkets' approved API access, which this library does not use yet."""
+    """Smarkets: the account's login. Betting and the account's reads (orders,
+    statement, balance) log in with it; market data needs none, and a session
+    from it gives undelayed quotes and the account's own rate limits. Placing
+    orders needs Smarkets' approved API access. An account with two-factor
+    login cannot log in from here (pass a session token instead)."""
 
     username: str
     password: str = field(repr=False)
@@ -443,6 +455,39 @@ class NovigCredentials:
     @property
     def secrets(self) -> list[str]:
         return [pem.decode(errors="ignore") for pem in (self.private_key_pem, self.management_private_key_pem) if pem]
+
+
+@dataclass(frozen=True, repr=False)
+class NovigRFQCredentials:
+    """Novig's parlay RFQ, for a liquidity provider's pricer: separate from
+    the order-entry keys (`NovigCredentials`).
+
+    The RFQ routes (`/rfq/pricer`, `/rfq/executions`, `/rfq/collateral`) and
+    both RFQ WebSockets take the OAuth 2.0 client-credentials bearer token
+    Novig issues to market makers, not a NOVIG-V3 signature. The client id
+    and secret are exchanged for a token (30 minutes) as needed; a token
+    obtained elsewhere can be given instead. The shared secret, returned
+    once by `POST /rfq/pricer` with a `webhookUrl`, checks the signature on
+    every webhook; a WebSocket-only pricer has none."""
+
+    client_id: str | None = None
+    client_secret: str | None = field(default=None, repr=False)
+    access_token: str | None = field(default=None, repr=False)
+    """A bearer token used as it is, instead of the client credentials."""
+    shared_secret: str | None = field(default=None, repr=False)
+    """64 hex characters: the BLAKE3 key the webhooks are signed with."""
+    env: Literal["production", "qa"] = "production"
+    """`production` at api.novig.com; `qa` at api-qa.novig.us. Registrations
+    are separate in each."""
+    token_url: str | None = None
+    """Where the client credentials are exchanged; the environment's
+    `/nbx/v1/auth/emm-token` by default."""
+    _public = ("client_id", "env", "token_url")
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [s for s in (self.client_secret, self.access_token, self.shared_secret) if s]
 
 
 @dataclass(frozen=True, repr=False)
@@ -942,6 +987,40 @@ def load_novig(env: Mapping[str, str]) -> NovigCredentials | None:
         key_id=key_id, private_key_pem=pems[0], management_key_id=management_id,
         management_private_key_pem=pems[1], env=stage,  # type: ignore[arg-type]
     )
+
+
+NOVIG_RFQ_ENVS = ("production", "qa")
+
+
+def load_novig_rfq(
+    env: Mapping[str, str] | None = None, *, dotenv: Path | str | None = None, redact_logs: bool = True,
+) -> NovigRFQCredentials | None:
+    """A Novig pricer's credentials from the environment (and `.env`), or
+    `None` when none are set. Not part of `load_credentials`: the pricer is
+    a liquidity provider's service, not an order-entry adapter."""
+    merged = merged_env(env, dotenv=dotenv)
+    client_id = (merged.get("NOVIG_RFQ_CLIENT_ID") or "").strip() or None
+    client_secret = (merged.get("NOVIG_RFQ_CLIENT_SECRET") or "").strip() or None
+    token = (merged.get("NOVIG_RFQ_ACCESS_TOKEN") or "").strip() or None
+    shared = (merged.get("NOVIG_RFQ_SHARED_SECRET") or merged.get("NOVIG_RFQ_SECRET") or "").strip() or None
+    if not (client_id or client_secret or token or shared):
+        return None
+    if bool(client_id) != bool(client_secret):
+        raise CredentialsMissing("Novig's RFQ client credentials are a pair: set both NOVIG_RFQ_CLIENT_ID and "
+                                 "NOVIG_RFQ_CLIENT_SECRET (issued by Novig to liquidity providers)")
+    if shared is not None and not re.match(r"^[0-9a-fA-F]{64}$", shared):
+        raise CredentialsMissing(f"NOVIG_RFQ_SHARED_SECRET must be the 64 hex characters POST /rfq/pricer returned; "
+                                 f"got {_shape_of(shared)}")
+    stage = (merged.get("NOVIG_RFQ_ENV") or "production").strip().lower()
+    if stage not in NOVIG_RFQ_ENVS:
+        raise CredentialsMissing(f"NOVIG_RFQ_ENV must be production or qa, got {stage!r}")
+    creds = NovigRFQCredentials(
+        client_id=client_id, client_secret=client_secret, access_token=token, shared_secret=shared.lower() if shared else None,
+        env=stage, token_url=(merged.get("NOVIG_RFQ_TOKEN_URL") or "").strip() or None,  # type: ignore[arg-type]
+    )
+    if redact_logs:
+        SecretFilter.install(creds.secrets)
+    return creds
 
 
 def load_matchbook(env: Mapping[str, str]) -> MatchbookCredentials | None:

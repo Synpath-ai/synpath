@@ -26,24 +26,46 @@ carries only what changed, so the stream keeps each order's last known
 fields. Fills ride on `FILLED` and `PARTIALLY_FILLED` frames (`Z` the
 execution's quantity, `L` its price, `n` its fee). Nothing is replayed after
 a reconnect, so one is reported with `reconcile_required`.
+
+**Combo RFQ, the maker side** (`GeminiRfqStream`). Gemini runs combo RFQ as
+a sealed auction on this connection: a requester opens one in the Gemini app
+(there is no API for that), `requestForQuote` broadcasts it to everyone,
+makers answer with `rfq.submit_quote` inside a one-second window (`w`), and
+at close only the best eligible quote is disclosed, privately, to the
+requester, who has five seconds to accept. The winning maker then has one
+second for its last look (`rfq.confirm_quote`). Quotes are single-sided (the
+price the combo's YES is sold at), immutable, one per account per RFQ, and
+withdrawing one does not free the slot. The private deliveries
+(`requestForQuote@account`) are at least once and keyed by a delivery id,
+which this stream deduplicates. Quote methods are never queued for a later
+connection and never resent: an answer that does not come is an unknown
+outcome to reconcile on the delivery stream.
 """
 from __future__ import annotations
 
+import asyncio
+import time
 from collections import OrderedDict
 from decimal import Decimal
 from typing import Any
 
 from .. import ids
 from ..base import Capability
+from ..errors import (
+    AuthenticationError, BadRequest, ExchangeError, ExchangeNotAvailable, NetworkError, RateLimitExceeded,
+    RequestTimeout,
+)
 from ..gemini import native_symbol
 from ..trading.credentials import GeminiCredentials
-from ..trading.gemini import WS_STATUS, GeminiSigner, yes_leg, yes_price
+from ..trading.errors import CredentialsMissing, InvalidOrder, OrderRejected, PermissionDenied
+from ..trading.gemini import DEFAULT_PRECISION, WS_STATUS, GeminiSigner, yes_leg, yes_price
+from ..trading.money import D, validate_price, validate_quantity
 from ..trading.types import (
     Account, Balance, Fill, Liquidity, Order, OrderStatus, OrderType, Position, PositionSide, Side, TimeInForce,
 )
 from .base import (
     BalanceEvent, BookEvent, BookLevel, Event, FillEvent, LocalBook, MarketStatusEvent, OrderEvent, PositionEvent,
-    QuoteEvent, Stream, TradeEvent, maybe_D,
+    QuoteEvent, Stream, TradeEvent, VenueEvent, maybe_D,
 )
 
 VENUE = "gemini"
@@ -538,3 +560,324 @@ def position_of_row(row: dict[str, Any], *, account: Account | None = None, time
         payout=payout, timestamp=timestamp,
         info={**row, "result": result if result in ("yes", "no") else None},
     )
+
+
+# ---------------------------------------------------------------------------
+# Combo RFQ (maker side)
+# ---------------------------------------------------------------------------
+
+RFQ_STATES = frozenset({"OPEN", "PENDING_ACCEPTANCE", "CONFIRMING", "FINALIZING", "FINALIZED", "CANCELLED",
+                        "EXPIRED", "FAILED"})
+RFQ_TERMINAL = frozenset({"FINALIZED", "CANCELLED", "EXPIRED", "FAILED"})
+"""An RFQ in one of these is over. Only `FINALIZED` traded."""
+DELIVERY_SCOPES = ("account", "session")
+DELIVERY_MEMORY = 10_000
+"""Private delivery ids remembered for deduplication, most recent first."""
+RFQ_MEMORY = 10_000
+"""Public RFQs whose last state the stream keeps."""
+CLIENT_ID_MAX = 36
+
+WS_ERRORS: dict[int, type[ExchangeError] | type[NetworkError]] = {
+    -1002: AuthenticationError,
+    -1004: PermissionDenied,
+    -1013: BadRequest,
+    -2010: OrderRejected,
+    -1003: RateLimitExceeded,
+    -1101: ExchangeNotAvailable,
+}
+"""Gemini's WebSocket error codes for the quote methods. -1000 (internal
+error) and anything unlisted is an `ExchangeError`; its outcome is unknown."""
+
+
+def rfq_of(event: dict[str, Any]) -> dict[str, Any]:
+    """A public `requestForQuote` event: the auction and its state, never a
+    quote or a participant. `market_id` is the combo's own instrument where
+    Gemini names it; each leg is Gemini's contract id (`c`) with the outcome
+    the combo takes on it, and the leg's own instrument where named. Exactly
+    one of `notional` (USD) and `quantity` (contracts) sizes it;
+    `fill_quantity` appears once the requester accepts and counts only on
+    `FINALIZED`. Times are milliseconds: `quote_deadline` (`w`, the end of
+    the one-second quoting window), `expires_at` (`x`), `created_at` (`c`)."""
+    symbol = event.get("s")
+    return {
+        "rfq_id": str(event.get("r") or ""),
+        "market_id": ids.qualify(VENUE, native_symbol(str(symbol))) if symbol else None,
+        "legs": [
+            {
+                "contract_id": str(leg.get("c") or ""),
+                "outcome": outcome_word(leg.get("o")),
+                "market_id": ids.qualify(VENUE, native_symbol(str(leg["s"]))) if leg.get("s") else None,
+            }
+            for leg in event.get("l") or [] if isinstance(leg, dict)
+        ],
+        "notional": maybe_D(event.get("n")),
+        "quantity": maybe_D(event.get("q")),
+        "fill_quantity": maybe_D(event.get("f")),
+        "state": str(event.get("S") or ""),
+        "quote_deadline": event.get("w"),
+        "expires_at": event.get("x"),
+        "created_at": event.get("c"),
+        "timestamp": event.get("E"),
+        "info": event,
+    }
+
+
+def delivery_of(event: dict[str, Any]) -> dict[str, Any]:
+    """A private `requestForQuote@account` delivery. `transition` is what
+    happened: `CLOSED` discloses the winning quote to the requester,
+    `ACCEPTED` tells the winning maker to confirm within a second, then
+    `CONFIRMED` / `DECLINED` and `FINALIZED` / `FAILED`. The quote fields
+    (`quote_id`, `price`, `size`, `quote_status`, `valid_until`) are absent on
+    an RFQ-level delivery. `delivery_id` is Gemini's idempotency key."""
+    return {
+        "delivery_id": str(event.get("i") or ""),
+        "rfq_id": str(event.get("r") or ""),
+        "transition": str(event.get("x") or ""),
+        "state": str(event.get("S") or ""),
+        "quote_id": event.get("q"),
+        "price": maybe_D(event.get("p")),
+        "size": maybe_D(event.get("sz")),
+        "quote_status": event.get("qs"),
+        "valid_until": event.get("vu"),
+        "timestamp": event.get("E"),
+        "info": event,
+    }
+
+
+def quote_params(rfq_id: str, price: Any, quantity: Any, *, valid_until: int | None = None,
+                 client_id: str | None = None, now_ms: int | None = None) -> dict[str, Any]:
+    """`rfq.submit_quote` params, checked before anything is sent: a price on
+    the cent tick strictly inside (0, 1), a positive quantity on the
+    hundredth-contract grid (an RFQ's grid is whole contracts or hundredths;
+    the venue refuses what is off its own), `valid_until` in the future, a
+    `client_id` of at most 36 printable ASCII characters."""
+    if not str(rfq_id or "").strip():
+        raise InvalidOrder(f"{VENUE}: rfq_id is required")
+    price_d = validate_price(D(price), DEFAULT_PRECISION)
+    quantity_d = validate_quantity(D(quantity), DEFAULT_PRECISION)
+    params: dict[str, Any] = {"rfqId": str(rfq_id), "price": format(price_d, "f"), "quantity": format(quantity_d, "f")}
+    if valid_until is not None:
+        if isinstance(valid_until, bool) or not isinstance(valid_until, int):
+            raise InvalidOrder(f"{VENUE}: valid_until is a Unix time in milliseconds, got {valid_until!r}")
+        if valid_until <= (now_ms if now_ms is not None else int(time.time() * 1000)):
+            raise InvalidOrder(f"{VENUE}: valid_until must be in the future")
+        params["validUntil"] = valid_until
+    if client_id is not None:
+        if not client_id or len(client_id) > CLIENT_ID_MAX or not all(" " <= ch <= "~" for ch in client_id):
+            raise InvalidOrder(f"{VENUE}: client_id is 1 to {CLIENT_ID_MAX} printable ASCII characters")
+        params["clientId"] = client_id
+    return params
+
+
+def ws_error(message: dict[str, Any], *, method: str) -> Exception:
+    """A WebSocket error answer as the typed error, Gemini's code and text kept."""
+    error = message.get("error") if isinstance(message.get("error"), dict) else {}
+    code, text = error.get("code"), str(error.get("msg") or "")
+    label = f"{VENUE}: {method} refused: {code} {text}".rstrip()
+    kind = WS_ERRORS.get(code) if isinstance(code, int) else None
+    if kind is RateLimitExceeded:
+        return RateLimitExceeded(label)
+    if kind is OrderRejected:
+        return OrderRejected(label, reason=str(code), info=message, body=message, status=message.get("status"))
+    if kind is not None:
+        return kind(label, body=message, status=message.get("status"))  # type: ignore[call-arg]
+    return ExchangeError(f"{label} (outcome unknown: reconcile before acting again)", body=message,
+                         status=message.get("status"))
+
+
+class GeminiRfqStream(_GeminiStream):
+    """Gemini's combo RFQ auctions, and quoting them as a market maker.
+
+    Discovery (`watch_rfqs`) is public. Deliveries (`watch_deliveries`) and
+    the quote methods need an account-scoped key with a time-based nonce, the
+    handshake signed; Gemini also requires an account eligible to quote.
+
+    ```python
+    async with GeminiRfqStream(creds) as stream:
+        await stream.watch_rfqs()
+        await stream.watch_deliveries()
+        async for event in stream:
+            if getattr(event, "name", None) == "rfq" and event.payload["state"] == "OPEN":
+                answer = await stream.submit_quote(event.payload["rfq_id"], "0.55", "100")
+            elif getattr(event, "name", None) == "rfq_delivery" and event.payload["transition"] == "ACCEPTED":
+                await stream.confirm_quote(event.payload["rfq_id"], event.payload["quote_id"], True)
+    ```
+
+    Events are `VenueEvent`s: `name="rfq"` with `rfq_of(...)` as the payload,
+    `name="rfq_delivery"` with `delivery_of(...)`, each delivery once.
+    """
+
+    name = "rfq"
+    has: dict[str, Capability] = {"rfq": True}
+
+    def __init__(self, credentials: GeminiCredentials | None = None, *, sandbox: bool = False, url: str | None = None,
+                 signer: GeminiSigner | None = None, reply_timeout: float = 5.0, clock: Any = time.time,
+                 **kwargs: Any):
+        sandboxed = sandbox or (credentials is not None and credentials.env == "sandbox")
+        super().__init__(url or (SANDBOX_WS_URL if sandboxed else WS_URL), **kwargs)
+        if signer is None and credentials is not None:
+            signer = GeminiSigner(credentials.api_key, credentials.api_secret)
+        self.signer = signer
+        self.private = signer is not None
+        self.reply_timeout = reply_timeout
+        self._clock = clock
+        self.rfqs: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        """RFQ id -> its last public state (`rfq_of`)."""
+        self.quotes: dict[str, str] = {}
+        """RFQ id -> the id of the quote this account made on it, this session."""
+        self._seen: OrderedDict[str, None] = OrderedDict()
+        self._pending: dict[int, tuple[str, asyncio.Future]] = {}
+
+    def headers(self) -> dict[str, str]:
+        return self.signer.ws_headers() if self.signer is not None else {}
+
+    def _need_key(self, what: str) -> None:
+        if self.signer is None:
+            raise CredentialsMissing(f"{VENUE}: {what} needs an account-scoped API key (GEMINI_API_KEY, "
+                                     f"GEMINI_API_SECRET) on the connection's handshake")
+
+    async def watch_rfqs(self) -> None:
+        """Every RFQ auction as it opens and ends (public, anonymous). Not
+        replayed after a reconnect: auctions last seconds."""
+        await self._subscribe(["requestForQuote"])
+
+    async def watch_deliveries(self, scope: str = "account") -> None:
+        """This account's private RFQ deliveries: as a maker, the acceptance
+        of its quote and the outcome; as a requester (an RFQ opened in the
+        Gemini app), the winning quote and the outcome. `scope` is `account`
+        or `session`, the same deliveries; a connection takes one of them."""
+        self._need_key("watch_deliveries")
+        if scope not in DELIVERY_SCOPES:
+            raise BadRequest(f"{VENUE}: scope is account or session, got {scope!r}")
+        other = f"requestForQuote@{'session' if scope == 'account' else 'account'}"
+        if other in self.streams:
+            raise BadRequest(f"{VENUE}: {other} is already watched; a connection takes one delivery scope")
+        await self._subscribe([f"requestForQuote@{scope}"])
+
+    # -- quote methods ----------------------------------------------------------
+
+    async def submit_quote(self, rfq_id: str, price: Any, quantity: Any, *, valid_until: int | None = None,
+                           client_id: str | None = None) -> dict[str, Any]:
+        """Quote an open RFQ: sell its combo's YES at `price` a contract, for
+        up to `quantity` contracts (which must cover the whole request to be
+        eligible: `quantity * price >= notional` on a notional-sized RFQ).
+        Strictly before the RFQ's `quote_deadline`; immutable; one per account
+        per RFQ. `valid_until` (ms) defaults to the deadline. `client_id`
+        comes back as the maker fill's client order id. Returns Gemini's
+        `{"rfqId", "quoteId"}`."""
+        self._need_key("submit_quote")
+        now = int(self._clock() * 1000)
+        params = quote_params(rfq_id, price, quantity, valid_until=valid_until, client_id=client_id, now_ms=now)
+        known = self.rfqs.get(str(rfq_id))
+        if known is not None:
+            deadline = known.get("quote_deadline")
+            if known.get("state") != "OPEN" or (deadline is not None and int(deadline) <= now):
+                raise InvalidOrder(f"{VENUE}: RFQ {rfq_id} is no longer quotable ({known.get('state')}, "
+                                   f"window closed at {deadline})")
+        result = await self._request("rfq.submit_quote", params)
+        if result.get("quoteId"):
+            self.quotes[str(rfq_id)] = str(result["quoteId"])
+        return result
+
+    async def withdraw_quote(self, rfq_id: str, quote_id: str) -> dict[str, Any]:
+        """Pull this account's quote before the window closes. Final: the
+        quote cannot come back and the RFQ takes no other from this account.
+        Needs the session's `cancel_orders` capability."""
+        self._need_key("withdraw_quote")
+        if not str(rfq_id or "").strip() or not str(quote_id or "").strip():
+            raise InvalidOrder(f"{VENUE}: rfq_id and quote_id are required")
+        return await self._request("rfq.withdraw_quote", {"rfqId": str(rfq_id), "quoteId": str(quote_id)})
+
+    async def confirm_quote(self, rfq_id: str, quote_id: str, confirm: bool) -> dict[str, Any]:
+        """The winning maker's last look, within one second of the RFQ
+        entering `CONFIRMING` (the `ACCEPTED` delivery): `True` trades,
+        `False` declines and fails the RFQ. There is no default: Gemini
+        refuses an omitted decision. Confirming commits capital, and the
+        maker's order rests on the book first, so it can fill in part even if
+        the RFQ then fails; watch `GeminiUserStream` for the maker fills."""
+        self._need_key("confirm_quote")
+        if not isinstance(confirm, bool):
+            raise InvalidOrder(f"{VENUE}: confirm is True or False, got {confirm!r}")
+        if not str(rfq_id or "").strip() or not str(quote_id or "").strip():
+            raise InvalidOrder(f"{VENUE}: rfq_id and quote_id are required")
+        return await self._request("rfq.confirm_quote",
+                                   {"rfqId": str(rfq_id), "quoteId": str(quote_id), "confirm": confirm})
+
+    async def _request(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        """Send one method on the live connection and wait for its answer.
+        Never queued for a later connection and never resent."""
+        if self._ws is None:
+            raise NetworkError(f"{VENUE}: {method} not sent: the RFQ stream is not connected "
+                               f"(a quote is never queued for a later connection)")
+        number = self._allocate()
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+        self._pending[number] = (method, future)
+        try:
+            await self.send({"id": number, "method": method, "params": params})
+            return await asyncio.wait_for(asyncio.shield(future), timeout=self.reply_timeout)
+        except asyncio.TimeoutError:
+            raise RequestTimeout(f"{VENUE}: {method} sent, no answer in {self.reply_timeout}s: outcome unknown; "
+                                 f"reconcile on the delivery stream, do not resend") from None
+        finally:
+            self._pending.pop(number, None)
+
+    def on_disconnect(self) -> None:
+        for method, future in list(self._pending.values()):
+            if not future.done():
+                future.set_exception(NetworkError(
+                    f"{VENUE}: {method} sent, connection lost before the answer: outcome unknown; reconcile "
+                    f"on the delivery stream, do not resend"))
+        self._pending.clear()
+
+    # -- reading ----------------------------------------------------------------
+
+    def handle(self, message: Any) -> list[Event]:
+        if not isinstance(message, dict):
+            return []
+        number = message.get("id")
+        if "e" not in message and isinstance(number, int) and number in self._pending:
+            method, future = self._pending[number]
+            if not future.done():
+                if message.get("status") == 200 and isinstance(message.get("result"), dict):
+                    future.set_result(message["result"])
+                elif message.get("status") == 200:
+                    future.set_exception(ExchangeError(f"{VENUE}: {method} answered without a result", body=message,
+                                                       status=200))
+                else:
+                    future.set_exception(ws_error(message, method=method))
+            return []
+        reply = self._reply(message)
+        if reply is not None:
+            return reply
+        if message.get("e") != "requestForQuote":
+            return []
+        if "i" in message and isinstance(message.get("x"), str):
+            return self._on_delivery(message)
+        return self._on_rfq(message)
+
+    def _on_rfq(self, message: dict[str, Any]) -> list[Event]:
+        rfq = rfq_of(message)
+        if not rfq["rfq_id"] or rfq["state"] not in RFQ_STATES:
+            self.status("error", f"unreadable RFQ event: {message!r}")
+            return []
+        known = self.rfqs.get(rfq["rfq_id"])
+        if known is not None:
+            # A later event may leave out what the opening one said (`w`, `x`, `s`).
+            rfq = {**known, **{k: v for k, v in rfq.items() if v not in (None, [])}}
+        self.rfqs[rfq["rfq_id"]] = rfq
+        self.rfqs.move_to_end(rfq["rfq_id"])
+        while len(self.rfqs) > RFQ_MEMORY:
+            self.rfqs.popitem(last=False)
+        if rfq["state"] in RFQ_TERMINAL:
+            self.quotes.pop(rfq["rfq_id"], None)
+        return [VenueEvent(venue=VENUE, name="rfq", payload=rfq, timestamp=rfq["timestamp"])]
+
+    def _on_delivery(self, message: dict[str, Any]) -> list[Event]:
+        delivery = delivery_of(message)
+        key = delivery["delivery_id"]
+        if key in self._seen:
+            return []      # at least once: the same transition again
+        self._seen[key] = None
+        while len(self._seen) > DELIVERY_MEMORY:
+            self._seen.popitem(last=False)
+        return [VenueEvent(venue=VENUE, name="rfq_delivery", payload=delivery, timestamp=delivery["timestamp"])]

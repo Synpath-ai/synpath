@@ -1,0 +1,115 @@
+{
+  "note": "documented examples, specs/openapi/prediction-markets.yaml (Combos) and developer.gemini.com/prediction-markets/combos-rfq (websocket-streams, quote-methods, examples), 2026-10-25; nothing recorded: the combo REST routes are not enabled in production and quoting needs an eligible account",
+  "rest": {
+    "combos": {
+      "combos": [
+        {
+          "contract": {
+            "contractId": "456", "contractName": "BTC EOY26 > $120k AND ETH EOY26 > $4k",
+            "contractTicker": "GEMI-CMB-0526-A7F3B2C1D4E5", "eventTicker": "GEMI-CMB-0526-A7F3B2C1D4E5",
+            "eventName": "BTC EOY26 > $120k AND ETH EOY26 > $4k", "category": "Combo", "contractStatus": "Active",
+            "eventType": "binary", "expiryDate": "2026-12-31T23:59:59Z", "resolvedAt": null, "resolutionSide": null,
+            "parentEventTicker": null, "startTime": null
+          },
+          "legs": [
+            {
+              "comboId": 456, "legIndex": 0, "contractId": "101", "requiredOutcome": "Yes", "legOutcome": null,
+              "resolvedAt": null,
+              "contract": {
+                "contractId": "101", "contractName": "BTC above $120,000 at year-end 2026",
+                "contractTicker": "GEMI-BTC-EOY26-HI120000", "eventTicker": "GEMI-BTC-EOY26",
+                "eventName": "Bitcoin Year-End 2026", "category": "Crypto", "contractStatus": "Active",
+                "eventType": "binary", "expiryDate": "2026-12-31T23:59:59Z", "resolvedAt": null,
+                "resolutionSide": null, "parentEventTicker": null, "startTime": null
+              }
+            },
+            {
+              "comboId": 456, "legIndex": 1, "contractId": "202", "requiredOutcome": "Yes", "legOutcome": null,
+              "resolvedAt": null,
+              "contract": {
+                "contractId": "202", "contractName": "ETH above $4,000 at year-end 2026",
+                "contractTicker": "GEMI-ETH-EOY26-HI4000", "eventTicker": "GEMI-ETH-EOY26",
+                "eventName": "Ethereum Year-End 2026", "category": "Crypto", "contractStatus": "Active",
+                "eventType": "binary", "expiryDate": "2026-12-31T23:59:59Z", "resolvedAt": null,
+                "resolutionSide": null, "parentEventTicker": null, "startTime": null
+              }
+            }
+          ]
+        }
+      ],
+      "pagination": {"limit": 50, "offset": 0, "total": 1}
+    },
+    "create_combo": {
+      "combo": {
+        "id": 456, "canonicalLegKey": "101:Yes|202:No", "legCount": 2,
+        "displayName": "BTC EOY26 > $120k AND ETH EOY26 <= $4k", "status": "Active", "instrumentId": 98765,
+        "instrumentSymbol": "GEMI-CMB-0526-A7F3B2C1D4E5", "instrumentRegistered": true,
+        "latestExpiryDate": "2026-12-31T23:59:59.000Z", "createdAt": "2026-05-01T12:00:00.000Z",
+        "updatedAt": "2026-05-01T12:00:00.000Z",
+        "legs": [
+          {"comboId": 456, "legIndex": 0, "contractId": "101", "requiredOutcome": "Yes"},
+          {"comboId": 456, "legIndex": 1, "contractId": "202", "requiredOutcome": "No"}
+        ]
+      },
+      "alreadyExisted": false
+    },
+    "errors": {
+      "combos_unavailable": {"error": "NOT_FOUND", "message": "Not Found"},
+      "leg_not_found": {"error": "NOT_FOUND", "code": "COMBO_LEG_NOT_FOUND",
+                        "message": "One or more contracts in this combo could not be found. Update your selection and try again."},
+      "combo_not_found": {"error": "NOT_FOUND", "message": "Combo not found"},
+      "validation": {"error": "InvalidInput", "code": "COMBO_VALIDATION_ERROR", "message": "a combo needs 2-6 legs"}
+    }
+  },
+  "ws": {
+    "rfq_open": {
+      "e": "requestForQuote", "E": 1780000000000, "r": "01J9Z3K7Q2N8M4P6R8T0V2W4X6",
+      "s": "GEMI-CMB-260306-A1B2C3D4E5F6G7H8-CMB",
+      "l": [{"c": "123456", "o": "YES", "s": "GEMI-XRPUSD-260828"}, {"c": "123789", "o": "NO"}],
+      "n": "50000.00", "S": "OPEN", "w": 1780000001000, "x": 1780000120000, "c": 1780000000000
+    },
+    "rfq_finalized": {
+      "e": "requestForQuote", "E": 1780000004500, "r": "01J9Z3K7Q2N8M4P6R8T0V2W4X6",
+      "l": [{"c": "123456", "o": "YES", "s": "GEMI-XRPUSD-260828"}, {"c": "123789", "o": "NO"}],
+      "n": "50000.00", "f": "90909", "S": "FINALIZED", "c": 1780000000000
+    },
+    "delivery_closed": {
+      "e": "requestForQuote", "i": "b16097e9-3d7f-5910-9820-eeedf51a8be3", "E": 1780000001100,
+      "r": "01J9Z3K7Q2N8M4P6R8T0V2W4X6", "x": "CLOSED", "S": "PENDING_ACCEPTANCE",
+      "q": "01J9Z2K7Q2N8M4P6R8T0V2W4X6", "p": "0.55", "sz": "100000", "qs": "ACTIVE", "vu": 1780000001000
+    },
+    "delivery_accepted": {
+      "e": "requestForQuote", "i": "88bfe6b3-be05-56c6-bd1b-51b25fafb27a", "E": 1780000004100,
+      "r": "01J9Z3K7Q2N8M4P6R8T0V2W4X6", "x": "ACCEPTED", "S": "CONFIRMING",
+      "q": "01J9Z2K7Q2N8M4P6R8T0V2W4X6", "p": "0.55", "sz": "100000", "qs": "ACTIVE", "vu": 1780000001000
+    },
+    "submit_quote": {
+      "id": 1, "method": "rfq.submit_quote",
+      "params": {"rfqId": "01J9Z3K7Q2N8M4P6R8T0V2W4X6", "price": "0.55", "quantity": "1000",
+                 "validUntil": 1780000060000, "clientId": "maker-fill-123"}
+    },
+    "submit_quote_response": {
+      "id": 1, "status": 200,
+      "result": {"rfqId": "01J9Z3K7Q2N8M4P6R8T0V2W4X6", "quoteId": "01J9Z2K7Q2N8M4P6R8T0V2W4X6"}
+    },
+    "withdraw_quote": {
+      "id": 2, "method": "rfq.withdraw_quote",
+      "params": {"rfqId": "01J9Z3K7Q2N8M4P6R8T0V2W4X6", "quoteId": "01J9Z2K7Q2N8M4P6R8T0V2W4X6"}
+    },
+    "withdraw_quote_response": {
+      "id": 2, "status": 200,
+      "result": {"rfqId": "01J9Z3K7Q2N8M4P6R8T0V2W4X6", "quoteId": "01J9Z2K7Q2N8M4P6R8T0V2W4X6"}
+    },
+    "confirm_quote": {
+      "id": 3, "method": "rfq.confirm_quote",
+      "params": {"rfqId": "01J9Z3K7Q2N8M4P6R8T0V2W4X6", "quoteId": "01J9Z2K7Q2N8M4P6R8T0V2W4X6", "confirm": true}
+    },
+    "confirm_quote_response": {
+      "id": 3, "status": 200,
+      "result": {"rfqId": "01J9Z3K7Q2N8M4P6R8T0V2W4X6", "quoteId": "01J9Z2K7Q2N8M4P6R8T0V2W4X6", "confirmed": true}
+    },
+    "closed_auction_error": {
+      "id": 3, "status": 400, "error": {"code": -2010, "msg": "RFQ is not in a valid state for this operation"}
+    }
+  }
+}

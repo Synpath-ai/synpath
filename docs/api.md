@@ -96,7 +96,8 @@ competition, query)`, the venue's own sports and fixtures as it lists them,
 and takes `event_type` (an id or a name, `"Soccer"`), `competition`, `event`
 and `market_type` (`"MATCH_ODDS"`) on `fetch_markets` and `fetch_events`.
 Every Betfair call needs your own account and application key; see
-[Betfair](capabilities.md#betfair).
+[Betfair](capabilities.md#betfair). Betting is `BetfairTrading`
+([trading](trading.md#betfair)).
 
 ```python
 bf = synpath.Betfair()                    # BETFAIR_APP_KEY, BETFAIR_USERNAME, BETFAIR_PASSWORD
@@ -113,6 +114,8 @@ with its contracts, open or settled), `fetch_smarkets_events(ids)`,
 market id, and takes `domain` (`"football"`, `"politics"`), `scope`
 (`"single_event"`, `"outright"`) and `market_type` (`"WINNER_3_WAY"`) on
 `fetch_markets` and `fetch_events`. See [Smarkets](capabilities.md#smarkets).
+Order entry is `SmarketsTrading`, with the same login; see
+[trading](trading.md#smarkets).
 
 ```python
 smk = synpath.Smarkets()                   # no account; SMARKETS_USERNAME / _PASSWORD undelay the quotes
@@ -176,9 +179,11 @@ Azuro needs no key. It adds `fetch_sports()` (the feed's sports, countries
 and leagues with their open game counts), `fetch_limits(market_id, side)`
 (the pool's minimum and maximum bet and maximum payout on one selection) and
 `fetch_condition_states(condition_ids)` (fresh odds and states, without the
-games), and takes `sport` and `league` (the feed's slugs, `"football"`,
+games), `fetch_conditions(condition_ids)` (conditions by id with their game
+and whether they may go in a combo, `isExpressForbidden`), and takes `sport` and `league` (the feed's slugs, `"football"`,
 `"premier-league"`) on `fetch_markets` and `fetch_events`. `chain=` picks the
-pool read: `polygon` (the default), `base`, or a testnet. See
+pool read: `polygon` (the default), `base`, or a testnet. Combos and claiming
+payouts are on `AzuroTrading` ([trading](trading.md#azuro)). See
 [Azuro](capabilities.md#azuro).
 
 ```python
@@ -188,6 +193,7 @@ market = markets[0]
 market.yes.quote.ask, market.info["odds"]   # 1 / odds, and the venue's odds
 azuro.fetch_limits(market.id)               # {"min_bet", "max_bet", "max_payout", ...}
 azuro.fetch_trades(market.id)               # single bets, from the bets subgraph
+azuro.fetch_conditions([market.info["condition_id"]])   # {id: condition}, isExpressForbidden and the game
 ```
 
 Myriad needs no key (an API key and secret raise its rate limit). It takes
@@ -196,7 +202,9 @@ Myriad needs no key (an API key and secret raise its rate limit). It takes
 `network` (56 BNB Chain, 2741 Abstract, 59144 Linea) on `fetch_markets` and
 `fetch_events`, and adds `fetch_event(id)`, `fetch_topics()`, `fetch_tags(type)`
 and `raw_market(id)`. Any id also takes the market's slug. See
-[Myriad](capabilities.md#myriad).
+[Myriad](capabilities.md#myriad). Both kinds trade through `MyriadTrading`:
+order-book markets with signed orders, AMM markets as market orders sent on
+chain ([Trading](trading.md#myriad)).
 
 ```python
 myriad = synpath.Myriad()                  # no key needed

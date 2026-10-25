@@ -42,10 +42,13 @@ asyncio.run(main())
 | `SxBetMarketStream` | `realtime.sx.bet` (or the testnet) | SX Bet API key (every channel needs one) | whole books, top of book, the tape of taker bets, market changes and settlements |
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
+| `BetfairUserStream` | `stream-api.betfair.com:443`, its own connection | the same application key and login | the account's bets on every change; a fill with each increase of a bet's matched stake; matched positions per runner |
 | `AzuroMarketStream` | `streams.onchainfeed.org` (`dev-streams` for the testnets) | none | each condition's odds as quotes, one-level books sized by the pool's limits, condition status changes |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
 | `NovigMarketStream` | `api.novig.com/v3/ws` (or Paper's); without a key, the public REST book polled | a subaccount's trading key for the WebSocket (the handshake is signed); none to poll | books kept per order, top of book, the tape, market transitions (going in play voids resting orders) |
 | `NovigUserStream` | `api.novig.com/v3/ws` | a subaccount's trading key | orders (open, fill, cancel, reject) and positions of that subaccount |
+| `NovigPricerStream` (`synpath.ws.novig_rfq`) | `api.novig.com/rfq/ws` (or QA's) | Novig's OAuth market-maker token and a registered pricer | parlay RFQ rounds, answered by a `NovigPricer`; the pricer's quotes, last looks and fills, as `VenueEvent`s ([Novig parlay RFQ](trading.md#novig-parlay-rfq)) |
+| `NovigExecutionFeed` (`synpath.ws.novig_rfq`) | `api.novig.com/rfq/executions/feed` | Novig's OAuth market-maker token | every RFQ execution on Novig, naming no pricer; a jump in `offset` is a gap |
 | `MatchbookMarketStream` | `api.matchbook.com` REST, polled (Matchbook has no push API) | none | runner books, top of book and runner status at every poll (5 s by default) |
 | `ProphetXMarketStream` | the host `GET /websocket/connection-config` names (ProphetX's Talaria, Pusher protocol 7) | the Trading API key pair (every channel is private) | each line's ten best levels a side on every change, top of book, the tournament's tape of fills |
 | `ProphetXUserStream` | the same host | the Trading API key pair | orders on every change; a fill with each match |
@@ -53,6 +56,7 @@ asyncio.run(main())
 | `MyriadUserStream` | `ws.myriadprotocol.com/ws` | the wallet's address, and a subscription token per account channel (`MyriadTrading.subscription_token`) | orders; fills from the wallet's public tape; share balances |
 | `GeminiMarketStream` | `ws.gemini.com` (or the sandbox) | none | differential books in YES space from a snapshot, top of book with the last trade, public prints, contract status and strikes |
 | `GeminiUserStream` | `ws.gemini.com` | an account-scoped Gemini API key with a time-based nonce (the handshake is signed) | orders; each execution with its fee and maker flag; positions, settlement payouts included; balances |
+| `GeminiRfqStream` | `ws.gemini.com` (or the sandbox) | none to watch auctions; the same account key to watch deliveries and quote | combo RFQ auctions as they open and end; this account's deliveries (winning quote, acceptance, outcome), deduplicated; quotes submitted, withdrawn and confirmed ([trading](trading.md#gemini)) |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -79,7 +83,7 @@ variable `synpath serve` reads it from:
 | predict.fun | the API key (`pred_sk_...`, from developers.predict.fun); mainnet only | `PREDICT_FUN_API_KEY` |
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
-| Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
+| Smarkets | nothing; a login undelays the quotes (the same one `SmarketsTrading` uses) | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
 | Novig | the WebSocket: a subaccount's trading key (key id and private key file; the handshake is signed). Without one the public book is polled | `NOVIG_KEY_ID`, `NOVIG_PRIVATE_KEY_PATH`, `NOVIG_ENV` |
 | Matchbook | nothing | |
 | ProphetX | the Trading API key pair (prophetx.co -> API Integration); the Market Data API key has no stream | `PROPHETX_ACCESS_KEY`, `PROPHETX_SECRET_KEY` |
@@ -216,7 +220,23 @@ jittered exponential backoff between attempts.
   180,000 ms**: at most one update per market every three minutes, whatever
   `conflate_ms` asks. The stream logs a warning once when it sees that, and
   waits a whole conflation window before treating silence as a dead socket.
-  No public trades, so no `watch_trades`; no account stream yet.
+  No public trades, so no `watch_trades`.
+  `BetfairUserStream` is the same protocol on a second connection, one
+  `orderSubscription` for the whole account (`watch_orders(market_ids)`
+  drops the rest here). Betfair sends every changed bet whole (`uo`), so
+  each is an `OrderEvent`; an increase in its matched stake is a
+  `FillEvent` at the odds the increase averaged, with `<bet id>:<matched
+  stake>` as its id. A runner removal that reduces a matched price, and a
+  void, change the bet and the position, never add a fill. The matched
+  ladders per runner (`mb`, `ml`, `[odds, stake]`) are the
+  `PositionEvent`s, backs as YES contracts and lays as NO. The first image
+  after subscribing carries only bets still unmatched in part and is the
+  baseline fills are counted from; a reconnect resumes from the clock where
+  Betfair can and is reported with `reconcile_required`, and a message
+  Betfair marks `503` (its order data running late) is reported as an
+  error with `reconcile_required` until it clears. Customer strategy refs
+  narrow it (`strategy_refs=`); it can share `BetfairTrading.session`, as
+  `synpath serve` does, so one login serves the adapter and both streams.
 - *Azuro* speaks plain JSON on `wss://streams.onchainfeed.org/v1/streams/feed`:
   `SubscribeConditions` (and `UnsubscribeConditions`) with the condition ids
   and the chain's environment (`PolygonUSDT`, `BaseWETH`), and a
@@ -246,7 +266,11 @@ jittered exponential backoff between attempts.
   reports it `resynced`. Quotes are delayed without a login, and every event
   says so in `info["delayed"]`. A change shows at the next poll, not as it
   happens, so its `watch_*` keys are `partial`. No `watch_trades`: the recent
-  tape is short and unpaged; read it with `Smarkets.fetch_trades`.
+  tape is short and unpaged; read it with `Smarkets.fetch_trades`. There is
+  no account stream either (Smarkets' trading API is HTTP only), so the
+  engine polls `SmarketsTrading` for orders and fills; under the engine the
+  market stream polls on the trading adapter's session, so its quotes are
+  undelayed.
 - *Novig* carries every channel on one WebSocket, `wss://api.novig.com/v3/ws`
   (Paper: `wss://api.paper.novig.com/v3/ws`), opened with a subaccount's
   `trading` or `trading::read` key: the upgrade is signed like any request
@@ -486,7 +510,10 @@ documented heartbeat and rely on gRPC keepalive.
   hand-built messages in its documented shapes (no account was available):
   a TLS-shaped socket carrying CRLF framing, authentication, an image then
   deltas and deletes, a resubscribe from the clock, heartbeats, status
-  changes and the 200-market cap. Not yet run against Betfair.
+  changes and the 200-market cap. The order stream runs on the order change
+  messages in Betfair's documentation (a market-level snapshot, a
+  reconnection image, a runner removal, a VAR void and a delayed
+  heartbeat). Not yet run against Betfair.
 
 - **Smarkets:** polls answered from REST quotes recorded anonymously from
   api.smarkets.com: a snapshot, unchanged polls, deltas, a whole market,

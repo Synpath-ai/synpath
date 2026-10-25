@@ -507,9 +507,9 @@ class TestCapabilities:
         assert has["fetch_markets"] is True and has["fetch_order_books"] is True and has["search"] is True
         assert has["fetch_trades"] == "partial" and has["fetch_ohlcv"] is False and has["sort"] is False
 
-    def test_order_entry_is_not_offered(self):
-        with pytest.raises(NotSupported, match="market data only"):
-            synpath.Client().trading("smarkets")
+    def test_order_entry_needs_the_login(self):
+        with pytest.raises(CredentialsMissing, match="SMARKETS_USERNAME"):
+            synpath.Client({"smarkets": None}).trading("smarkets")
 
     def test_venue_rules_note_the_minimum_stake(self):
         from decimal import Decimal
