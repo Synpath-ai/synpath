@@ -1,0 +1,923 @@
+{
+ "data": {
+  "v3Bets": [
+   {
+    "id": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7_467993",
+    "nonce": "1792453197498648",
+    "tokenId": "467993",
+    "actor": "0x58a48986d2aa0ab20339c4ddab32e352df38749f",
+    "amount": "2",
+    "rawAmount": "2000000",
+    "status": "Resolved",
+    "potentialPayout": "5.84",
+    "rawPotentialPayout": "5840000",
+    "payout": "5.84",
+    "rawPayout": "5840000",
+    "result": "Won",
+    "odds": "2.92",
+    "settledOdds": "2.92",
+    "createdAt": "1792453202",
+    "resolvedAt": "1792887459",
+    "txHash": "0x5eebe42c514d4446b56c946d4145bcb326c073b4bac695d6de5f40f9b05fa028",
+    "redeemedTxHash": null,
+    "redeemedAt": null,
+    "affiliate": "0x58a48986d2aa0ab20339c4ddab32e352df38749f",
+    "isRedeemed": false,
+    "isRedeemable": true,
+    "isCashedOut": false,
+    "type": "Ordinar",
+    "core": {
+     "address": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7",
+     "liquidityPool": {
+      "address": "0x0fa7fb5407ea971694652e6e16c12a52625de1b8",
+      "tokenDecimals": 6
+     }
+    },
+    "selections": [
+     {
+      "odds": "2.92",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "Draw",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000901243060000000000000131378013",
+        "title": "Match Result",
+        "status": "Resolved",
+        "gameId": "1006000000000090124306",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     }
+    ],
+    "freebetId": null,
+    "isFreebetAmountReturnable": null,
+    "paymasterContractAddress": null,
+    "cashout": null
+   },
+   {
+    "id": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7_467650",
+    "nonce": "1792436638282604",
+    "tokenId": "467650",
+    "actor": "0x58a48986d2aa0ab20339c4ddab32e352df38749f",
+    "amount": "1",
+    "rawAmount": "1000000",
+    "status": "Resolved",
+    "potentialPayout": "1.53",
+    "rawPotentialPayout": "1530000",
+    "payout": "1.53",
+    "rawPayout": "1530000",
+    "result": "Won",
+    "odds": "1.53",
+    "settledOdds": "1.53",
+    "createdAt": "1792436642",
+    "resolvedAt": "1792886403",
+    "txHash": "0x9f8d41cd2c4828a2c7cbd97435dd19a2c36479d7d66cabf5d5f270a988f4f75b",
+    "redeemedTxHash": null,
+    "redeemedAt": null,
+    "affiliate": "0x58a48986d2aa0ab20339c4ddab32e352df38749f",
+    "isRedeemed": false,
+    "isRedeemable": true,
+    "isCashedOut": false,
+    "type": "Ordinar",
+    "core": {
+     "address": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7",
+     "liquidityPool": {
+      "address": "0x0fa7fb5407ea971694652e6e16c12a52625de1b8",
+      "tokenDecimals": 6
+     }
+    },
+    "selections": [
+     {
+      "odds": "1.53",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "CSYD Madryn",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000942518730000000000001216194534",
+        "title": "Match Result",
+        "status": "Resolved",
+        "gameId": "1006000000000094251873",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     }
+    ],
+    "freebetId": null,
+    "isFreebetAmountReturnable": null,
+    "paymasterContractAddress": null,
+    "cashout": null
+   },
+   {
+    "id": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7_472005",
+    "nonce": "1792686315014",
+    "tokenId": "472005",
+    "actor": "0xed425fd3187907d9a2b73e8bc2b8eecf3b2b5ac2",
+    "amount": "6.9",
+    "rawAmount": "6900000",
+    "status": "Resolved",
+    "potentialPayout": "17.48736",
+    "rawPotentialPayout": "17487360",
+    "payout": "17.48736",
+    "rawPayout": "17487360",
+    "result": "Won",
+    "odds": "2.5344",
+    "settledOdds": "2.5344",
+    "createdAt": "1792686321",
+    "resolvedAt": "1792693640",
+    "txHash": "0xa530adc77f42c72256cfd7ed01cf9b14e83428d9f9be5c622e39015c21ec4d0a",
+    "redeemedTxHash": "0x95a16fc4d29589b13e82e88f81104a320192a5caf37eeca7cd278fd65250b43b",
+    "redeemedAt": "1792745766",
+    "affiliate": "0x82875517c2b4bd534de4b2c0d21bff5f40b25da6",
+    "isRedeemed": true,
+    "isRedeemable": false,
+    "isCashedOut": false,
+    "type": "Express",
+    "core": {
+     "address": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7",
+     "liquidityPool": {
+      "address": "0x0fa7fb5407ea971694652e6e16c12a52625de1b8",
+      "tokenDecimals": 6
+     }
+    },
+    "selections": [
+     {
+      "odds": "1.58",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "1",
+       "title": null,
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916514730000000000000737294024",
+        "title": "Total Goals Over/Under",
+        "status": "Resolved",
+        "gameId": "1006000000000091651473",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.58",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "Over 2.5",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515400000000000000736020810",
+        "title": "Total Goals Over/Under",
+        "status": "Resolved",
+        "gameId": "1006000000000091651540",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     }
+    ],
+    "freebetId": null,
+    "isFreebetAmountReturnable": null,
+    "paymasterContractAddress": null,
+    "cashout": null
+   },
+   {
+    "id": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7_472056",
+    "nonce": "1792688164836",
+    "tokenId": "472056",
+    "actor": "0x8d693762eab04504e77f4ed8ec5251e48fc360d4",
+    "amount": "10",
+    "rawAmount": "10000000",
+    "status": "Canceled",
+    "potentialPayout": "19.3",
+    "rawPotentialPayout": "19300000",
+    "payout": "10",
+    "rawPayout": "10000000",
+    "result": null,
+    "odds": "1.93",
+    "settledOdds": "1",
+    "createdAt": "1792688184",
+    "resolvedAt": "1792688325",
+    "txHash": "0x6a577d19219ff7ecae53a1ca2dcfdb21134a1268ce9856fad4b32c6f768f0164",
+    "redeemedTxHash": "0x034542780bd4527a8e118e6d469498201efb55f930c496a326540de0585fcd28",
+    "redeemedAt": "1792688513",
+    "affiliate": "0x82875517c2b4bd534de4b2c0d21bff5f40b25da6",
+    "isRedeemed": true,
+    "isRedeemable": false,
+    "isCashedOut": false,
+    "type": "Ordinar",
+    "core": {
+     "address": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7",
+     "liquidityPool": {
+      "address": "0x0fa7fb5407ea971694652e6e16c12a52625de1b8",
+      "tokenDecimals": 6
+     }
+    },
+    "selections": [
+     {
+      "odds": "1.93",
+      "result": "Canceled",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "Over 5.5",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000312449060000000000001815430603",
+        "title": "1st Period - Total Goals Over/Under",
+        "status": "Resolved",
+        "gameId": "1006000000000031244906",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     }
+    ],
+    "freebetId": null,
+    "isFreebetAmountReturnable": null,
+    "paymasterContractAddress": null,
+    "cashout": null
+   },
+   {
+    "id": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7_472057",
+    "nonce": "1792688227188",
+    "tokenId": "472057",
+    "actor": "0x066210a533c93eae126c82d4a7b14309dd2eed0f",
+    "amount": "4.03",
+    "rawAmount": "4030000",
+    "status": "Resolved",
+    "potentialPayout": "84.698904",
+    "rawPotentialPayout": "84698904",
+    "payout": "0",
+    "rawPayout": "0",
+    "result": "Lost",
+    "odds": "21.017097888654",
+    "settledOdds": "21.017097888654",
+    "createdAt": "1792688246",
+    "resolvedAt": "1792694669",
+    "txHash": "0xc5e0611b789d2b0a75f39fa580b86698a6953d2735c37166a9eea08b64e4be5e",
+    "redeemedTxHash": "0x47deafd7db37897a74332d3de0715eee38cb3fe00182f94bc486a6d965aee5a8",
+    "redeemedAt": "1792699209",
+    "affiliate": "0x82875517c2b4bd534de4b2c0d21bff5f40b25da6",
+    "isRedeemed": true,
+    "isRedeemable": false,
+    "isCashedOut": false,
+    "type": "Express",
+    "core": {
+     "address": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7",
+     "liquidityPool": {
+      "address": "0x0fa7fb5407ea971694652e6e16c12a52625de1b8",
+      "tokenDecimals": 6
+     }
+    },
+    "selections": [
+     {
+      "odds": "1.01",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "Mjallby AIF (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916483460000000000001815498996",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648346",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.07",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "PFC CSKA-Sofia (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916483670000000000000737295297",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648367",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.04",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "FC Copenhagen (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916483680000000000000737293675",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648368",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.1",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "FK Jablonec (+5)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916483780000000000001653198308",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648378",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.06",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "FC Lugano (+2)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916483920000000000001158202482",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648392",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.14",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "Inter Club de Escaldes (+5)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916483930000000000001815241020",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648393",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.08",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "Heart of Midlothian FC (+4)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916484160000000000000985481078",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648416",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.06",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "KF Egnatia (+4)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916484170000000000000947866001",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648417",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.1",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "Atalanta (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916485180000000000000764314586",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648518",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.1",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "AS Monaco (+2)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916485300000000000000738450974",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648530",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.15",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "Sint-Truidense VV (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916485350000000000000738453218",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648535",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.05",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "FC Thun (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916487820000000000001158201838",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648782",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.11",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "Kuopio PS (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916488040000000000001158200802",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648804",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.09",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "Lincoln Red Imps FC (+5)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916488150000000000001166475176",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648815",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.07",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "KAA Gent (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916488590000000000000738452342",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091648859",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.04",
+      "result": "Lost",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "FC Ararat-Armenia (+4)",
+       "result": "Lost",
+       "condition": {
+        "conditionId": "600610060000000000916514730000000000000737294086",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651473",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.12",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "3",
+       "title": null,
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916514740000000000000736019218",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651474",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.11",
+      "result": "Lost",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "AC Milan (+3)",
+       "result": "Lost",
+       "condition": {
+        "conditionId": "600610060000000000916514750000000000000733827079",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651475",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.13",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "Celtic FC (+2)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916514770000000000000734889585",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651477",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.07",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "Crystal Palace FC (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916514780000000000000793589865",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651478",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.12",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "PFC Levski Sofia (+3)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916514810000000000000734890387",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651481",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.05",
+      "result": "Lost",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "Jagiellonia Bialystok (+3)",
+       "result": "Lost",
+       "condition": {
+        "conditionId": "600610060000000000916515100000000000000736022324",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651510",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.03",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "NEC Nijmegen (+4)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515360000000000001279442782",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651536",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.03",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "Stade Rennais FC (+5)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515400000000000001815328026",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651540",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.05",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "OFI Crete (+5)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515430000000000000796841115",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651543",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.05",
+      "result": "Lost",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "Hapoel Beer Sheva (+4)",
+       "result": "Lost",
+       "condition": {
+        "conditionId": "600610060000000000916515540000000000000737295934",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651554",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.07",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "Lech Poznan (+4)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515640000000000000737675871",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651564",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.03",
+      "result": "Won",
+      "conditionKind": "Live",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "SC Uniao Torreense (+4)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515660000000000000737294563",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651566",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.07",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "1",
+       "title": "NK Celje (+4)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515680000000000001302681191",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651568",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.09",
+      "result": "Lost",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "Lillestrom SK (+4)",
+       "result": "Lost",
+       "condition": {
+        "conditionId": "600610060000000000916515700000000000000733827215",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651570",
+        "wonOutcomeIds": [
+         "1"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.09",
+      "result": "Lost",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "Olympique Lyonnais (+3)",
+       "result": "Lost",
+       "condition": {
+        "conditionId": "600610060000000000916515720000000000000733828856",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651572",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.13",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "3",
+       "title": "AC Omonia Nicosia (+4)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515730000000000000734226777",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651573",
+        "wonOutcomeIds": [
+         "3"
+        ]
+       }
+      }
+     },
+     {
+      "odds": "1.05",
+      "result": "Won",
+      "conditionKind": "Prematch",
+      "outcome": {
+       "outcomeId": "2",
+       "title": "AC Sparta Praha (+4)",
+       "result": "Won",
+       "condition": {
+        "conditionId": "600610060000000000916515740000000000000793571877",
+        "title": "Handicap 3-Way",
+        "status": "Resolved",
+        "gameId": "1006000000000091651574",
+        "wonOutcomeIds": [
+         "2"
+        ]
+       }
+      }
+     }
+    ],
+    "freebetId": null,
+    "isFreebetAmountReturnable": null,
+    "paymasterContractAddress": null,
+    "cashout": null
+   }
+  ]
+ }
+}

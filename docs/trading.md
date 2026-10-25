@@ -105,7 +105,7 @@ The variables each venue reads:
 | Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
 | Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
 | ProphetX | `PROPHETX_ACCESS_KEY` and `PROPHETX_SECRET_KEY` (the Trading API: market data, streams, orders), `PROPHETX_AFFILIATE_KEY` (optional; the Market Data API, market data only), `PROPHETX_SANDBOX=1` (optional; ProphetX's sandbox, with demo funds) |
-| Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance and allowance are read from and the approval is sent through; a public one when unset) |
+| Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance, allowance and claimable payouts are read from and the approval and claims are sent through; a public one when unset) |
 | Gemini | `GEMINI_API_KEY` (`account-...`), `GEMINI_API_SECRET`, `GEMINI_ACCOUNT` (optional; the subaccount a `master-...` key acts for, REST only: the WebSocket refuses master keys), `GEMINI_ENV` = `prod` (the default, real money) or `sandbox` (api.sandbox.gemini.com, with a sandbox key) |
 
 Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
@@ -723,9 +723,9 @@ Check ProphetX's terms for where it may be used before trading.
 
 ## Azuro
 
-`AzuroTrading`, built to `@azuro-org/toolkit` and the Azuro backend API. Bet
-and cash-out digests and signatures are checked against the ones the toolkit
-and viem produce.
+`AzuroTrading`, built to `@azuro-org/toolkit` and the Azuro backend API. Bet,
+combo and cash-out digests and signatures, and the claim calldata, are checked
+against the ones the toolkit and viem produce.
 
 The one credential is the wallet. Every bet is the EIP-712 message
 `ClientBetData` (the consent text, the affiliate, the pool's core contract, a
@@ -760,13 +760,64 @@ an accepted one can be closed early where the venue offers a price:
 the domain `Cash Out` `1.0.0`, the offer's odds as the minimum) and sends it,
 and `fetch_cashout(id)` follows it.
 
+A combo backs two or more outcomes of different games in one bet, which wins
+only if every leg does. Nobody quotes it: the pool prices it from the legs'
+odds by the protocol's combo rule, each leg's odds divided by 0.99 (the
+feed's fee) and rounded up to two decimals, multiplied, and times 0.99 once
+(1.58 and 1.58 make 2.5344, as the bets subgraph records it). A leg is a
+market and a side, as an order names them (`ComboLeg(market_id, side)`, a
+bare market id for its YES, or a `(market_id, side)` pair).
+
+```python
+from synpath.trading.azuro import ComboLeg
+
+legs = [ComboLeg("azuro:<conditionId>"), ComboLeg("azuro:<conditionId>", Side.SELL)]
+quote = await azuro.fetch_combo_quote(legs, stake=Decimal("5"))
+quote.odds, quote.price, quote.max_bet, quote.problems    # [] when the pool would take it
+order = await azuro.create_combo_order(legs, quantity=Decimal("10"), price=quote.price * Decimal("1.02"))
+await azuro.wait_for_order(order.id)
+```
+
+`fetch_combo_quote` reads the legs' conditions and the pool's limits on the
+combo for this wallet (`/bet/calculation`), and lists in `problems` what the
+venue's SDK checks before it signs one: two or more legs, each condition and
+each game once, no condition closed to combos (`isExpressForbidden`), every
+condition and outcome taking bets, a maximum stake above zero and the stake
+within the limits. There is no maximum number of legs in the toolkit or the
+SDK; the pool refuses what it will not take. `create_combo_order` is a market
+order with a worst price for the whole combo: `quantity` contracts (what it
+pays if every leg wins) at no more than `price` each, so minimum total odds
+`1 / price` and a stake of `quantity * price`. It raises the quote's problems
+before signing (`check=False` skips the quote), signs `ClientComboBetData`
+(the same `ClientData`, the minimum odds, the stake, the nonce and the legs'
+`ComboPart`s, under the same domain), and sends it to `/bet/orders/combo`.
+The relayer's fee is the same flat fee per bet. A combo order is followed like
+a single bet, and reported on its first leg's market as a `buy` at `1 /` its
+total odds, with `info["combo"]` and every leg in `info["legs"]`.
+
 `fetch_orders`, `fetch_open_orders` (bets not yet on chain), `fetch_my_trades`
-(one fill per accepted bet) and `fetch_settlements` (won, lost, or cancelled
-with the stake returned) read the wallet's bet orders. Positions net each
-market's accepted, unsettled single bets on the YES leg. Combo bets are read
-on their first leg's market and marked `info["combo"]`; this library places
-single bets only. A winning bet's payout is claimed on chain from the pool,
-which this library does not do.
+(one fill per accepted single bet) and `fetch_settlements` (won, lost, or
+cancelled with the stake returned; combos too, on their first leg's market)
+read the wallet's bet orders. Each settlement says whether its payout was
+claimed: `info["claimed"]` (`None` when it pays nothing), `info["claimable"]`
+(what is still in the pool) and `info["claim_transaction"]`. Positions net
+each market's accepted, unsettled single bets on the YES leg, and add the
+settled single bets whose payout is still to be claimed, `resolved` and
+`final`, with the amount in `redeemable`.
+
+A won or cancelled bet's payout stays in the pool until it is claimed on
+chain. `fetch_redeemable_bets()` lists the wallet's bets that can be, from
+the bets subgraph (won or cancelled, not cashed out, not yet claimed), each
+with its on-chain id, `won` or `canceled`, and the `amount` claiming pays.
+`redeem()` (also `claim_winnings()`) claims all of them, or those of
+`bet_ids`, as the venue's SDK does: one `withdrawPayouts(core, betIds)`
+transaction to the pool's liquidity contract for every fifty bets
+(`batch=`), one paymaster `withdrawPayouts` per free bet. The wallet sends
+them and pays their gas in the chain's coin; anyone may send a claim, and the
+pool pays each bet's owner. Every call is estimated first, so one that would
+revert (already claimed: `alreadypaid`) is refused before anything is sent.
+It returns each transaction's hash, bets and amount, and the total.
+`fetch_claimable(bet_id)` reads what one bet would pay now (`viewPayout`).
 
 Gnosis and Chiliz are discontinued and take no bets. Azuro's bet API answers
 some regions with a 503; check where Azuro may be used before betting.
