@@ -199,7 +199,9 @@ Myriad needs no key (an API key and secret raise its rate limit). It takes
 `network` (56 BNB Chain, 2741 Abstract, 59144 Linea) on `fetch_markets` and
 `fetch_events`, and adds `fetch_event(id)`, `fetch_topics()`, `fetch_tags(type)`
 and `raw_market(id)`. Any id also takes the market's slug. See
-[Myriad](capabilities.md#myriad).
+[Myriad](capabilities.md#myriad). Both kinds trade through `MyriadTrading`:
+order-book markets with signed orders, AMM markets as market orders sent on
+chain ([Trading](trading.md#myriad)).
 
 ```python
 myriad = synpath.Myriad()                  # no key needed

@@ -32,25 +32,39 @@ the same signature).
 **Fees** are taker-only: a share of the notional by price, from the market's
 table (`bps_by_price`). Makers pay nothing.
 
-AMM markets trade on-chain, one contract call per trade with gas, through the
-venue's quote route; that is not built here, and an order for one is refused.
-Approvals are `approval_calls()`, for the wallet to send once; split, merge
-and redeem calldata come from `position_calldata()`.
+**AMM markets** (`myriad:56-amm-120473`, one outcome of many
+`myriad:2741-amm-412-3`) trade against the pool, one contract call per trade
+that the wallet sends and pays gas for. They are taker-only: a `market`,
+`ioc` or `fok` order at a worst price, which bounds the average price paid
+(fees in) or received. The order is sized from the pool read on chain: `ioc`
+and `market` trade the most shares up to the quantity whose average is
+within the worst price, `fok` the whole quantity or nothing. The bound goes
+on chain as the contract's minimum shares out (a buy) or maximum shares in
+(a sell), so the transaction reverts rather than fill worse. The fill (shares,
+value, fee) is read from the receipt's `MarketActionTx`. A buy needs the
+market's token approved to the network's `PredictionMarket` once
+(`approve_amm()`); `redeem_amm()` claims a resolved market's winnings.
+
+Order-book approvals are `approval_calls()`, for the wallet to send once;
+split, merge and redeem calldata come from `position_calldata()`.
 """
 from __future__ import annotations
 
 import asyncio
 import json
+import math
 import re
+import secrets
 import time
-from decimal import Decimal
+from dataclasses import dataclass, field
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from typing import Any
 from urllib.parse import urlencode
 
 from .. import ids
 from ..base import AsyncHttpClient, Capability
 from ..errors import AuthenticationError, BadRequest, ExchangeError, MarketNotFound
-from ..myriad import ORDER_BOOK_NETWORK, Ref, iso_ms, native_id, parse_id
+from ..myriad import ORDER_BOOK_NETWORK, Ref, _after_buy, _after_sell, amm_fees, is_amm, iso_ms, native_id, parse_id
 from ..types import Page
 from . import myriad_signing as sig
 from .base import TradingExchange
@@ -60,11 +74,15 @@ from .errors import (
 )
 from .limiter import BudgetLimiter, Priority
 from .polymarket import to_yes_leg, wire_leg
-from .polymarket_signing import WalletSigner
+from .polymarket_signing import MAX_UINT256, WalletSigner
 from .types import (
     Account, Balance, EditRequest, FeeEstimate, Fill, Liquidity, Order, OrderRequest, OrderStatus, OrderType,
     Position, PositionSide, SettlementState, Side, TimeInForce, VENUE_ORDER_TYPES,
 )
+
+AMM_MARGIN = 1e-6
+"""How far inside the worst price an AMM order is sized, so that rounding
+never puts the expected trade on the bound itself."""
 
 VENUE = "myriad"
 API_URL = "https://api-v2.myriadprotocol.com"
@@ -238,10 +256,14 @@ def order_of_update(data: dict[str, Any], *, account: Account | None = None) -> 
     )
 
 
-def fill_of_action(row: dict[str, Any], *, account: Account | None = None) -> Fill | None:
+def fill_of_action(row: dict[str, Any], *, account: Account | None = None, amm: bool = False,
+                   many: bool = False) -> Fill | None:
     """One trade in the account's history (`/users/:address/events`) as a fill
     on the YES leg, or `None` for anything else (claims, liquidity). The
-    history names neither the order nor the fee."""
+    history names neither the order nor the fee. A pool trade (`amm`) is on
+    the pool's market id; on a pool of more than two outcomes (`many`) each
+    outcome is its own market, YES that outcome. A pool trade's price is its
+    value over its shares, fees in."""
     action = str(row.get("action") or "")
     if action not in ("buy", "sell"):
         return None
@@ -249,14 +271,14 @@ def fill_of_action(row: dict[str, Any], *, account: Account | None = None) -> Fi
     if shares <= 0:
         return None
     outcome = int(row.get("outcomeId") or 0)
-    side, price = to_yes_leg(_outcome(outcome), action.upper(), value / shares)
+    side, price = to_yes_leg("yes" if many else _outcome(outcome), action.upper(), value / shares)
     stamp = iso_ms(row.get("timestamp")) or 0
     return Fill(
         id=f"{row.get('txId') or stamp}:{outcome}:{action}",
         order_id="",
         venue=VENUE,
         account=account,
-        market_id=market_id_of(row.get("networkId"), row.get("marketId")),
+        market_id=market_id_of(row.get("networkId"), row.get("marketId"), amm=amm, outcome=outcome if many else None),
         side=side,
         price=price or Decimal("0"),
         quantity=shares,
@@ -317,10 +339,13 @@ def fills_of_trade(data: dict[str, Any], *, address: str, account: Account | Non
 RESOLVED = ("won", "lost", "claimed", "voided")
 
 
-def positions_of(rows: list[dict[str, Any]], *, account: Account | None = None) -> list[Position]:
+def positions_of(rows: list[dict[str, Any]], *, account: Account | None = None,
+                 many: set[tuple[int, int]] | None = None) -> list[Position]:
     """The account's portfolio rows (one per market and outcome) as positions:
     a binary market's two outcomes netted on the YES leg with both kept, and
-    an outcome of a many-outcome AMM market as its own market."""
+    an outcome of a many-outcome AMM market as its own market. `many` names
+    the pools (`(network, market)`) known to have more than two outcomes; a
+    row on an outcome above 1 shows it too."""
     by_market: dict[tuple[int, int, bool], list[dict[str, Any]]] = {}
     for row in rows:
         if row.get("marketId") is None:
@@ -329,8 +354,8 @@ def positions_of(rows: list[dict[str, Any]], *, account: Account | None = None) 
         by_market.setdefault(key, []).append(row)
     out: list[Position] = []
     for (network, market, amm), group in by_market.items():
-        many = amm and any(int(r.get("outcomeId") or 0) > 1 for r in group)
-        if many:
+        several = amm and ((network, market) in (many or set()) or any(int(r.get("outcomeId") or 0) > 1 for r in group))
+        if several:
             for row in group:
                 out.append(_position(network, market, amm, {int(row.get("outcomeId") or 0): row}, account=account,
                                      outcome=int(row.get("outcomeId") or 0)))
@@ -398,11 +423,244 @@ def error_of(exc: ExchangeError, *, client_order_id: str | None = None) -> Excha
 
 
 # ---------------------------------------------------------------------------
+# AMM orders
+# ---------------------------------------------------------------------------
+
+def _bisect(rising: Any, target: float, low: float, high: float) -> tuple[float, float]:
+    """`(low, high)` bracketing where the increasing `rising` reaches `target`."""
+    for _ in range(200):
+        middle = (low + high) / 2
+        if middle in (low, high):
+            break
+        if rising(middle) < target:
+            low = middle
+        else:
+            high = middle
+    return low, high
+
+
+def amm_buy_shares(pools: list[float], index: int, value: float, fee: float) -> float:
+    """The shares of outcome `index` that `value` buys, fees taken out of it."""
+    if value <= 0:
+        return 0.0
+    return _after_buy(pools, index, value * (1 - fee))[1]
+
+
+def amm_buy_cost(pools: list[float], index: int, shares: float, fee: float) -> float:
+    """The value, fees in, that buys `shares` of outcome `index`."""
+    if shares <= 0:
+        return 0.0
+    high = 1.0
+    for _ in range(200):
+        if amm_buy_shares(pools, index, high, fee) >= shares:
+            break
+        high *= 2
+    return _bisect(lambda v: amm_buy_shares(pools, index, v, fee), shares, 0.0, high)[1]
+
+
+def _sell_ceiling(pools: list[float], index: int) -> float:
+    return min(n for j, n in enumerate(pools) if j != index)
+
+
+def amm_sell_shares(pools: list[float], index: int, value: float, fee: float) -> float:
+    """The shares of outcome `index` a payout of `value`, after fees, takes:
+    the pool pays out `value / (1 - fee)` and keeps the fee."""
+    if value <= 0:
+        return 0.0
+    gross = value / (1 - fee)
+    if gross >= _sell_ceiling(pools, index):
+        return math.inf
+    return _after_sell(pools, index, gross)[1]
+
+
+def amm_sell_value(pools: list[float], index: int, shares: float, fee: float) -> float:
+    """What selling `shares` of outcome `index` pays out, after fees."""
+    if shares <= 0:
+        return 0.0
+    ceiling = _sell_ceiling(pools, index) * (1 - fee) * (1 - 1e-12)
+    return _bisect(lambda v: amm_sell_shares(pools, index, v, fee), shares, 0.0, ceiling)[0]
+
+
+def _units(value: float | Decimal, decimals: int, rounding: str) -> int:
+    return int((Decimal(str(value)) * (Decimal(10) ** decimals)).to_integral_value(rounding=rounding))
+
+
+@dataclass
+class AmmPlan:
+    """One pool trade, sized and bounded before it is sent. Amounts in tokens
+    unless named `_units` (the token's smallest unit); prices are the
+    outcome's own, fees in."""
+
+    network: int
+    market: int
+    outcome: int
+    """The outcome traded."""
+    action: str
+    """`buy` or `sell`."""
+    worst: Decimal
+    """The worst average price accepted, on the outcome traded."""
+    requested: Decimal
+    """The shares asked for."""
+    shares: Decimal = Decimal("0")
+    """The shares expected, from the pool as read."""
+    value: Decimal = Decimal("0")
+    """Spent, fees in (a buy), or paid out, after fees (a sell)."""
+    average: Decimal | None = None
+    fee: Decimal = Decimal("0")
+    value_units: int = 0
+    bound_units: int = 0
+    """The on-chain bound: the minimum shares out (a buy), the maximum shares in (a sell)."""
+    decimals: int = 18
+    contract: str = ""
+    token: str = ""
+    symbol: str = ""
+    calldata: str = ""
+    reason: str | None = None
+    """Why nothing is traded, when the pool fills nothing within the worst price."""
+    info: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def fills(self) -> bool:
+        return self.reason is None
+
+    @property
+    def bound(self) -> Decimal:
+        return Decimal(self.bound_units) / (Decimal(10) ** self.decimals)
+
+
+def plan_amm_trade(
+    pools: list[float], *, index: int, action: str, shares: Decimal, worst: Decimal, buy_fee: float, sell_fee: float,
+    decimals: int, partial: bool, held: Decimal | None = None,
+) -> dict[str, Any]:
+    """Size a pool trade and its on-chain bound. `worst` bounds the average
+    price, fees in: a buy spends `value` for at least `value / worst` shares,
+    a sell is paid `value` for at most `value / worst`. `partial` (`ioc`)
+    trades the most shares up to `shares` whose average is within `worst`;
+    otherwise all of them or nothing. Returns the plan's numbers, or a
+    `reason` when nothing trades."""
+    want, bound = float(shares), float(worst)
+    if action == "buy":
+        def average(q: float) -> float:
+            return amm_buy_cost(pools, index, q, buy_fee) / q
+        within = lambda q: average(q) <= bound * (1 - AMM_MARGIN)  # noqa: E731
+    else:
+        def average(q: float) -> float:
+            return amm_sell_value(pools, index, q, sell_fee) / q
+        within = lambda q: average(q) >= bound * (1 + AMM_MARGIN)  # noqa: E731
+    size = want
+    if not within(size):
+        if not partial:
+            return {"reason": f"the pool fills {shares} at an average of {average(want):.6f}, worse than {worst}"}
+        low, high = 0.0, want
+        for _ in range(200):
+            middle = (low + high) / 2
+            if middle in (low, high):
+                break
+            low, high = (middle, high) if within(middle) else (low, middle)
+        size = low
+        if size <= 0 or not within(size) or size * 10**decimals < 1:
+            return {"reason": f"the pool fills nothing at {worst} or better"}
+    if action == "buy":
+        value_units = _units(amm_buy_cost(pools, index, size, buy_fee), decimals, ROUND_FLOOR)
+        value = Decimal(value_units) / (Decimal(10) ** decimals)
+        expected = amm_buy_shares(pools, index, float(value), buy_fee)
+        bound_units = int((Decimal(value_units) / worst).to_integral_value(rounding=ROUND_CEILING))
+        fee = value * Decimal(str(buy_fee))
+    else:
+        value_units = _units(amm_sell_value(pools, index, size, sell_fee), decimals, ROUND_FLOOR)
+        value = Decimal(value_units) / (Decimal(10) ** decimals)
+        expected = amm_sell_shares(pools, index, float(value), sell_fee)
+        bound_units = int((Decimal(value_units) / worst).to_integral_value(rounding=ROUND_FLOOR))
+        if held is not None:
+            bound_units = min(bound_units, _units(held, decimals, ROUND_FLOOR))
+        fee = value / (1 - Decimal(str(sell_fee))) - value if sell_fee else Decimal("0")
+    if value_units <= 0 or expected <= 0:
+        return {"reason": f"the pool fills nothing at {worst} or better"}
+    shares_out = Decimal(str(expected))
+    return {"value_units": value_units, "bound_units": bound_units, "value": value, "shares": shares_out,
+            "average": value / shares_out, "fee": fee}
+
+
+def amm_time_in_force(request: OrderRequest) -> bool:
+    """Whether an AMM order may fill in part (`market`, `ioc`) or must fill
+    whole (`fok`). A pool trade fills at once or not at all, so a resting
+    order is refused."""
+    if request.type not in VENUE_ORDER_TYPES:
+        raise InvalidOrder(f"{VENUE}: {request.type.value} is held by the execution engine, not the venue; "
+                           f"submit it through the engine")
+    tif = request.time_in_force
+    resting = request.post_only or (request.type == OrderType.LIMIT and tif not in (TimeInForce.IOC, TimeInForce.FOK))
+    if resting:
+        what = "post-only" if request.post_only else f"a {tif.value} limit"
+        raise InvalidOrder(f"{VENUE}: AMM markets are taker-only -- a pool trade fills at once or not at all, so "
+                           f"{what} cannot rest; send a market, ioc or fok order with the worst price")
+    if request.price is None:
+        raise InvalidOrder(f"{VENUE}: a price is required -- an AMM order is sent with the worst average price "
+                           f"you give")
+    if not Decimal("0") < D(request.price) < Decimal("1"):
+        raise InvalidOrder(f"{VENUE}: price {request.price} is outside (0, 1)")
+    return tif != TimeInForce.FOK
+
+
+def amm_leg(request: OrderRequest, ref: Ref, outcomes: int) -> tuple[int, str, Decimal]:
+    """`(outcome, action, worst)`: the pool outcome an order trades, `buy`
+    or `sell`, and its worst price on that outcome. On a two-outcome pool YES
+    is outcome 0 and NO outcome 1, as on the order book; on one outcome of
+    many, YES is that outcome and NO (the rest of the pool) is not one trade."""
+    side, venue_side = wire_leg(request)
+    action = "buy" if venue_side == "BUY" else "sell"
+    if ref.outcome is not None:
+        if ref.outcome >= outcomes:
+            raise InvalidOrder(f"{VENUE}: {ref.native} names outcome {ref.outcome}; the pool has {outcomes}")
+        if side == "no":
+            hint = "pass reduce_only to sell the outcome held" if action == "buy" else "buy the other outcomes' markets"
+            raise InvalidOrder(f"{VENUE}: NO on {ref.native} is the rest of the pool, not one trade; {hint}")
+        return ref.outcome, action, D(request.price)
+    if outcomes != 2:
+        raise InvalidOrder(f"{VENUE}: {ref.native} has {outcomes} outcomes; trade one of them, "
+                           f"{ref.native}-<outcome>")
+    return (0 if side == "yes" else 1), action, (D(request.price) if side == "yes" else Decimal("1") - D(request.price))
+
+
+def amm_fill(action: dict[str, Any], *, tx_hash: str, plan: AmmPlan, many: bool, order_id: str,
+             client_order_id: str | None = None, account: Account | None = None) -> Fill:
+    """A decoded `MarketActionTx` as this account's fill, on the YES leg and
+    with the same id the account's history gives the trade. The price is the
+    value over the shares, fees in, as in the history; `fee` is that fee."""
+    scale = Decimal(10) ** plan.decimals
+    shares, value = Decimal(int(action["shares"])) / scale, Decimal(int(action["value"])) / scale
+    outcome = int(action["outcome"])
+    buying = int(action["action"]) == sig.AMM_BUY
+    rate = Decimal(str(plan.info.get("buy_fee" if buying else "sell_fee") or 0))
+    fee = value * rate if buying else (value / (1 - rate) - value if rate else Decimal("0"))
+    side, price = to_yes_leg("yes" if many or outcome == 0 else "no", "BUY" if buying else "SELL",
+                             value / shares if shares > 0 else None)
+    return Fill(
+        id=f"{tx_hash}:{outcome}:{'buy' if buying else 'sell'}",
+        order_id=order_id,
+        client_order_id=client_order_id,
+        venue=VENUE,
+        account=account,
+        market_id=market_id_of(plan.network, plan.market, amm=True, outcome=outcome if many else None),
+        side=side,
+        price=price or Decimal("0"),
+        quantity=shares,
+        fee=fee,
+        fee_currency=plan.symbol or None,
+        liquidity=Liquidity.TAKER,
+        settlement=SettlementState.CONFIRMED,
+        timestamp=int(action.get("timestamp") or 0) * 1000,
+        info={"tx_hash": tx_hash, "outcome": outcome, "value": str(value), "fee_in_price": True},
+    )
+
+
+# ---------------------------------------------------------------------------
 # Adapter
 # ---------------------------------------------------------------------------
 
 class MyriadTrading(TradingExchange):
-    """Myriad order entry, on the order book.
+    """Myriad order entry: signed orders on the order book, and market
+    orders against an AMM market's pool, sent as the wallet's transactions.
 
     ```python
     from synpath.trading.credentials import load_credentials, require
@@ -416,8 +674,11 @@ class MyriadTrading(TradingExchange):
     id = VENUE
     name = "Myriad"
     has: dict[str, Capability] = {
+        # Order books: signed orders. AMM markets: market, ioc or fok only,
+        # one on-chain transaction each.
         "create_order": True,
         # Up to 200 a request; the venue checks collateral at match time.
+        # AMM orders go one transaction at a time.
         "create_orders": True,
         "cancel_order": True,
         # Up to 200 a request.
@@ -455,6 +716,7 @@ class MyriadTrading(TradingExchange):
         timeout: float = 30.0,
         client: Any = None,
         rpc_client: Any = None,
+        rpc_urls: dict[int, str] | None = None,
     ):
         import httpx
 
@@ -471,6 +733,9 @@ class MyriadTrading(TradingExchange):
         shared = client or httpx.AsyncClient(timeout=timeout, follow_redirects=True)
         self.http = AsyncHttpClient(url, limiter=None, client=shared, venue=VENUE)
         self.rpc_url = rpc_url or credentials.rpc_url or RPC_URL
+        self.rpc_urls = {**sig.AMM_RPC_URLS, **(rpc_urls or {}), ORDER_BOOK_NETWORK: self.rpc_url}
+        """A node per network (BNB Chain 56, Abstract 2741, Linea 59144) for
+        AMM trades; public ones unless given."""
         self.rpc = rpc_client or httpx.AsyncClient(timeout=20, follow_redirects=True)
         self._own_catalog = catalog is None
         if catalog is None:
@@ -483,6 +748,10 @@ class MyriadTrading(TradingExchange):
         self._signed: dict[str, dict[str, Any]] = {}
         """Order hash -> the signed `{order, signature}` a cancel repeats."""
         self._session: dict[str, Any] | None = None
+        self._amm_orders: dict[str, tuple[Order, AmmPlan, bool]] = {}
+        """Transaction hash -> an AMM order sent here, its plan, and whether its pool has many outcomes."""
+        self._outcome_counts: dict[tuple[int, int], int] = {}
+        self._tx_lock = asyncio.Lock()
 
     @property
     def keyed(self) -> bool:
@@ -582,15 +851,20 @@ class MyriadTrading(TradingExchange):
             raise AuthenticationError(f"{VENUE}: no subscription token for {channel}")
         return str(raw["token"])
 
-    async def _ob_ref(self, market_id: str) -> Ref:
-        """An order-book market's parts; an AMM market is refused."""
+    async def _ref(self, market_id: str) -> Ref:
+        """A market's parts, either kind; a slug is looked up."""
         native = ids.native(VENUE, market_id)
         ref = parse_id(native)
         if ref is None:
             ref, _ = await asyncio.to_thread(self.catalog._resolve, native)
+        return ref
+
+    async def _ob_ref(self, market_id: str) -> Ref:
+        """An order-book market's parts; an AMM market is refused."""
+        ref = await self._ref(market_id)
         if ref.amm:
-            raise InvalidOrder(f"{VENUE}: {ref.native} is an AMM market, traded on-chain through the venue's quote "
-                               f"route; this adapter places order-book orders only")
+            raise InvalidOrder(f"{VENUE}: {ref.native} is an AMM market: it has no orders, cancels or calldata "
+                               f"routes; trade it with a market, ioc or fok order")
         if ref.network != ORDER_BOOK_NETWORK:
             raise InvalidOrder(f"{VENUE}: order books run on BNB Chain (56) only, not {ref.network}")
         return ref
@@ -646,8 +920,13 @@ class MyriadTrading(TradingExchange):
         )
 
     async def create_order(self, request: OrderRequest) -> Order:
-        """Sign and place one order. The venue answers once the order is on
-        the book; fills follow from the matcher."""
+        """Sign and place one order. On an order book the venue answers once
+        the order is on the book, and fills follow from the matcher. On an
+        AMM market the trade is a transaction from the wallet; see
+        `create_amm_order`."""
+        ref = await self._ref(request.market_id)
+        if ref.amm:
+            return await self.create_amm_order(request)
         time_in_force_of(request)
         signer = self._need_signer("placing an order")
         ref = await self._ob_ref(request.market_id)
@@ -676,6 +955,9 @@ class MyriadTrading(TradingExchange):
         prepared: list[tuple[int, OrderRequest, dict[str, Any], str, Decimal, Ref]] = []
         for i, request in enumerate(requests):
             try:
+                if (await self._ref(request.market_id)).amm:
+                    results[i] = await self.create_amm_order(request)
+                    continue
                 time_in_force_of(request)
                 signer = self._need_signer("placing an order")
                 ref = await self._ob_ref(request.market_id)
@@ -707,6 +989,9 @@ class MyriadTrading(TradingExchange):
 
     async def cancel_order(self, order_id: str, *, market_id: str | None = None) -> Order:
         """Cancel one order (repeating it and its signature) and read it back."""
+        if order_id.lower() in self._amm_orders:
+            raise InvalidOrder(f"{VENUE}: {order_id} is an AMM trade, one transaction filled or reverted at once; "
+                               f"there is nothing to cancel")
         entry = await self._signed_entry(order_id)
         await self._call("DELETE", f"/orders/{order_id}", body={**entry, "network_id": ORDER_BOOK_NETWORK},
                          kind="write", priority=Priority.HIGH)
@@ -790,6 +1075,15 @@ class MyriadTrading(TradingExchange):
         return order.model_copy(update={"queue_priority_preserved": False})
 
     async def fetch_order(self, order_id: str) -> Order:
+        """An order by its hash; an AMM order sent here by its transaction
+        hash, its receipt read again while it is pending."""
+        if order_id.lower() in self._amm_orders:
+            order, plan, many = self._amm_orders[order_id.lower()]
+            if order.status == OrderStatus.PENDING:
+                receipt = await self._rpc(plan.network, "eth_getTransactionReceipt", [order.id])
+                if receipt:
+                    order = self._settle_amm(order, plan, many, receipt)
+            return order
         row = await self._call("GET", f"/orders/{order_id}") or {}
         if not row.get("orderHash"):
             raise OrderNotFound(f"{VENUE}: no order {order_id}")
@@ -804,6 +1098,15 @@ class MyriadTrading(TradingExchange):
         word = {"closed": "filled", "canceled": "cancelled"}.get(status or "", status)
         if word and word not in ("open", "filled", "cancelled", "expired"):
             raise BadRequest(f"{VENUE}: status is open, filled, cancelled or expired, not {status!r}")
+        ref = await self._ref(market_id) if market_id else None
+        if ref is not None and ref.amm:
+            # A pool has no orders at the venue: only the trades sent here.
+            wanted = ids.qualify(VENUE, ref.native)
+            mine = [o for o, _, _ in self._amm_orders.values() if o.market_id == wanted and (
+                word is None or (word == "open" and o.status == OrderStatus.PENDING)
+                or (word == "filled" and o.status == OrderStatus.CLOSED)
+                or (word == "cancelled" and o.status == OrderStatus.CANCELED))]
+            return Page(sorted(mine, key=lambda o: o.created_at or 0, reverse=True), next_cursor=None)
         market = (await self._ob_ref(market_id)).market if market_id else None
         page = int(cursor) if cursor and cursor.isdigit() else 1
         raw = await self._call("GET", "/orders", params={
@@ -831,24 +1134,41 @@ class MyriadTrading(TradingExchange):
         self, *, market_id: str | None = None, order_id: str | None = None,
         since: int | None = None, limit: int | None = None, cursor: str | None = None,
     ) -> Page[Fill]:
-        """One page of this account's order-book trades, newest first, from
-        its history. The history names neither the order behind a trade nor
-        its fee, so `order_id` cannot filter it."""
+        """One page of this account's trades, newest first, from its history:
+        order book and AMM alike, or one market's. The history names neither
+        the order behind a trade nor its fee, so `order_id` cannot filter it.
+        Without a market, page `n` is the `n`th page of each kind, merged."""
         if order_id:
             raise BadRequest(f"{VENUE}: the account's history does not name orders; read the order's filled "
                              f"amount with fetch_order")
         address = self._need_address()
-        market = (await self._ob_ref(market_id)).market if market_id else None
+        ref = await self._ref(market_id) if market_id else None
         page = int(cursor) if cursor and cursor.isdigit() else 1
-        raw = await self._call("GET", f"/users/{address}/events", params={
-            "trading_model": "ob", "network_id": ORDER_BOOK_NETWORK, "market_id": market,
-            "since": since // 1000 if since else None, "page": page, "limit": min(limit or 100, 100),
-        }) or {}
-        rows = raw.get("data") or [] if isinstance(raw, dict) else []
-        fills = [f for f in (fill_of_action(row, account=self.account) for row in rows) if f is not None]
+        size = min(limit or 100, 100)
+        kinds = [ref.amm] if ref is not None else [False, True]
+        fills: list[Fill] = []
+        more = False
+        for amm in kinds:
+            raw = await self._call("GET", f"/users/{address}/events", params={
+                "trading_model": "amm" if amm else "ob",
+                "network_id": ref.network if ref is not None else None if amm else ORDER_BOOK_NETWORK,
+                "market_id": ref.market if ref is not None else None,
+                "since": since // 1000 if since else None, "page": page, "limit": size,
+            }) or {}
+            rows = raw.get("data") or [] if isinstance(raw, dict) else []
+            for row in rows:
+                many = False
+                if amm and row.get("marketId") is not None:
+                    many = await self._many(int(row.get("networkId") or ORDER_BOOK_NETWORK), int(row["marketId"]))
+                    if ref is not None and ref.outcome is not None and int(row.get("outcomeId") or 0) != ref.outcome:
+                        continue
+                fill = fill_of_action(row, account=self.account, amm=amm, many=many)
+                if fill is not None:
+                    fills.append(fill)
+            more = more or (bool((raw.get("pagination") or {}).get("hasNext")) if isinstance(raw, dict) else False)
         if since:
             fills = [f for f in fills if f.timestamp >= since]
-        more = bool((raw.get("pagination") or {}).get("hasNext")) if isinstance(raw, dict) else False
+        fills.sort(key=lambda f: f.timestamp, reverse=True)
         return Page(fills, next_cursor=str(page + 1) if more else None)
 
     # -- account --------------------------------------------------------------
@@ -867,7 +1187,13 @@ class MyriadTrading(TradingExchange):
             if not (isinstance(raw, dict) and (raw.get("pagination") or {}).get("hasNext")) or page >= 50:
                 break
             page += 1
-        positions = positions_of(rows, account=self.account)
+        many: set[tuple[int, int]] = set()
+        for row in rows:
+            if row.get("executionMode") == 0 and row.get("marketId") is not None:
+                key = (int(row.get("networkId") or ORDER_BOOK_NETWORK), int(row["marketId"]))
+                if key not in many and int(row.get("outcomeId") or 0) <= 1 and await self._many(*key):
+                    many.add(key)
+        positions = positions_of(rows, account=self.account, many=many)
         if market_id:
             wanted = ids.qualify(VENUE, ids.native(VENUE, market_id))
             positions = [p for p in positions if p.market_id == wanted]
@@ -909,6 +1235,288 @@ class MyriadTrading(TradingExchange):
             taker_fee=D(taker) if taker is not None else None, maker_fee=D(maker) if maker is not None else None,
             currency="USD1", info={"schedule": schedule.model_dump()},
         )
+
+    # -- AMM markets ----------------------------------------------------------
+
+    async def _many(self, network: int, market: int) -> bool:
+        """Whether a pool has more than two outcomes (read once, kept)."""
+        key = (network, market)
+        if key not in self._outcome_counts:
+            try:
+                raw = await asyncio.to_thread(self.catalog.raw_market, native_id(network, market, amm=True))
+                self._outcome_counts[key] = len(raw.get("outcomes") or [])
+            except (MarketNotFound, BadRequest):
+                return False
+        return self._outcome_counts[key] > 2
+
+    async def _rpc(self, network: int, method: str, params: list[Any]) -> Any:
+        url = self.rpc_urls.get(network)
+        if not url:
+            raise BadRequest(f"{VENUE}: no node for network {network}; pass rpc_urls={{{network}: ...}}")
+        answer = (await self.rpc.post(url, json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params})).json()
+        if not isinstance(answer, dict) or answer.get("error") or "result" not in answer:
+            error = answer.get("error") if isinstance(answer, dict) else answer
+            raise ExchangeError(f"{VENUE}: network {network} rpc {method}: {error}", body=answer)
+        return answer["result"]
+
+    async def _eth_call(self, network: int, to: str, data: str) -> str:
+        return str(await self._rpc(network, "eth_call", [{"to": to, "data": data}, "latest"]))
+
+    async def _amm_market(self, market_id: str) -> tuple[Ref, dict[str, Any]]:
+        """An AMM market's parts and the venue's record of it."""
+        ref = await self._ref(market_id)
+        if not ref.amm:
+            raise InvalidOrder(f"{VENUE}: {ref.native} is an order-book market, not an AMM one")
+        if ref.network not in sig.AMM_CONTRACTS:
+            raise InvalidOrder(f"{VENUE}: AMM markets on network {ref.network} are not traded here")
+        raw = await asyncio.to_thread(self.catalog.raw_market, ref.market_native)
+        if not is_amm(raw):
+            raise InvalidOrder(f"{VENUE}: {ref.native} is not an AMM market")
+        self._outcome_counts[(ref.network, ref.market)] = len(raw.get("outcomes") or [])
+        return ref, raw
+
+    async def plan_amm_order(self, request: OrderRequest) -> AmmPlan:
+        """Size an AMM order from the pool as it stands on chain, and build
+        its call, without sending anything. `plan.fills` is false (with a
+        `reason`) when the pool fills nothing within the worst price."""
+        partial = amm_time_in_force(request)
+        ref, raw = await self._amm_market(request.market_id)
+        if str(raw.get("state") or "") != "open":
+            raise InvalidOrder(f"{VENUE}: {ref.native} is {raw.get('state')}; a pool trades only while open")
+        outcomes = raw.get("outcomes") or []
+        index, action, worst = amm_leg(request, ref, len(outcomes))
+        token = raw.get("token") or {}
+        decimals = int(token.get("decimals") or 18)
+        contract = sig.AMM_CONTRACTS[ref.network]
+        scale = 10 ** decimals
+        pools_units = sig.decode_uint_array(await self._eth_call(ref.network, contract, sig.amm_pools_calldata(ref.market)))
+        if len(pools_units) != len(outcomes) or any(n <= 0 for n in pools_units):
+            raise ExchangeError(f"{VENUE}: the pool of {ref.native} read back {pools_units}")
+        pools = [n / scale for n in pools_units]
+        buy_fee, sell_fee = amm_fees(raw)
+        held: Decimal | None = None
+        if action == "sell":
+            address = self._need_address()
+            shares = sig.decode_holdings(await self._eth_call(
+                ref.network, contract, sig.amm_holdings_calldata(ref.market, address)))
+            held = Decimal(shares[index] if index < len(shares) else 0) / scale
+            if held < D(request.quantity):
+                raise InsufficientFunds(f"{VENUE}: selling {request.quantity} of outcome {index} on {ref.native}, "
+                                        f"but the wallet holds {held}")
+        numbers = plan_amm_trade(pools, index=index, action=action, shares=D(request.quantity), worst=worst,
+                                 buy_fee=buy_fee, sell_fee=sell_fee, decimals=decimals, partial=partial, held=held)
+        plan = AmmPlan(
+            network=ref.network, market=ref.market, outcome=index, action=action, worst=worst,
+            requested=D(request.quantity), decimals=decimals, contract=contract, token=str(token.get("address") or ""),
+            symbol=str(token.get("symbol") or ""), reason=numbers.get("reason"),
+            info={"pools": pools, "buy_fee": buy_fee, "sell_fee": sell_fee, "partial": partial,
+                  "outcomes": len(outcomes), "held": str(held) if held is not None else None},
+        )
+        if plan.reason is None:
+            plan.shares, plan.value, plan.average, plan.fee = (numbers["shares"], numbers["value"], numbers["average"],
+                                                               numbers["fee"])
+            plan.value_units, plan.bound_units = numbers["value_units"], numbers["bound_units"]
+            plan.calldata = (sig.amm_buy_calldata(ref.market, index, plan.bound_units, plan.value_units) if action == "buy"
+                             else sig.amm_sell_calldata(ref.market, index, plan.value_units, plan.bound_units))
+        return plan
+
+    def _amm_order(self, request: OrderRequest, plan: AmmPlan, *, order_id: str, status: OrderStatus,
+                   many: bool, info: dict[str, Any]) -> Order:
+        return Order(
+            id=order_id,
+            client_order_id=request.client_order_id,
+            venue=VENUE,
+            account=request.account or self.account,
+            market_id=market_id_of(plan.network, plan.market, amm=True, outcome=plan.outcome if many else None),
+            side=request.side,
+            type=request.type,
+            time_in_force=request.time_in_force,
+            status=status,
+            price=D(request.price),
+            quantity=D(request.quantity),
+            filled=Decimal("0"),
+            remaining=Decimal("0") if status != OrderStatus.PENDING else D(request.quantity),
+            reduce_only=request.reduce_only,
+            created_at=int(time.time() * 1000),
+            book=request.book,
+            trader=request.trader,
+            tags=request.tags,
+            info=info,
+        )
+
+    async def create_amm_order(self, request: OrderRequest) -> Order:
+        """Trade against an AMM market's pool: one transaction from the
+        wallet, sized from the pool on chain and bounded by the worst price
+        (see `plan_amm_order`), then its receipt read for the fill. A buy
+        checks the token's balance and its approval to the pool's contract
+        first (`approve_amm`); a sell checks the shares held.
+
+        `request.params`: `wait` (default true) waits for the receipt, up to
+        `timeout_s` (default 120). An order not yet mined comes back
+        `pending`, its id the transaction hash; `fetch_order` reads it again.
+        When the pool fills nothing within the worst price, nothing is sent
+        and the order comes back `canceled`, its id `unsent-...`."""
+        signer = self._need_signer("trading on an AMM market")
+        plan = await self.plan_amm_order(request)
+        many = plan.info["outcomes"] > 2
+        if not plan.fills:
+            unsent = self._amm_order(request, plan, order_id=f"unsent-{secrets.token_hex(16)}",
+                                     status=OrderStatus.CANCELED, many=many,
+                                     info={"amm": True, "reason": plan.reason, "plan": self._plan_info(plan)})
+            self._amm_orders[unsent.id] = (unsent, plan, many)
+            return unsent
+        if plan.action == "buy":
+            balance = int(await self._eth_call(plan.network, plan.token, sig.balance_calldata(signer.address)), 16)
+            if balance < plan.value_units:
+                raise InsufficientFunds(f"{VENUE}: the trade spends {plan.value} {plan.symbol}; the wallet holds "
+                                        f"{Decimal(balance) / (Decimal(10) ** plan.decimals)}")
+            allowance = int(await self._eth_call(plan.network, plan.token, sig.allowance_calldata(
+                signer.address, plan.contract)), 16)
+            if allowance < plan.value_units:
+                raise InsufficientFunds(f"{VENUE}: {plan.symbol} is not approved to the pool's contract for "
+                                        f"{plan.value}; call approve_amm({request.market_id!r}) once")
+        tx_hash = await self._send(plan.network, plan.contract, plan.calldata, what=f"the {plan.action}")
+        order = self._amm_order(request, plan, order_id=tx_hash, status=OrderStatus.PENDING, many=many,
+                                info={"amm": True, "tx_hash": tx_hash, "plan": self._plan_info(plan)})
+        self._amm_orders[tx_hash.lower()] = (order, plan, many)
+        if request.params.get("wait", True) is False:
+            return order
+        receipt = await self._receipt(plan.network, tx_hash, timeout_s=float(request.params.get("timeout_s", 120)))
+        return self._settle_amm(order, plan, many, receipt) if receipt else order
+
+    @staticmethod
+    def _plan_info(plan: AmmPlan) -> dict[str, Any]:
+        return {"outcome": plan.outcome, "action": plan.action, "worst": str(plan.worst), "shares": str(plan.shares),
+                "value": str(plan.value), "average": str(plan.average) if plan.average is not None else None,
+                "fee": str(plan.fee), "bound": str(plan.bound), "contract": plan.contract, "network": plan.network}
+
+    def _settle_amm(self, order: Order, plan: AmmPlan, many: bool, receipt: dict[str, Any]) -> Order:
+        """The order once its transaction is mined: filled from the receipt's
+        `MarketActionTx`, or rejected when it reverted."""
+        if int(str(receipt.get("status") or "0x0"), 16) != 1:
+            settled = order.model_copy(update={"status": OrderStatus.REJECTED, "remaining": Decimal("0"), "info": {
+                **order.info, "reason": "reverted: the pool moved past the worst price, or the funds changed",
+                "receipt": receipt}})
+            self._amm_orders[order.id.lower()] = (settled, plan, many)
+            return settled
+        wanted = sig.AMM_BUY if plan.action == "buy" else sig.AMM_SELL
+        actions = [a for a in sig.market_actions(receipt, contract=plan.contract, user=self.address)
+                   if a["market_id"] == plan.market and a["outcome"] == plan.outcome and a["action"] == wanted]
+        fills = [amm_fill(a, tx_hash=order.id, plan=plan, many=many, order_id=order.id,
+                          client_order_id=order.client_order_id, account=order.account) for a in actions]
+        filled = sum((f.quantity for f in fills), Decimal("0"))
+        value = sum((Decimal(f.info["value"]) for f in fills), Decimal("0"))
+        fee = sum((f.fee or Decimal("0") for f in fills), Decimal("0"))
+        average = None
+        if filled > 0:
+            average = value / filled if many or plan.outcome == 0 else Decimal("1") - value / filled
+        whole = filled >= order.quantity * (1 - Decimal(str(AMM_MARGIN)))
+        settled = order.model_copy(update={
+            "status": OrderStatus.CLOSED if whole else OrderStatus.CANCELED, "filled": filled,
+            "remaining": Decimal("0"), "average_price": average, "cost": value if plan.action == "buy" else None,
+            "fee": fee, "fee_currency": plan.symbol or None,
+            "last_fill_price": fills[-1].price if fills else None, "last_fill_quantity": fills[-1].quantity if fills else None,
+            "updated_at": int(time.time() * 1000),
+            "info": {**order.info, "fills": fills, "block": receipt.get("blockNumber"),
+                     "gas_used": receipt.get("gasUsed")},
+        })
+        self._amm_orders[order.id.lower()] = (settled, plan, many)
+        return settled
+
+    async def _send(self, network: int, to: str, data: str, *, what: str) -> str:
+        """Sign and send one transaction from the wallet; its hash. A call the
+        node's simulation says would revert is refused before it is sent."""
+        signer = self._need_signer("sending a transaction")
+        async with self._tx_lock:
+            nonce = int(await self._rpc(network, "eth_getTransactionCount", [signer.address, "pending"]), 16)
+            gas_price = int(await self._rpc(network, "eth_gasPrice", []), 16)
+            priority_fee = int(await self._rpc(network, "eth_maxPriorityFeePerGas", []), 16)
+            try:
+                estimate = int(await self._rpc(network, "eth_estimateGas", [{"from": signer.address, "to": to,
+                                                                            "data": data}]), 16)
+            except ExchangeError as exc:
+                raise OrderRejected(f"{VENUE}: {what} would revert: {exc}", reason="simulation", body=exc.body) from None
+            tx = {
+                "chainId": network, "nonce": nonce, "to": to, "value": 0, "data": data, "gas": int(estimate * 1.2),
+                "maxFeePerGas": gas_price * 2 + priority_fee, "maxPriorityFeePerGas": priority_fee, "type": 2,
+            }
+            return str(await self._rpc(network, "eth_sendRawTransaction", [signer.sign_transaction(tx)]))
+
+    async def _receipt(self, network: int, tx_hash: str, *, timeout_s: float = 120.0,
+                       poll_s: float = 1.0) -> dict[str, Any] | None:
+        """The transaction's receipt once mined, or `None` after `timeout_s`."""
+        loop = asyncio.get_running_loop()
+        stop = loop.time() + timeout_s
+        while True:
+            receipt = await self._rpc(network, "eth_getTransactionReceipt", [tx_hash])
+            if receipt:
+                return receipt
+            if loop.time() >= stop:
+                return None
+            await asyncio.sleep(poll_s)
+
+    async def amm_allowance(self, market_id: str) -> Decimal:
+        """What the network's pool contract may spend of an AMM market's
+        token from this wallet, in tokens."""
+        ref, raw = await self._amm_market(market_id)
+        token = raw.get("token") or {}
+        address = self._need_address()
+        result = await self._eth_call(ref.network, str(token.get("address")), sig.allowance_calldata(
+            address, sig.AMM_CONTRACTS[ref.network]))
+        return Decimal(int(result, 16)) / (Decimal(10) ** int(token.get("decimals") or 18))
+
+    async def approve_amm(self, market_id: str, amount: Decimal | None = None, *, wait: bool = True,
+                          timeout_s: float = 120.0) -> dict[str, Any]:
+        """Approve an AMM market's token to its network's pool contract, once
+        per token and network: unlimited by default, or `amount` tokens. One
+        transaction from the wallet, which pays its gas."""
+        ref, raw = await self._amm_market(market_id)
+        token = raw.get("token") or {}
+        value = MAX_UINT256 if amount is None else _units(D(amount), int(token.get("decimals") or 18), ROUND_CEILING)
+        contract = sig.AMM_CONTRACTS[ref.network]
+        tx_hash = await self._send(ref.network, str(token.get("address")), sig.approve_calldata(contract, value),
+                                   what="the approval")
+        if not wait:
+            return {"transaction_hash": tx_hash}
+        receipt = await self._receipt(ref.network, tx_hash, timeout_s=timeout_s)
+        if receipt is None:
+            raise ExchangeError(f"{VENUE}: approval {tx_hash} unmined after {timeout_s}s; it may yet confirm")
+        if int(str(receipt.get("status") or "0x0"), 16) != 1:
+            raise OrderRejected(f"{VENUE}: approval {tx_hash} reverted", reason="reverted", info=receipt)
+        return {"transaction_hash": tx_hash, "receipt": receipt}
+
+    async def redeem_amm(self, market_id: str, *, wait: bool = True, timeout_s: float = 120.0) -> dict[str, Any]:
+        """Claim a resolved AMM market's payout: the winning outcome's shares
+        (`claimWinnings`), or, on a voided market, each outcome held
+        (`claimVoidedOutcomeShares`). One transaction each from the wallet."""
+        ref, raw = await self._amm_market(market_id)
+        if str(raw.get("state") or "") != "resolved":
+            raise InvalidOrder(f"{VENUE}: {ref.native} is {raw.get('state')}; only a resolved market pays out")
+        contract = sig.AMM_CONTRACTS[ref.network]
+        held = sig.decode_holdings(await self._eth_call(ref.network, contract, sig.amm_holdings_calldata(
+            ref.market, self._need_address())))
+        if raw.get("voided"):
+            calls = [sig.amm_claim_voided_calldata(ref.market, k) for k, n in enumerate(held) if n > 0]
+        else:
+            winner = int(raw.get("resolvedOutcomeId") if raw.get("resolvedOutcomeId") is not None else -1)
+            calls = [sig.amm_claim_calldata(ref.market)] if 0 <= winner < len(held) and held[winner] > 0 else []
+        if not calls:
+            raise InvalidOrder(f"{VENUE}: the wallet holds nothing on {ref.native} to claim")
+        hashes = [await self._send(ref.network, contract, data, what="the claim") for data in calls]
+        if not wait:
+            return {"transaction_hashes": hashes}
+        receipts = []
+        for tx_hash in hashes:
+            receipt = await self._receipt(ref.network, tx_hash, timeout_s=timeout_s)
+            if receipt is None:
+                raise ExchangeError(f"{VENUE}: claim {tx_hash} unmined after {timeout_s}s; it may yet confirm")
+            if int(str(receipt.get("status") or "0x0"), 16) != 1:
+                raise OrderRejected(f"{VENUE}: claim {tx_hash} reverted", reason="reverted", info=receipt)
+            receipts.append(receipt)
+        scale = Decimal(10) ** int((raw.get("token") or {}).get("decimals") or 18)
+        paid = sum((Decimal(int(a["value"])) / scale for r in receipts
+                    for a in sig.market_actions(r, contract=contract, user=self.address)), Decimal("0"))
+        return {"transaction_hashes": hashes, "receipts": receipts, "paid": paid}
 
     # -- on-chain helpers -----------------------------------------------------
 
