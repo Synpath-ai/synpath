@@ -1,6 +1,6 @@
 # PRE-6 verification plan
 
-Prepared during `/plan-eng-review`, 25 October 2026. Status: planned, not executed. Full design: [nominal-venue-removal-design.md](nominal-venue-removal-design.md). Implementation awaits final human approval. All execution is offline through scripted venues; do not use real trading credentials or place actual trades.
+Prepared during `/plan-eng-review`, 25 October 2026. Status: approved and executed offline; final CI and merged-tip evidence gate landing. Full design: [nominal-venue-removal-design.md](nominal-venue-removal-design.md). Implementation was explicitly approved with audit-route and recovery safeguards. All execution is offline through scripted venues; do not use real trading credentials or place actual trades. The linked workspace report is `research/synpath-public-testing/PRE6_VERIFICATION.md`; it records observed results and limitations.
 
 ## Affected pages and routes
 

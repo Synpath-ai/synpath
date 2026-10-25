@@ -98,9 +98,11 @@ async def test_membership_filters_page_live_and_finished_parents_with_indexed_qu
                              market_id="other:market", side="buy", type="limit", time_in_force="gtc", status="open", quantity="1", created_at=1000)
             await store.upsert_order(outsider)
             captured = []
+            executed_queries = []
             execute = store._db.execute
 
             def record_query(query, params=()):
+                executed_queries.append(query)
                 if query.startswith("SELECT payload") and "parent_execution_accounts" in query:
                     captured.append((query, params))
                 return execute(query, params)
@@ -108,6 +110,16 @@ async def test_membership_filters_page_live_and_finished_parents_with_indexed_qu
             monkeypatch.setattr(store._db, "execute", record_query)
             for venue in ("kalshi", "polymarket"):
                 for open_only in (False, True):
+                    for page_size in (1, 3, 20):
+                        before_count = len(executed_queries)
+                        first_page = await store.orders_page(venue=venue, open_only=open_only, limit=page_size)
+                        queries = executed_queries[before_count:]
+                        assert len(queries) == 1, queries
+                        assert queries[0].startswith("SELECT payload")
+                        assert "parent_execution_accounts" in queries[0]
+                        assert len(first_page) == min(page_size, 5 if open_only else 10)
+                        print(f"{config['backend']} venue={venue} open_only={open_only} limit={page_size}: "
+                              f"{len(queries)} select, {len(first_page)} rows, no per-row scope queries")
                     rows, cursor = [], None
                     while True:
                         page = await store.orders_page(venue=venue, open_only=open_only, before=cursor, limit=3)

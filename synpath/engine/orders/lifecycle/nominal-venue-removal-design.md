@@ -225,9 +225,9 @@ Parent admission scales with enabled members, not historical parent count. Reuse
 
 ## Implementation Tasks
 
-- [ ] **T1 (P2)** — SDK scope/admission — implement the venue-neutral routed-parent contract and the D2 full-capacity risk policy; reuse concrete-account child dispatch. Verify reversed members, all allocation to non-first venue, flips, named accounts and conservative rejection of an otherwise valid split.
-- [ ] **T2 (P1)** — SDK journal/migrations — implement D3 atomic parent persistence and scope membership, private projection identity and legacy backfill. Verify injected failures, cancellation, restart and migration on both backends.
-- [ ] **T3 (P1)** — SDK submission/server — implement D4 single captured scope and consistent scope-based read/action/event authorization. Verify the interleaved bucket edit and the all-account/partial-account permission matrix.
+- [x] **T1 (P2)** — SDK scope/admission — implement the venue-neutral routed-parent contract and the D2 full-capacity risk policy; reuse concrete-account child dispatch. Verify reversed members, all allocation to non-first venue, flips, named accounts and conservative rejection of an otherwise valid split.
+- [x] **T2 (P1)** — SDK journal/migrations — implement D3 atomic parent persistence and scope membership, private projection identity and legacy backfill. Verify injected failures, cancellation, restart and migration on both backends.
+- [x] **T3 (P1)** — SDK submission/server — implement D4 single captured scope and consistent scope-based read/action/event authorization. Verify the interleaved bucket edit and the all-account/partial-account permission matrix.
 
 These tasks derive from the three findings above; ordinary implementation steps and the required verification report remain described in their own sections. Human/agent effort estimates are not supplied because this repository has no applicable compression table; measure actual work rather than invent precision. No new tasks arose from code quality, test-policy or performance review.
 
