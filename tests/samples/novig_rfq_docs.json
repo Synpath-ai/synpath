@@ -1,0 +1,248 @@
+{
+  "_source": "Examples from Novig's RFQ documentation (docs.novig.com/api-reference/rfq: websocket, webhooks, registration, confirm-rate, executions), copied as published. Documented examples, not recorded traffic.",
+  "ws": {
+    "rfq_created": {
+      "event": "rfq_created",
+      "data": {
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "outcome_ids": [
+          "11111111-1111-1111-1111-111111111111",
+          "22222222-2222-2222-2222-222222222222"
+        ],
+        "expires_at": "2026-01-01T00:00:03Z",
+        "min_wager": "15"
+      },
+      "timestamp": "2026-01-01T00:00:00.123Z"
+    },
+    "rfq_closed": {
+      "event": "rfq_closed",
+      "data": {
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001"
+      },
+      "timestamp": "2026-01-01T00:00:03.001Z"
+    },
+    "rfq_executed": {
+      "event": "rfq_executed",
+      "data": {
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "wager": "50",
+        "price": "0.50",
+        "executed_at": "2023-11-14T22:13:20Z"
+      },
+      "timestamp": "2023-11-14T22:13:20.050Z"
+    },
+    "quote_created": {
+      "event": "quote_created",
+      "data": {
+        "quote_id": "0193abcd-0000-7000-8000-00000000000a",
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "pricer_trader_id": "0193abcd-0000-7000-8000-0000000000ff"
+      },
+      "timestamp": "2026-01-01T00:00:03.001Z"
+    },
+    "quote_accepted": {
+      "event": "quote_accepted",
+      "data": {
+        "quote_id": "0193abcd-0000-7000-8000-00000000000a",
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "pricer_trader_id": "0193abcd-0000-7000-8000-0000000000ff",
+        "wager": "50",
+        "price": "0.55",
+        "external_flag": "mm-1"
+      },
+      "timestamp": "2026-01-01T00:00:05.250Z"
+    },
+    "quote_executed": {
+      "event": "quote_executed",
+      "data": {
+        "quote_id": "0193abcd-0000-7000-8000-00000000000a",
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "pricer_trader_id": "0193abcd-0000-7000-8000-0000000000ff",
+        "wager": "50",
+        "price": "0.55",
+        "executed_at": "2023-11-14T22:13:20Z"
+      },
+      "timestamp": "2023-11-14T22:13:20.050Z"
+    },
+    "quote_unfilled": {
+      "event": "quote_unfilled",
+      "data": {
+        "quote_id": "0193abcd-0000-7000-8000-00000000000a",
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "pricer_trader_id": "0193abcd-0000-7000-8000-0000000000ff",
+        "reason": "taker_insolvent"
+      },
+      "timestamp": "2023-11-14T22:13:20.050Z"
+    },
+    "quote_dropped": {
+      "event": "quote_dropped",
+      "data": {
+        "quote_id": "0193abcd-0000-7000-8000-00000000000a",
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "pricer_trader_id": "0193abcd-0000-7000-8000-0000000000ff",
+        "reason": "below_min_wager",
+        "min_wager": "15"
+      },
+      "timestamp": "2026-01-01T00:00:03.001Z"
+    },
+    "subscribed": {
+      "event": "subscribed",
+      "data": {
+        "channel": "rfq"
+      },
+      "timestamp": "2026-01-01T00:00:00.123Z"
+    },
+    "quote_submitted": {
+      "event": "quote_submitted",
+      "data": {
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001"
+      },
+      "timestamp": "2026-01-01T00:00:01.500Z"
+    },
+    "confirm_recorded": {
+      "event": "confirm_recorded",
+      "data": {
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "quote_id": "0193abcd-0000-7000-8000-00000000000a"
+      },
+      "timestamp": "2026-01-01T00:00:05.400Z"
+    },
+    "error_rfq_closed": {
+      "event": "error",
+      "data": {
+        "code": "RFQ_CLOSED",
+        "message": "The quote round has already closed.",
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001"
+      },
+      "timestamp": "2026-01-01T00:00:03.100Z"
+    },
+    "error_locked": {
+      "event": "error",
+      "data": {
+        "code": "FORBIDDEN",
+        "message": "Maker is locked out of RFQ quoting until 2026-10-06T18:28:00Z for a low confirm rate.",
+        "rfq_id": "0193abcd-0000-7000-8000-000000000002"
+      },
+      "timestamp": "2026-10-06T18:24:10.000Z"
+    },
+    "create_quote": {
+      "event": "create_quote",
+      "data": {
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "price": "0.45",
+        "max_wager": "250",
+        "quote_id": "mm-1"
+      }
+    },
+    "confirm": {
+      "event": "confirm",
+      "data": {
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "quote_id": "0193abcd-0000-7000-8000-00000000000a",
+        "confirmed": true
+      }
+    }
+  },
+  "webhook": {
+    "quote_request": {
+      "rfq_id": "9b1d76e0-2fa9-0c1d-8e74-b3a5f6c218e0",
+      "outcome_ids": [
+        "11111111-1111-1111-1111-111111111111",
+        "22222222-2222-2222-2222-222222222222"
+      ],
+      "timestamp": "2026-04-29T18:42:11.123Z",
+      "min_wager": "50.00"
+    },
+    "quote_response": {
+      "price": 0.45,
+      "max_wager": "250.00",
+      "quote_id": "pricer-quote-xyz"
+    },
+    "confirm_request": {
+      "rfq_id": "9b1d76e0-2fa9-0c1d-8e74-b3a5f6c218e0",
+      "wager": "100.00",
+      "price": "0.45",
+      "external_flag": "pricer-quote-xyz"
+    },
+    "confirm_response": {
+      "confirmed": true
+    },
+    "ping_request": {
+      "pricer_id": "0193abcd-0000-7000-8000-000000000001",
+      "timestamp": "2026-04-29T18:42:11.123Z"
+    }
+  },
+  "rest": {
+    "register_response": {
+      "pricerId": "0193abcd-0000-7000-8000-000000000001",
+      "webhookUrl": "https://pricer.example.com/novig",
+      "sharedSecret": null
+    },
+    "pricer": {
+      "pricerId": "0193abcd-0000-7000-8000-000000000001",
+      "webhookUrl": "https://pricer.example.com/novig",
+      "confirmStanding": {
+        "lookbackMinutes": 30,
+        "counted": 34,
+        "confirmed": 29,
+        "threshold": "0.60",
+        "minSample": 20
+      },
+      "lock": null
+    },
+    "pricer_locked": {
+      "pricerId": "0193abcd-0000-7000-8000-000000000001",
+      "webhookUrl": "https://pricer.example.com/novig",
+      "confirmStanding": {
+        "lookbackMinutes": 30,
+        "counted": 0,
+        "confirmed": 0,
+        "threshold": "0.60",
+        "minSample": 20
+      },
+      "lock": {
+        "until": "2026-10-06T18:28:00Z",
+        "source": "confirm_rate"
+      }
+    },
+    "ping": {
+      "url": "https://pricer.example.com/novig/ping",
+      "ok": true,
+      "status": 200,
+      "error": null
+    },
+    "executions": [
+      {
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "parlay_id": "0193abcd-0000-7000-8000-0000000000aa",
+        "wager": "42.00",
+        "price": "0.42",
+        "liability": "58.00",
+        "status": "settled",
+        "result": "fmv",
+        "fmv_value": "0.541",
+        "outcome_ids": [
+          "11111111-1111-1111-1111-111111111111",
+          "22222222-2222-2222-2222-222222222222"
+        ],
+        "executed_at": "2026-06-16T22:13:20Z",
+        "settled_at": "2026-06-17T03:41:09Z"
+      }
+    ],
+    "collateral": {
+      "rfq_collateral": "300.00",
+      "rfqs_filled": 2,
+      "timestamp": "2026-09-23T21:36:32.123456Z"
+    },
+    "feed_frame": {
+      "event": "rfq_executed",
+      "data": {
+        "offset": 12345,
+        "rfq_id": "0193abcd-0000-7000-8000-000000000001",
+        "wager": "50",
+        "price": "0.50",
+        "executed_at": "2026-06-16T22:13:20Z"
+      }
+    }
+  }
+}
