@@ -131,7 +131,11 @@ async def test_membership_filters_page_live_and_finished_parents_with_indexed_qu
                                 and (not open_only or not order.is_terminal)]
                     assert {(order.venue, order.id) for order, _ in rows} == {(order.venue, order.id) for order in expected}
                     assert len(rows) == len(expected)
-                    assert [key for _, key in rows] == sorted([key for _, key in rows], reverse=True)
+                    # Venue/id ordering follows the database collation, which may
+                    # differ from Python codepoint ordering (for example en_US).
+                    # Page boundaries must reproduce that backend's complete order.
+                    unpaged = await store.orders_page(venue=venue, open_only=open_only, limit=None)
+                    assert [key for _, key in rows] == [key for _, key in unpaged]
                     assert sum(bool(order.execution_accounts) for order, _ in rows) == (4 if open_only else 8)
                 account = ACCOUNT_K if venue == "kalshi" else ACCOUNT_P
                 opened = await store.open_orders(account_key=account.key)
