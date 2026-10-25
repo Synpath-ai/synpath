@@ -35,8 +35,8 @@ from . import local
 
 log = logging.getLogger("synpath.serve")
 
-VENUES = ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "novig",
-          "matchbook", "prophetx", "azuro", "myriad", "gemini")
+VENUES = ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair",
+          "novig", "matchbook", "prophetx", "azuro", "myriad", "gemini")
 
 
 def venues_config(config: dict[str, Any], credentials: dict[str, Any]) -> dict[str, Any]:

@@ -42,6 +42,7 @@ asyncio.run(main())
 | `SxBetMarketStream` | `realtime.sx.bet` (or the testnet) | SX Bet API key (every channel needs one) | whole books, top of book, the tape of taker bets, market changes and settlements |
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
+| `BetfairUserStream` | `stream-api.betfair.com:443`, its own connection | the same application key and login | the account's bets on every change; a fill with each increase of a bet's matched stake; matched positions per runner |
 | `AzuroMarketStream` | `streams.onchainfeed.org` (`dev-streams` for the testnets) | none | each condition's odds as quotes, one-level books sized by the pool's limits, condition status changes |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
 | `NovigMarketStream` | `api.novig.com/v3/ws` (or Paper's); without a key, the public REST book polled | a subaccount's trading key for the WebSocket (the handshake is signed); none to poll | books kept per order, top of book, the tape, market transitions (going in play voids resting orders) |
@@ -216,7 +217,23 @@ jittered exponential backoff between attempts.
   180,000 ms**: at most one update per market every three minutes, whatever
   `conflate_ms` asks. The stream logs a warning once when it sees that, and
   waits a whole conflation window before treating silence as a dead socket.
-  No public trades, so no `watch_trades`; no account stream yet.
+  No public trades, so no `watch_trades`.
+  `BetfairUserStream` is the same protocol on a second connection, one
+  `orderSubscription` for the whole account (`watch_orders(market_ids)`
+  drops the rest here). Betfair sends every changed bet whole (`uo`), so
+  each is an `OrderEvent`; an increase in its matched stake is a
+  `FillEvent` at the odds the increase averaged, with `<bet id>:<matched
+  stake>` as its id. A runner removal that reduces a matched price, and a
+  void, change the bet and the position, never add a fill. The matched
+  ladders per runner (`mb`, `ml`, `[odds, stake]`) are the
+  `PositionEvent`s, backs as YES contracts and lays as NO. The first image
+  after subscribing carries only bets still unmatched in part and is the
+  baseline fills are counted from; a reconnect resumes from the clock where
+  Betfair can and is reported with `reconcile_required`, and a message
+  Betfair marks `503` (its order data running late) is reported as an
+  error with `reconcile_required` until it clears. Customer strategy refs
+  narrow it (`strategy_refs=`); it can share `BetfairTrading.session`, as
+  `synpath serve` does, so one login serves the adapter and both streams.
 - *Azuro* speaks plain JSON on `wss://streams.onchainfeed.org/v1/streams/feed`:
   `SubscribeConditions` (and `UnsubscribeConditions`) with the condition ids
   and the chain's environment (`PolygonUSDT`, `BaseWETH`), and a
@@ -486,7 +503,10 @@ documented heartbeat and rely on gRPC keepalive.
   hand-built messages in its documented shapes (no account was available):
   a TLS-shaped socket carrying CRLF framing, authentication, an image then
   deltas and deletes, a resubscribe from the clock, heartbeats, status
-  changes and the 200-market cap. Not yet run against Betfair.
+  changes and the 200-market cap. The order stream runs on the order change
+  messages in Betfair's documentation (a market-level snapshot, a
+  reconnection image, a runner removal, a VAR void and a delayed
+  heartbeat). Not yet run against Betfair.
 
 - **Smarkets:** polls answered from REST quotes recorded anonymously from
   api.smarkets.com: a snapshot, unchanged polls, deltas, a whole market,

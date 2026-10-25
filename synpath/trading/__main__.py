@@ -130,7 +130,7 @@ def doctor(dotenv: str | None) -> int:
             # The application key is a secret too; the username names the account.
             stage = creds.jurisdiction
             login = "certificate" if creds.cert_path else "interactive"
-            identity = f"user {creds.username}, app key loaded, {login} login"
+            identity = f"user {creds.username}, app key loaded, {login} login (betting needs a live key)"
         elif venue == "prophetx":
             stage = "sandbox" if creds.sandbox else "production"
             affiliate = "; affiliate key loaded: market data from the Market Data API" if creds.affiliate_key else ""

@@ -168,10 +168,14 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
                 private=MyriadUserStream(address=address, token=token) if address and token else None,
             )
         elif venue == "betfair" and creds is not None:
-            # Market data only: no Betfair order entry, so no account stream.
-            # Every Betfair stream, books included, logs in with the account.
-            from ..ws.betfair import BetfairMarketStream
-            out[venue] = VenueStreams(market=BetfairMarketStream(credentials=creds), private=None)
+            # Every Betfair stream, books included, logs in with the account;
+            # both share the trading adapter's session, so one login serves all.
+            from ..ws.betfair import BetfairMarketStream, BetfairUserStream
+            session = getattr(adapter, "session", None)
+            out[venue] = VenueStreams(
+                market=BetfairMarketStream(credentials=creds, session=session),
+                private=BetfairUserStream(credentials=creds, session=session),
+            )
         elif venue == "gemini":
             # Books are public; the account stream signs its handshake with
             # the API key, which must be account-scoped and time-based.

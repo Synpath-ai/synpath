@@ -1,0 +1,465 @@
+{
+  "place_lay_request": {
+    "marketId": "1.109850906",
+    "instructions": [
+      {
+        "selectionId": "237486",
+        "handicap": "0",
+        "side": "LAY",
+        "orderType": "LIMIT",
+        "limitOrder": {
+          "size": "2",
+          "price": "3",
+          "persistenceType": "LAPSE"
+        }
+      }
+    ]
+  },
+  "place_lay": {
+    "marketId": "1.109850906",
+    "instructionReports": [
+      {
+        "instruction": {
+          "selectionId": 237486,
+          "handicap": 0,
+          "limitOrder": {
+            "size": 2,
+            "price": 3,
+            "persistenceType": "LAPSE"
+          },
+          "orderType": "LIMIT",
+          "side": "LAY"
+        },
+        "betId": "31242604945",
+        "placedDate": "2013-10-30T14:22:47.000Z",
+        "averagePriceMatched": 0,
+        "sizeMatched": 0,
+        "status": "SUCCESS"
+      }
+    ],
+    "status": "SUCCESS"
+  },
+  "place_persist": {
+    "status": "SUCCESS",
+    "marketId": "1.240636817",
+    "instructionReports": [
+      {
+        "status": "SUCCESS",
+        "instruction": {
+          "selectionId": 47999,
+          "handicap": 0.0,
+          "limitOrder": {
+            "size": 2.0,
+            "price": 10.0,
+            "persistenceType": "PERSIST"
+          },
+          "orderType": "LIMIT",
+          "side": "BACK"
+        },
+        "betId": "383626336337",
+        "placedDate": "2025-04-02T13:23:40.000Z",
+        "averagePriceMatched": 0.0,
+        "sizeMatched": 0.0,
+        "orderStatus": "EXECUTABLE"
+      }
+    ]
+  },
+  "place_fok_killed": {
+    "status": "SUCCESS",
+    "marketId": "1.126124422",
+    "instructionReports": [
+      {
+        "status": "SUCCESS",
+        "instruction": {
+          "selectionId": 10590221,
+          "handicap": 0.0,
+          "limitOrder": {
+            "size": 5.0,
+            "price": 21.0,
+            "minFillSize": 5.0,
+            "timeInForce": "FILL_OR_KILL"
+          },
+          "orderType": "LIMIT",
+          "side": "BACK"
+        },
+        "betId": "72666364933",
+        "placedDate": "2016-08-12T10:45:15.000Z",
+        "averagePriceMatched": 0.0,
+        "sizeMatched": 0.0
+      }
+    ]
+  },
+  "place_fok_partial": {
+    "status": "SUCCESS",
+    "marketId": "1.126124422",
+    "instructionReports": [
+      {
+        "status": "SUCCESS",
+        "instruction": {
+          "selectionId": 10590221,
+          "handicap": 0.0,
+          "limitOrder": {
+            "size": 5.0,
+            "price": 21.0,
+            "minFillSize": 3.0,
+            "timeInForce": "FILL_OR_KILL"
+          },
+          "orderType": "LIMIT",
+          "side": "BACK"
+        },
+        "betId": "72666433304",
+        "placedDate": "2016-08-12T10:47:42.000Z",
+        "averagePriceMatched": 21.32267441860465,
+        "sizeMatched": 3.4400000000000004
+      }
+    ]
+  },
+  "place_version_rejected": {
+    "status": "FAILURE",
+    "errorCode": "BET_ACTION_ERROR",
+    "marketId": "1.192357130",
+    "instructionReports": [
+      {
+        "status": "FAILURE",
+        "errorCode": "BET_TAKEN_OR_LAPSED",
+        "instruction": {
+          "selectionId": 3531817,
+          "handicap": 0.0,
+          "limitOrder": {
+            "size": 2.0,
+            "price": 1000.0,
+            "persistenceType": "LAPSE"
+          },
+          "orderType": "LIMIT",
+          "side": "BACK"
+        },
+        "betId": "253638292039",
+        "placedDate": "2021-12-15T11:05:58.000Z",
+        "averagePriceMatched": 0.0,
+        "sizeMatched": 0.0,
+        "orderStatus": "EXECUTION_COMPLETE"
+      }
+    ]
+  },
+  "current_orders": {
+    "currentOrders": [
+      {
+        "betId": "45496907354",
+        "marketId": "1.117020524",
+        "selectionId": 9170340,
+        "handicap": 0.0,
+        "priceSize": {
+          "price": 10.0,
+          "size": 5.0
+        },
+        "bspLiability": 0.0,
+        "side": "BACK",
+        "status": "EXECUTABLE",
+        "persistenceType": "LAPSE",
+        "orderType": "LIMIT",
+        "placedDate": "2015-01-22T13:01:53.000Z",
+        "averagePriceMatched": 0.0,
+        "sizeMatched": 0.0,
+        "sizeRemaining": 5.0,
+        "sizeLapsed": 0.0,
+        "sizeCancelled": 0.0,
+        "sizeVoided": 0.0,
+        "regulatorCode": "GIBRALTAR REGULATOR"
+      }
+    ],
+    "moreAvailable": false
+  },
+  "cleared_orders": {
+    "clearedOrders": [
+      {
+        "eventTypeId": "1",
+        "eventId": "28746818",
+        "marketId": "1.144281274",
+        "placedDate": "2018-05-29T10:48:50.000Z",
+        "persistenceType": "LAPSE",
+        "orderType": "LIMIT",
+        "betOutcome": "LOST",
+        "settledDate": "2018-05-29T19:12:41.000Z",
+        "lastMatchedDate": "2018-05-29T15:25:26.000Z",
+        "betCount": 8,
+        "commission": 0.0,
+        "priceReduced": false,
+        "profit": -16.0
+      },
+      {
+        "eventTypeId": "2",
+        "eventId": "28741289",
+        "marketId": "1.144157120",
+        "selectionId": 2830908,
+        "handicap": 0.0,
+        "betId": "126613673925",
+        "placedDate": "2018-05-25T08:26:20.000Z",
+        "persistenceType": "LAPSE",
+        "orderType": "LIMIT",
+        "side": "BACK",
+        "betOutcome": "WON",
+        "priceRequested": 1.28,
+        "settledDate": "2018-05-25T10:19:02.000Z",
+        "lastMatchedDate": "2018-05-25T08:26:40.000Z",
+        "betCount": 1,
+        "commission": 0.03,
+        "priceMatched": 1.28,
+        "priceReduced": false,
+        "sizeSettled": 2.0,
+        "profit": 0.56
+      },
+      {
+        "eventTypeId": "7",
+        "eventId": "28739568",
+        "marketId": "1.144114832",
+        "selectionId": 11295111,
+        "handicap": 0.0,
+        "placedDate": "2018-05-23T21:27:52.000Z",
+        "orderType": "LIMIT",
+        "betOutcome": "WON",
+        "settledDate": "2018-05-24T13:06:01.000Z",
+        "lastMatchedDate": "2018-05-24T13:04:24.000Z",
+        "betCount": 2,
+        "commission": 0.11,
+        "priceReduced": true,
+        "profit": 2.14,
+        "customerStrategyRef": "HedgerPro_216"
+      },
+      {
+        "eventTypeId": "7",
+        "eventId": "28739518",
+        "marketId": "1.144114517",
+        "selectionId": 8912176,
+        "handicap": 0.0,
+        "betId": "126486489864",
+        "placedDate": "2018-05-23T15:31:57.000Z",
+        "persistenceType": "LAPSE",
+        "orderType": "LIMIT",
+        "side": "BACK",
+        "betOutcome": "LOST",
+        "priceRequested": 11.5,
+        "settledDate": "2018-05-23T17:12:22.000Z",
+        "lastMatchedDate": "2018-05-23T15:31:57.000Z",
+        "betCount": 1,
+        "commission": 0.0,
+        "priceMatched": 11.5,
+        "priceReduced": false,
+        "sizeSettled": 2.65,
+        "profit": -2.65
+      },
+      {
+        "eventTypeId": "1",
+        "eventId": "28724382",
+        "marketId": "1.143781550",
+        "selectionId": 2081063,
+        "handicap": 0.0,
+        "placedDate": "2018-05-21T15:43:12.000Z",
+        "persistenceType": "LAPSE",
+        "orderType": "LIMIT",
+        "side": "BACK",
+        "betOutcome": "LOST",
+        "priceRequested": 4.4,
+        "settledDate": "2018-05-21T20:53:27.000Z",
+        "lastMatchedDate": "2018-05-21T15:43:12.000Z",
+        "betCount": 3,
+        "commission": 0.0,
+        "priceMatched": 4.4,
+        "priceReduced": false,
+        "sizeSettled": 6.0,
+        "profit": -6.0
+      },
+      {
+        "eventTypeId": "1",
+        "eventId": "28717428",
+        "marketId": "1.143588270",
+        "selectionId": 18565,
+        "handicap": 0.0,
+        "betId": "125772703658",
+        "placedDate": "2018-05-16T14:48:53.000Z",
+        "persistenceType": "LAPSE",
+        "orderType": "LIMIT",
+        "side": "BACK",
+        "betOutcome": "WON",
+        "priceRequested": 2.18,
+        "settledDate": "2018-05-16T20:43:37.000Z",
+        "lastMatchedDate": "2018-05-16T14:48:53.000Z",
+        "betCount": 1,
+        "commission": 0.12,
+        "priceMatched": 2.18,
+        "priceReduced": false,
+        "sizeSettled": 2.0,
+        "profit": 2.36
+      },
+      {
+        "eventTypeId": "1",
+        "eventId": "28722989",
+        "marketId": "1.143732676",
+        "selectionId": 198689,
+        "handicap": 0.0,
+        "placedDate": "2018-05-14T13:22:56.000Z",
+        "persistenceType": "LAPSE",
+        "orderType": "LIMIT",
+        "side": "BACK",
+        "betOutcome": "WON",
+        "priceRequested": 1.42,
+        "settledDate": "2018-05-14T18:22:07.000Z",
+        "lastMatchedDate": "2018-05-14T13:22:56.000Z",
+        "betCount": 2,
+        "commission": 0.13,
+        "priceMatched": 1.42,
+        "priceReduced": false,
+        "sizeSettled": 6.0,
+        "profit": 2.52
+      }
+    ],
+    "moreAvailable": false
+  },
+  "account_funds": {
+    "availableToBetBalance": 95.5,
+    "exposure": -4.5,
+    "retainedCommission": 0.0,
+    "exposureLimit": -10000.0,
+    "discountRate": 0.0,
+    "pointsBalance": 10,
+    "wallet": "UK"
+  },
+  "account_details": {
+    "currencyCode": "GBP",
+    "firstName": "Joe",
+    "lastName": "Bloggs",
+    "localeCode": "en",
+    "region": "GBR",
+    "timezone": "GMT",
+    "discountRate": 0.0,
+    "pointsBalance": 10,
+    "countryCode": "GB"
+  },
+  "cancel": {
+    "status": "SUCCESS",
+    "marketId": "1.117020524",
+    "instructionReports": [
+      {
+        "status": "SUCCESS",
+        "instruction": {
+          "betId": "45496907354"
+        },
+        "sizeCancelled": 5.0,
+        "cancelledDate": "2015-01-22T13:05:01.000Z"
+      }
+    ]
+  },
+  "cancel_taken": {
+    "status": "FAILURE",
+    "errorCode": "BET_ACTION_ERROR",
+    "marketId": "1.117020524",
+    "instructionReports": [
+      {
+        "status": "FAILURE",
+        "errorCode": "BET_TAKEN_OR_LAPSED",
+        "instruction": {
+          "betId": "45496907354"
+        }
+      }
+    ]
+  },
+  "cancel_partial": {
+    "status": "SUCCESS",
+    "marketId": "1.117020524",
+    "instructionReports": [
+      {
+        "status": "SUCCESS",
+        "instruction": {
+          "betId": "45496907354",
+          "sizeReduction": 2.0
+        },
+        "sizeCancelled": 2.0,
+        "cancelledDate": "2015-01-22T13:05:01.000Z"
+      }
+    ]
+  },
+  "replace": {
+    "status": "SUCCESS",
+    "marketId": "1.117020524",
+    "instructionReports": [
+      {
+        "status": "SUCCESS",
+        "cancelInstructionReport": {
+          "status": "SUCCESS",
+          "instruction": {
+            "betId": "45496907354"
+          },
+          "sizeCancelled": 5.0,
+          "cancelledDate": "2015-01-22T13:06:00.000Z"
+        },
+        "placeInstructionReport": {
+          "status": "SUCCESS",
+          "instruction": {
+            "selectionId": 9170340,
+            "handicap": 0.0,
+            "limitOrder": {
+              "size": 5.0,
+              "price": 12.0,
+              "persistenceType": "LAPSE"
+            },
+            "orderType": "LIMIT",
+            "side": "BACK"
+          },
+          "betId": "45496907999",
+          "placedDate": "2015-01-22T13:06:00.000Z",
+          "averagePriceMatched": 0.0,
+          "sizeMatched": 0.0
+        }
+      }
+    ]
+  },
+  "update": {
+    "status": "SUCCESS",
+    "marketId": "1.117020524",
+    "instructionReports": [
+      {
+        "status": "SUCCESS",
+        "instruction": {
+          "betId": "45496907354",
+          "newPersistenceType": "PERSIST"
+        }
+      }
+    ]
+  },
+  "profit_and_loss": [
+    {
+      "marketId": "1.117020524",
+      "profitAndLosses": [
+        {
+          "selectionId": 9170340,
+          "ifWin": 45.0
+        },
+        {
+          "selectionId": 9170341,
+          "ifWin": -5.0
+        }
+      ]
+    }
+  ],
+  "cleared_cancelled": {
+    "clearedOrders": [
+      {
+        "eventTypeId": "1",
+        "eventId": "27312315",
+        "marketId": "1.117020524",
+        "selectionId": 9170340,
+        "handicap": 0.0,
+        "betId": "45496907354",
+        "placedDate": "2015-01-22T13:01:53.000Z",
+        "persistenceType": "LAPSE",
+        "orderType": "LIMIT",
+        "side": "BACK",
+        "priceRequested": 10.0,
+        "settledDate": "2015-01-22T13:05:01.000Z",
+        "betCount": 1,
+        "priceReduced": false,
+        "sizeCancelled": 5.0
+      }
+    ],
+    "moreAvailable": false
+  }
+}

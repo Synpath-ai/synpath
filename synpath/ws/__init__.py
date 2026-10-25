@@ -53,9 +53,9 @@ def __getattr__(name: str):
     if name in ("MyriadMarketStream", "MyriadUserStream"):
         from . import myriad
         return getattr(myriad, name)
-    if name == "BetfairMarketStream":
-        from .betfair import BetfairMarketStream
-        return BetfairMarketStream
+    if name in ("BetfairMarketStream", "BetfairUserStream"):
+        from . import betfair
+        return getattr(betfair, name)
     if name == "SmarketsMarketStream":
         from .smarkets import SmarketsMarketStream
         return SmarketsMarketStream
@@ -93,5 +93,5 @@ __all__ = [
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
     "OpinionMarketStream", "OpinionUserStream", "HyperliquidMarketStream", "HyperliquidUserStream",
     "PredictFunMarketStream", "PredictFunUserStream", "LimitlessMarketStream", "LimitlessUserStream", "SxBetMarketStream", "SxBetUserStream",
-    "BetfairMarketStream", "SmarketsMarketStream", "NovigMarketStream", "NovigUserStream", "MatchbookMarketStream", "ProphetXMarketStream", "ProphetXUserStream", "AzuroMarketStream", "MyriadMarketStream", "MyriadUserStream", "GeminiMarketStream", "GeminiUserStream",
+    "BetfairMarketStream", "BetfairUserStream", "SmarketsMarketStream", "NovigMarketStream", "NovigUserStream", "MatchbookMarketStream", "ProphetXMarketStream", "ProphetXUserStream", "AzuroMarketStream", "MyriadMarketStream", "MyriadUserStream", "GeminiMarketStream", "GeminiUserStream",
 ]

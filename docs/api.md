@@ -96,7 +96,8 @@ competition, query)`, the venue's own sports and fixtures as it lists them,
 and takes `event_type` (an id or a name, `"Soccer"`), `competition`, `event`
 and `market_type` (`"MATCH_ODDS"`) on `fetch_markets` and `fetch_events`.
 Every Betfair call needs your own account and application key; see
-[Betfair](capabilities.md#betfair).
+[Betfair](capabilities.md#betfair). Betting is `BetfairTrading`
+([trading](trading.md#betfair)).
 
 ```python
 bf = synpath.Betfair()                    # BETFAIR_APP_KEY, BETFAIR_USERNAME, BETFAIR_PASSWORD
