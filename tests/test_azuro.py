@@ -290,6 +290,17 @@ class TestAdapter:
             venue.fetch_market(f"azuro:{CORNERS['conditionId']}-1")
         assert venue.fetch_market(f"azuro:{THREE_WAY['conditionId']}-3").yes.label == "Trefelin FC (-1)"
 
+    def test_conditions_by_id_carry_their_game_and_combo_flag(self):
+        venue = venue_with(FEED)
+        found = venue.fetch_conditions([CORNERS["conditionId"], SETTLED_ID, "123", CORNERS["conditionId"]])
+        assert list(found) == [CORNERS["conditionId"], SETTLED_ID]
+        assert found[CORNERS["conditionId"]]["isExpressForbidden"] is False
+        assert found[CORNERS["conditionId"]]["game"]["gameId"] == GAME["gameId"]
+        [(_, path, body), (_, batch_path, batch)] = venue.http.calls
+        assert path == "/market-manager/conditions-by-game-ids"
+        assert sorted(body["gameIds"]) == sorted([GAME["gameId"], FINISHED["gameId"]])
+        assert batch_path == "/market-manager/condition-batch" and batch["conditionIds"] == ["123"]
+
     def test_an_unknown_market(self):
         venue = venue_with({**FEED, "POST /market-manager/conditions-by-game-ids": {"conditions": []},
                             "POST /market-manager/condition-batch": {"conditions": []}})

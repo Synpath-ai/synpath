@@ -179,9 +179,11 @@ Azuro needs no key. It adds `fetch_sports()` (the feed's sports, countries
 and leagues with their open game counts), `fetch_limits(market_id, side)`
 (the pool's minimum and maximum bet and maximum payout on one selection) and
 `fetch_condition_states(condition_ids)` (fresh odds and states, without the
-games), and takes `sport` and `league` (the feed's slugs, `"football"`,
+games), `fetch_conditions(condition_ids)` (conditions by id with their game
+and whether they may go in a combo, `isExpressForbidden`), and takes `sport` and `league` (the feed's slugs, `"football"`,
 `"premier-league"`) on `fetch_markets` and `fetch_events`. `chain=` picks the
-pool read: `polygon` (the default), `base`, or a testnet. See
+pool read: `polygon` (the default), `base`, or a testnet. Combos and claiming
+payouts are on `AzuroTrading` ([trading](trading.md#azuro)). See
 [Azuro](capabilities.md#azuro).
 
 ```python
@@ -191,6 +193,7 @@ market = markets[0]
 market.yes.quote.ask, market.info["odds"]   # 1 / odds, and the venue's odds
 azuro.fetch_limits(market.id)               # {"min_bet", "max_bet", "max_payout", ...}
 azuro.fetch_trades(market.id)               # single bets, from the bets subgraph
+azuro.fetch_conditions([market.info["condition_id"]])   # {id: condition}, isExpressForbidden and the game
 ```
 
 Myriad needs no key (an API key and secret raise its rate limit). It takes
