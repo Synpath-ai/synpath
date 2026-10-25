@@ -65,6 +65,12 @@ ADAPTERS = {
     "predict_fun": ("..trading.predict_fun", "PredictFunTrading"),
     "limitless": ("..trading.limitless", "LimitlessTrading"),
     "sx_bet": ("..trading.sx_bet", "SxBetTrading"),
+    "novig": ("..trading.novig", "NovigTrading"),
+    "matchbook": ("..trading.matchbook", "MatchbookTrading"),
+    "prophetx": ("..trading.prophetx", "ProphetXTrading"),
+    "azuro": ("..trading.azuro", "AzuroTrading"),
+    "myriad": ("..trading.myriad", "MyriadTrading"),
+    "gemini": ("..trading.gemini", "GeminiTrading"),
 }
 
 

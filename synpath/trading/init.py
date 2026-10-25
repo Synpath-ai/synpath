@@ -71,7 +71,7 @@ def _pem_file(raw: str) -> str | None:
         return "The path to the private key file is required."
     path = Path(raw).expanduser()
     if not path.is_file():
-        return f"No file at {path}. Give the full path to the key file Kalshi downloaded."
+        return f"No file at {path}. Give the full path to the key file the venue gave you."
     try:
         head = path.read_bytes()[:4096]
     except OSError as exc:
@@ -250,6 +250,29 @@ def ask_sx_bet(p: Prompter) -> dict[str, str]:
     return values
 
 
+def ask_myriad(p: Prompter) -> dict[str, str]:
+    p.say("\nMyriad: market data is public and needs nothing; this is for trading on its order book (BNB Chain).")
+    p.say("The private key (64 hex characters) of the wallet your Myriad account is connected to signs every")
+    p.say("order and cancel. An API key and secret (Myriad Account settings; the secret is shown once) sign")
+    p.say("your requests and raise the rate limit; without one, the wallet signs in for a session instead, and a")
+    p.say("wallet that never signed in gets a Myriad account on its first sign-in. A key alone reads the account.")
+    api_key = p.value("API key (empty to sign in with the wallet instead)", default="", check=lambda raw: None)
+    values: dict[str, str] = {}
+    if api_key:
+        values["MYRIAD_API_KEY"] = api_key
+        values["MYRIAD_API_SECRET"] = p.value("API secret (typed hidden)", secret=True, check=_required("The API secret"))
+        key = _optional_private_key(p, purpose="placing and cancelling orders")
+    else:
+        key = p.value("Private key (64 hex characters, typed hidden)", secret=True, check=_private_key)
+    if key:
+        values["MYRIAD_PRIVATE_KEY"] = _with_0x(key)
+    else:
+        account = p.value("Wallet address, 0x and 40 hex (public, not the private key)",
+                          check=lambda raw: None if ADDRESS.match(raw) else _not_an_address(raw))
+        values["MYRIAD_ACCOUNT_ADDRESS"] = account
+    return values
+
+
 def ask_betfair(p: Prompter) -> dict[str, str]:
     p.say("\nBetfair: your application key (the delayed key is free: developer.betfair.com, or the Accounts API")
     p.say("visualiser) and your Betfair login. Every Betfair call, market data included, logs in. The key and the")
@@ -278,6 +301,85 @@ def ask_smarkets(p: Prompter) -> dict[str, str]:
     return {"SMARKETS_USERNAME": username, "SMARKETS_PASSWORD": password}
 
 
+def ask_novig(p: Prompter) -> dict[str, str]:
+    p.say("\nNovig: market data is public and needs nothing; this is for trading. Trading uses a subaccount's")
+    p.say("trading key: make the management key in the web app (Profile -> Settings -> Novig API; paper.novig.com")
+    p.say("for Paper), then open a subaccount with it, which issues the trading key. Each key is a key id and a")
+    p.say("PEM private key file (Ed25519 or P-256). Production needs US identity and location checks.")
+    env = p.value("Environment, production (real money) or paper", check=_choice("production", "paper"),
+                  default="production")
+    values = {"NOVIG_ENV": env}
+    key_id = p.value("Trading key id (empty if you have only the management key so far)", default="",
+                     check=lambda raw: None)
+    if key_id:
+        values["NOVIG_KEY_ID"] = key_id
+        values["NOVIG_PRIVATE_KEY_PATH"] = str(Path(p.value("Path to its private key file (.pem)",
+                                                            check=_pem_file)).expanduser().resolve())
+    management = p.value("Management key id (optional: opens and funds subaccounts; empty to skip)", default="",
+                         check=lambda raw: None if raw or key_id else "Give a trading key or the management key.")
+    if management:
+        values["NOVIG_MANAGEMENT_KEY_ID"] = management
+        values["NOVIG_MANAGEMENT_PRIVATE_KEY_PATH"] = str(Path(p.value(
+            "Path to the management key file (novig-api-key-<name>.pem)", check=_pem_file)).expanduser().resolve())
+    if env == "production":
+        p.say("  production trades real money.")
+    return values
+
+
+def ask_matchbook(p: Prompter) -> dict[str, str]:
+    p.say("\nMatchbook: your Matchbook login, for betting. Market data needs no login. An account with")
+    p.say("two-factor login cannot log in from here. The password is typed hidden.")
+    username = p.value("Matchbook username", check=_required("The username"))
+    password = p.value("Matchbook password (typed hidden)", secret=True, check=_required("The password"))
+    return {"MATCHBOOK_USERNAME": username, "MATCHBOOK_PASSWORD": password}
+
+
+def ask_prophetx(p: Prompter) -> dict[str, str]:
+    p.say("\nProphetX: the Trading API key pair reads market data, streams it and places orders. Any KYC-approved")
+    p.say("account makes one at prophetx.co -> Menu -> API Integration (sandbox.prophetx.dev for the sandbox);")
+    p.say("the secret key is shown once. A Market Data API key (optional) is issued by ProphetX's market data")
+    p.say("team on request and reads market data only. Every key is typed hidden.")
+    access = p.value("Access key (typed hidden)", secret=True, check=_required("The access key"))
+    secret = p.value("Secret key (typed hidden)", secret=True, check=_required("The secret key"))
+    affiliate = p.value("Market Data API key (typed hidden, empty for none)", secret=True, default="",
+                        check=lambda raw: None)
+    values = {"PROPHETX_ACCESS_KEY": access, "PROPHETX_SECRET_KEY": secret}
+    if affiliate:
+        values["PROPHETX_AFFILIATE_KEY"] = affiliate
+    if p.value("Use the sandbox? (y/n)", check=_choice("y", "n"), default="n") == "y":
+        values["PROPHETX_SANDBOX"] = "1"
+    return values
+
+
+def ask_azuro(p: Prompter) -> dict[str, str]:
+    p.say("\nAzuro: market data is public and needs nothing; this is for betting. It needs the private key")
+    p.say("(64 hex characters) of the wallet that signs each bet and holds the bet token: USDT on Polygon, WETH")
+    p.say("on Base. The wallet also approves Azuro's relayer to spend the token once, on chain (approve()).")
+    key = p.value("Private key (64 hex characters, typed hidden)", secret=True, check=_private_key)
+    chain = p.value("Chain (polygon, base, polygon_amoy, base_sepolia)", default="polygon",
+                    check=_choice("polygon", "base", "polygon_amoy", "base_sepolia"))
+    values = {"AZURO_PRIVATE_KEY": _with_0x(key)}
+    if chain != "polygon":
+        values["AZURO_CHAIN"] = chain
+    return values
+
+
+def ask_gemini(p: Prompter) -> dict[str, str]:
+    p.say("\nGemini Predictions: market data needs no key. Trading needs a Gemini account with Prediction Markets")
+    p.say("access (US) and an API key from exchange.gemini.com/settings/api: account-scoped, Trader role, and")
+    p.say("'Uses a time-based nonce' ticked (the WebSocket takes no other kind). The secret is typed hidden.")
+    key = p.value("API key (account-...)", check=_required("The API key"))
+    secret = p.value("API secret (typed hidden)", secret=True,
+                     check=lambda raw: "The API secret is required." if not raw else
+                     "That is the API key again; the secret is the other half of the pair." if raw == key else None)
+    env = p.value("Environment (prod trades real money; sandbox uses api.sandbox.gemini.com)", default="prod",
+                  check=_choice("prod", "sandbox"))
+    values = {"GEMINI_API_KEY": key, "GEMINI_API_SECRET": secret}
+    if env != "prod":
+        values["GEMINI_ENV"] = env
+    return values
+
+
 VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", ("KALSHI_KEY_ID",), ask_kalshi),
     ("Polymarket", ("POLYMARKET_PRIVATE_KEY",), ask_polymarket),
@@ -289,6 +391,12 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("SX Bet", ("SX_BET_API_KEY", "SX_BET_PRIVATE_KEY"), ask_sx_bet),
     ("Betfair", ("BETFAIR_APP_KEY",), ask_betfair),
     ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
+    ("Novig", ("NOVIG_KEY_ID", "NOVIG_MANAGEMENT_KEY_ID"), ask_novig),
+    ("Matchbook", ("MATCHBOOK_USERNAME",), ask_matchbook),
+    ("ProphetX", ("PROPHETX_ACCESS_KEY", "PROPHETX_AFFILIATE_KEY"), ask_prophetx),
+    ("Azuro", ("AZURO_PRIVATE_KEY",), ask_azuro),
+    ("Myriad", ("MYRIAD_PRIVATE_KEY", "MYRIAD_API_KEY"), ask_myriad),
+    ("Gemini Predictions (market data needs no key)", ("GEMINI_API_KEY",), ask_gemini),
 ]
 """Each venue, the settings any of which means it is set up already (an API
 key alone is, for market data), and the questions."""

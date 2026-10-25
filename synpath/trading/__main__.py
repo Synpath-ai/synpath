@@ -29,6 +29,26 @@ def sx_bet_identity(creds: Any) -> str:
     return f"{wallet}; API key: market data, account, cancels; {placing}"
 
 
+def novig_identity(creds: Any) -> str:
+    """Which Novig keys loaded: the subaccount's trading key trades; the
+    management key opens and funds subaccounts."""
+    trading = f"trading key {creds.key_id}" if creds.key_id else "no trading key: set NOVIG_KEY_ID to trade"
+    management = f", management key {creds.management_key_id}" if creds.management_key_id else ""
+    return trading + management
+
+
+def myriad_identity(creds: Any) -> str:
+    """What Myriad's credentials allow: the private key signs orders and
+    cancels (and signs in without an API key); the API key and secret sign
+    requests, and alone read the account."""
+    wallet = f"wallet {creds.address}" if creds.address else "wallet address unknown (set MYRIAD_ACCOUNT_ADDRESS)"
+    requests = (f"API key {creds.api_key[:8]}…: HMAC-signed requests" if creds.api_key
+                else "no API key: the wallet signs in for a session")
+    orders = ("private key loaded: places and cancels orders" if creds.private_key
+              else "no private key: reads the account only; set MYRIAD_PRIVATE_KEY to place or cancel")
+    return f"{wallet}; {requests}; {orders}"
+
+
 def doctor(dotenv: str | None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
@@ -45,6 +65,21 @@ def doctor(dotenv: str | None) -> int:
                          "SMARKETS_PASSWORD for undelayed quotes, or run synpath init. Betting needs Smarkets' "
                          "approved API access (£150 one-off), not supported yet"))
             continue
+        if creds is None and venue == "matchbook":
+            # Market data is public; the login is for betting.
+            rows.append((venue, "not configured", "market data needs no login; set MATCHBOOK_USERNAME / "
+                         "MATCHBOOK_PASSWORD to bet, or run synpath init"))
+            continue
+        if creds is not None and venue == "prophetx" and not creds.trades:
+            # The affiliate key alone: ProphetX's Market Data API.
+            stage = "sandbox" if creds.sandbox else "production"
+            rows.append((venue, f"market data ({stage})", "affiliate key loaded; set PROPHETX_ACCESS_KEY / "
+                         "PROPHETX_SECRET_KEY to trade and stream"))
+            continue
+        if creds is None and venue == "gemini":
+            rows.append((venue, "no key (optional)", "market data needs no key; set GEMINI_API_KEY / "
+                         "GEMINI_API_SECRET to trade (a US account with Prediction Markets access), or run synpath init"))
+            continue
         if creds is None and venue in market_data:
             stage = "testnet" if market_data[venue].testnet else "mainnet"
             private = ENV_NAMES[venue][0]
@@ -52,11 +87,13 @@ def doctor(dotenv: str | None) -> int:
             continue
         if creds is None:
             names = ENV_NAMES[venue]
-            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair") else ""
+            hint = ", or run synpath init" if venue in ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair", "novig", "prophetx", "azuro", "myriad") else ""
             rows.append((venue, "not configured", f"set {names[0]}{hint}"))
             continue
         stage = getattr(creds, "env", "-")
-        if getattr(creds, "key_id", None):
+        if venue == "novig":
+            identity = novig_identity(creds)
+        elif getattr(creds, "key_id", None):
             identity = f"key id {creds.key_id}"
         elif getattr(creds, "participant_id", None):
             identity = f"participant {creds.participant_id}"
@@ -86,14 +123,31 @@ def doctor(dotenv: str | None) -> int:
         elif venue == "sx_bet":
             stage = "testnet" if creds.testnet else "mainnet"
             identity = sx_bet_identity(creds)
+        elif venue == "myriad":
+            stage = "mainnet"
+            identity = myriad_identity(creds)
         elif venue == "betfair":
             # The application key is a secret too; the username names the account.
             stage = creds.jurisdiction
             login = "certificate" if creds.cert_path else "interactive"
             identity = f"user {creds.username}, app key loaded, {login} login"
+        elif venue == "prophetx":
+            stage = "sandbox" if creds.sandbox else "production"
+            affiliate = "; affiliate key loaded: market data from the Market Data API" if creds.affiliate_key else ""
+            identity = f"Trading API key pair loaded: market data, streams, orders{affiliate}"
+        elif venue == "azuro":
+            stage = creds.chain
+            affiliate = f", affiliate {creds.affiliate}" if creds.affiliate else ""
+            identity = f"wallet {creds.address}{affiliate}"
+        elif venue == "gemini":
+            sub = f", subaccount {creds.account}" if creds.account else ""
+            identity = f"api key {creds.api_key[:12]}…{sub} (account-scoped, time-based nonce for streams)"
         elif venue == "smarkets":
             stage = "login"
             identity = f"user {creds.username}: undelayed quotes; betting needs approved API access, not supported yet"
+        elif venue == "matchbook":
+            stage = "login"
+            identity = f"user {creds.username}"
         elif getattr(creds, "api_key", None):
             identity = f"api key {creds.api_key[:8]}…"
         else:

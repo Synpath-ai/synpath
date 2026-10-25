@@ -24,8 +24,8 @@ pip install synpath
 ```
 
 Order entry ships in the base package. The install carries the venues' signing
-stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet,
-Ed25519 and private-key JWT for Polymarket US. Nothing further is needed to place an order.
+stacks: Ed25519 or RSA-PSS for Kalshi, EIP-712 for Polymarket, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Azuro and Myriad,
+Ed25519 and private-key JWT for Polymarket US, Ed25519 or P-256 request signing (NOVIG-V3) for Novig; ProphetX signs nothing (a key pair buys a bearer token), HMAC-SHA384 for Gemini. Nothing further is needed to place an order.
 
 Polymarket and Opinion orders are hashed and signed by the Rust core
 (`synpath._core`), in about 20 microseconds rather than the 3 milliseconds
@@ -71,6 +71,12 @@ private key. `synpath init` tells them apart.
 | predict.fun | mainnet: the API key (`pred_sk_...`). Test network: nothing | the API key and a private key: a plain wallet's, or a Predict account's owner key with its deposit address | the key at developers.predict.fun; a web-app account's owner key under Account -> Settings -> Privy wallet |
 | Limitless | nothing | the private key of the wallet connected on limitless.exchange (EOA trading mode) and a scoped API token: id and base64 secret | profile menu -> Api keys -> API Tokens -> Derive; the secret is shown once |
 | SX Bet | REST: nothing. Books over the WebSocket: the API key (every channel needs it) | the API key alone reads the account (orders, fills, positions, balance) and cancels; placing an order also needs the private key of the wallet you sign in with (the account's own, not its proxy wallet). The account stream needs the wallet address: from the private key, or `SX_BET_ACCOUNT_ADDRESS` | sx.bet -> Account -> Overview -> API Credentials -> Generate API key (toronto.sx.bet for the test network); shown once |
+| Novig | REST: nothing. Books over the WebSocket: a subaccount's trading key (without one, the public book is polled) | a subaccount's trading key: a key id and its private key file (PEM, Ed25519 or P-256). The management key, optional, opens, funds and labels subaccounts and never trades | the management key on novig.com (paper.novig.com for Paper) -> Profile -> Settings -> Novig API; then `NovigTrading.open_subaccount` with a keypair from `novig_signing.generate_key()` issues the trading key. The private key is never sent |
+| Matchbook | nothing | the account's login: username and password (an account with two-factor login passes a session token made elsewhere) | your matchbook.com account; higher API limits need an API plan from api@matchbook.com |
+| ProphetX | the Trading API key pair, or a Market Data API key | the Trading API key pair: an access key and a secret key, exchanged for a ten-minute bearer token | prophetx.co -> Menu -> API Integration, on any KYC-approved account (sandbox.prophetx.dev for the sandbox); the secret is shown once. The Market Data API key is issued by ProphetX on request |
+| Azuro | nothing | the private key of the wallet that signs each bet and holds the bet token, which must allow Azuro's relayer to spend it (`approve()`, once) | exported from the wallet |
+| Myriad | nothing (an API key and secret raise the rate limit) | the private key of the wallet the Myriad account is connected to (it signs every order and cancel), and an API key with its secret, or nothing more: without a key the wallet signs in (SIWE) for a session token. A key alone reads the account, with `MYRIAD_ACCOUNT_ADDRESS` | Myriad Account settings, or `MyriadTrading.create_api_key()` from a signed-in session; the secret is shown once |
+| Gemini | nothing | an API key and its secret: account-scoped, Trader role, time-based nonce; a Gemini account with Prediction Markets access (US) that has accepted the current Prediction Markets terms | exchange.gemini.com/settings/api -> Create API key; tick "Uses a time-based nonce"; the secret is shown once |
 
 For Opinion, predict.fun and SX Bet the API key alone is a complete
 market-data setup: `synpath init` asks for it first and takes an empty
@@ -94,7 +100,13 @@ The variables each venue reads:
 | Hyperliquid | `HYPERLIQUID_PRIVATE_KEY` (an API wallet's key is safest: it trades but cannot withdraw), `HYPERLIQUID_ACCOUNT_ADDRESS` (the account an API wallet trades for; not needed with the account's own key), `HYPERLIQUID_TESTNET` (`1` for the test network) |
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
+| Myriad | `MYRIAD_PRIVATE_KEY` (signs orders and cancels, and the sign-in when there is no key), `MYRIAD_API_KEY` and `MYRIAD_API_SECRET` (optional together: HMAC-signed requests; the venue refuses a key without its signature), `MYRIAD_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address when no private key names it), `MYRIAD_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
+| Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
+| Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
+| ProphetX | `PROPHETX_ACCESS_KEY` and `PROPHETX_SECRET_KEY` (the Trading API: market data, streams, orders), `PROPHETX_AFFILIATE_KEY` (optional; the Market Data API, market data only), `PROPHETX_SANDBOX=1` (optional; ProphetX's sandbox, with demo funds) |
+| Azuro | `AZURO_PRIVATE_KEY` (the wallet that signs each bet and holds the bet token), `AZURO_CHAIN` (optional; `polygon`, the default, `base`, or the testnets `polygon_amoy` and `base_sepolia`), `AZURO_AFFILIATE` (optional; the affiliate address every bet names, the wallet's own when unset), `AZURO_RPC_URL` (optional; the chain's node the balance and allowance are read from and the approval is sent through; a public one when unset) |
+| Gemini | `GEMINI_API_KEY` (`account-...`), `GEMINI_API_SECRET`, `GEMINI_ACCOUNT` (optional; the subaccount a `master-...` key acts for, REST only: the WebSocket refuses master keys), `GEMINI_ENV` = `prod` (the default, real money) or `sandbox` (api.sandbox.gemini.com, with a sandbox key) |
 
 Betfair's variables (`BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`,
 optional `BETFAIR_CERT_PATH` / `BETFAIR_KEY_PATH` and `BETFAIR_JURISDICTION`)
@@ -107,6 +119,33 @@ Smarkets needs no credentials for market data. `SMARKETS_USERNAME` and
 `synpath doctor` reports them. There is no Smarkets order entry yet: betting
 through Smarkets' API needs its approved API access (applied for, with a
 one-off £150 fee). See [Smarkets](capabilities.md#smarkets).
+
+Novig trades on one subaccount per trading key. An order buys an outcome:
+`buy` the market's YES outcome at the price given, `sell` its NO outcome at
+one minus it, snapped onto the venue's price grid on the cheaper side, in
+sizes of 0.01 contract (the venue's 1-cent contract). Placement is queued:
+`create_order` returns the order `pending`, and the private stream or a read
+says when it rests, fills or is rejected. A batch of up to 256 is placed all
+or nothing. Every resting order on an event is voided when the event goes in
+play. Production needs Novig's identity check and a US location outside
+Arizona, Michigan and Nevada, with a recent device geolocation from the Novig
+app (a VPN is refused); Paper is the same API with play money and no location
+check. `NovigTrading.echo()` proves the host, key, clock and signature in one
+call. Novig's parlay RFQ, for registered liquidity providers, is not
+supported yet. See [Novig](capabilities.md#novig).
+
+```python
+from decimal import Decimal
+
+from synpath.trading import novig_signing
+from synpath.trading.credentials import load_credentials, require
+from synpath.trading.novig import NovigTrading
+
+async with NovigTrading(require("novig", load_credentials())) as nv:   # with the management key loaded
+    private_pem, public_pem = novig_signing.generate_key()           # keep private_pem in a secret store
+    desk = await nv.open_subaccount("desk-1", public_pem)            # desk["keyId"] is NOVIG_KEY_ID
+    await nv.fund_subaccount(desk["keyId"], Decimal("250"), client_transfer_id="desk-1-topup-1")
+```
 
 ## Through your own server
 
@@ -573,3 +612,273 @@ each market on the YES leg. The balance is the proxy wallet's USDC: what is
 free to bet, and what matched bets hold in escrow.
 
 Check SX Bet's terms for where it may be used before trading.
+
+## Matchbook
+
+`MatchbookTrading`, built to Matchbook's API reference
+(developers.matchbook.com). Every call carries the session token of an
+account login (`MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD`), made on the first
+call and kept in memory only. A session lasts about six hours: one older than
+five is replaced before the next call, and a 401 logs in again once. An
+account with two-factor login cannot log in from here; pass
+`session_token=` from a login made elsewhere.
+
+An order is an offer to back or lay one runner,
+`matchbook:<event id>-<market id>-<runner id>`. `buy` backs it (takes its
+YES) at decimal odds `1 / price`; `sell` lays it (takes its NO) at the same
+odds. Matchbook counts both in the backer's stake, so `n` contracts stake
+`n / odds`, rounded down to the penny; a lay's liability is that stake times
+`odds - 1`. Prices are snapped onto Matchbook's odds ladder (1.01 to 1000, the
+same bands as Betfair's) on the cheaper side: a buy at the next higher odds, a
+sell at the next lower, so an order never pays more than asked.
+
+Limits rest until matched or cancelled (`gtc`). Matchbook has no
+immediate-or-cancel offer, so `market` and `ioc` are offers at the price
+given as the worst accepted, whose unmatched rest is cancelled at once; in
+play, the offer first waits out Matchbook's delay (1 to 10 seconds), then
+the rest is cancelled. `fok`, `gtd` and post-only are refused, and so is
+`reduce_only`, since every bet on a runner nets. An offer's unmatched part is
+cancelled when its event goes in play unless it is sent with
+`params={"keep_in_play": True}`. `create_orders` sends fifty offers a request
+and returns one result each. `edit_order` changes the odds or the remaining
+stake in place (`quantity` is the order's new total, filled contracts
+included).
+
+Matchbook takes no client order id: `client_order_id` stays on the returned
+order only. After a timeout, read the open offers on the runner
+(`fetch_open_orders(market_id=...)`) to see what was placed.
+
+Offers and their matched bets are readable while their market is unsettled:
+`fetch_order`, `fetch_open_orders`, `fetch_orders` (by status) and
+`fetch_my_trades` (one fill per matched bet). Settled bets are
+`fetch_settlements`. Positions net the account's current matched bets per
+runner on the YES leg: backs are YES contracts, lays NO contracts. The
+balance is the account's cash, what its bets hold (exposure and the
+commission reserve, `locked`), and what is free to bet, in the account's
+currency.
+
+`heartbeat(seconds)` arms Matchbook's dead man's switch: unless it is called
+again in time, every open offer on the account is cancelled; `heartbeat(0)`
+turns it off. Commission is charged at settlement on net winnings per market
+(2% in the UK and Ireland, 4% elsewhere), makers and takers alike, unless the
+account is on volume commission. Betting writes are free at a reasonable
+rate; reads count towards the GETs Matchbook's API plans charge for.
+
+Check Matchbook's terms for where it may be used before trading: it is
+licensed in the UK and Alderney, and its terms allow betting on your own
+account only.
+
+## ProphetX
+
+`ProphetXTrading`, built to ProphetX's Trading API reference (the v4 `/mm`
+routes at docs.prophetx.co).
+
+The access key and secret key are exchanged at `POST /auth/login` for a
+bearer token that lasts ten minutes; the adapter renews it with the refresh
+token before it lapses and logs in again only when that fails. ProphetX counts
+live sessions per access key and a second login adds one, so the adapter, its
+catalog and its streams share one session; run each process on its own key
+pair. Nothing is signed.
+
+Every ProphetX order is a buy: each side of a line is its own instrument
+(`strike_id`), and there is no sell. `buy` buys the line's first side (YES) at
+the price given; `sell` buys the second side at `1 - price`. The price goes as
+American odds on ProphetX's ladder (`GET /v4/mm/get_price_ladder`), snapped on
+the cheaper side, so an order never pays more than asked. ProphetX counts the
+stake in USD, so `n` contracts stake `n * P` at the ladder price's
+probability `P`, rounded down to the cent, at least $1. A fill's contracts are
+its stake over its price's probability: its stake plus its profit.
+`reduce_only` is refused. `client_order_id` is ProphetX's `external_id`, its
+idempotency key: up to 100 letters, digits, `-` and `_`, generated when absent;
+a repeat is refused as `DuplicateClientOrderId`.
+
+Limits rest until filled or cancelled (`gtc`); `post_only` is ProphetX's
+`ALO`, which ProphetX rejects after the fact (`wiped`) when it would have
+crossed. `market` and `ioc` go as its `fillOrKill` at the price given as the
+worst accepted: whatever is there fills and the rest is cancelled about two
+seconds after the last fill. There is no all-or-none (`fok`) and no expiry
+(`gtd`). An order whose event goes live is wiped, and so are two orders of one
+account that would cross each other.
+
+`submit_order` answers before matching runs, so the order returned is
+`pending`; `ProphetXUserStream` carries what became of it, one message per
+fill ([Streaming](streaming.md)). Reads (`fetch_order`, the history, the fills)
+come from a replica that can lag by seconds, while `cancel_order` is final when
+it answers: an order it cancelled is reported cancelled even before the read
+catches up. A partly filled order whose rest was cancelled or killed is
+rewritten by ProphetX as a smaller, fully matched one; here it is `canceled`
+with its fill. The default rate tier allows one request a second per endpoint
+and turns the batch routes off, so `create_orders` and `cancel_orders` send
+one at a time; `cancel_all_orders` cancels in the background, account-wide or
+for both sides of one line.
+
+ProphetX has no positions route: `fetch_positions` nets the matched stakes of
+the last sixty days' live orders per line on the YES leg, each at its limit
+price. The balance is the wallet's USD: what is free to stake, and what
+resting and matched orders hold; an exposure credit line, where ProphetX
+grants one, is in `info`. The fee is reported on each order and fill;
+ProphetX's API documentation publishes no rate, so there is no fee estimate.
+
+Check ProphetX's terms for where it may be used before trading.
+
+## Azuro
+
+`AzuroTrading`, built to `@azuro-org/toolkit` and the Azuro backend API. Bet
+and cash-out digests and signatures are checked against the ones the toolkit
+and viem produce.
+
+The one credential is the wallet. Every bet is the EIP-712 message
+`ClientBetData` (the consent text, the affiliate, the pool's core contract, a
+five-minute expiry, the chain id, the relayer's fee, and one `SubBet`: the
+condition, the outcome, the minimum odds, the stake and a nonce) under the
+domain `Live Betting` `1.0.0` with the core contract as verifying contract,
+signed by the wallet and sent to `/bet/orders/ordinar`. Azuro's relayer puts
+it on chain and is paid a flat fee per bet (`/bet/gas-info`) from the wallet's
+bet token, so before the first bet the wallet allows the relayer to spend the
+token: `fetch_allowance()` reads the allowance, `approve()` sends the
+approval, an on-chain transaction whose gas the wallet pays in the chain's
+coin. `fetch_balance()` is the wallet's bet token, read on chain.
+
+A bet is a market order with a worst price. The pool takes it whole at the
+odds it quotes when the bet reaches the chain, or refuses it, so an order is
+`market`, or a `limit` that is `ioc` or `fok`; anything that would rest, and
+`post_only` and `reduce_only`, are refused. `buy` backs the market's YES
+outcome with minimum odds `1 / price`, rounded up to the protocol's twelve
+decimals; `sell` backs the other outcome of a two-outcome market with minimum
+odds `1 / (1 - price)`. One outcome of a larger condition has no NO to sell.
+`n` contracts stake `n` times the price paid, rounded down to the token's
+decimals, so at the quoted odds or better the bet returns at least `n`.
+
+Placing is asynchronous: the API answers with the bet order's id
+(`<bettor>_<nonce>`) in state `Created`, and `create_order` returns it
+`pending`. The relayer sends it on (`Placed`, `Sent`) and it becomes
+`Accepted`, which is `closed` and filled here, or `Rejected`.
+`wait_for_order(id)` reads it until then. A signed bet cannot be cancelled;
+an accepted one can be closed early where the venue offers a price:
+`fetch_cashout_quote(bet_id)` reads the offer by the bet's on-chain id
+(`Order.info["betId"]`), `cash_out(bet_id)` signs it (`CashOutOrder` under
+the domain `Cash Out` `1.0.0`, the offer's odds as the minimum) and sends it,
+and `fetch_cashout(id)` follows it.
+
+`fetch_orders`, `fetch_open_orders` (bets not yet on chain), `fetch_my_trades`
+(one fill per accepted bet) and `fetch_settlements` (won, lost, or cancelled
+with the stake returned) read the wallet's bet orders. Positions net each
+market's accepted, unsettled single bets on the YES leg. Combo bets are read
+on their first leg's market and marked `info["combo"]`; this library places
+single bets only. A winning bet's payout is claimed on chain from the pool,
+which this library does not do.
+
+Gnosis and Chiliz are discontinued and take no bets. Azuro's bet API answers
+some regions with a 503; check where Azuro may be used before betting.
+
+## Myriad
+
+`MyriadTrading`, built to Myriad's API reference, for its order book on BNB
+Chain. Order hashes and signatures are checked against an independent
+EIP-712 encoder and fixed known answers.
+
+Every order is the venue's nine-field EIP-712 `Order` (trader, market,
+outcome, side, amount, price, minimum fill, nonce, expiration), signed by the
+wallet under the domain `MyriadCTFExchange` on chain 56; its digest is the
+order's hash, the id every lookup and cancel takes, known before it is sent.
+Requests to the account's endpoints are signed with the API key and its secret
+(HMAC-SHA256 over the timestamp, method, path with query, and body), or,
+without a key, carry a session token the wallet signs in for (SIWE: the
+venue's login message signed as a personal message; the session is renewed
+before it lapses). The first sign-in of a wallet creates its Myriad account
+and ties it to that wallet; orders must be that wallet's own.
+
+An order trades one outcome of a binary market. `buy` buys outcome 0 (YES) at
+the price given; `sell` buys outcome 1 at `1 - price`; with `reduce_only`,
+`sell` sells outcome 0 held and `buy` sells outcome 1 held. Prices are whole
+cents and sizes shares to 18 decimals. Limits rest until cancelled (`gtc`), or
+until `expires_at` (`gtd`), post-only (`PO`) on request; `market` and `ioc` go
+as the venue's fill-and-kill (`FAK`) at the price given as the worst accepted,
+`fok` as its fill-or-kill. The matcher settles fills on chain after the order
+is accepted, so what an order filled is read from the order, its stream, or
+the account's history. `create_orders` sends up to 200 a request, and the
+venue checks the collateral of a batch at match time rather than on arrival.
+A client order id is sent only with an API key, as the venue requires.
+
+A cancel repeats the order and its signature. Orders placed through the
+adapter are remembered; any other is read back from the venue and signed
+again, which gives the same signature. `cancel_all_orders` is one signed
+`CancelAll`, for a market or the whole account. `edit_order` is the venue's
+atomic cancel-and-place: the matcher never sees both orders, and the queue
+place is lost.
+
+Fees are taker-only: a share of the notional by price, from the market's own
+table (3 bps at 1c, 180 bps at 50c). Before the first order the wallet
+approves USD1 and its outcome shares to the exchange: `approval_calls()`
+returns the two transactions for the wallet to send. `position_calldata()`
+returns the venue's calldata to split collateral into YES and NO, merge them
+back, or redeem after resolution.
+
+Orders are read by status (`open`, `filled`, `cancelled`, `expired`). The
+account's trade history names neither the order behind a fill nor its fee,
+so `fetch_my_trades` is partial; `MyriadUserStream` carries orders, fills
+from the wallet's public tape with their orders and fees, and share balances
+([Streaming](streaming.md)). Positions come from the venue's portfolio, order
+book and AMM alike, netted per binary market on the YES leg. The balance is
+the wallet's USD1 on BNB Chain, less what open buy orders reserve.
+
+AMM markets trade through on-chain contract calls (the venue's quote route
+returns the calldata), one per trade with gas, on BNB Chain, Abstract and
+Linea; they are not traded here, and an order for one is refused.
+
+Check Myriad's terms for where it may be used before trading.
+
+## Gemini
+
+`GeminiTrading`, on Gemini's private REST API for Prediction Markets. It needs
+a Gemini account with Prediction Markets access, which Gemini offers in the
+US, and an API key from exchange.gemini.com/settings/api: account-scoped,
+with the Trader role, and a time-based nonce, which the account stream
+requires. The account must have accepted Gemini's current Prediction Markets
+terms: `fetch_terms_status()` says whether it has, `fetch_terms()` reads
+them, and `accept_terms()` accepts them for the account group. Nothing here
+accepts them on its own; an order sent before is refused with
+`PermissionDenied`.
+
+Every private request sends an empty body. The JSON payload (the request path,
+a nonce, and the endpoint's fields) goes base64-encoded in `X-GEMINI-PAYLOAD`,
+signed with HMAC-SHA384 under the API secret into `X-GEMINI-SIGNATURE`. The
+nonce is Unix seconds, which a time-based key accepts within 30 seconds of
+Gemini's clock. Signed requests go one at a time, as Gemini's own SDK sends
+them, under the venue's 600 requests a minute. A rate-limited read is signed
+again and retried; a write is sent once.
+
+An order names its outcome. `buy` at *p* is sent as buying YES at *p*;
+`sell` at *p* as buying NO at `1 - p`, Gemini's way to hold NO. With
+`reduce_only`, the order sells what is held instead: `sell` sells YES at *p*,
+`buy` sells NO at `1 - p`. Orders, fills and positions read back on the YES
+leg, with the venue's side and outcome in `info`. Positions net on YES:
+`inventory_yes` and `inventory_no` keep what each outcome holds, and
+`entry_price` is on the YES leg.
+
+The venue takes limit orders. `market` and `ioc` are sent as
+`immediate-or-cancel` at the price given as the worst accepted, `fok` as
+`fill-or-kill`; post-only is `makerOrCancel`. There is no good-till-date, no
+amend and no client order id on the wire: `client_order_id` stays on the
+returned `Order`. Prices and quantities are checked against the cent tick
+and the hundredth-contract grid unless a `Precision` from the contract's own
+grid is passed. `create_orders` and `cancel_orders` send twenty a request;
+Gemini checks a whole batch before sending any of it.
+
+There is no single-order route, so `fetch_order` searches the active orders
+and the latest thousand of the history. `fetch_orders` reads the history
+(`filled` or `cancelled`) by offset, or a time window with `since`. There is
+no fills route either: `fetch_my_trades` is one aggregate fill per order at
+its average price (`info["aggregate"]`), and `GeminiUserStream` carries each
+execution with its fee and whether it made or took ([Streaming](streaming.md)).
+`fetch_settlements` reads settled positions with their payouts.
+`fetch_balance` is the account's USD: `available` to trade, `total`
+confirmed.
+
+Fees follow the contract's listing date and are rounded up to the cent; see
+[Gemini](capabilities.md#gemini). `fetch_fee_estimate` reads the contract's
+schedule with one public request.
+
+Combo RFQ (Gemini's sealed WebSocket auction for multi-leg combos, in beta
+and run by market makers) is not offered, and nor are WebSocket order
+placement and `cancelOnDisconnect`.

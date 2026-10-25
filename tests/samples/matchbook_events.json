@@ -1,0 +1,1670 @@
+{
+ "offset": 0,
+ "per-page": 20,
+ "total": 3,
+ "events": [
+  {
+   "id": 34662085370500072,
+   "name": "17:45 Dundalk",
+   "sport-id": 24735152712200,
+   "start": "2026-10-23T16:45:00.000Z",
+   "in-running-flag": false,
+   "allow-live-betting": true,
+   "category-id": [
+    10812641776701,
+    24735152712200,
+    24743063490401,
+    410468520880009,
+    1507462493830003
+   ],
+   "status": "open",
+   "volume": 93519.69312,
+   "markets": [
+    {
+     "live": false,
+     "event-id": 34662085370500072,
+     "id": 34662085463000072,
+     "name": "WIN",
+     "product": "EXCHANGE",
+     "start": "2026-10-23T16:45:00.000Z",
+     "status": "open",
+     "market-type": "outright_ded_fact",
+     "type": "multirunner",
+     "in-running-flag": false,
+     "allow-live-betting": true,
+     "volume": 93516.81113,
+     "back-overround": 101.8457,
+     "lay-overround": 97.40835,
+     "number-of-winners": 1,
+     "runners": [
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 1.85999,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 5.5,
+         "decimal-odds": 5.5,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 43.5917,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 5.4,
+         "decimal-odds": 5.4,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 47.28643,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 5.3,
+         "decimal-odds": 5.3,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 2.11,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 5.9,
+         "decimal-odds": 5.9,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 18.89234,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 6.0,
+         "decimal-odds": 6.0,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 27.20512,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 6.2,
+         "decimal-odds": 6.2,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:10:13.827Z",
+       "event-id": 34662085370500072,
+       "id": 34662085466302072,
+       "market-id": 34662085463000072,
+       "name": "14 Eichan San",
+       "status": "open",
+       "volume": 6633.8006,
+       "event-participant-id": 34662085395401072
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 1.44,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 5.9,
+         "decimal-odds": 5.9,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 25.01879,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 5.8,
+         "decimal-odds": 5.8,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 22.67656,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 5.7,
+         "decimal-odds": 5.7,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 21.96604,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 6.0,
+         "decimal-odds": 6.0,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 16.02171,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 6.2,
+         "decimal-odds": 6.2,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 22.87209,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 6.4,
+         "decimal-odds": 6.4,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:08:15.348Z",
+       "event-id": 34662085370500072,
+       "id": 34662085464307072,
+       "market-id": 34662085463000072,
+       "name": "3 Mehman",
+       "status": "open",
+       "volume": 6830.76968,
+       "event-participant-id": 34662085393602072
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 5.09372,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.2,
+         "decimal-odds": 8.2,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 31.14275,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.0,
+         "decimal-odds": 8.0,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 23.49717,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 7.8,
+         "decimal-odds": 7.8,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 4.21308,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.4,
+         "decimal-odds": 8.4,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 36.08636,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.6,
+         "decimal-odds": 8.6,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 27.26993,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.8,
+         "decimal-odds": 8.8,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:07:42.565Z",
+       "event-id": 34662085370500072,
+       "id": 34662085465708072,
+       "market-id": 34662085463000072,
+       "name": "11 Iff In Doubt",
+       "status": "open",
+       "volume": 6861.10236,
+       "event-participant-id": 34662085394902072
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 12.12886,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 9.2,
+         "decimal-odds": 9.2,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 16.49205,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 9.0,
+         "decimal-odds": 9.0,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 26.26919,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.8,
+         "decimal-odds": 8.8,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 2.68999,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 9.6,
+         "decimal-odds": 9.6,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 2.50183,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 9.8,
+         "decimal-odds": 9.8,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 25.72881,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 10.0,
+         "decimal-odds": 10.0,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:08:49.160Z",
+       "event-id": 34662085370500072,
+       "id": 34662085464706072,
+       "market-id": 34662085463000072,
+       "name": "5 Faoladh",
+       "status": "open",
+       "volume": 7142.83887,
+       "event-participant-id": 34662085393902072
+      },
+      {
+       "withdrawn": true,
+       "prices": [],
+       "last-price-update-time": "2026-10-23T10:13:40.908Z",
+       "event-id": 34662085370500072,
+       "id": 34662085466803072,
+       "market-id": 34662085463000072,
+       "name": "17 Boston Benjamin",
+       "status": "paid",
+       "volume": 6637.03438,
+       "event-participant-id": 34662085395901072
+      }
+     ]
+    }
+   ],
+   "meta-tags": [
+    {
+     "id": 10812641776701,
+     "name": "Ireland",
+     "type": "COUNTRY",
+     "url-name": "ireland"
+    },
+    {
+     "id": 24735152712200,
+     "name": "Horse Racing",
+     "type": "SPORT",
+     "url-name": "horse-racing"
+    },
+    {
+     "id": 24743063490401,
+     "name": "Dundalk",
+     "type": "LOCATION",
+     "url-name": "dundalk"
+    },
+    {
+     "id": 410468520880009,
+     "name": "Live Betting",
+     "type": "OTHER",
+     "url-name": "live-betting"
+    },
+    {
+     "id": 1507462493830003,
+     "name": "UK Ireland",
+     "type": "OTHER",
+     "url-name": "uk-ireland"
+    }
+   ],
+   "race-length": "7f",
+   "race-type": "Apprentice Jockeys - Handicap"
+  },
+  {
+   "id": 34569494493900023,
+   "name": "Arsenal vs Everton",
+   "sport-id": 15,
+   "start": "2026-10-24T14:00:00.000Z",
+   "in-running-flag": false,
+   "allow-live-betting": true,
+   "category-id": [
+    15,
+    400746807120010,
+    410468520880009,
+    1931978925580001,
+    33920141522300065
+   ],
+   "status": "open",
+   "volume": 22082.45681,
+   "markets": [
+    {
+     "live": false,
+     "event-id": 34569494493900023,
+     "id": 34569495835700023,
+     "name": "Match Odds",
+     "product": "EXCHANGE",
+     "start": "2026-10-24T14:00:00.000Z",
+     "status": "open",
+     "market-type": "one_x_two",
+     "type": "multirunner",
+     "in-running-flag": false,
+     "allow-live-betting": true,
+     "volume": 14356.57914,
+     "back-overround": 100.69997,
+     "lay-overround": 99.5169,
+     "number-of-winners": 1,
+     "runners": [
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 4394.55779,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.49,
+         "decimal-odds": 1.49,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 5234.39256,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.48,
+         "decimal-odds": 1.48,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 10655.23122,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.47,
+         "decimal-odds": 1.47,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1388.11838,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.5,
+         "decimal-odds": 1.5,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 4389.47284,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.51,
+         "decimal-odds": 1.51,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 3469.28206,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.52,
+         "decimal-odds": 1.52,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:55.214Z",
+       "event-id": 34569494493900023,
+       "id": 34569495836701023,
+       "market-id": 34569495835700023,
+       "name": "Arsenal",
+       "status": "open",
+       "volume": 6330.96959,
+       "event-participant-id": 34569494496600023
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 138.10089,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.8,
+         "decimal-odds": 8.8,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 878.4087,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.6,
+         "decimal-odds": 8.6,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 440.17694,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 8.4,
+         "decimal-odds": 8.4,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 5.43466,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 9.0,
+         "decimal-odds": 9.0,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 726.00399,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 9.2,
+         "decimal-odds": 9.2,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 592.33521,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 9.4,
+         "decimal-odds": 9.4,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:14.228Z",
+       "event-id": 34569494493900023,
+       "id": 34569495836901023,
+       "market-id": 34569495835700023,
+       "name": "Everton",
+       "status": "open",
+       "volume": 2764.51274,
+       "event-participant-id": 34569494496801023
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 989.70403,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 4.5,
+         "decimal-odds": 4.5,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1112.23564,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 4.4,
+         "decimal-odds": 4.4,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1620.31534,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 4.3,
+         "decimal-odds": 4.3,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1243.97301,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 4.7,
+         "decimal-odds": 4.7,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1464.14086,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 4.8,
+         "decimal-odds": 4.8,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 2385.66851,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 4.9,
+         "decimal-odds": 4.9,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:24.475Z",
+       "event-id": 34569494493900023,
+       "id": 34569495837101023,
+       "market-id": 34569495835700023,
+       "name": "Draw",
+       "status": "open",
+       "volume": 5261.0968
+      }
+     ]
+    },
+    {
+     "live": false,
+     "event-id": 34569494493900023,
+     "id": 34569506151400023,
+     "name": "Total",
+     "product": "EXCHANGE",
+     "start": "2026-10-24T14:00:00.000Z",
+     "status": "open",
+     "market-type": "total",
+     "type": "binary",
+     "handicap": 2.5,
+     "in-running-flag": false,
+     "allow-live-betting": true,
+     "volume": 483.80385,
+     "back-overround": 100.56601,
+     "lay-overround": 99.3051,
+     "number-of-winners": 1,
+     "runners": [
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 10.18744,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.94,
+         "decimal-odds": 1.94,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 71.58599,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.93,
+         "decimal-odds": 1.93,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 309.25084,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.92,
+         "decimal-odds": 1.92,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 21.08912,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.97,
+         "decimal-odds": 1.97,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 26.01721,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.98,
+         "decimal-odds": 1.98,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 291.49108,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.99,
+         "decimal-odds": 1.99,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:56.243Z",
+       "event-id": 34569494493900023,
+       "id": 34569506152501023,
+       "market-id": 34569506151400023,
+       "name": "OVER 2.5",
+       "status": "open",
+       "handicap": 2.5,
+       "volume": 266.779
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 2.00146,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.04,
+         "decimal-odds": 2.04,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 141.67298,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.02,
+         "decimal-odds": 2.02,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 538.01901,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.0,
+         "decimal-odds": 2.0,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 3.00219,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.06,
+         "decimal-odds": 2.06,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 176.16339,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.08,
+         "decimal-odds": 2.08,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 536.16263,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.1,
+         "decimal-odds": 2.1,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:56.243Z",
+       "event-id": 34569494493900023,
+       "id": 34569506152701023,
+       "market-id": 34569506151400023,
+       "name": "UNDER 2.5",
+       "status": "open",
+       "handicap": 2.5,
+       "volume": 217.02484
+      }
+     ]
+    },
+    {
+     "live": false,
+     "event-id": 34569494493900023,
+     "id": 34569506954100023,
+     "name": "Handicap",
+     "product": "EXCHANGE",
+     "start": "2026-10-24T14:00:00.000Z",
+     "status": "open",
+     "market-type": "handicap",
+     "type": "binary",
+     "handicap": -1,
+     "in-running-flag": false,
+     "allow-live-betting": false,
+     "volume": 98.39558,
+     "back-overround": 101.12018,
+     "lay-overround": 98.99067,
+     "number-of-winners": 1,
+     "runners": [
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 40.02924,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.81,
+         "decimal-odds": 1.81,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 96.7907,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.8,
+         "decimal-odds": 1.8,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 233.22394,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.78,
+         "decimal-odds": 1.78,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 47.03436,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.84,
+         "decimal-odds": 1.84,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 207.70531,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.85,
+         "decimal-odds": 1.85,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 189.14403,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.87,
+         "decimal-odds": 1.87,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:30.499Z",
+       "event-id": 34569494493900023,
+       "id": 34569506956200023,
+       "market-id": 34569506954100023,
+       "name": "Arsenal -1.0",
+       "status": "open",
+       "handicap": -1,
+       "volume": 0.0,
+       "event-participant-id": 34569494496600023
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 215.53031,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.18,
+         "decimal-odds": 2.18,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 56.0805,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.16,
+         "decimal-odds": 2.16,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 107.95887,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.14,
+         "decimal-odds": 2.14,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 110.48071,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.24,
+         "decimal-odds": 2.24,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 373.27021,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.3,
+         "decimal-odds": 2.3,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 73.7656,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.32,
+         "decimal-odds": 2.32,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:30.499Z",
+       "event-id": 34569494493900023,
+       "id": 34569506956401023,
+       "market-id": 34569506954100023,
+       "name": "Everton +1.0",
+       "status": "open",
+       "handicap": 1,
+       "volume": 98.39558,
+       "event-participant-id": 34569494496801023
+      }
+     ]
+    },
+    {
+     "live": false,
+     "event-id": 34569494493900023,
+     "id": 34569507475400023,
+     "name": "Handicap",
+     "product": "EXCHANGE",
+     "start": "2026-10-24T14:00:00.000Z",
+     "status": "open",
+     "market-type": "handicap",
+     "type": "binary",
+     "asian-handicap": "-0.5/1.0",
+     "in-running-flag": false,
+     "allow-live-betting": false,
+     "volume": 0.0,
+     "back-overround": 100.8715,
+     "lay-overround": 99.22847,
+     "number-of-winners": 1,
+     "runners": [
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 121.08846,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.61,
+         "decimal-odds": 1.61,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 147.70791,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.6,
+         "decimal-odds": 1.6,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 777.54776,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.58,
+         "decimal-odds": 1.58,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 211.93483,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.63,
+         "decimal-odds": 1.63,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 200.5221,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.64,
+         "decimal-odds": 1.64,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 503.98334,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.66,
+         "decimal-odds": 1.66,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:40.574Z",
+       "event-id": 34569494493900023,
+       "id": 34569507476201023,
+       "market-id": 34569507475400023,
+       "name": "Arsenal (-0.5/1.0)",
+       "status": "open",
+       "asian-handicap": "-0.5/1.0",
+       "volume": 0.0,
+       "event-participant-id": 34569494496600023
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 260.43166,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.58,
+         "decimal-odds": 2.58,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 184.86553,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.52,
+         "decimal-odds": 2.52,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 147.1719,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.5,
+         "decimal-odds": 2.5,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 163.92976,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.64,
+         "decimal-odds": 2.64,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 84.06141,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.7,
+         "decimal-odds": 2.7,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 152.64564,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.72,
+         "decimal-odds": 2.72,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:40.574Z",
+       "event-id": 34569494493900023,
+       "id": 34569507476401023,
+       "market-id": 34569507475400023,
+       "name": "Everton (+0.5/1.0)",
+       "status": "open",
+       "asian-handicap": "+0.5/1.0",
+       "volume": 0.0,
+       "event-participant-id": 34569494496801023
+      }
+     ]
+    },
+    {
+     "live": false,
+     "event-id": 34569494493900023,
+     "id": 34569494509300023,
+     "name": "Both Teams To Score",
+     "product": "EXCHANGE",
+     "start": "2026-10-24T14:00:00.000Z",
+     "status": "open",
+     "market-type": "both_to_score",
+     "type": "binary",
+     "in-running-flag": false,
+     "allow-live-betting": true,
+     "volume": 78.77163,
+     "back-overround": 101.07681,
+     "lay-overround": 99.06303,
+     "number-of-winners": 1,
+     "runners": [
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 276.27643,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.12,
+         "decimal-odds": 2.12,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 459.58485,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.1,
+         "decimal-odds": 2.1,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 664.92327,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.08,
+         "decimal-odds": 2.08,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 27.02851,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.18,
+         "decimal-odds": 2.18,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1054.72123,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.2,
+         "decimal-odds": 2.2,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 360.56996,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.22,
+         "decimal-odds": 2.22,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:19.078Z",
+       "event-id": 34569494493900023,
+       "id": 34569494509800023,
+       "market-id": 34569494509300023,
+       "name": "Yes",
+       "status": "open",
+       "volume": 32.17377
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 150.01827,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.84,
+         "decimal-odds": 1.84,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1580.79798,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.83,
+         "decimal-odds": 1.83,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 142.85068,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.8,
+         "decimal-odds": 1.8,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 687.74343,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.9,
+         "decimal-odds": 1.9,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 860.41077,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.91,
+         "decimal-odds": 1.91,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 43.24807,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.99,
+         "decimal-odds": 1.99,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:19.078Z",
+       "event-id": 34569494493900023,
+       "id": 34569494510001023,
+       "market-id": 34569494509300023,
+       "name": "No",
+       "status": "open",
+       "volume": 46.59786
+      }
+     ]
+    }
+   ],
+   "meta-tags": [
+    {
+     "id": 15,
+     "name": "Soccer",
+     "type": "SPORT",
+     "url-name": "soccer"
+    },
+    {
+     "id": 400746807120010,
+     "name": "England",
+     "type": "COUNTRY",
+     "url-name": "england"
+    },
+    {
+     "id": 410468520880009,
+     "name": "Live Betting",
+     "type": "OTHER",
+     "url-name": "live-betting"
+    },
+    {
+     "id": 1931978925580001,
+     "name": "England Premier League",
+     "type": "COMPETITION",
+     "url-name": "english-premier-league"
+    },
+    {
+     "id": 33920141522300065,
+     "name": "October 24th 2026",
+     "type": "DATE",
+     "url-name": "october-24th-2026"
+    }
+   ]
+  },
+  {
+   "id": 34569460096700023,
+   "name": "Coventry City vs Fulham",
+   "sport-id": 15,
+   "start": "2026-10-24T14:00:00.000Z",
+   "in-running-flag": false,
+   "allow-live-betting": true,
+   "category-id": [
+    15,
+    400746807120010,
+    410468520880009,
+    1931978925580001,
+    33920141522300065
+   ],
+   "status": "open",
+   "volume": 12897.73677,
+   "markets": [
+    {
+     "live": false,
+     "event-id": 34569460096700023,
+     "id": 34569462116700023,
+     "name": "Match Odds",
+     "product": "EXCHANGE",
+     "start": "2026-10-24T14:00:00.000Z",
+     "status": "open",
+     "market-type": "one_x_two",
+     "type": "multirunner",
+     "in-running-flag": false,
+     "allow-live-betting": true,
+     "volume": 9313.57851,
+     "back-overround": 100.36358,
+     "lay-overround": 99.1819,
+     "number-of-winners": 1,
+     "runners": [
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 19.02007,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.35,
+         "decimal-odds": 3.35,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 325.33491,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.3,
+         "decimal-odds": 3.3,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1320.52282,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.25,
+         "decimal-odds": 3.25,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 472.55199,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.4,
+         "decimal-odds": 3.4,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 442.15604,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.45,
+         "decimal-odds": 3.45,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 616.84857,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.5,
+         "decimal-odds": 3.5,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:07:21.407Z",
+       "event-id": 34569460096700023,
+       "id": 34569462119901023,
+       "market-id": 34569462116700023,
+       "name": "Coventry City",
+       "status": "open",
+       "volume": 2114.5396,
+       "event-participant-id": 34569460100700023
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 148.98094,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.34,
+         "decimal-odds": 2.34,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 274.55649,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.32,
+         "decimal-odds": 2.32,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 976.02138,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.3,
+         "decimal-odds": 2.3,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 191.76475,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.36,
+         "decimal-odds": 2.36,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 650.55597,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.38,
+         "decimal-odds": 2.38,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 1085.13649,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.4,
+         "decimal-odds": 2.4,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:07:10.336Z",
+       "event-id": 34569460096700023,
+       "id": 34569462120101023,
+       "market-id": 34569462116700023,
+       "name": "Fulham",
+       "status": "open",
+       "volume": 1870.93198,
+       "event-participant-id": 34569460101200023
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 2388.82336,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.6,
+         "decimal-odds": 3.6,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 7271.42657,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.55,
+         "decimal-odds": 3.55,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 4770.29089,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.5,
+         "decimal-odds": 3.5,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 6073.7542,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.7,
+         "decimal-odds": 3.7,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 4889.94796,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.75,
+         "decimal-odds": 3.75,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 2279.51703,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 3.8,
+         "decimal-odds": 3.8,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:13.290Z",
+       "event-id": 34569460096700023,
+       "id": 34569462120301023,
+       "market-id": 34569462116700023,
+       "name": "Draw",
+       "status": "open",
+       "volume": 5328.10693
+      }
+     ]
+    },
+    {
+     "live": false,
+     "event-id": 34569460096700023,
+     "id": 34569462118700023,
+     "name": "Total",
+     "product": "EXCHANGE",
+     "start": "2026-10-24T14:00:00.000Z",
+     "status": "open",
+     "market-type": "total",
+     "type": "binary",
+     "handicap": 2.5,
+     "in-running-flag": false,
+     "allow-live-betting": true,
+     "volume": 218.53031,
+     "back-overround": 101.01011,
+     "lay-overround": 99.19283,
+     "number-of-winners": 1,
+     "runners": [
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 80.10108,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.8,
+         "decimal-odds": 1.8,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 229.36197,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.79,
+         "decimal-odds": 1.79,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 663.54003,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.78,
+         "decimal-odds": 1.78,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 9.00658,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.82,
+         "decimal-odds": 1.82,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 43.99413,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.84,
+         "decimal-odds": 1.84,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 339.73843,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 1.85,
+         "decimal-odds": 1.85,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:42.404Z",
+       "event-id": 34569460096700023,
+       "id": 34569462126901023,
+       "market-id": 34569462118700023,
+       "name": "OVER 2.5",
+       "status": "open",
+       "handicap": 2.5,
+       "volume": 0.0
+      },
+      {
+       "withdrawn": false,
+       "prices": [
+        {
+         "available-amount": 7.3854,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.2,
+         "decimal-odds": 2.2,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 178.10398,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.18,
+         "decimal-odds": 2.18,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 450.42279,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.16,
+         "decimal-odds": 2.16,
+         "side": "back",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 126.14634,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.26,
+         "decimal-odds": 2.26,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 322.63037,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.28,
+         "decimal-odds": 2.28,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        },
+        {
+         "available-amount": 553.20653,
+         "currency": "GBP",
+         "odds-type": "DECIMAL",
+         "odds": 2.3,
+         "decimal-odds": 2.3,
+         "side": "lay",
+         "exchange-type": "back-lay"
+        }
+       ],
+       "last-price-update-time": "2026-10-23T16:09:42.404Z",
+       "event-id": 34569460096700023,
+       "id": 34569462127101023,
+       "market-id": 34569462118700023,
+       "name": "UNDER 2.5",
+       "status": "open",
+       "handicap": 2.5,
+       "volume": 218.53031
+      }
+     ]
+    }
+   ],
+   "meta-tags": [
+    {
+     "id": 15,
+     "name": "Soccer",
+     "type": "SPORT",
+     "url-name": "soccer"
+    },
+    {
+     "id": 400746807120010,
+     "name": "England",
+     "type": "COUNTRY",
+     "url-name": "england"
+    },
+    {
+     "id": 410468520880009,
+     "name": "Live Betting",
+     "type": "OTHER",
+     "url-name": "live-betting"
+    },
+    {
+     "id": 1931978925580001,
+     "name": "England Premier League",
+     "type": "COMPETITION",
+     "url-name": "english-premier-league"
+    },
+    {
+     "id": 33920141522300065,
+     "name": "October 24th 2026",
+     "type": "DATE",
+     "url-name": "october-24th-2026"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,408 @@
+{
+ "games": [
+  {
+   "id": "1006000000000002877243",
+   "gameId": "1006000000000002877243",
+   "slug": "mavros-oway-1006000000000002877243",
+   "title": "Mavros - Oway",
+   "startsAt": "1792772640",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "1061",
+    "slug": "cs2",
+    "name": "Counter-Strike 2",
+    "sporthub": {
+     "id": "ee5c8776-e9ad-4aa0-8334-d8392f8da16e",
+     "slug": "esports"
+    }
+   },
+   "league": {
+    "id": "d834e34c-0db9-4eaf-b6e0-0e5aa4cedc7b",
+    "slug": "berserk-league-2026",
+    "name": "Berserk League 2026",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+    "slug": "international-tournaments",
+    "name": "International Tournaments"
+   },
+   "participants": [
+    {
+     "name": "Mavros",
+     "image": "https://avatars.azuro.org/images/1061/1006000000000002877243/Mavros.png"
+    },
+    {
+     "name": "Oway",
+     "image": "https://avatars.azuro.org/images/1061/1006000000000002877243/Oway.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000031323517",
+   "gameId": "1006000000000031323517",
+   "slug": "noelani-sara-teso-judith-hernandez-miranda-1006000000000031323517",
+   "title": "Noelani Sara Teso - Judith Hernandez Miranda",
+   "startsAt": "1792772700",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "45",
+    "slug": "tennis",
+    "name": "Tennis",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "842a8dcc-3570-45eb-89a7-c97f698974a1",
+    "slug": "utr-pro-series-lubbock-women",
+    "name": "UTR Pro Series Lubbock - Women",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+    "slug": "united-states",
+    "name": "United States"
+   },
+   "participants": [
+    {
+     "name": "Noelani Sara Teso",
+     "image": "https://avatars.azuro.org/images/45/1006000000000031323517/Noelani Sara Teso.png"
+    },
+    {
+     "name": "Judith Hernandez Miranda",
+     "image": "https://avatars.azuro.org/images/45/1006000000000031323517/Judith Hernandez Miranda.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000031318901",
+   "gameId": "1006000000000031318901",
+   "slug": "jack-secord-jack-anthrop-1006000000000031318901",
+   "title": "Jack Secord - Jack Anthrop",
+   "startsAt": "1792772891",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "45",
+    "slug": "tennis",
+    "name": "Tennis",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "434b7482-a76c-4cae-b16e-d316f80b06f5",
+    "slug": "usa",
+    "name": "USA",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "4dfd33d7-e5b9-4b18-bc12-417a48d24007",
+    "slug": "united-states",
+    "name": "United States"
+   },
+   "participants": [
+    {
+     "name": "Jack Secord",
+     "image": "https://avatars.azuro.org/images/45/1006000000000031318901/Jack Secord.png"
+    },
+    {
+     "name": "Jack Anthrop",
+     "image": "https://avatars.azuro.org/images/45/1006000000000031318901/Jack Anthrop.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000094303699",
+   "gameId": "1006000000000094303699",
+   "slug": "tj-sokol-nusle-w-kladno-w-1006000000000094303699",
+   "title": "Tj Sokol Nusle (W) - Kladno (W)",
+   "startsAt": "1792773000",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "26",
+    "slug": "volleyball",
+    "name": "Volleyball",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "80299e29-e2e3-43f8-84d9-fa09e2da3059",
+    "slug": "1-liga-w",
+    "name": "1. Liga (W)",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+    "slug": "international-tournaments",
+    "name": "International Tournaments"
+   },
+   "participants": [
+    {
+     "name": "Tj Sokol Nusle (W)",
+     "image": "https://avatars.azuro.org/images/26/1006000000000094303699/Tj Sokol Nusle (W).png"
+    },
+    {
+     "name": "Kladno (W)",
+     "image": "https://avatars.azuro.org/images/26/1006000000000094303699/Kladno (W).png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000031272227",
+   "gameId": "1006000000000031272227",
+   "slug": "pbc-cska-moscow-bc-avtodor-saratov-1006000000000031272227",
+   "title": "PBC CSKA Moscow - BC Avtodor Saratov",
+   "startsAt": "1792773000",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "31",
+    "slug": "basketball",
+    "name": "Basketball",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "7ecb2b92-1c6a-4663-a860-1f3925cde075",
+    "slug": "vtb-united-league",
+    "name": "VTB United League",
+    "isTopLeague": true,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+    "slug": "international-tournaments",
+    "name": "International Tournaments"
+   },
+   "participants": [
+    {
+     "name": "PBC CSKA Moscow",
+     "image": "https://avatars.azuro.org/images/31/1006000000000031272227/PBC CSKA Moscow.png"
+    },
+    {
+     "name": "BC Avtodor Saratov",
+     "image": "https://avatars.azuro.org/images/31/1006000000000031272227/BC Avtodor Saratov.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000094323950",
+   "gameId": "1006000000000094323950",
+   "slug": "ao-kifisias-panionios-1006000000000094323950",
+   "title": "AO Kifisias - Panionios",
+   "startsAt": "1792773000",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "26",
+    "slug": "volleyball",
+    "name": "Volleyball",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "56566746-98f9-45a8-8e0c-3bb6dbda0a32",
+    "slug": "a1",
+    "name": "A1",
+    "isTopLeague": true,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "897d50f6-60d4-441b-a685-27c084190c45",
+    "slug": "greece",
+    "name": "Greece"
+   },
+   "participants": [
+    {
+     "name": "AO Kifisias",
+     "image": "https://avatars.azuro.org/images/26/1006000000000094323950/AO Kifisias.png"
+    },
+    {
+     "name": "Panionios",
+     "image": "https://avatars.azuro.org/images/26/1006000000000094323950/Panionios.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000031306133",
+   "gameId": "1006000000000031306133",
+   "slug": "kiekko-espoo-hifk-1006000000000031306133",
+   "title": "Kiekko-Espoo - HIFK",
+   "startsAt": "1792773000",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "32",
+    "slug": "ice-hockey",
+    "name": "Ice Hockey",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "f2dd88aa-83f8-4626-a95e-8c4969735baf",
+    "slug": "liiga",
+    "name": "Liiga",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "f18b268e-1f95-4550-b562-a943f52946b9",
+    "slug": "finland",
+    "name": "Finland"
+   },
+   "participants": [
+    {
+     "name": "Kiekko-Espoo",
+     "image": "https://avatars.azuro.org/images/32/1006000000000031306133/Kiekko-Espoo.png"
+    },
+    {
+     "name": "HIFK",
+     "image": "https://avatars.azuro.org/images/32/1006000000000031306133/HIFK.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000031256742",
+   "gameId": "1006000000000031256742",
+   "slug": "spartak-moscow-severstal-cherepovets-1006000000000031256742",
+   "title": "Spartak Moscow - Severstal Cherepovets",
+   "startsAt": "1792773000",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "32",
+    "slug": "ice-hockey",
+    "name": "Ice Hockey",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "a54d1f68-7775-4fdf-9d20-c974c7ac4bc9",
+    "slug": "khl",
+    "name": "KHL",
+    "isTopLeague": true,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "3f0080c2-e76c-4acb-b555-e4052998f3fb",
+    "slug": "russia",
+    "name": "Russia"
+   },
+   "participants": [
+    {
+     "name": "Spartak Moscow",
+     "image": "https://avatars.azuro.org/images/32/1006000000000031256742/Spartak Moscow.png"
+    },
+    {
+     "name": "Severstal Cherepovets",
+     "image": "https://avatars.azuro.org/images/32/1006000000000031256742/Severstal Cherepovets.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000031322691",
+   "gameId": "1006000000000031322691",
+   "slug": "madison-brengle-elizabeth-mandlik-1006000000000031322691",
+   "title": "Madison Brengle - Elizabeth Mandlik",
+   "startsAt": "1792773060",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "45",
+    "slug": "tennis",
+    "name": "Tennis",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "915a9a01-8a3e-487d-8278-cd7522e1b631",
+    "slug": "usa-w",
+    "name": "USA (W)",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+    "slug": "international-tournaments",
+    "name": "International Tournaments"
+   },
+   "participants": [
+    {
+     "name": "Madison Brengle",
+     "image": "https://avatars.azuro.org/images/45/1006000000000031322691/Madison Brengle.png"
+    },
+    {
+     "name": "Elizabeth Mandlik",
+     "image": "https://avatars.azuro.org/images/45/1006000000000031322691/Elizabeth Mandlik.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000031318904",
+   "gameId": "1006000000000031318904",
+   "slug": "juan-manuel-la-serna-matheus-pucinelle-de-almeida-1006000000000031318904",
+   "title": "Juan Manuel La Serna - Matheus Pucinelle De Almeida",
+   "startsAt": "1792773300",
+   "state": "Prematch",
+   "turnover": "0",
+   "sport": {
+    "sportId": "45",
+    "slug": "tennis",
+    "name": "Tennis",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "869e7497-fdae-4a6e-8eaa-f06ea72e991a",
+    "slug": "cali",
+    "name": "Cali",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "924fbf5e-30ae-47e7-8cdd-35169bfc5821",
+    "slug": "colombia",
+    "name": "Colombia"
+   },
+   "participants": [
+    {
+     "name": "Juan Manuel La Serna",
+     "image": "https://avatars.azuro.org/images/45/1006000000000031318904/Juan Manuel La Serna.png"
+    },
+    {
+     "name": "Matheus Pucinelle De Almeida",
+     "image": "https://avatars.azuro.org/images/45/1006000000000031318904/Matheus Pucinelle De Almeida.png"
+    }
+   ]
+  }
+ ],
+ "page": 1,
+ "perPage": 10,
+ "total": 1166,
+ "totalPages": 117
+}

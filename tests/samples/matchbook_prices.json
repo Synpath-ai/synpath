@@ -1,0 +1,94 @@
+{
+ "prices": [
+  {
+   "available-amount": 4394.55779,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.49,
+   "decimal-odds": 1.49,
+   "side": "back",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 5234.39256,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.48,
+   "decimal-odds": 1.48,
+   "side": "back",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 10655.23122,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.47,
+   "decimal-odds": 1.47,
+   "side": "back",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 282.12344,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.46,
+   "decimal-odds": 1.46,
+   "side": "back",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 113.21579,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.45,
+   "decimal-odds": 1.45,
+   "side": "back",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 1388.11838,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.5,
+   "decimal-odds": 1.5,
+   "side": "lay",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 4389.47284,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.51,
+   "decimal-odds": 1.51,
+   "side": "lay",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 3469.28206,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.52,
+   "decimal-odds": 1.52,
+   "side": "lay",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 270.93743,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.53,
+   "decimal-odds": 1.53,
+   "side": "lay",
+   "exchange-type": "back-lay"
+  },
+  {
+   "available-amount": 11.43702,
+   "currency": "GBP",
+   "odds-type": "DECIMAL",
+   "odds": 1.54,
+   "decimal-odds": 1.54,
+   "side": "lay",
+   "exchange-type": "back-lay"
+  }
+ ]
+}

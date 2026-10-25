@@ -153,17 +153,74 @@ def _trading_streams(adapters: Mapping[str, Any], credentials: Mapping[str, Any]
                 market=SxBetMarketStream(api_key=creds.api_key, testnet=testnet, catalog=catalog),
                 private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=address) if address else None,
             )
+        elif venue == "myriad" and creds is not None:
+            # Books are public; the account's orders and positions channels take a
+            # subscription token the adapter signs for, fills the public per-wallet tape.
+            from ..ws.myriad import MyriadMarketStream, MyriadUserStream
+            catalog = getattr(adapter, "catalog", None)
+            address = getattr(creds, "address", None)
+            token = getattr(adapter, "subscription_token", None)
+            if not address:
+                log.warning("synpath.engine.feeds: myriad has an API key but no wallet address, so its orders "
+                            "reach the engine by polling; set MYRIAD_ACCOUNT_ADDRESS for the account stream")
+            out[venue] = VenueStreams(
+                market=MyriadMarketStream(catalog=catalog),
+                private=MyriadUserStream(address=address, token=token) if address and token else None,
+            )
         elif venue == "betfair" and creds is not None:
             # Market data only: no Betfair order entry, so no account stream.
             # Every Betfair stream, books included, logs in with the account.
             from ..ws.betfair import BetfairMarketStream
             out[venue] = VenueStreams(market=BetfairMarketStream(credentials=creds), private=None)
+        elif venue == "gemini":
+            # Books are public; the account stream signs its handshake with
+            # the API key, which must be account-scoped and time-based.
+            from ..ws.gemini import GeminiMarketStream, GeminiUserStream
+            sandbox = getattr(creds, "env", "prod") == "sandbox"
+            out[venue] = VenueStreams(
+                market=GeminiMarketStream(sandbox=sandbox),
+                private=GeminiUserStream(creds) if creds is not None else None,
+            )
         elif venue == "smarkets":
             # Market data only, and public: a polled stream on REST quotes
             # (Smarkets' socket stream is for approved market makers). The
             # login, when configured, only undelays the quotes.
             from ..ws.smarkets import SmarketsMarketStream
             out[venue] = VenueStreams(market=SmarketsMarketStream(credentials=creds), private=None)
+        elif venue == "novig":
+            # The websocket takes a subaccount's trading key; without one the
+            # market stream polls the public book.
+            from ..ws.novig import NovigMarketStream, NovigUserStream
+            catalog = getattr(adapter, "catalog", None)
+            keyed = bool(getattr(creds, "key_id", None))
+            out[venue] = VenueStreams(
+                market=NovigMarketStream(credentials=creds, catalog=catalog),
+                private=NovigUserStream(credentials=creds, trading=adapter, catalog=catalog) if keyed else None,
+            )
+        elif venue == "matchbook":
+            # Polled, as Matchbook has no push API: books from public REST
+            # reads, with no session so the polls are not the account's. No
+            # account stream; the engine polls the offers.
+            from ..ws.matchbook import MatchbookMarketStream
+            out[venue] = VenueStreams(market=MatchbookMarketStream(), private=None)
+        elif venue == "prophetx" and getattr(creds, "trades", False):
+            # Every ProphetX channel is private: both streams register on the
+            # trading adapter's session, which ProphetX counts per key.
+            from ..ws.prophetx import ProphetXMarketStream, ProphetXUserStream
+            session = getattr(adapter, "session", None)
+            catalog = getattr(adapter, "catalog", None)
+            resolver = getattr(adapter, "side", None)
+            out[venue] = VenueStreams(
+                market=ProphetXMarketStream(credentials=creds, session=session, catalog=catalog),
+                private=ProphetXUserStream(credentials=creds, session=session, catalog=catalog, resolver=resolver),
+            )
+        elif venue == "azuro":
+            # Public odds over the feed's socket; bets are read back by
+            # polling, since the feed streams no account channel.
+            from ..ws.azuro import AzuroMarketStream
+            chain = getattr(creds, "chain", "polygon")
+            out[venue] = VenueStreams(market=AzuroMarketStream(chain=chain, catalog=getattr(adapter, "catalog", None)),
+                                      private=None)
         else:
             log.info("synpath.engine.feeds: no stream for %s; its orders reach the engine by polling", venue)
     return out

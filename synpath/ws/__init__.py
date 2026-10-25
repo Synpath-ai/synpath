@@ -50,12 +50,30 @@ def __getattr__(name: str):
     if name in ("SxBetMarketStream", "SxBetUserStream"):
         from . import sx_bet
         return getattr(sx_bet, name)
+    if name in ("MyriadMarketStream", "MyriadUserStream"):
+        from . import myriad
+        return getattr(myriad, name)
     if name == "BetfairMarketStream":
         from .betfair import BetfairMarketStream
         return BetfairMarketStream
     if name == "SmarketsMarketStream":
         from .smarkets import SmarketsMarketStream
         return SmarketsMarketStream
+    if name in ("NovigMarketStream", "NovigUserStream"):
+        from . import novig
+        return getattr(novig, name)
+    if name == "MatchbookMarketStream":
+        from .matchbook import MatchbookMarketStream
+        return MatchbookMarketStream
+    if name in ("ProphetXMarketStream", "ProphetXUserStream"):
+        from . import prophetx
+        return getattr(prophetx, name)
+    if name == "AzuroMarketStream":
+        from .azuro import AzuroMarketStream
+        return AzuroMarketStream
+    if name in ("GeminiMarketStream", "GeminiUserStream"):
+        from . import gemini
+        return getattr(gemini, name)
     if name in ("HyperliquidMarketStream", "HyperliquidUserStream"):
         from . import hyperliquid
         return getattr(hyperliquid, name)
@@ -75,5 +93,5 @@ __all__ = [
     "PolymarketUSExchangeMarketDataStream", "PolymarketUSExchangeBalanceLedgerStream",
     "OpinionMarketStream", "OpinionUserStream", "HyperliquidMarketStream", "HyperliquidUserStream",
     "PredictFunMarketStream", "PredictFunUserStream", "LimitlessMarketStream", "LimitlessUserStream", "SxBetMarketStream", "SxBetUserStream",
-    "BetfairMarketStream", "SmarketsMarketStream",
+    "BetfairMarketStream", "SmarketsMarketStream", "NovigMarketStream", "NovigUserStream", "MatchbookMarketStream", "ProphetXMarketStream", "ProphetXUserStream", "AzuroMarketStream", "MyriadMarketStream", "MyriadUserStream", "GeminiMarketStream", "GeminiUserStream",
 ]

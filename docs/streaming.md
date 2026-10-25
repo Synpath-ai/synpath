@@ -42,7 +42,17 @@ asyncio.run(main())
 | `SxBetMarketStream` | `realtime.sx.bet` (or the testnet) | SX Bet API key (every channel needs one) | whole books, top of book, the tape of taker bets, market changes and settlements |
 | `SxBetUserStream` | `realtime.sx.bet` | SX Bet API key and the account's address (from the private key, or `SX_BET_ACCOUNT_ADDRESS`) | orders; fills as matched, then escrowed or failed on chain |
 | `BetfairMarketStream` | `stream-api.betfair.com:443`, a TLS socket (Exchange Stream API), not a WebSocket | Betfair application key and a login (every Betfair call needs one) | best offers per runner to 10 levels, runner and market status; conflated to 3 minutes on a delayed key |
+| `AzuroMarketStream` | `streams.onchainfeed.org` (`dev-streams` for the testnets) | none | each condition's odds as quotes, one-level books sized by the pool's limits, condition status changes |
 | `SmarketsMarketStream` | `api.smarkets.com` REST, polled (no public socket) | none; an optional login undelays the quotes | contract books and top of book at every poll (5 s by default), contract status every few polls |
+| `NovigMarketStream` | `api.novig.com/v3/ws` (or Paper's); without a key, the public REST book polled | a subaccount's trading key for the WebSocket (the handshake is signed); none to poll | books kept per order, top of book, the tape, market transitions (going in play voids resting orders) |
+| `NovigUserStream` | `api.novig.com/v3/ws` | a subaccount's trading key | orders (open, fill, cancel, reject) and positions of that subaccount |
+| `MatchbookMarketStream` | `api.matchbook.com` REST, polled (Matchbook has no push API) | none | runner books, top of book and runner status at every poll (5 s by default) |
+| `ProphetXMarketStream` | the host `GET /websocket/connection-config` names (ProphetX's Talaria, Pusher protocol 7) | the Trading API key pair (every channel is private) | each line's ten best levels a side on every change, top of book, the tournament's tape of fills |
+| `ProphetXUserStream` | the same host | the Trading API key pair | orders on every change; a fill with each match |
+| `MyriadMarketStream` | `ws.myriadprotocol.com/ws` | none | order books (both outcomes), top of book and last per outcome, the tape of matches, markets created and resolved |
+| `MyriadUserStream` | `ws.myriadprotocol.com/ws` | the wallet's address, and a subscription token per account channel (`MyriadTrading.subscription_token`) | orders; fills from the wallet's public tape; share balances |
+| `GeminiMarketStream` | `ws.gemini.com` (or the sandbox) | none | differential books in YES space from a snapshot, top of book with the last trade, public prints, contract status and strikes |
+| `GeminiUserStream` | `ws.gemini.com` | an account-scoped Gemini API key with a time-based nonce (the handshake is signed) | orders; each execution with its fee and maker flag; positions, settlement payouts included; balances |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,
@@ -64,11 +74,17 @@ variable `synpath serve` reads it from:
 | Polymarket | nothing | |
 | Hyperliquid | nothing | |
 | Limitless | nothing | |
+| Myriad | nothing | |
 | Opinion | the Open API key | `OPINION_API_KEY` |
 | predict.fun | the API key (`pred_sk_...`, from developers.predict.fun); mainnet only | `PREDICT_FUN_API_KEY` |
 | SX Bet | the API key (sx.bet -> Account -> Overview -> API Credentials) | `SX_BET_API_KEY` |
 | Betfair | the application key and a login (every Betfair call needs one) | `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD` |
 | Smarkets | nothing; an optional login undelays the quotes | `SMARKETS_USERNAME`, `SMARKETS_PASSWORD` |
+| Novig | the WebSocket: a subaccount's trading key (key id and private key file; the handshake is signed). Without one the public book is polled | `NOVIG_KEY_ID`, `NOVIG_PRIVATE_KEY_PATH`, `NOVIG_ENV` |
+| Matchbook | nothing | |
+| ProphetX | the Trading API key pair (prophetx.co -> API Integration); the Market Data API key has no stream | `PROPHETX_ACCESS_KEY`, `PROPHETX_SECRET_KEY` |
+| Azuro | nothing | `AZURO_CHAIN` picks the pool when trading |
+| Gemini | nothing | |
 
 `synpath serve` builds a market stream for Opinion, predict.fun and SX Bet
 from the API key alone (`load_market_data`), so a parent on any venue can
@@ -171,6 +187,18 @@ jittered exponential backoff between attempts.
   grows, and a quiet market publishes nothing, so each book is seeded from the
   REST snapshot when its subscription is confirmed. Trades and market changes
   are venue-wide channels, filtered here to the markets asked for.
+- *Myriad* speaks Centrifugo's JSON protocol too, anonymously: the books,
+  prices, trades and markets channels are public, and so is one wallet's tape
+  on every market (`trades:56:*:<wallet>`), which carries the account's fills.
+  The account's orders and positions channels each take a short-lived token
+  that the REST API issues for the signed-in wallet's own channels; the user
+  stream asks the trading adapter for one per channel on every subscribe. A
+  book delta is the new size of each changed level, for both outcomes at once;
+  both books are seeded from REST when the subscription is confirmed, and
+  deltas that arrived first are replayed on the snapshot, which is safe since
+  each is a level's absolute size. A reconnect reseeds them. Publications are
+  coalesced into windows of about 100 ms. Order-book markets only: pools
+  publish nothing here.
 - *Betfair* is not a WebSocket: its Exchange Stream API is one TLS socket to
   `stream-api.betfair.com:443` carrying CRLF-delimited JSON. The stream
   authenticates with the application key and a session token straight away
@@ -189,6 +217,21 @@ jittered exponential backoff between attempts.
   `conflate_ms` asks. The stream logs a warning once when it sees that, and
   waits a whole conflation window before treating silence as a dead socket.
   No public trades, so no `watch_trades`; no account stream yet.
+- *Azuro* speaks plain JSON on `wss://streams.onchainfeed.org/v1/streams/feed`:
+  `SubscribeConditions` (and `UnsubscribeConditions`) with the condition ids
+  and the chain's environment (`PolygonUSDT`, `BaseWETH`), and a
+  `ConditionUpdated` message whenever a condition's odds or state change,
+  carrying every outcome's `currentOdds`. Each update is read as the REST
+  quotes are: buying YES at `1 / odds` of the YES outcome and, on a
+  two-outcome market, selling at one minus the price of the other. An update
+  that names only some outcomes keeps the others' last odds. A pool has no
+  book, so `watch_order_book` keeps the quote as one level a side sized by the
+  pool's limits, read over REST (`Azuro.fetch_order_book`) when the market is
+  watched and after every reconnect; updates move the prices and keep those
+  sizes. A condition stopping, resuming, resolving or being cancelled is a
+  `MarketStatusEvent` (`paused`, `open`, `settled` with `yes`, `no` or
+  `void`). No trades channel: bets are on the subgraph (`Azuro.fetch_trades`).
+  The feed's socket answers some regions with a 503.
 - *Smarkets* has no public stream: its socket feed (the protobuf stream on
   `api.smarkets.com:3701` that `smk_python_sdk` speaks) is for approved API
   users and market makers. `SmarketsMarketStream` polls the REST quotes
@@ -204,6 +247,95 @@ jittered exponential backoff between attempts.
   says so in `info["delayed"]`. A change shows at the next poll, not as it
   happens, so its `watch_*` keys are `partial`. No `watch_trades`: the recent
   tape is short and unpaged; read it with `Smarkets.fetch_trades`.
+- *Novig* carries every channel on one WebSocket, `wss://api.novig.com/v3/ws`
+  (Paper: `wss://api.paper.novig.com/v3/ws`), opened with a subaccount's
+  `trading` or `trading::read` key: the upgrade is signed like any request
+  (NOVIG-V3 over `GET /v3/ws`). Requests are JSON verbs with nonces that
+  grow within a connection. `subscribe` sets one channel per market --
+  `book`, `bbo`, `trades` or `lifecycle`, the first three carrying
+  `lifecycle` too -- and is answered with a snapshot at a `seq`; each delta
+  carries the next `seq` of its market and channel, and a skipped one is a
+  gap, recovered with a `snapshot` request that leaves the subscriptions as
+  they are. Books are kept per resting order (`add`, `update`, `remove`) and
+  read on YES like the REST book: the YES outcome's bids are bids, the NO
+  outcome's asks at one minus their price, sizes in dollar contracts. A
+  market watched for its book and its trades is subscribed on `book`, and
+  its trades are read off the book's fills, without the tape's ids; a market
+  watched for trades alone is on `trades`, for its ticker alone on `bbo`.
+  `GOLIVE` voids every resting order on the event, so the book empties and a
+  `MarketStatusEvent` says so. Subscriptions go out sixteen markets a
+  request, paced under the venue's `stream` throttle. Without a key,
+  `NovigMarketStream` polls the public book (every 5 s by default), the tape
+  for watched trades and the market for its status, and its `watch_*` keys
+  are `partial`; the edge caches those answers for up to fifteen seconds. A
+  poll the edge throttles keeps the last answer and is retried at the next.
+  `NovigUserStream` subscribes the subaccount's `orders` and `positions`:
+  the snapshot lists the resting orders and the nonzero positions, then
+  `open`, `fill`, `cancel` and `reject` events and position changes follow,
+  each channel with its own `seq`. A heartbeat every 15 s names the last
+  `seq` of each; one ahead of the stream's is a gap, reported with
+  `reconcile_required` and recovered with a snapshot. Fills matched on entry
+  arrive before the order's `open`. A `fill` carries no fee; read it with
+  `NovigTrading.fetch_my_trades`.
+- *Matchbook* has no push API: no WebSocket, SSE or FIX. `MatchbookMarketStream`
+  polls `GET /edge/rest/events` with prices, twenty Matchbook events a
+  request, and emits the difference between one answer and the next: a
+  snapshot first, then deltas of the levels that changed, nothing when
+  nothing did. One read carries every market, runner and price of an event,
+  so books, tickers and runner status (suspended, closed, withdrawn) come from
+  the same polls. Polls share the adapter's `LIMITER` (Matchbook's events
+  group allows 700 requests a minute). Every GET is chargeable on Matchbook's
+  API plans (£100 per million a month): the default 5 s interval is 12
+  requests a minute for up to twenty events, about 520,000 a month if left
+  running, so raise `interval` to spend less. The stream polls without a
+  session, so the polls are not the account's. A refused or failed poll is a
+  dropped connection: the base loop backs off and reconnects, and the next
+  poll rebuilds every book and reports it `resynced`. A change shows at the
+  next poll, so its `watch_*` keys are `partial`. Matchbook publishes no
+  trades, so there is no `watch_trades`, and no account stream: the engine
+  polls the account's offers.
+- *ProphetX* streams over Talaria, its own server for the Pusher wire
+  protocol (protocol 7); the stream speaks it directly, so no Pusher client is
+  needed. On every connect it reads `GET /websocket/connection-config` for the
+  host (`ws_host`, else the Pusher cluster), opens `/app/<key>`, takes the
+  `socket_id` from `pusher:connection_established`, and registers the
+  complete set of subscriptions at `POST /v4/mm/websocket` with
+  `X-CFTC-Terminology: true`. The answer authorizes each channel with its own
+  signature; the stream signs in with its `authenticated` block and joins
+  the channels it wants once `pusher:signin_success` arrives. Every message's
+  data is JSON in a string whose `payload` is base64 JSON. Books come from the
+  event channel (`{"type": "event"}`) as `v2.market_selections`: each message
+  is one line's two sides, ten levels each, so it replaces the book, and a
+  quiet line publishes nothing, so each book is seeded from REST when its
+  channel is joined. Messages carry a sequence number and an older one is
+  dropped. Trades come from the tournament channel as `trade_execution`
+  (bound as `v2.tournament_<id>`), anonymous fills with the strike, its price
+  and the stake; `watch_trades` reads each line's tournament first. The
+  account's `orders` arrive on its private channel, one message per fill,
+  with `health_check` every five seconds. The stream sends `pusher:ping`
+  every 30 s and answers the server's. Every channel is private, so both
+  streams need the Trading API key pair; the engine runs them on the trading
+  adapter's session, since ProphetX counts sessions per key.
+- *Gemini* takes `{"id", "method": "SUBSCRIBE", "params": [stream names]}`
+  and answers each with its `id` and a status. The market stream connects
+  with `snapshot=-1` and subscribes `{symbol}@depth@100ms`, so the first frame
+  for a book is the whole book and the rest are the levels that changed (a
+  size of zero removes one). Frames chain by update id: each frame's first id
+  `U` is the last id `u` of the frame before, ids being the exchange's own
+  across all books. A frame whose `U` is past the last applied `u` is a gap:
+  the book is dropped, the stream unsubscribes and subscribes again, and the
+  fresh snapshot is reported `resynced`. Books are in YES space; `book(id,
+  "no")` mirrors one. `@bookTicker` is the top of book (and the last trade
+  price once there is one), `@trade` the tape (`m` says the buyer was the
+  maker, so the taker sold), `contractStatus` every contract's status changes.
+  Gemini sends symbols lower case; events carry them upper case, as REST
+  does. The account stream signs its handshake (`X-GEMINI-APIKEY`, `-NONCE`,
+  `-PAYLOAD`, `-SIGNATURE`) with an account-scoped key that uses a time-based
+  nonce; master keys are refused. An order frame carries only what changed,
+  so the stream keeps each order's last known fields; a `FILLED` or
+  `PARTIALLY_FILLED` frame is also a `FillEvent` (`Z` the execution's size,
+  `L` its price, `n` its fee). The first `positions@account` frame is the open
+  positions, then changes; a settlement closes a position with its payout.
 
 **A book is right or marked not ready.** After a gap or a disconnect the
 book's `ready` is false until a snapshot arrives; deltas are not applied to

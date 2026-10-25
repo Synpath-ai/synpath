@@ -77,11 +77,11 @@ and spot exchanges do not.
 | Method | Returns | Notes |
 |---|---|---|
 | `fetch_markets(query, limit, cursor, status, sort)` | `Page[Market]` | `limit` up to 100 |
-| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read), order preserved, closed and settled markets included |
+| `fetch_markets_by_ids(ids)` | `list[Market]` | batched (Kalshi 200, Polymarket 100, Polymarket US 50 ids a request; Opinion has no batch lookup, one request each; Hyperliquid answers any number from one catalog read; predict.fun and Limitless, one request each; SX Bet 30 ids a request; Betfair 100 markets a catalogue request and 40 a book request; Smarkets 300 markets a lookup and 100 a contracts read; Novig one request each; Matchbook 20 events a request, every market of each; ProphetX 20 events a request; Azuro reads each game's conditions once, ten games a request; Myriad 100 a request per network and kind of market; Gemini one event read per event), order preserved, closed and settled markets included |
 | `fetch_events(query, limit, cursor, status)` | `Page[Event]` | markets nested |
 | `fetch_market(market_id)` | `Market` | |
 | `fetch_order_book(market_id, side, depth)` | `OrderBook` | `side="yes"` (default) or `"no"` |
-| `fetch_order_books(market_ids, side, depth)` | `dict[str, OrderBook]` | many books; one request on Polymarket (500 books), on Betfair (40 Betfair markets, every runner of each) and on Smarkets (200 Smarkets markets, every contract of each), one per market elsewhere |
+| `fetch_order_books(market_ids, side, depth)` | `dict[str, OrderBook]` | many books; one request on Polymarket (500 books), on Betfair (40 Betfair markets, every runner of each), on Smarkets (200 Smarkets markets, every contract of each), on Matchbook (20 Matchbook events, every runner of each) and on ProphetX (20 events, every line of each), one per market elsewhere |
 | `fetch_trades(market_id, since, limit, cursor)` | `Page[Trade]` | newest page first, each page oldest first; `since` in ms; `next_cursor` null at the end |
 | `fetch_ohlcv(market_id, timeframe, since, until, limit)` | `list[Candle]` | in the YES price; check `price_source`. With `since`, the first `limit` bars from it; without, the newest `limit` |
 | `fetch_series(series_id)` | `Series` | Kalshi only |
@@ -120,6 +120,106 @@ contracts = smk.fetch_markets(domain="football", market_type="WINNER_3_WAY", lim
 book = smk.fetch_order_book(contracts[0].id)  # Smarkets bids are YES bids, offers YES asks
 book.info["bids"], book.info["offers"]     # Smarkets' own [price bps, quantity] pairs
 smk.fetch_trades(contracts[0].id)          # the short recent tape
+```
+
+Novig needs no key for market data. It adds `fetch_event(id)` (one game with
+its markets), `outcome_ids(market_id)` (the YES and NO outcome ids an order
+names), and the raw `fetch_novig_market` and `fetch_novig_event`, and takes
+`league` (`"NFL"`, `"NBA"`), `market_type` (`"MONEY"`, `"SPREAD"`, `"TOTAL"`)
+and `event` on `fetch_markets` (`league` on `fetch_events`). `env="paper"`
+reads the Paper exchange, whose ids differ from Production's. See
+[Novig](capabilities.md#novig).
+
+```python
+nv = synpath.Novig()                       # no key; Novig(env="paper") for Paper
+games = nv.fetch_markets(league="NFL", market_type="MONEY", limit=9)
+book = nv.fetch_order_book(games[0].id)    # bids on the YES outcome, bids on the NO outcome as asks
+book.info["orders"]                        # Novig's own resting orders by outcome id
+nv.fetch_fee_schedule(games[0].id).info["charged"]   # "WHEN_LIVE": takers pay only in play
+```
+
+Matchbook needs no account. It adds `fetch_event(id)` (one Matchbook market
+with its runners, open or closed), `fetch_sports()`,
+`fetch_matchbook_events(ids)` (Matchbook's own events with their markets and
+prices) and `fetch_runner_prices(event_id, market_id, runner_id)`, and takes
+`sport` (an id or a name, `"Soccer"`), `tag` (Matchbook's tag url names,
+`"england-premier-league"`) and `market_type` (`"one_x_two"`, `"total"`) on
+`fetch_markets` and `fetch_events`. It has no text search. `currency=` asks
+for prices in USD, EUR, GBP, AUD, CAD or HKD instead of the region's default,
+and `depth=` sets the price levels read a side. See
+[Matchbook](capabilities.md#matchbook).
+
+```python
+mb = synpath.Matchbook()                   # no account
+runners = mb.fetch_markets(sport="Soccer", market_type="one_x_two", limit=9)
+book = mb.fetch_order_book(runners[0].id, depth=5)  # lay prices are YES bids, back prices YES asks
+book.info["back"], book.info["lay"]        # Matchbook's own [odds, available amount] pairs
+```
+
+ProphetX needs a key for every call: the Trading API key pair
+(`PROPHETX_ACCESS_KEY`, `PROPHETX_SECRET_KEY`) or a Market Data API key
+(`PROPHETX_AFFILIATE_KEY`). It adds `fetch_event(id)` (one open game with its
+lines), `fetch_tournaments()`, `fetch_sport_events(tournament_id, event_ids)`,
+the raw `fetch_event_markets(event_ids)` and `lines(event_id)`, and, with the
+key pair, `fetch_strikes(strike_ids)`; it takes `tournament_id` on
+`fetch_markets` and `fetch_events`. It lists only games not started or live,
+and serves no trades or candles over REST. See [ProphetX](capabilities.md#prophetx).
+
+```python
+px = synpath.ProphetX()                    # PROPHETX_ACCESS_KEY / _SECRET_KEY, or PROPHETX_AFFILIATE_KEY
+lines = px.fetch_markets(tournament_id=31, limit=9)   # 31 is the NFL
+book = px.fetch_order_book(lines[0].id)    # side one's offers are YES asks, side two's YES bids
+book.info["yes"], book.info["no"]          # ProphetX's own levels, American prices
+```
+
+Azuro needs no key. It adds `fetch_sports()` (the feed's sports, countries
+and leagues with their open game counts), `fetch_limits(market_id, side)`
+(the pool's minimum and maximum bet and maximum payout on one selection) and
+`fetch_condition_states(condition_ids)` (fresh odds and states, without the
+games), and takes `sport` and `league` (the feed's slugs, `"football"`,
+`"premier-league"`) on `fetch_markets` and `fetch_events`. `chain=` picks the
+pool read: `polygon` (the default), `base`, or a testnet. See
+[Azuro](capabilities.md#azuro).
+
+```python
+azuro = synpath.Azuro()                     # the Polygon pool; Azuro(chain="base") for Base
+markets = azuro.fetch_markets(sport="football", limit=20)
+market = markets[0]
+market.yes.quote.ask, market.info["odds"]   # 1 / odds, and the venue's odds
+azuro.fetch_limits(market.id)               # {"min_bet", "max_bet", "max_payout", ...}
+azuro.fetch_trades(market.id)               # single bets, from the bets subgraph
+```
+
+Myriad needs no key (an API key and secret raise its rate limit). It takes
+`topic` (`"sports"`, `"crypto"`), `tag` (a league, team or asset slug),
+`in_play`, `trading_model` (`"all"`, the default, `"ob"` or `"amm"`) and
+`network` (56 BNB Chain, 2741 Abstract, 59144 Linea) on `fetch_markets` and
+`fetch_events`, and adds `fetch_event(id)`, `fetch_topics()`, `fetch_tags(type)`
+and `raw_market(id)`. Any id also takes the market's slug. See
+[Myriad](capabilities.md#myriad).
+
+```python
+myriad = synpath.Myriad()                  # no key needed
+games = myriad.fetch_markets(topic="sports", trading_model="ob", limit=9)
+book = myriad.fetch_order_book(games[0].id, side="no")   # outcome 1's own book
+pool = myriad.fetch_order_book("myriad:56-amm-120473")   # built from the pool: book.info["depth_source"] == "amm"
+myriad.fetch_fee_schedule(games[0].id).estimate(0.40, 100)   # the taker fee at 40c
+```
+
+Gemini needs no account for market data. It adds `fetch_event(id)` (one event
+with its contracts, any status), `fetch_gemini_event(ticker)` (the raw event,
+its child events included), `fetch_categories(status)` and `fetch_strike(id)`
+(a crypto Up/Down event's strike once set), and takes `category` and the sports
+taxonomy, `sport`, `sports_market_type`, `sports_market_subject`,
+`sports_market_scope` and `sports_market_metric` (each a value or a list), on
+`fetch_markets` and `fetch_events`. See [Gemini](capabilities.md#gemini).
+
+```python
+gemini = synpath.Gemini()                 # no account
+lines = gemini.fetch_markets(sport="basketball", sports_market_type="spread", limit=9)
+lines[0].info["sports_market"]            # {"sport": "basketball", "type": "spread", "subject": "team", ...}
+lines[0].info["strike"]                   # {"type": "spread", "value": "1.5"}
+book = gemini.fetch_order_book(lines[0].id)   # YES space; side="no" mirrors it
 ```
 
 Polymarket also has
@@ -204,7 +304,7 @@ result.matched     # MarketLink | None
 
 Matching covers every venue this library speaks: `kalshi`, `polymarket`,
 `polymarket_us`, `opinion`, `hyperliquid`, `predict_fun`, `limitless` and
-`sx_bet` (not Betfair or Smarkets yet). `venue=` asks one of them in particular; without it the answer is
+`sx_bet` (not Betfair, Smarkets, Novig, Matchbook, ProphetX, Azuro or Gemini yet). `venue=` asks one of them in particular; without it the answer is
 the first venue listing the same question, in the order Polymarket, Kalshi,
 Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Polymarket US.
 
@@ -256,13 +356,21 @@ A venue that cannot filter by one of them raises `NotSupported`. Polymarket
 does for `settled`, since its catalog does not publish resolution status, and
 Betfair for everything but `open`, since a closed market leaves its catalogue
 (read it by id instead). Smarkets filters on its events' states: `closed` is an
-ended or suspended event, `settled` a settled or cancelled one.
+ended or suspended event, `settled` a settled or cancelled one. Novig filters
+on its events' states too, `closed` being a final or cancelled event whose
+markets await their grades; its public catalog drops a market once it
+settles, so `settled` raises (read a settled market by id with a key). Matchbook
+lists only open events with their markets and raises `NotSupported` for the
+rest (read a closed market by id). ProphetX lists
+only games not started or live, so it raises for everything but `open`. Azuro lists
+`open` games only and raises for the rest; a settled market is read by id. Gemini's `closed`
+is a closed or under-review event, `settled` a settled or invalid one.
 Anything outside the four raises `BadRequest` rather than being handed to the
 venue to interpret for itself.
 
 ### Identifiers
 
-One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
+One id per market and per event, `venue:native` (`kalshi:KXELONMARS-99`, `polymarket:2252244`). On Betfair a market is a runner, `betfair:<market id>-<selection id>` with `-<handicap>` added when it is not zero (`betfair:1.234567890-47972`, `betfair:1.234567892-2426--0.5`), and its event the Betfair market, `betfair:1.234567890`. On Smarkets a market is a contract, `smarkets:<market id>-<contract id>` (`smarkets:164973231-456060183`), and its event the Smarkets market, `smarkets:164973231`. On Novig a market is a two-outcome market, `novig:<market id>` (`novig:01a1577c-d666-7e81-852e-68bed1446801`), and its event the game, `novig:<event id>`. On Matchbook a market is a runner, `matchbook:<event id>-<market id>-<runner id>` (`matchbook:34569494493900023-34569495835700023-34569495836701023`), and its event the Matchbook market, `matchbook:<event id>-<market id>`. On ProphetX a market is a line, `prophetx:<event id>-<strike id>` with the strike id of its YES side (`prophetx:44285780-90de769f4f4977a04446ed203e957351`), and its event the game, `prophetx:44285780`. On Azuro a two-outcome condition is one market, `azuro:<condition id>`, a condition with three or more outcomes one market per outcome, `azuro:<condition id>-<outcome id>`, and the game is the event, `azuro:<game id>`; the ids are the same on every chain. On Myriad a market is `myriad:<network>-<market id>` on an order book (`myriad:56-2385`) and `myriad:<network>-amm-<market id>` on a pool (`myriad:56-amm-120473`), since the two number their markets separately; one outcome of a pool with more than two is `myriad:<network>-amm-<market id>-<outcome>`, and that pool its event. A venue event is `myriad:<uuid>`. On Gemini a market is a contract named by its instrument symbol, `gemini:GEMI-NBA-2610232000-CHI-MIL-M-MIL`, and its event the Gemini event, `gemini:NBA-2610232000-CHI-MIL-M`. The full rules are on [Synpath IDs](https://synpath.dev/docs/concepts/ids).
 
 ### Paging
 

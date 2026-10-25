@@ -9,8 +9,8 @@ backend-path = ["build_backend"]
 
 [project]
 name = "synpath"
-version = "0.9.0"
-description = "One API for 8 prediction markets: Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless and SX Bet. Market data, streaming, self-hosted trading and smart order routing."
+version = "0.10.0"
+description = "One API for 16 prediction markets and sports exchanges: Kalshi, Polymarket, Polymarket US, Opinion, Hyperliquid, predict.fun, Limitless, SX Bet, Myriad, Gemini, Betfair, Smarkets, Novig, Matchbook, ProphetX and Azuro. Market data, streaming, self-hosted trading and smart order routing."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
