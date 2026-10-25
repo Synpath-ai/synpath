@@ -358,7 +358,7 @@ class MyriadCredentials:
     account_address: str | None = None
     """The wallet's address, when no private key names it. Public."""
     rpc_url: str | None = None
-    """A BNB Chain node for the balance read. A public one when unset."""
+    """A BNB Chain node for the balance read and AMM trades there. A public one when unset."""
     _public = ("api_key", "account_address", "rpc_url")
     __repr__ = _redacted_repr
 

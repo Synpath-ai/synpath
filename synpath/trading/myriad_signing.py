@@ -16,6 +16,15 @@ of `{unix seconds}.{METHOD}.{path and query}.{body}` under the secret, sent
 as `x-api-key`, `x-api-timestamp` and `x-api-signature`. The venue refuses a
 bare key. Without a key the wallet signs in (SIWE): the venue's login message,
 signed as a personal message, buys a short-lived session token.
+
+**AMM markets** trade on the network's `PredictionMarket` contract, one call
+per trade: `buy(marketId, outcomeId, minOutcomeSharesToBuy, value)` spends
+`value` of the market's token (fees come out of it) for at least the minimum
+shares, and `sell(marketId, outcomeId, value, maxOutcomeSharesToSell)` pays
+out exactly `value` for at most the maximum shares. Amounts are in the
+token's smallest unit, and shares count in the same unit. The selectors are
+those in the venue's quote calldata and in the deployed contracts' code; each
+trade logs a `MarketActionTx`.
 """
 from __future__ import annotations
 
@@ -29,7 +38,7 @@ from typing import Any, Iterator
 import httpx
 
 from .errors import InvalidOrder
-from .polymarket_signing import WalletSigner, _eth, approve_calldata, set_approval_for_all_calldata
+from .polymarket_signing import WalletSigner, _call, _eth, approve_calldata, set_approval_for_all_calldata
 from .predict_fun_signing import _domain_separator, _personal_digest
 
 DOMAIN_NAME = "MyriadCTFExchange"
@@ -297,3 +306,107 @@ def approval_calls(collateral: str = USD1) -> list[dict[str, str]]:
         {"to": collateral, "data": approve_calldata(EXCHANGE)},
         {"to": CONDITIONAL_TOKENS, "data": set_approval_for_all_calldata(EXCHANGE)},
     ]
+
+
+# ---------------------------------------------------------------------------
+# AMM markets
+# ---------------------------------------------------------------------------
+
+AMM_CONTRACTS: dict[int, str] = {
+    56: "0x39E66eE6b2ddaf4DEfDEd3038E0162180dbeF340",
+    2741: "0x3e0F5F8F5Fb043aBFA475C0308417Bf72c463289",
+    59144: "0x39E66eE6b2ddaf4DEfDEd3038E0162180dbeF340",
+}
+"""The `PredictionMarket` contract per network (BNB Chain, Abstract, Linea),
+from the venue's contract list."""
+
+AMM_RPC_URLS: dict[int, str] = {
+    56: "https://bsc-dataseed.bnbchain.org",
+    2741: "https://api.mainnet.abs.xyz",
+    59144: "https://rpc.linea.build",
+}
+"""Public nodes, used when no other is given."""
+
+MARKET_ACTION_TX = "0x9dcabe311735ed0d65f0c22c5425d1f17331f94c9d0767f59e58473cf95ada61"
+"""`MarketActionTx(address indexed user, uint8 indexed action, uint256 indexed
+marketId, uint256 outcomeId, uint256 shares, uint256 value, uint256 timestamp)`."""
+
+AMM_BUY, AMM_SELL = 0, 1
+"""The `action` of a `MarketActionTx` for a buy and a sell."""
+
+
+def amm_buy_calldata(market_id: int, outcome: int, min_shares: int, value: int) -> str:
+    return _call("buy(uint256,uint256,uint256,uint256)", ["uint256"] * 4,
+                 [int(market_id), int(outcome), int(min_shares), int(value)])
+
+
+def amm_sell_calldata(market_id: int, outcome: int, value: int, max_shares: int) -> str:
+    return _call("sell(uint256,uint256,uint256,uint256)", ["uint256"] * 4,
+                 [int(market_id), int(outcome), int(value), int(max_shares)])
+
+
+def amm_claim_calldata(market_id: int) -> str:
+    """`claimWinnings(marketId)`: a resolved market's winning shares paid out."""
+    return _call("claimWinnings(uint256)", ["uint256"], [int(market_id)])
+
+
+def amm_claim_voided_calldata(market_id: int, outcome: int) -> str:
+    """`claimVoidedOutcomeShares(marketId, outcomeId)`: one outcome's shares of a voided market."""
+    return _call("claimVoidedOutcomeShares(uint256,uint256)", ["uint256", "uint256"], [int(market_id), int(outcome)])
+
+
+def amm_pools_calldata(market_id: int) -> str:
+    """`getMarketOutcomesShares(marketId)`: the pool's shares per outcome."""
+    return _call("getMarketOutcomesShares(uint256)", ["uint256"], [int(market_id)])
+
+
+def amm_holdings_calldata(market_id: int, user: str) -> str:
+    """`getUserMarketShares(marketId, user)`: `(liquidity, shares per outcome)`."""
+    _, _, _, _, to_checksum_address = _eth()
+    return _call("getUserMarketShares(uint256,address)", ["uint256", "address"], [int(market_id), to_checksum_address(user)])
+
+
+def balance_calldata(owner: str) -> str:
+    _, _, _, _, to_checksum_address = _eth()
+    return _call("balanceOf(address)", ["address"], [to_checksum_address(owner)])
+
+
+def allowance_calldata(owner: str, spender: str) -> str:
+    _, _, _, _, to_checksum_address = _eth()
+    return _call("allowance(address,address)", ["address", "address"],
+                 [to_checksum_address(owner), to_checksum_address(spender)])
+
+
+def _words(result: str) -> list[int]:
+    raw = str(result or "0x").removeprefix("0x")
+    return [int(raw[i:i + 64], 16) for i in range(0, len(raw) - len(raw) % 64, 64)]
+
+
+def decode_uint_array(result: str, *, offset_word: int = 0) -> list[int]:
+    """A `uint256[]` return value, its offset in word `offset_word`."""
+    words = _words(result)
+    start = words[offset_word] // 32
+    return words[start + 1:start + 1 + words[start]]
+
+
+def decode_holdings(result: str) -> list[int]:
+    """`getUserMarketShares`'s shares per outcome (after the liquidity word)."""
+    return decode_uint_array(result, offset_word=1)
+
+
+def market_actions(receipt: dict[str, Any], *, contract: str, user: str | None = None) -> list[dict[str, int | str]]:
+    """The `MarketActionTx` logs in a receipt from `contract`, the user's
+    when given: `{user, action, market_id, outcome, shares, value, timestamp}`,
+    amounts in the token's smallest unit."""
+    out: list[dict[str, int | str]] = []
+    for log in receipt.get("logs") or []:
+        topics = [str(t).lower() for t in log.get("topics") or []]
+        if str(log.get("address") or "").lower() != contract.lower() or len(topics) < 4 or topics[0] != MARKET_ACTION_TX:
+            continue
+        who = "0x" + topics[1][-40:]
+        if user is not None and who.lower() != user.lower():
+            continue
+        outcome, shares, value, stamp = (_words(log.get("data") or "0x") + [0, 0, 0, 0])[:4]
+        out.append({"user": who, "action": int(topics[2], 16), "market_id": int(topics[3], 16), "outcome": outcome,
+                    "shares": shares, "value": value, "timestamp": stamp})
+    return out

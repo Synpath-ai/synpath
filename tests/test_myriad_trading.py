@@ -425,13 +425,20 @@ class TestAdapter:
         with pytest.raises(OrderRejected):
             run(go())
 
-    def test_an_amm_market_is_refused(self):
+    def test_an_amm_market_takes_no_resting_order_or_order_book_calldata(self):
         async def go():
             async with adapter(Venue()) as myriad:
                 return await myriad.create_order(request(market_id="myriad:56-amm-120473"))
 
-        with pytest.raises(InvalidOrder, match="AMM"):
+        with pytest.raises(InvalidOrder, match="taker-only"):
             run(go())
+
+        async def calldata():
+            async with adapter(Venue()) as myriad:
+                return await myriad.position_calldata("redeem", "myriad:56-amm-120473")
+
+        with pytest.raises(InvalidOrder, match="AMM market"):
+            run(calldata())
 
     def test_without_a_key_the_wallet_signs_in(self):
         calls = []
@@ -473,9 +480,10 @@ class TestAdapter:
             f"GET /users/{OWNER.address}/portfolio": {"data": [
                 {"marketId": 3722, "networkId": 56, "executionMode": 1, "outcomeId": 0, "shares": 2, "price": 0.9,
                  "value": 1.8, "profit": 0, "status": "ongoing"}], "pagination": {"hasNext": False}},
-            f"GET /users/{OWNER.address}/events": {"data": [
+            f"GET /users/{OWNER.address}/events": lambda r: httpx.Response(200, json={"data": [
                 {"action": "buy", "marketId": 3722, "networkId": 56, "outcomeId": 0, "shares": 2, "value": 1.8,
-                 "timestamp": 1792772000, "txId": "0xt"}], "pagination": {"hasNext": False}},
+                 "timestamp": 1792772000, "txId": "0xt"}] if r.url.params["trading_model"] == "ob" else [],
+                "pagination": {"hasNext": False}}),
         })
 
         async def go():
@@ -488,7 +496,9 @@ class TestAdapter:
         assert venue.sent("GET", "/orders")[0].url.params["market_id"] == "3722"
         assert position.market_id == MARKET_ID and position.contracts == Decimal("2")
         assert [f.id for f in fills] == ["0xt:0:buy"]
-        assert venue.sent("GET", f"/users/{OWNER.address}/events")[0].url.params["since"] == "1792771000"
+        ob, amm = venue.sent("GET", f"/users/{OWNER.address}/events")
+        assert ob.url.params["since"] == "1792771000" and ob.url.params["network_id"] == "56"
+        assert amm.url.params["trading_model"] == "amm" and "network_id" not in amm.url.params
 
     def test_the_balance_is_the_wallets_usd1_less_open_buys(self):
         entry, _, _ = signed(request(price=Decimal("0.4")))

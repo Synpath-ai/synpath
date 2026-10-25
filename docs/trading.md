@@ -100,7 +100,7 @@ The variables each venue reads:
 | Hyperliquid | `HYPERLIQUID_PRIVATE_KEY` (an API wallet's key is safest: it trades but cannot withdraw), `HYPERLIQUID_ACCOUNT_ADDRESS` (the account an API wallet trades for; not needed with the account's own key), `HYPERLIQUID_TESTNET` (`1` for the test network) |
 | predict.fun | `PREDICT_FUN_API_KEY` (mainnet market data and trading; from developers.predict.fun), `PREDICT_FUN_PRIVATE_KEY` (trading; a plain wallet's key, or a Predict account's owner key: the Privy wallet exported under Account -> Settings), `PREDICT_FUN_ACCOUNT_ADDRESS` (the Predict account's deposit address; unset for a plain wallet), `PREDICT_FUN_TESTNET` (`1` for the test network), `PREDICT_FUN_RPC_URL` (optional; the BNB Chain node the balance is read from) |
 | Limitless | `LIMITLESS_PRIVATE_KEY` (the wallet connected on limitless.exchange, in EOA trading mode), `LIMITLESS_API_TOKEN_ID` and `LIMITLESS_API_SECRET` (a scoped API token derived on limitless.exchange: profile, API tokens, Derive), `LIMITLESS_RPC_URL` (optional; the Base node the balance is read from) |
-| Myriad | `MYRIAD_PRIVATE_KEY` (signs orders and cancels, and the sign-in when there is no key), `MYRIAD_API_KEY` and `MYRIAD_API_SECRET` (optional together: HMAC-signed requests; the venue refuses a key without its signature), `MYRIAD_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address when no private key names it), `MYRIAD_RPC_URL` (optional; the BNB Chain node the balance is read from) |
+| Myriad | `MYRIAD_PRIVATE_KEY` (signs orders and cancels, and the sign-in when there is no key), `MYRIAD_API_KEY` and `MYRIAD_API_SECRET` (optional together: HMAC-signed requests; the venue refuses a key without its signature), `MYRIAD_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address when no private key names it), `MYRIAD_RPC_URL` (optional; the BNB Chain node the balance is read from and AMM trades are sent to) |
 | SX Bet | `SX_BET_API_KEY` (market data streams, reading the account, cancels and the heartbeat; generated on sx.bet under Account -> Overview -> API Credentials), `SX_BET_PRIVATE_KEY` (optional; placing orders only: the wallet you sign in to sx.bet with, the account's own key, not its proxy wallet's), `SX_BET_ACCOUNT_ADDRESS` (optional; the wallet's public 0x address, not its private key, which names the account stream's channels when no private key is set; the venue documents no route that returns a key's owner), `SX_BET_TESTNET=1` (optional; the Toronto test network) |
 | Novig | `NOVIG_KEY_ID` and `NOVIG_PRIVATE_KEY_PATH` (a subaccount's trading key: its id, which is also the subaccount's address, and its PKCS#8 PEM file), `NOVIG_ENV` = `production` (the default, real money) or `paper` (play money; Paper's keys and ids are its own), `NOVIG_MANAGEMENT_KEY_ID` / `NOVIG_MANAGEMENT_PRIVATE_KEY_PATH` (optional; the account's management key, for `open_subaccount`, `fund_subaccount`, `label_subaccount`, `issue_subaccount_key` and `subaccounts`) |
 | Matchbook | `MATCHBOOK_USERNAME`, `MATCHBOOK_PASSWORD` (betting and the account's offers, bets and balance; market data needs neither) |
@@ -774,8 +774,9 @@ some regions with a 503; check where Azuro may be used before betting.
 ## Myriad
 
 `MyriadTrading`, built to Myriad's API reference, for its order book on BNB
-Chain. Order hashes and signatures are checked against an independent
-EIP-712 encoder and fixed known answers.
+Chain and its AMM (pool) markets on BNB Chain, Abstract and Linea. Order
+hashes and signatures are checked against an independent EIP-712 encoder and
+fixed known answers; pool calls against the venue's own quote calldata.
 
 Every order is the venue's nine-field EIP-712 `Order` (trader, market,
 outcome, side, amount, price, minimum fill, nonce, expiration), signed by the
@@ -822,9 +823,36 @@ from the wallet's public tape with their orders and fees, and share balances
 book and AMM alike, netted per binary market on the YES leg. The balance is
 the wallet's USD1 on BNB Chain, less what open buy orders reserve.
 
-AMM markets trade through on-chain contract calls (the venue's quote route
-returns the calldata), one per trade with gas, on BNB Chain, Abstract and
-Linea; they are not traded here, and an order for one is refused.
+AMM markets (`myriad:56-amm-120473`, one outcome of a larger pool
+`myriad:2741-amm-412-3`) trade as market orders: each is one transaction from
+the wallet to the network's `PredictionMarket` contract, which pays its gas in
+the chain's coin. There is nothing to rest, so a pool order is `market`,
+`ioc` or `fok` with a worst price; a `gtc` or `gtd` limit and post-only are
+refused. The worst price bounds the average price, fees in: the order is sized
+from the pool read on chain, `market` and `ioc` trading the most shares up to
+the quantity whose average is within it, `fok` the whole quantity or nothing
+(an order that fits nothing is `canceled` and sends nothing). The bound goes on
+chain as the contract's own guard, the minimum shares a buy's value must buy
+(`value / worst`) or the most shares a sell may burn for its payout, so the
+transaction reverts rather than fill worse if the pool moves first. YES and NO
+are outcomes 0 and 1 of a two-outcome pool, as on the order book; on one
+outcome of a larger pool YES is that outcome, and NO, the rest of the pool, is
+not one trade. A sell (`reduce_only`) checks the shares held, a buy the
+token's balance and its approval: `approve_amm(market_id)` approves the
+market's token (USD1 or USDT, USDC.e, USDC) to that network's contract once.
+`create_order` waits for the receipt (`params={"wait": False}` returns it
+`pending`, its id the transaction hash, for `fetch_order` to read again) and
+reports the fill from the receipt's `MarketActionTx`: shares, average price and
+the fee, a share of the value set per market (`share_of_value`; on a buy it
+comes out of the value spent, on a sell it is on top of the payout). The price
+is the value over the shares, fees in, as the account's history gives it, and
+the fill's id is the history's, so `fetch_my_trades`, which reads order-book
+and pool trades alike, shows the same trade once. A reverted trade comes back
+`rejected`. `plan_amm_order(request)` sizes an order and builds its call
+without sending it, and `redeem_amm(market_id)` claims a resolved market's
+winnings (or a voided one's shares). Nodes default to public ones;
+`MYRIAD_RPC_URL` sets BNB Chain's and `rpc_urls={2741: ..., 59144: ...}` the
+others.
 
 Check Myriad's terms for where it may be used before trading.
 
