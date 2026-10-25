@@ -75,6 +75,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: pip install -e ".[dev,postgres]"
       - name: PostgreSQL journal, recovery and mocked venue contracts
-        run: pytest -q tests/test_postgres_storage.py tests/test_owner_migrations.py tests/test_routed_execution_scope.py
+        run: pytest -q tests/test_postgres_storage.py tests/test_owner_migrations.py tests/test_routed_execution_scope.py tests/test_routed_scope_transactions.py tests/test_routed_audit_pagination.py
         env:
           SYNPATH_TEST_POSTGRES_DSN: postgresql://postgres:postgres@localhost:5432/synpath_test
