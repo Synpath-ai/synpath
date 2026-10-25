@@ -54,6 +54,7 @@ asyncio.run(main())
 | `MyriadUserStream` | `ws.myriadprotocol.com/ws` | the wallet's address, and a subscription token per account channel (`MyriadTrading.subscription_token`) | orders; fills from the wallet's public tape; share balances |
 | `GeminiMarketStream` | `ws.gemini.com` (or the sandbox) | none | differential books in YES space from a snapshot, top of book with the last trade, public prints, contract status and strikes |
 | `GeminiUserStream` | `ws.gemini.com` | an account-scoped Gemini API key with a time-based nonce (the handshake is signed) | orders; each execution with its fee and maker flag; positions, settlement payouts included; balances |
+| `GeminiRfqStream` | `ws.gemini.com` (or the sandbox) | none to watch auctions; the same account key to watch deliveries and quote | combo RFQ auctions as they open and end; this account's deliveries (winning quote, acceptance, outcome), deduplicated; quotes submitted, withdrawn and confirmed ([trading](trading.md#gemini)) |
 
 Each stream's `has` answers the `watch_*` capability keys (`watch_order_book`,
 `watch_ticker`, `watch_trades`, `watch_market_status`, `watch_orders`,

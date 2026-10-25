@@ -382,7 +382,7 @@ class TestAdapter:
 
     def test_the_capabilities_say_what_the_venue_holds(self):
         assert GeminiTrading.has["create_order"] is True and GeminiTrading.has["edit_order"] is False
-        assert GeminiTrading.has["fetch_my_trades"] == "partial" and GeminiTrading.has["rfq"] is False
+        assert GeminiTrading.has["fetch_my_trades"] == "partial" and GeminiTrading.has["rfq"] == "partial"
 
 
 class TestDoctor:
