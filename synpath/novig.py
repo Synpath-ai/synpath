@@ -79,16 +79,22 @@ PAGE = 5000
 
 EVENT_PAGE = 20
 """Events one `fetch_events` page reads when no limit is given: one request
-for the page, then one for each event's markets."""
+for the page, then the listing of their markets (`_markets_of_events`)."""
 
 MAX_PAGES = 20
 """Most listing pages one walk reads."""
+EVENT_LISTING_PAGES = 4
+"""Most listing pages a page of events reads its markets through, before
+reading event by event instead."""
 
 MAX_TRADE_PAGES = 10
 """Most tape pages one candle read walks back through."""
 
 EVENTS_TTL = 30.0
 """Seconds the open events (for market titles and states) are reused."""
+ROWS_TTL = 60.0
+"""How long a market row a listing returned answers a lookup by id: the
+catalog has no lookup for several ids, and its edge throttles per IP."""
 
 OPEN_EVENTS = ("OPEN_PREGAME", "OPEN_INGAME", "DELAYED", "CLOSED_PREGAME")
 CLOSED_EVENTS = ("FINAL", "CANCELED")
@@ -497,6 +503,7 @@ class Novig(Exchange):
             signed_client.auth = auth
             self.signed = HttpClient(self.api_url, limiter=limiter, timeout=timeout, client=signed_client, venue=VENUE)
         self._sides: dict[str, tuple[str, str]] = {}
+        self._rows: dict[str, tuple[float, dict[str, Any]]] = {}
         self._events: dict[str, dict[str, Any]] = {}
         self._events_at = 0.0
         self._lock = threading.Lock()
@@ -550,6 +557,7 @@ class Novig(Exchange):
         if market.get("marketId") and len(market.get("outcomes") or []) == 2:
             with self._lock:
                 self._sides[str(market["marketId"])] = side_ids(market)
+                self._rows[str(market["marketId"])] = (time.monotonic(), market)
 
     def _events_by_id(self, event_ids: list[str]) -> dict[str, dict[str, Any]]:
         """The open events, read in one listing and reused for `EVENTS_TTL`
@@ -646,8 +654,9 @@ class Novig(Exchange):
         status: str = "open", league: str | list[str] | None = None,
     ) -> Page[Event]:
         """One page of events (twenty unless `limit` says), each with its
-        markets: one request for the page, then one per event. Filters as
-        `fetch_markets`."""
+        markets: one request for the page, then one listing for all their
+        markets (by the page's start times), or one per event where that
+        listing would not fit in a page. Filters as `fetch_markets`."""
         statuses = self._statuses(status)
         wanted = page_limit(limit) or EVENT_PAGE
         params = {"status": ",".join(statuses) or None, "league": _joined(league)}
@@ -659,11 +668,44 @@ class Novig(Exchange):
             body = self._get("/events", {**params, "limit": wanted, "after": cursor}) or {}
             following = body.get("next") or None
         events = list(body.get("items") or [])[:wanted]
+        grouped = self._markets_of_events(events, statuses, league)
         out = []
         for event in events:
-            markets = self._event_markets(str(event["eventId"]))
+            event_id = str(event["eventId"])
+            markets = grouped[event_id] if event_id in grouped else self._event_markets(event_id)
             out.append(normalize_event(event, markets))
         return Page(out, next_cursor=following)
+
+    def _markets_of_events(self, events: list[dict[str, Any]], statuses: list[str],
+                           league: str | list[str] | None) -> dict[str, list[dict[str, Any]]]:
+        """The markets of a page of events, by event id, read in one listing
+        bounded by the page's start times, up to `EVENT_LISTING_PAGES` pages
+        (the catalog filters markets by one event only, and its edge
+        throttles per IP). Past that, nothing is returned, and the caller
+        reads event by event."""
+        starts = [int(e["startsTs"]) for e in events if e.get("startsTs") is not None]
+        if len(starts) < 2:
+            return {}
+        params = {"eventStatus": ",".join(statuses) or None, "league": _joined(league),
+                  "startsAfter": min(starts) - 1, "startsBefore": max(starts) + 1, "limit": PAGE}
+        rows: list[dict[str, Any]] = []
+        after = None
+        for _ in range(EVENT_LISTING_PAGES):
+            body = self._get("/markets", {**params, "after": after}) or {}
+            rows += body.get("items") or []
+            after = body.get("next")
+            if not after or not body.get("items"):
+                break
+        else:
+            return {}  # still more pages: read event by event rather than guess which are complete
+        wanted = {str(e["eventId"]) for e in events}
+        grouped: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in wanted}
+        for row in rows:
+            event_id = str(row.get("eventId") or "")
+            if event_id in grouped and len(row.get("outcomes") or []) == 2:
+                grouped[event_id].append(row)
+                self.remember(row)
+        return grouped
 
     def _event_markets(self, event_id: str) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
@@ -694,10 +736,18 @@ class Novig(Exchange):
         return normalize_market(market, event)
 
     def fetch_markets_by_ids(self, market_ids: list[str]) -> list[Market]:
-        """Markets in the order asked for, one request each; ids the venue
-        does not know are left out."""
+        """Markets in the order asked for; ids the venue does not know are
+        left out. A row a listing returned in the last `ROWS_TTL` seconds is
+        reused, the rest are read one request each (the catalog has no
+        lookup for several ids)."""
         rows = []
+        now = time.monotonic()
         for market_id in dict.fromkeys(market_ids):
+            with self._lock:
+                held = self._rows.get(self.native(market_id))
+            if held is not None and now - held[0] < ROWS_TTL:
+                rows.append(held[1])
+                continue
             try:
                 rows.append(self.fetch_novig_market(market_id))
             except MarketNotFound:

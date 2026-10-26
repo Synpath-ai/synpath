@@ -436,7 +436,12 @@ def visible(principal: Principal, account: str) -> bool:
 
 
 def bucket_accounts(bucket: Bucket, engine: Engine) -> list[str]:
-    return [account_key(None, engine, venue) for venue in sorted(bucket.venues())]
+    """The accounts a bucket trades on: its enabled members' venues, and any
+    other member's venue this server trades. A member switched off on a venue
+    the server only reads has no account here."""
+    routed = {ids.venue_of(m.market_id) for m in bucket.enabled_members()}
+    venues = routed | (bucket.venues() & set(engine.accounts))
+    return [account_key(None, engine, venue) for venue in sorted(venues)]
 
 
 def sees_bucket(principal: Principal, bucket: Bucket, engine: Engine) -> bool:
@@ -461,17 +466,21 @@ def client_bucket_id(value: str) -> str:
 
 def checked_definition(principal: Principal, engine: Engine, bucket: Bucket) -> None:
     """The checks every stored definition passes: its shape, a venue this
-    server trades for every member, and a caller allowed to trade each of
-    them, since an order on the bucket will route there."""
+    server trades for every enabled member, and a caller allowed to trade
+    each of them, since an order on the bucket will route there. A member
+    switched off is never routed to, so it may sit on a venue this server
+    only reads (one watched for its prices)."""
     try:
         bucket.check()
     except BadRequest as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from None
-    missing = sorted(bucket.venues() - set(engine.adapters))
+    routed = {ids.venue_of(m.market_id) for m in bucket.enabled_members()}
+    missing = sorted(routed - set(engine.adapters))
     if missing:
         raise HTTPException(status_code=400, detail=f"this server does not trade {', '.join(missing)}: "
-                                                    "every member venue needs credentials here")
-    for member_venue in sorted(bucket.venues()):
+                                                    "an enabled member's venue needs credentials here; "
+                                                    "switch the member off to keep it for its prices only")
+    for member_venue in sorted(routed):
         require(principal, "trade", account_key(None, engine, member_venue))
 
 

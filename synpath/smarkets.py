@@ -89,6 +89,12 @@ QUOTES_LIMITER = RateLimiter(20 / 60, burst=3)
 """`/quotes/` has its own, stricter limit: 50 per 60 s for API users and, as
 observed anonymously, 20 per 60 s. Shared by the adapter and the stream."""
 
+LOOKUP_TTL = 10.0
+"""Seconds a market looked up by id answers the same lookup again. A
+lookup is six requests, one of them on the quotes budget the stream mostly
+spends; a watchlist re-asking every few seconds would queue them for
+minutes. Ten seconds keeps such a reader to six quotes requests a minute."""
+
 SESSION_IDLE_LIMIT = 25 * 60.0
 """A session token lasts 30 minutes from its last authenticated request; one
 unused for longer than this is replaced by a fresh login."""
@@ -746,6 +752,8 @@ class Smarkets(Exchange):
             client.auth = SmarketsAuth(self.session)
         self.http = HttpClient(base_url, limiter=limiter, timeout=timeout, client=client, venue=VENUE)
         self.quotes_http = HttpClient(base_url, limiter=quotes_limiter, timeout=timeout, client=client, venue=VENUE)
+        self._looked_up: dict[str, tuple[float, Market]] = {}
+        self._looked_up_lock = threading.Lock()
 
     @property
     def delayed(self) -> bool:
@@ -1026,7 +1034,20 @@ class Smarkets(Exchange):
         """Contracts in the order asked for, open or settled: markets three
         hundred a request, their events, contracts a hundred markets a
         request, then quotes, last prices and volumes. Ids Smarkets does not
-        know are left out."""
+        know are left out. A contract looked up in the last `LOOKUP_TTL`
+        seconds is answered again without asking."""
+        now = time.monotonic()
+        with self._looked_up_lock:
+            held = {m: self._looked_up.get(m) for m in dict.fromkeys(market_ids)}
+        if all(entry is not None and now - entry[0] < LOOKUP_TTL for entry in held.values()):
+            return [entry[1] for entry in held.values() if entry is not None]
+        out = self._lookup(market_ids)
+        with self._looked_up_lock:
+            for market in out:
+                self._looked_up[market.id] = (now, market)
+        return out
+
+    def _lookup(self, market_ids: list[str]) -> list[Market]:
         wanted = list(dict.fromkeys(parse_contract_id(self.native(m)) for m in market_ids))
         smarkets_ids = list(dict.fromkeys(market for market, _ in wanted))
         markets = self._markets(smarkets_ids)

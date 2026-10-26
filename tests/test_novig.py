@@ -240,6 +240,30 @@ class TestAdapter:
         assert first.url.params["eventStatus"] == "OPEN_PREGAME,OPEN_INGAME,DELAYED,CLOSED_PREGAME"
         assert page[0].title.startswith(MIL_EVENT["description"])
 
+    def test_a_lookup_by_id_reuses_the_rows_a_listing_returned(self):
+        # The catalog has no lookup for several ids and its edge throttles per
+        # IP: the terminal lists markets, then asks for them by id.
+        nv, api = venue()
+        listed = nv.fetch_markets(limit=10)
+        before = len(api.paths())
+        again = nv.fetch_markets_by_ids([m.id for m in listed])
+        assert [m.id for m in again] == [m.id for m in listed]
+        assert not [p for p in api.paths()[before:] if re.fullmatch(r"/v3/public/catalog/markets/[^/]+", p)]
+
+    def test_a_page_of_events_reads_their_markets_in_one_listing(self):
+        def listing(request: httpx.Request) -> httpx.Response:
+            params = request.url.params
+            if params.get("event"):
+                return httpx.Response(200, json={"items": [x for x in ALL_MARKETS if x["eventId"] == params["event"]]})
+            assert params.get("startsAfter") and params.get("startsBefore")
+            return httpx.Response(200, json={"items": ALL_MARKETS})
+        nv, api = venue(Api({r"/v3/public/catalog/markets": listing}))
+        page = nv.fetch_events(limit=20)
+        assert api.paths().count("/v3/public/catalog/markets") == 1
+        one_by_one, _ = venue()
+        assert [[m.id for m in e.markets] for e in page] == \
+            [[m.id for m in one_by_one.fetch_event(e.id).markets] for e in page]
+
     def test_filters_are_passed_through(self):
         nv, api = venue()
         nv.fetch_markets(league=["NFL", "NBA"], market_type="MONEY", cursor="abc", status="closed")

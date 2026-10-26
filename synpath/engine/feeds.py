@@ -176,14 +176,15 @@ def venue_streams(venue: str, creds: Any, adapter: Any | None, *, private: bool 
             private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=address)
             if private and address else None,
         )
-    if venue == "myriad" and creds is not None:
-        # Books are public; the account's orders and positions channels take a
-        # subscription token the adapter signs for, fills the public per-wallet tape.
+    if venue == "myriad":
+        # Books are public, so the market stream needs no key; the account's
+        # orders and positions channels take a subscription token the adapter
+        # signs for, fills the public per-wallet tape.
         from ..ws.myriad import MyriadMarketStream, MyriadUserStream
         catalog = getattr(adapter, "catalog", None)
         address = getattr(creds, "address", None)
         token = getattr(adapter, "subscription_token", None)
-        if private and not address:
+        if private and creds is not None and not address:
             log.warning("synpath.engine.feeds: myriad has an API key but no wallet address, so its orders "
                         "reach the engine by polling; set MYRIAD_ACCOUNT_ADDRESS for the account stream")
         return VenueStreams(

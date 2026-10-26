@@ -72,6 +72,12 @@ class TestStreams:
     def test_public_venues_need_no_key_and_get_none_this_way(self):
         assert market_stream("polymarket", MarketDataKey(venue="polymarket", api_key="k")) is None
 
+    def test_public_venues_stream_books_with_no_credentials_at_all(self):
+        # Serve's market socket opens these for a reader with no keys.
+        for venue in ("polymarket", "hyperliquid", "limitless", "smarkets", "novig", "matchbook", "myriad", "gemini", "azuro"):
+            stream = market_stream(venue, None)
+            assert stream is not None and stream.venue == venue, venue
+
     def test_a_traded_venue_keeps_its_own_streams(self):
         adapter = type("Adapter", (), {"catalog": None, "jwt": None})()
         trading = load_credentials({"PREDICT_FUN_PRIVATE_KEY": KEY, "PREDICT_FUN_API_KEY": "pred_sk_t"}, redact_logs=False)

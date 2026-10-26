@@ -149,6 +149,19 @@ class TestBucketDefinitions:
             assert untraded.status_code == 400 and "polymarket_us" in untraded.text
             assert harness.client.patch("/trading/buckets/nope", json={"name": "x"}, headers=harness.auth).status_code == 404
 
+    def test_a_member_switched_off_may_sit_on_a_venue_this_server_only_reads(self, serve_harness):
+        # Watched for its prices: never routed to, so it needs no credentials here.
+        with bucket_harness(serve_harness) as harness:
+            bucket = create(harness)
+            watched = {"market_id": "predict_fun:1052063", "enabled": False}
+            kept = harness.client.patch(f"/trading/buckets/{bucket['id']}", headers=harness.auth, json={
+                "members": [{"market_id": K}, {"market_id": P, "flip": True}, watched]})
+            assert kept.status_code == 200, kept.text
+            assert [m["market_id"] for m in kept.json()["members"]][-1] == "predict_fun:1052063"
+            switched_on = harness.client.patch(f"/trading/buckets/{bucket['id']}", headers=harness.auth, json={
+                "members": [{"market_id": K}, {"market_id": P, "flip": True}, {**watched, "enabled": True}]})
+            assert switched_on.status_code == 400 and "predict_fun" in switched_on.text
+
     def test_every_bucket_route_needs_the_token(self, serve_harness):
         with bucket_harness(serve_harness) as harness:
             bucket = create(harness)

@@ -374,6 +374,15 @@ class TestAdapter:
         assert [m.id for m in found] == [f"smarkets:169719862-{settled_id}", FULHAM]
         assert found[0].status == "settled" and found[1].info["smarkets_event"]["id"] == "45325999"
 
+    def test_a_lookup_repeated_within_seconds_is_answered_without_asking(self):
+        # A watchlist re-asks every few seconds; Smarkets' quotes budget is 20 a minute.
+        smk, api = venue()
+        first = smk.fetch_markets_by_ids([FULHAM])
+        asked = len(api.requests)
+        again = smk.fetch_markets_by_ids([FULHAM])
+        assert [m.id for m in again] == [m.id for m in first] == [FULHAM]
+        assert len(api.requests) == asked
+
     def test_fetch_market_not_found(self):
         smk, _ = venue()
         with pytest.raises(MarketNotFound):
