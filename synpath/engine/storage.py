@@ -57,14 +57,14 @@ class JournalStore(Protocol):
         ...
 
     async def record_submission(self, original: OrderRequest, effective: OrderRequest,
-                                *, venue: str, account: Account) -> None:
+                                *, venue: str, account: Account | None) -> None:
         ...
 
     async def reject_submission(self, client_order_id: str, error: dict[str, Any]) -> None:
         ...
 
     async def plan_managed_child(self, snapshot: dict[str, Any], request: OrderRequest,
-                                 *, venue: str, account: Account) -> None:
+                                 *, venue: str, account: Account, parent_order: Order | None = None) -> None:
         ...
 
     async def record_intent(self, request: OrderRequest, *, client_order_id: str, venue: str, account: Account, operation: str='create', target_order_id: str | None=None) -> Intent:
@@ -88,7 +88,7 @@ class JournalStore(Protocol):
     async def record_fill(self, fill: Fill, *, book: str | None=None, trader: str | None=None) -> bool:
         ...
 
-    async def order(self, venue: str, order_id: str) -> Order | None:
+    async def order(self, venue: str | None, order_id: str) -> Order | None:
         ...
 
     async def order_by_client_id(self, client_order_id: str) -> Order | None:
@@ -128,13 +128,16 @@ class JournalStore(Protocol):
     async def archive_bucket(self, bucket_id: str) -> bool:
         ...
 
-    async def save_managed(self, snapshot: dict[str, Any]) -> None:
+    async def save_managed(self, snapshot: dict[str, Any], *, order: Order | None = None) -> None:
         ...
 
     async def managed(self, *, states: Iterable[str] | None=None) -> list[dict[str, Any]]:
         ...
 
     async def managed_on(self, market_id: str) -> list[tuple[str, dict[str, Any]]]:
+        ...
+
+    async def routed_account_keys(self, venue: str) -> list[str]:
         ...
 
     async def managed_one(self, parent_id: str) -> tuple[str, dict[str, Any]] | None:

@@ -33,9 +33,9 @@ async def test_singleton_and_all_instruction_foreign_keys(config):
     async with create_journal(**config, user_id="owner-a") as store:
         async with store._db.execute("SELECT user_id FROM users") as cursor:
             assert [row["user_id"] for row in await cursor.fetchall()] == ["owner-a"]
-        assert await store.schema_version() == 10
+        assert await store.schema_version() == 11
         async with store._db.execute("SELECT version_num FROM alembic_version") as cursor:
-            assert (await cursor.fetchone())["version_num"] == "0005_drop_fair_values"
+            assert (await cursor.fetchone())["version_num"] == "0006_routed_execution_scope"
         for kind in ("market", "limit", "stop_market", "stop_limit"):
             req = request(kind, client_order_id="key-" + kind)
             await store.record_intent(req, client_order_id=req.client_order_id, venue="kalshi", account=Account(venue="kalshi"))
@@ -95,7 +95,7 @@ async def test_baseline_adoption_preserves_or_refuses_without_relabeling(config,
             row = await store.typed_order("limit", "kalshi", "old")
             assert row["user_id"] == owner
             assert row["request"] == (body if has_instruction else None)
-            assert await store.schema_version() == 10
+            assert await store.schema_version() == 11
 
 
 async def test_buckets_stored_before_enabled_existed_load_with_every_member_on(config):
@@ -106,7 +106,7 @@ async def test_buckets_stored_before_enabled_existed_load_with_every_member_on(c
                                  ("b", market_id, flip, position))
     await connection.close()
     async with create_journal(**config, user_id="owner-a") as store:
-        assert await store.schema_version() == 10
+        assert await store.schema_version() == 11
         members = (await store.bucket("b"))["members"]
         assert [(m["market_id"], m["flip"], m["enabled"]) for m in members] == [
             ("kalshi:KX-A", False, True), ("polymarket:1", True, True)]
@@ -126,7 +126,7 @@ async def test_orders_from_before_0004_get_a_creation_time_and_page_newest_first
             (order_id, json.dumps(payload), created, updated))
     await connection.close()
     async with create_journal(**config, user_id="owner-a") as store:
-        assert await store.schema_version() == 10
+        assert await store.schema_version() == 11
         rows = await store.orders_page(limit=2)
         assert [(order.id, key[0]) for order, key in rows] == [("undated", 9), ("dated", 5)]
         rest = await store.orders_page(limit=2, before=rows[-1][1])
@@ -169,7 +169,7 @@ async def test_canceled_migration_rolls_back_then_reopens(config, monkeypatch):
     assert not store.is_open
     monkeypatch.setattr(migration, "upgrade", original)
     async with create_journal(**config, user_id="owner-a") as restarted:
-        assert await restarted.schema_version() == 10
+        assert await restarted.schema_version() == 11
         async with restarted._db.execute("SELECT user_id FROM users") as cursor:
             assert (await cursor.fetchone())["user_id"] == "owner-a"
 

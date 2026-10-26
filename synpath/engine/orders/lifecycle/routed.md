@@ -8,6 +8,24 @@ Status: current behavior, not the proposed contract. Read alongside [shared mana
 
 [`RoutedLimit`](../routed.py) manages this instruction despite its historical class name. Its optional settings include `min_stay_s`, `max_rounds`, `max_age_s` and precision overrides. Zero routing limits mean disabled bounds. Size and price validation also comes from `OrderRequest` and risk checks. These are parent instructions; children are priced GTC limit orders.
 
+## Parent identity and execution accounts
+
+The parent has no execution venue or singular account. Its stable user owns the
+instruction; `execution_accounts` captures exact accounts for the enabled members.
+Each child selects its concrete venue/account from that saved scope. Member order
+cannot change ownership, risk admission or permissions. Admission conservatively
+checks full quantity at each eligible member and actual children are checked again.
+Authorization and execution use one captured snapshot. Single-account bucket
+requests are rejected. See [engine upgrade instructions](../../README.md#cross-venue-parent-identity-and-upgrade-preflight)
+for migration, legacy account mappings and compatibility details.
+
+Parent snapshot, account membership, readable record and journal events commit
+atomically. Parent lookup uses managed identity even after completion/restart;
+actual venue orders retain their existing keys. Scope guards protect parent detail,
+reports, actions, HTTP audit history and live/replayed events. Account mismatch
+blocks affected recovery reads and cleanup as well as new dispatch, leaving the
+activity unresolved until its original account is available.
+
 ## Current transitions
 
 | Observation or action | Current transition and behavior |
@@ -58,4 +76,4 @@ Offline regression tests in `tests/test_routed_limit.py: TestPendingCancellation
 
 ## Next phase boundary
 
-The Engine owns the instruction; venues own child acceptance and fills. Routing progress and the intended pending ending use the existing managed snapshot path; no schema or table layout changed. The following phase must assess saved child identities, failed venue reads, uncertain sends and cancellation races across process failure before stronger recovery guarantees can be claimed.
+The Engine owns the instruction; venues own child acceptance and fills. Routing progress and the intended pending ending use the managed snapshot path. PRE-6 adds account membership and rekeys parent projections through migration 0006; it does not change lifecycle states. The following phase must assess saved child identities, failed venue reads, uncertain sends and cancellation races across process failure before stronger recovery guarantees can be claimed.

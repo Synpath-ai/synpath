@@ -114,6 +114,7 @@ class Reconciler:
 
     async def venue(self, venue: str, adapter: TradingExchange) -> ReconcileReport:
         report = ReconcileReport(venue=venue)
+        await self.engine.guard_routed_venue_accounts(venue)
         await self._orders(venue, adapter, report)
         await self._fills(venue, adapter, report)
         await self._positions(venue, adapter, report)
