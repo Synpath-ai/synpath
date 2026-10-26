@@ -403,7 +403,55 @@ def _sx_bet(creds: Credentials) -> TradingExchange:
     return SxBetTrading(creds)  # type: ignore[arg-type]
 
 
+def _novig(creds: Credentials) -> TradingExchange:
+    from .trading.novig import NovigTrading
+    return NovigTrading(creds)  # type: ignore[arg-type]
+
+
+def _betfair(creds: Credentials) -> TradingExchange:
+    from .trading.betfair import BetfairTrading
+    return BetfairTrading(creds)  # type: ignore[arg-type]
+
+
+def _smarkets(creds: Credentials) -> TradingExchange:
+    from .trading.smarkets import SmarketsTrading
+    return SmarketsTrading(creds)  # type: ignore[arg-type]
+
+
+def _matchbook(creds: Credentials) -> TradingExchange:
+    from .trading.matchbook import MatchbookTrading
+    return MatchbookTrading(creds)  # type: ignore[arg-type]
+
+
+def _prophetx(creds: Credentials) -> TradingExchange:
+    from .trading.prophetx import ProphetXTrading
+    return ProphetXTrading(creds)  # type: ignore[arg-type]
+
+
+def _azuro(creds: Credentials) -> TradingExchange:
+    from .trading.azuro import AzuroTrading
+    return AzuroTrading(creds)  # type: ignore[arg-type]
+
+
+def _myriad(creds: Credentials) -> TradingExchange:
+    from .trading.myriad import MyriadTrading
+    return MyriadTrading(creds)  # type: ignore[arg-type]
+
+
+def _gemini(creds: Credentials) -> TradingExchange:
+    from .trading.gemini import GeminiTrading
+    return GeminiTrading(creds)  # type: ignore[arg-type]
+
+
 _TRADING = {
     "kalshi": _kalshi, "polymarket": _polymarket, "polymarket_us": _polymarket_us, "opinion": _opinion,
     "hyperliquid": _hyperliquid, "predict_fun": _predict_fun, "limitless": _limitless, "sx_bet": _sx_bet,
+    "novig": _novig,
+    "betfair": _betfair,
+    "smarkets": _smarkets,
+    "matchbook": _matchbook,
+    "prophetx": _prophetx,
+    "azuro": _azuro,
+    "myriad": _myriad,
+    "gemini": _gemini,
 }

@@ -1,0 +1,45 @@
+{
+  "data": {
+    "tournaments": [
+      {
+        "category": {
+          "countryCode": "N/A",
+          "name": "N/A"
+        },
+        "id": 2568,
+        "name": "French Open (M)",
+        "sport": {
+          "id": 5,
+          "name": "Tennis"
+        },
+        "updated_at": 1734425801889462000
+      },
+      {
+        "category": {
+          "countryCode": "N/A",
+          "name": "N/A"
+        },
+        "id": 2739,
+        "name": "ATP Indian Wells",
+        "sport": {
+          "id": 5,
+          "name": "Tennis"
+        },
+        "updated_at": 1735116943350715000
+      },
+      {
+        "category": {
+          "countryCode": "N/A",
+          "name": "N/A"
+        },
+        "id": 4221,
+        "name": "WTA Doha",
+        "sport": {
+          "id": 5,
+          "name": "Tennis"
+        },
+        "updated_at": 1735116943385637000
+      }
+    ]
+  }
+}

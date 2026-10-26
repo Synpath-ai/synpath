@@ -1,0 +1,34 @@
+{
+  "data": {
+    "sport_events": [
+      {
+        "competitors": [
+          {
+            "abbreviation": "DET",
+            "display_name": "Detroit Lions",
+            "id": 11,
+            "name": "Detroit Lions",
+            "side": "home"
+          },
+          {
+            "abbreviation": "MIN",
+            "display_name": "Minnesota Vikings",
+            "id": 20,
+            "name": "Minnesota Vikings",
+            "side": "away"
+          }
+        ],
+        "display_name": "Minnesota Vikings at Detroit Lions",
+        "event_id": 18925,
+        "live_disabled": false,
+        "name": "Minnesota Vikings at Detroit Lions",
+        "scheduled": "2025-01-06T01:20:00Z",
+        "sport_name": "American Football",
+        "status": "live",
+        "tournament_id": 31,
+        "tournament_name": "NFL",
+        "updated_at": 1736126653111674000
+      }
+    ]
+  }
+}

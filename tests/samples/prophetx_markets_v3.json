@@ -1,0 +1,82 @@
+{
+  "data": {
+    "event_id": 18925,
+    "markets": [
+      {
+        "category_name": "Game Lines",
+        "display_name": "Moneyline",
+        "id": 219,
+        "name": "Moneyline",
+        "selections": [
+          {
+            "competitor_id": 11,
+            "display_name": "Detroit Lions -470",
+            "display_price": "-470",
+            "strike": 0,
+            "strike_id": "90de769f4f4977a04446ed203e957351",
+            "name": "Detroit Lions",
+            "price": -470,
+            "outcome_id": 4,
+            "quantity": 100,
+            "updated_at": 1736126912002271000,
+            "value": 470
+          },
+          {
+            "competitor_id": 20,
+            "display_name": "Minnesota Vikings -136",
+            "display_price": "-136",
+            "strike": 0,
+            "strike_id": "7d75b0c55f5578219f534413d0bd872b",
+            "name": "Minnesota Vikings",
+            "price": -136,
+            "outcome_id": 5,
+            "quantity": 100,
+            "updated_at": 1736127082575143000,
+            "value": 71.06
+          }
+        ],
+        "sub_type": "moneyline",
+        "type": "moneyline"
+      },
+      {
+        "category_name": "Game Lines",
+        "display_name": "Spread",
+        "id": 223,
+        "strike": -5.5,
+        "name": "Fixed home -5.5",
+        "selections": [
+          {
+            "competitor_id": 11,
+            "display_strike": "-5.5",
+            "display_name": "Detroit Lions -5.5",
+            "display_price": "-112",
+            "strike": -5.5,
+            "strike_id": "b288cdeffc0f3ba7e384009a3502543f",
+            "name": "Detroit Lions -5.5",
+            "price": -112,
+            "outcome_id": 1714,
+            "quantity": 200,
+            "updated_at": 1736127295209374000,
+            "value": 112
+          },
+          {
+            "competitor_id": 20,
+            "display_strike": "+5.5",
+            "display_name": "Minnesota Vikings +5.5",
+            "display_price": "-112",
+            "strike": 5.5,
+            "strike_id": "52882b69700724c6332375283b6e7f2a",
+            "name": "Minnesota Vikings +5.5",
+            "price": -112,
+            "outcome_id": 1715,
+            "quantity": 100,
+            "updated_at": 1736127190680127000,
+            "value": 12
+          }
+        ],
+        "sub_type": "spread",
+        "type": "spread"
+      }
+    ]
+  }
+}

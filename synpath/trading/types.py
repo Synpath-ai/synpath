@@ -260,10 +260,12 @@ class OrderRequest(_Base):
     """What the order does, in the caller's terms: buy or sell YES or NO.
     The engine, ledger and risk work on the YES leg (`side`, the YES
     `price`); a venue adapter reads these to send it. On a venue that nets
-    (Kalshi, Polymarket US) Buy NO and Sell YES are the same order. Where YES
-    and NO are separate tokens (Polymarket, Opinion, Limitless, predict.fun,
-    Hyperliquid) they are not: `sell` sells the tokens held, `buy` buys them.
-    Both or neither: with neither, `side` decides (`default_leg`: `buy` buys
+    (Kalshi, Polymarket US, SX Bet, Betfair, Smarkets, Matchbook) Buy NO and
+    Sell YES are the same order. Where YES and NO are separate tokens
+    (Polymarket, Opinion, Limitless, predict.fun, Hyperliquid, Myriad,
+    Gemini) they are not: `sell` sells the tokens held, `buy` buys them.
+    Where every order buys an outcome (Novig, ProphetX, Azuro) a `sell` is
+    refused. Both or neither: with neither, `side` decides (`default_leg`: `buy` buys
     YES, `sell` buys NO)."""
     quantity: Decimal
     """Contracts."""

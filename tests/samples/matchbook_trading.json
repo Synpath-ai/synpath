@@ -1,0 +1,606 @@
+{
+ "login": {
+  "session-token": "68fef7b56bd069e9296182b55b194a",
+  "user-id": 1234,
+  "role": "USER",
+  "account": {
+   "id": 5678,
+   "username": "jbloggs",
+   "name": {
+    "first": "Joe",
+    "last": "Bloggs"
+   },
+   "email": "jbloggs@matchbook.com",
+   "phone-number": "555555555",
+   "address": {
+    "address-id": 789,
+    "address-line-1": "1 Magic Avenue",
+    "region-name": "Great Place",
+    "post-code": "",
+    "country": {
+     "country-id": 44,
+     "name": "United Kingdom",
+     "country-code": "UK"
+    }
+   },
+   "date-of-birth": "1970-01-01T00:00:00.000Z",
+   "currency": "GBP",
+   "balance": 100.0,
+   "exposure": 0.0,
+   "commission-credit": 0.0,
+   "free-funds": 100.0,
+   "language": "English",
+   "odds-type": "US",
+   "bet-confirmation": false,
+   "display-p-and-l": true,
+   "exchange-type": "back-lay",
+   "odds-rounding": false,
+   "bet-slip-pinned": true
+  },
+  "mfa-enabled": true,
+  "mfa-enabled-time": "2018-07-30T10:46:39.000Z",
+  "mfa-disabled-time": "2018-07-30T10:31:13.000Z",
+  "last-login": "2017-01-01T00:00:00.000Z"
+ },
+ "login_refused": {
+  "errors": [
+   {
+    "messages": [
+     "Username or password are incorrect."
+    ]
+   }
+  ]
+ },
+ "login_mfa": {
+  "errors": [
+   {
+    "field": "mfa-code",
+    "messages": [
+     "Multi factor authentication is enabled. Multi factor authentication code must be provided."
+    ],
+    "codes": [
+     "LOGIN_MFA_REQUIRED"
+    ]
+   }
+  ]
+ },
+ "submit_unmatched": {
+  "language": "en",
+  "currency": "EUR",
+  "exchange-type": "back-lay",
+  "odds-type": "DECIMAL",
+  "offers": [
+   {
+    "id": 413177013410013,
+    "event-id": 410343160570009,
+    "event-name": "Man Utd vs St Etienne",
+    "market-id": 410343161840009,
+    "market-name": "Match Odds",
+    "market-type": "one_x_two",
+    "runner-id": 401525949430009,
+    "runner-name": "Man Utd",
+    "exchange-type": "back-lay",
+    "side": "back",
+    "odds": 2.4,
+    "odds-type": "DECIMAL",
+    "decimal-odds": 2.4,
+    "stake": 5,
+    "remaining": 5,
+    "potential-profit": 7,
+    "remaining-potential-profit": 7,
+    "commission-type": "VOLUME",
+    "originator-commission-rate": 0,
+    "acceptor-commission-rate": 0,
+    "commission-reserve": 0,
+    "currency": "EUR",
+    "created-at": "2017-02-16T19:49:32.771Z",
+    "status": "open",
+    "in-play": false
+   }
+  ]
+ },
+ "submit_matched": {
+  "language": "en",
+  "currency": "EUR",
+  "exchange-type": "back-lay",
+  "odds-type": "DECIMAL",
+  "offers": [
+   {
+    "id": 413177013410013,
+    "event-id": 410343160570009,
+    "event-name": "Man Utd vs St Etienne",
+    "market-id": 410343161840009,
+    "market-name": "Match Odds",
+    "market-type": "one_x_two",
+    "runner-id": 401525949430009,
+    "runner-name": "Man Utd",
+    "exchange-type": "back-lay",
+    "side": "back",
+    "odds": 2.4,
+    "odds-type": "DECIMAL",
+    "decimal-odds": 2.4,
+    "stake": 5,
+    "remaining": 5,
+    "potential-profit": 7,
+    "remaining-potential-profit": 7,
+    "commission-type": "VOLUME",
+    "originator-commission-rate": 0,
+    "acceptor-commission-rate": 0,
+    "commission-reserve": 0,
+    "currency": "EUR",
+    "created-at": "2017-02-16T19:49:32.771Z",
+    "status": "matched",
+    "in-play": false,
+    "matched-bets": [
+     {
+      "id": 413176315170213,
+      "offer-id": 413176315170013,
+      "odds": 2.4,
+      "odds-type": "DECIMAL",
+      "decimal-odds": 2.4,
+      "stake": 5,
+      "potential-profit": 7,
+      "commission": 0,
+      "currency": "EUR",
+      "created-at": "2017-02-16T19:50:22.947Z",
+      "in-play": false,
+      "status": "open"
+     }
+    ]
+   }
+  ]
+ },
+ "submit_delayed": {
+  "language": "en",
+  "currency": "EUR",
+  "exchange-type": "back-lay",
+  "odds-type": "DECIMAL",
+  "offers": [
+   {
+    "id": 413177013410013,
+    "event-id": 410343160570009,
+    "event-name": "Man Utd vs St Etienne",
+    "market-id": 410343161840009,
+    "market-name": "Match Odds",
+    "market-type": "one_x_two",
+    "runner-id": 401525949430009,
+    "runner-name": "Man Utd",
+    "exchange-type": "back-lay",
+    "side": "back",
+    "odds": 2.4,
+    "odds-type": "DECIMAL",
+    "decimal-odds": 2.4,
+    "stake": 5,
+    "remaining": 5,
+    "potential-profit": 7,
+    "remaining-potential-profit": 7,
+    "commission-type": "VOLUME",
+    "originator-commission-rate": 0,
+    "acceptor-commission-rate": 0,
+    "commission-reserve": 0,
+    "currency": "EUR",
+    "created-at": "2017-02-16T19:49:32.771Z",
+    "status": "delayed",
+    "delay": 6,
+    "in-play": true
+   }
+  ]
+ },
+ "edit": {
+  "id": 422497589540014,
+  "event-id": 500000000000072,
+  "event-name": "18:00 Windsor",
+  "market-id": 500000000000091,
+  "market-name": "WIN",
+  "market-type": "outright_ded_fact",
+  "runner-id": 500000000000092,
+  "runner-name": "1 Call Of The Loon",
+  "temp-id": "50",
+  "exchange-type": "back-lay",
+  "side": "back",
+  "odds": 3,
+  "odds-type": "DECIMAL",
+  "decimal-odds": 3,
+  "stake": 100,
+  "remaining": 100,
+  "potential-liability": 100,
+  "remaining-potential-liability": 100,
+  "commission-type": "VOLUME",
+  "originator-commission-rate": 0.01,
+  "acceptor-commission-rate": 0.01,
+  "commission-reserve": 1,
+  "currency": "EUR",
+  "created-at": "2018-10-02T10:14:16.103Z",
+  "status": "edited",
+  "in-play": false,
+  "offer-edit": {
+   "id": 925184068850125,
+   "offer-id": 925183846730025,
+   "odds-type": "DECIMAL",
+   "odds-before": 1.5,
+   "decimal-odds-before": 1.5,
+   "odds-after": 3,
+   "decimal-odds-after": 3,
+   "stake-before": 50,
+   "stake-after": 100,
+   "status": "applied",
+   "delay": 6,
+   "edit-time": "2018-10-02T10:14:38.315Z"
+  }
+ },
+ "edit_refused": {
+  "id": 925183846730025,
+  "offer-edit": {
+   "errors": [
+    {
+     "field": "current-odds",
+     "messages": [
+      "Wrong current odds value of DECIMAL 1.5. Current odds are DECIMAL 3.0."
+     ]
+    },
+    {
+     "field": "current-stake",
+     "messages": [
+      "Wrong current stake value of 50. Current remaining stake is 48.00001."
+     ]
+    }
+   ]
+  }
+ },
+ "cancel": {
+  "id": 413775799780013,
+  "event-id": 412878712890009,
+  "event-name": "T Berdych vs M Klizan",
+  "market-id": 412878713090010,
+  "market-name": "Moneyline",
+  "market-type": "one_x_two",
+  "runner-id": 412878713120009,
+  "runner-name": "T Berdych",
+  "exchange-type": "back-lay",
+  "side": "back",
+  "odds": 1.1,
+  "odds-type": "DECIMAL",
+  "decimal-odds": 1.1,
+  "stake": 2,
+  "remaining": 2,
+  "potential-profit": 0.2,
+  "remaining-potential-profit": 0.2,
+  "commission-type": "VOLUME",
+  "originator-commission-rate": 0,
+  "acceptor-commission-rate": 0,
+  "commission-reserve": 0,
+  "currency": "EUR",
+  "created-at": "2017-02-17T12:27:31.408Z",
+  "status": "cancelled",
+  "in-play": true,
+  "delay": 6
+ },
+ "cancel_refused": {
+  "errors": [
+   {
+    "field": "status",
+    "messages": [
+     "Cannot cancel offer with status cancelled. Offer must be open or edited to cancel."
+    ]
+   }
+  ]
+ },
+ "cancel_many": {
+  "language": "en",
+  "currency": "EUR",
+  "exchange-type": "back-lay",
+  "odds-type": "DECIMAL",
+  "offers": [
+   {
+    "id": 413775799780013,
+    "event-id": 412878712890009,
+    "event-name": "T Berdych vs M Klizan",
+    "market-id": 412878713090010,
+    "market-name": "Moneyline",
+    "market-type": "one_x_two",
+    "runner-id": 412878713120009,
+    "runner-name": "T Berdych",
+    "exchange-type": "back-lay",
+    "side": "back",
+    "odds": 1.1,
+    "odds-type": "DECIMAL",
+    "decimal-odds": 1.1,
+    "stake": 2,
+    "remaining": 2,
+    "potential-profit": 0.2,
+    "remaining-potential-profit": 0.2,
+    "commission-type": "VOLUME",
+    "originator-commission-rate": 0,
+    "acceptor-commission-rate": 0,
+    "commission-reserve": 0,
+    "currency": "EUR",
+    "created-at": "2017-02-17T12:27:31.408Z",
+    "status": "cancelled",
+    "in-play": false
+   }
+  ]
+ },
+ "offer_lay": {
+  "id": 382937981320019,
+  "event-id": 370600115730031,
+  "event-name": "Champion Chase (Ante Post)",
+  "market-id": 370602322080031,
+  "market-name": "WIN",
+  "market-type": "outright",
+  "runner-id": 370602323320027,
+  "runner-name": "Douvan",
+  "exchange-type": "back-lay",
+  "side": "lay",
+  "odds": -196,
+  "odds-type": "US",
+  "decimal-odds": 1.51021,
+  "stake": 2,
+  "remaining": 0,
+  "potential-liability": 1.02041,
+  "remaining-potential-liability": 0,
+  "commission-type": "VOLUME",
+  "originator-commission-rate": 0,
+  "acceptor-commission-rate": 0,
+  "commission-reserve": 0,
+  "currency": "EUR",
+  "created-at": "2017-01-12T19:51:09.562Z",
+  "status": "matched",
+  "in-play": false,
+  "keep-in-play": false,
+  "matched-bets": [
+   {
+    "id": 382937981320219,
+    "offer-id": 382937981320019,
+    "odds": -196,
+    "odds-type": "US",
+    "decimal-odds": 1.51021,
+    "stake": 2,
+    "potential-liability": 1.02041,
+    "commission": 1.02041,
+    "currency": "EUR",
+    "created-at": "2017-01-12T19:51:09.562Z",
+    "block-trade-id": 0,
+    "status": "open"
+   }
+  ]
+ },
+ "offers": {
+  "language": "en",
+  "currency": "EUR",
+  "exchange-type": "back-lay",
+  "odds-type": "DECIMAL",
+  "offers": [
+   {
+    "id": 413177013410013,
+    "event-id": 410343160570009,
+    "event-name": "Man Utd vs St Etienne",
+    "market-id": 410343161840009,
+    "market-name": "Match Odds",
+    "market-type": "one_x_two",
+    "runner-id": 401525949430009,
+    "runner-name": "Man Utd",
+    "exchange-type": "back-lay",
+    "side": "back",
+    "odds": 2.4,
+    "odds-type": "DECIMAL",
+    "decimal-odds": 2.4,
+    "stake": 5,
+    "remaining": 5,
+    "potential-profit": 7,
+    "remaining-potential-profit": 7,
+    "commission-type": "VOLUME",
+    "originator-commission-rate": 0,
+    "acceptor-commission-rate": 0,
+    "commission-reserve": 0,
+    "currency": "EUR",
+    "created-at": "2017-02-16T19:49:32.771Z",
+    "status": "matched",
+    "in-play": false,
+    "keep-in-play": false,
+    "matched-bets": [
+     {
+      "id": 413176315170213,
+      "offer-id": 413176315170013,
+      "odds": 2.4,
+      "odds-type": "DECIMAL",
+      "decimal-odds": 2.4,
+      "stake": 5,
+      "potential-profit": 7,
+      "commission": 0,
+      "currency": "EUR",
+      "created-at": "2017-02-16T19:50:22.947Z",
+      "in-play": false,
+      "status": "open"
+     }
+    ]
+   },
+   {
+    "id": 425101034640013,
+    "event-id": 424998308080011,
+    "event-name": "A Murray vs R Federer",
+    "market-id": 424998308230011,
+    "market-name": "Moneyline",
+    "runner-id": 424998308260011,
+    "runner-name": "A Murray",
+    "sport-id": 9,
+    "exchange-type": "back-lay",
+    "side": "back",
+    "odds": 4.6,
+    "odds-type": "DECIMAL",
+    "decimal-odds": 4.6,
+    "stake": 12,
+    "remaining": 12,
+    "potential-profit": 43.2,
+    "remaining-potential-profit": 43.2,
+    "commission-type": "NET_WIN",
+    "originator-commission-rate": 0.035,
+    "acceptor-commission-rate": 0.035,
+    "commission-reserve": 0,
+    "currency": "EUR",
+    "created-at": "2017-03-02T15:02:54.894Z",
+    "status": "open",
+    "in-play": false,
+    "keep-in-play": false
+   }
+  ],
+  "offset": 0,
+  "total": 2,
+  "per-page": 500
+ },
+ "current_bets": {
+  "offset": 0,
+  "per-page": 2000,
+  "total": 1,
+  "language": "en",
+  "currency": "EUR",
+  "odds-type": "DECIMAL",
+  "markets": [
+   {
+    "id": 919619528410042,
+    "event-id": 919619528170041,
+    "event-name": "Manchester United vs Juventus",
+    "start-time": "2018-10-23T19:00:00.000Z",
+    "sport-id": 15,
+    "name": "Match Odds",
+    "selections": [
+     {
+      "runner-id": 919619528480041,
+      "runner-name": "Manchester United",
+      "side": "back",
+      "odds": 3.52,
+      "stake": 5.0,
+      "liability": 5.0,
+      "potential-profit": 12.6,
+      "bets": [
+       {
+        "id": 938218459630248,
+        "odds": 3.52,
+        "stake": 5.0,
+        "in-play": false,
+        "matched-time": "2018-10-17T12:18:37.393Z",
+        "adjusted": false,
+        "potential-profit": 12.6,
+        "liability": 5.0
+       }
+      ]
+     }
+    ],
+    "liability": 5.0,
+    "potential-profit": 12.6
+   }
+  ],
+  "liability": 5.0,
+  "potential-profit": 12.6
+ },
+ "settled_bets": {
+  "offset": 0,
+  "per-page": 20,
+  "total": 2,
+  "language": "en",
+  "currency": "EUR",
+  "odds-type": "DECIMAL",
+  "profit-and-loss": -8.99998,
+  "commission": 0.1349997,
+  "net-profit-and-loss": -9.1349797,
+  "markets": [
+   {
+    "id": 881454180790042,
+    "name": "Winner",
+    "event-id": 881453329700042,
+    "event-name": "Tuesday Carabao Cup Treble 6",
+    "sport-id": 15,
+    "start-time": "2018-08-14T18:45:00.000Z",
+    "settled-time": "2018-08-14T20:45:19.692Z",
+    "profit-and-loss": -6.99999,
+    "commission-type": "VOLUME",
+    "commission": 0.10499985,
+    "net-profit-and-loss": -7.10498985,
+    "selections": [
+     {
+      "runner-id": 881454181050042,
+      "runner-name": "Aston Villa/Leeds/Middlesbrough",
+      "side": "BACK",
+      "odds": 4.2,
+      "stake": 6.99999,
+      "profit-and-loss": -6.99999,
+      "commission": 0.10499985,
+      "net-profit-and-loss": -7.10498985,
+      "bets": [
+       {
+        "id": 882883452530246,
+        "offer-id": 882883452530046,
+        "odds": 4.2,
+        "stake": 3.0,
+        "adjusted": false,
+        "originator": false,
+        "in-play": false,
+        "submitted-time": "2018-08-14T11:13:36.683Z",
+        "matched-time": "2018-08-14T11:13:36.683Z",
+        "settled-time": "2018-08-14T20:45:19.692Z",
+        "result": "LOSE",
+        "profit-and-loss": -3.0,
+        "commission-type": "VOLUME",
+        "commission": 0.045,
+        "net-profit-and-loss": -3.045
+       },
+       {
+        "id": 882883958600246,
+        "offer-id": 882883958600046,
+        "odds": 4.2,
+        "stake": 3.99999,
+        "adjusted": false,
+        "originator": false,
+        "in-play": false,
+        "submitted-time": "2018-08-14T11:14:27.290Z",
+        "matched-time": "2018-08-14T11:14:27.290Z",
+        "settled-time": "2018-08-14T20:45:19.692Z",
+        "result": "LOSE",
+        "profit-and-loss": -3.99999,
+        "commission-type": "VOLUME",
+        "commission": 0.05999985,
+        "net-profit-and-loss": -4.05998985
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "balance": {
+  "id": 12345,
+  "balance": 0,
+  "exposure": 0,
+  "commission-reserve": 0,
+  "free-funds": 0
+ },
+ "account": {
+  "id": 12345,
+  "username": "testuser",
+  "status": "ACTIVE",
+  "commission-type": "VOLUME",
+  "currency": "EUR",
+  "country": "IE",
+  "balance": 0,
+  "exposure": 0,
+  "commission-reserve": 0,
+  "free-funds": 0,
+  "language": "en",
+  "exchange-type": "back-lay",
+  "odds-type": "US",
+  "show-bet-confirmation": false,
+  "show-position": true,
+  "show-odds-rounding-message": true,
+  "bet-slip-pinned": true,
+  "roles": [
+   "USER"
+  ]
+ },
+ "heartbeat": {
+  "action-performed": "HEARTBEAT_ACTIVATED",
+  "actual-timeout": 20,
+  "timeout-time": "2018-06-27T13:57:17.354Z"
+ },
+ "heartbeat_off": {
+  "action-performed": "HEARTBEAT_TERMINATED"
+ }
+}

@@ -1,0 +1,649 @@
+{
+ "id": "366148",
+ "title": "Chicago vs Milwaukee",
+ "slug": "chicago-vs-milwaukee",
+ "type": "categorical",
+ "category": "Sports",
+ "ticker": "NBA-2610232000-CHI-MIL-M",
+ "status": "active",
+ "createdAt": "2026-10-20T00:00:47.320Z",
+ "contracts": [
+  {
+   "id": "366148-858483",
+   "label": "Milwaukee",
+   "description": {
+    "data": {},
+    "content": [
+     {
+      "data": {},
+      "marks": [],
+      "value": "If Milwaukee wins the Pro Basketball game between Milwaukee and Chicago originally scheduled for October 23, 2026 at 4:00 PM ET, this market will resolve to Yes. Otherwise, it will resolve to No. The Underlying is the official result of the specified sporting event. Source Agencies, in order, are the league governing body, ESPN, Fox Sports, and the broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules.](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf)",
+      "nodeType": "text"
+     }
+    ],
+    "nodeType": "document"
+   },
+   "prices": {
+    "buy": {
+     "yes": "0.53",
+     "no": "0.48"
+    },
+    "sell": {
+     "yes": "0.52",
+     "no": "0.47"
+    },
+    "bestBid": "0.52",
+    "bestAsk": "0.53",
+    "lastTradePrice": "0.52"
+   },
+   "status": "active",
+   "createdAt": "2026-10-20T00:00:47.320Z",
+   "termsAndConditionsUrl": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf",
+   "ticker": "MIL",
+   "instrumentSymbol": "GEMI-NBA-2610232000-CHI-MIL-M-MIL",
+   "marketState": "open",
+   "abbreviatedName": "MIL",
+   "color": "#00471B",
+   "imageUrl": "https://assets.gemini.com/predictions/images/MIL_5d06f35a-b234-4ee0-b615-ae4eb0452046.png",
+   "expiryDate": "2026-10-25T08:00:00.000Z",
+   "effectiveDate": "2026-10-20T00:00:06.000Z",
+   "sortOrder": 2,
+   "sportsSide": "home",
+   "teamId": "583ecefd-fb46-11e1-82cb-f4ce4684ea4c",
+   "isCombo": false,
+   "quantityIncrement": "0.01",
+   "quantityMinimum": "0.01",
+   "priceIncrement": "0.01",
+   "quoteAssetPrecision": 2,
+   "priceMinimum": "0.01"
+  },
+  {
+   "id": "366148-858468",
+   "label": "Chicago",
+   "description": {
+    "data": {},
+    "content": [
+     {
+      "data": {},
+      "marks": [],
+      "value": "If Chicago wins the Pro Basketball game between Chicago and Milwaukee originally scheduled for October 23, 2026 at 4:00 PM ET, this market will resolve to Yes. Otherwise, it will resolve to No. The Underlying is the official result of the specified sporting event. Source Agencies, in order, are the league governing body, ESPN, Fox Sports, and the broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules.](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf)",
+      "nodeType": "text"
+     }
+    ],
+    "nodeType": "document"
+   },
+   "prices": {
+    "buy": {
+     "yes": "0.48",
+     "no": "0.53"
+    },
+    "sell": {
+     "yes": "0.47",
+     "no": "0.52"
+    },
+    "bestBid": "0.47",
+    "bestAsk": "0.48",
+    "lastTradePrice": "0.49"
+   },
+   "status": "active",
+   "createdAt": "2026-10-20T00:00:47.320Z",
+   "termsAndConditionsUrl": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf",
+   "ticker": "CHI",
+   "instrumentSymbol": "GEMI-NBA-2610232000-CHI-MIL-M-CHI",
+   "marketState": "open",
+   "abbreviatedName": "CHI",
+   "color": "#CE1141",
+   "imageUrl": "https://assets.gemini.com/predictions/images/CHI_40120e92-39c2-4920-9ba3-5723e95ce866.png",
+   "expiryDate": "2026-10-25T08:00:00.000Z",
+   "effectiveDate": "2026-10-20T00:00:06.000Z",
+   "sortOrder": 1,
+   "sportsSide": "away",
+   "teamId": "583ec5fd-fb46-11e1-82cb-f4ce4684ea4c",
+   "isCombo": false,
+   "quantityIncrement": "0.01",
+   "quantityMinimum": "0.01",
+   "priceIncrement": "0.01",
+   "quoteAssetPrecision": 2,
+   "priceMinimum": "0.01"
+  }
+ ],
+ "effectiveDate": "2026-10-20T00:00:47.320Z",
+ "isLive": true,
+ "participants": [
+  {
+   "id": "467",
+   "name": "Milwaukee Bucks",
+   "abbreviation": "MIL",
+   "side": "home"
+  },
+  {
+   "id": "462",
+   "name": "Chicago Bulls",
+   "abbreviation": "CHI",
+   "side": "away"
+  }
+ ],
+ "description": "Chicago vs Milwaukee",
+ "imageUrl": "https://assets.gemini.com/predictions/images/bb_f53a7e9b-c0fc-4a5c-a011-d0bf655f8263.avif",
+ "volume": "1450.6",
+ "volume24h": "1087.56",
+ "tags": [
+  "Pro Basketball"
+ ],
+ "expiryDate": "2026-10-25T08:00:00.000Z",
+ "startTime": "2026-10-23T20:00:00.000Z",
+ "termsLink": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf",
+ "subcategory": {
+  "id": 14,
+  "slug": "sports_basketball_pro-basketball",
+  "name": "Pro Basketball",
+  "path": [
+   "Sports",
+   "Basketball",
+   "Pro Basketball"
+  ]
+ },
+ "socialImageUrl": "https://assets.gemini.com/predictions/images/Card_Carousel__40__b3388226-c9ca-43be-9611-88185341baf0.png",
+ "featuredImageUrl": "https://assets.gemini.com/predictions/images/Card_Carousel__40__b3388226-c9ca-43be-9611-88185341baf0.avif",
+ "events": [
+  {
+   "id": "372825",
+   "title": "Chicago vs Milwaukee: Point Spread",
+   "slug": "chicago-vs-milwaukee-point-spread",
+   "type": "categorical",
+   "category": "Sports",
+   "ticker": "NBA-2610232000-CHI-MIL-S",
+   "status": "active",
+   "createdAt": "2026-10-22T05:26:00.779Z",
+   "contracts": [
+    {
+     "id": "372825-873041",
+     "label": "Milwaukee wins by more than 1.5 points",
+     "description": {
+      "data": {},
+      "content": [
+       {
+        "data": {},
+        "marks": [],
+        "value": "This market resolves to Yes if the score differential recorded in favor of Milwaukee in the entire NBA game between Chicago and Milwaukee scheduled for 2026-10-23 at 3:00 p.m. CT is above 1.5. Otherwise, it resolves to No. The Underlying is the score differential (Milwaukee's score minus Chicago's score) for the specified game. Source Agencies, in order, are the league governing the event (NBA), ESPN, Fox Sports, and the official broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Spread_Class_98459f6c-7941-4c33-9bc5-7202c53df230.pdf).",
+        "nodeType": "text"
+       }
+      ],
+      "nodeType": "document"
+     },
+     "prices": {
+      "buy": {
+       "yes": "0.5",
+       "no": "0.51"
+      },
+      "sell": {
+       "yes": "0.49",
+       "no": "0.5"
+      },
+      "bestBid": "0.49",
+      "bestAsk": "0.5",
+      "lastTradePrice": "0.48"
+     },
+     "status": "active",
+     "createdAt": "2026-10-22T05:26:00.779Z",
+     "termsAndConditionsUrl": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Spread_Class_98459f6c-7941-4c33-9bc5-7202c53df230.pdf",
+     "ticker": "MIL1",
+     "instrumentSymbol": "GEMI-NBA-2610232000-CHI-MIL-S-MIL1",
+     "marketState": "open",
+     "abbreviatedName": "Milwaukee",
+     "color": "#0f9ee7",
+     "imageUrl": "https://assets.gemini.com/predictions/images/MIL_5d06f35a-b234-4ee0-b615-ae4eb0452046.png",
+     "expiryDate": "2026-10-25T08:00:00.000Z",
+     "effectiveDate": "2026-10-20T00:00:06.000Z",
+     "sortOrder": 29,
+     "isCombo": false,
+     "quantityIncrement": "0.01",
+     "quantityMinimum": "0.01",
+     "priceIncrement": "0.01",
+     "quoteAssetPrecision": 2,
+     "priceMinimum": "0.01"
+    },
+    {
+     "id": "372825-873040",
+     "label": "Milwaukee wins by more than 2.5 points",
+     "description": {
+      "data": {},
+      "content": [
+       {
+        "data": {},
+        "marks": [],
+        "value": "This market resolves to Yes if the score differential recorded in favor of Milwaukee in the entire NBA game between Chicago and Milwaukee scheduled for 2026-10-23 at 3:00 p.m. CT is above 2.5. Otherwise, it resolves to No. The Underlying is the score differential (Milwaukee's score minus Chicago's score) for the specified game. Source Agencies, in order, are the league governing the event (NBA), ESPN, Fox Sports, and the official broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Spread_Class_98459f6c-7941-4c33-9bc5-7202c53df230.pdf).",
+        "nodeType": "text"
+       }
+      ],
+      "nodeType": "document"
+     },
+     "prices": {
+      "buy": {
+       "yes": "0.47",
+       "no": "0.55"
+      },
+      "sell": {
+       "yes": "0.45",
+       "no": "0.53"
+      },
+      "bestBid": "0.45",
+      "bestAsk": "0.47"
+     },
+     "status": "active",
+     "createdAt": "2026-10-22T05:26:00.779Z",
+     "termsAndConditionsUrl": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Spread_Class_98459f6c-7941-4c33-9bc5-7202c53df230.pdf",
+     "ticker": "MIL2",
+     "instrumentSymbol": "GEMI-NBA-2610232000-CHI-MIL-S-MIL2",
+     "marketState": "open",
+     "abbreviatedName": "Milwaukee",
+     "color": "#0f9ee7",
+     "imageUrl": "https://assets.gemini.com/predictions/images/MIL_5d06f35a-b234-4ee0-b615-ae4eb0452046.png",
+     "expiryDate": "2026-10-25T08:00:00.000Z",
+     "effectiveDate": "2026-10-20T00:00:06.000Z",
+     "sortOrder": 28,
+     "isCombo": false,
+     "quantityIncrement": "0.01",
+     "quantityMinimum": "0.01",
+     "priceIncrement": "0.01",
+     "quoteAssetPrecision": 2,
+     "priceMinimum": "0.01"
+    }
+   ],
+   "effectiveDate": "2026-10-22T05:26:00.779Z",
+   "isLive": true,
+   "participants": [
+    {
+     "id": "467",
+     "name": "Milwaukee Bucks",
+     "abbreviation": "MIL",
+     "side": "home"
+    },
+    {
+     "id": "462",
+     "name": "Chicago Bulls",
+     "abbreviation": "CHI",
+     "side": "away"
+    }
+   ],
+   "description": "What will the point difference be?",
+   "imageUrl": "",
+   "tags": [
+    "Pro Basketball"
+   ],
+   "expiryDate": "2026-10-25T08:00:00.000Z",
+   "startTime": "2026-10-23T20:00:00.000Z",
+   "termsLink": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Spread_Class_98459f6c-7941-4c33-9bc5-7202c53df230.pdf",
+   "subcategory": {
+    "id": 14,
+    "slug": "sports_basketball_pro-basketball",
+    "name": "Pro Basketball",
+    "path": [
+     "Sports",
+     "Basketball",
+     "Pro Basketball"
+    ]
+   },
+   "socialImageUrl": "",
+   "featuredImageUrl": "https://assets.gemini.com/predictions/images/Basketball_6c686009-b224-4e06-8686-f5ddafc52ba8.avif",
+   "template": "sports-spread",
+   "gameId": "7e8fc356-9548-4496-ae63-d791e057b337",
+   "sourceDetails": {
+    "agency": "statscore-rest-api",
+    "index": "Basketball"
+   },
+   "sportsMarket": {
+    "sport": "basketball",
+    "type": "spread",
+    "subject": "team",
+    "scope": {
+     "type": "full_contest"
+    },
+    "metric": "points"
+   }
+  },
+  {
+   "id": "372882",
+   "title": "Chicago vs Milwaukee: Total Points",
+   "slug": "chicago-vs-milwaukee-total-points",
+   "type": "categorical",
+   "category": "Sports",
+   "ticker": "NBA-2610232000-CHI-MIL-T",
+   "status": "active",
+   "createdAt": "2026-10-22T05:41:32.999Z",
+   "contracts": [
+    {
+     "id": "372882-873353",
+     "label": "More than 210.5 points scored",
+     "description": {
+      "data": {},
+      "content": [
+       {
+        "data": {},
+        "marks": [],
+        "value": "This market resolves to Yes if Chicago and Milwaukee collectively score over 210.5 total points in the NBA game between Chicago and Milwaukee scheduled for 2026-10-23 at 3:00 p.m. CT. Otherwise, it resolves to No. The Underlying is the total points scored by both teams for the specified game. Source Agencies, in order, are the league governing the event (NBA), ESPN, Fox Sports, and the official broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Point_Total_Class_83dd60df-d1ae-434e-8083-776a0713244a.pdf).",
+        "nodeType": "text"
+       }
+      ],
+      "nodeType": "document"
+     },
+     "prices": {
+      "buy": {
+       "yes": "0.99",
+       "no": "0.06"
+      },
+      "sell": {
+       "yes": "0.94",
+       "no": "0.01"
+      },
+      "bestBid": "0.94",
+      "bestAsk": "0.99"
+     },
+     "status": "active",
+     "createdAt": "2026-10-22T05:41:32.999Z",
+     "termsAndConditionsUrl": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Point_Total_Class_83dd60df-d1ae-434e-8083-776a0713244a.pdf",
+     "ticker": "O210",
+     "instrumentSymbol": "GEMI-NBA-2610232000-CHI-MIL-T-O210",
+     "marketState": "open",
+     "color": "#0f9ee7",
+     "imageUrl": "https://assets.gemini.com/predictions/images/Basketball_48baed80-84ab-4004-aba2-ed1eb5c4e2c9.png",
+     "expiryDate": "2026-10-25T08:00:00.000Z",
+     "effectiveDate": "2026-10-20T00:00:06.000Z",
+     "sortOrder": 12,
+     "isCombo": false,
+     "quantityIncrement": "0.01",
+     "quantityMinimum": "0.01",
+     "priceIncrement": "0.01",
+     "quoteAssetPrecision": 2,
+     "priceMinimum": "0.01"
+    },
+    {
+     "id": "372882-873354",
+     "label": "More than 212.5 points scored",
+     "description": {
+      "data": {},
+      "content": [
+       {
+        "data": {},
+        "marks": [],
+        "value": "This market resolves to Yes if Chicago and Milwaukee collectively score over 212.5 total points in the NBA game between Chicago and Milwaukee scheduled for 2026-10-23 at 3:00 p.m. CT. Otherwise, it resolves to No. The Underlying is the total points scored by both teams for the specified game. Source Agencies, in order, are the league governing the event (NBA), ESPN, Fox Sports, and the official broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Point_Total_Class_83dd60df-d1ae-434e-8083-776a0713244a.pdf).",
+        "nodeType": "text"
+       }
+      ],
+      "nodeType": "document"
+     },
+     "prices": {
+      "buy": {
+       "yes": "0.98",
+       "no": "0.08"
+      },
+      "sell": {
+       "yes": "0.92",
+       "no": "0.02"
+      },
+      "bestBid": "0.92",
+      "bestAsk": "0.98"
+     },
+     "status": "active",
+     "createdAt": "2026-10-22T05:41:32.999Z",
+     "termsAndConditionsUrl": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Point_Total_Class_83dd60df-d1ae-434e-8083-776a0713244a.pdf",
+     "ticker": "O212",
+     "instrumentSymbol": "GEMI-NBA-2610232000-CHI-MIL-T-O212",
+     "marketState": "open",
+     "color": "#0f9ee7",
+     "imageUrl": "https://assets.gemini.com/predictions/images/Basketball_48baed80-84ab-4004-aba2-ed1eb5c4e2c9.png",
+     "expiryDate": "2026-10-25T08:00:00.000Z",
+     "effectiveDate": "2026-10-20T00:00:06.000Z",
+     "sortOrder": 13,
+     "isCombo": false,
+     "quantityIncrement": "0.01",
+     "quantityMinimum": "0.01",
+     "priceIncrement": "0.01",
+     "quoteAssetPrecision": 2,
+     "priceMinimum": "0.01"
+    }
+   ],
+   "effectiveDate": "2026-10-22T05:41:32.999Z",
+   "isLive": true,
+   "participants": [
+    {
+     "id": "467",
+     "name": "Milwaukee Bucks",
+     "abbreviation": "MIL",
+     "side": "home"
+    },
+    {
+     "id": "462",
+     "name": "Chicago Bulls",
+     "abbreviation": "CHI",
+     "side": "away"
+    }
+   ],
+   "description": "How many points will be scored?",
+   "imageUrl": "",
+   "tags": [
+    "Pro Basketball"
+   ],
+   "expiryDate": "2026-10-25T08:00:00.000Z",
+   "startTime": "2026-10-23T20:00:00.000Z",
+   "termsLink": "https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Point_Total_Class_83dd60df-d1ae-434e-8083-776a0713244a.pdf",
+   "subcategory": {
+    "id": 14,
+    "slug": "sports_basketball_pro-basketball",
+    "name": "Pro Basketball",
+    "path": [
+     "Sports",
+     "Basketball",
+     "Pro Basketball"
+    ]
+   },
+   "socialImageUrl": "",
+   "featuredImageUrl": "https://assets.gemini.com/predictions/images/Basketball_6c686009-b224-4e06-8686-f5ddafc52ba8.avif",
+   "template": "sports-total",
+   "gameId": "7e8fc356-9548-4496-ae63-d791e057b337",
+   "sourceDetails": {
+    "agency": "statscore-rest-api",
+    "index": "Basketball"
+   },
+   "sportsMarket": {
+    "sport": "basketball",
+    "type": "total",
+    "subject": "contest",
+    "scope": {
+     "type": "full_contest"
+    },
+    "metric": "points"
+   }
+  }
+ ],
+ "template": "sports-game",
+ "gameId": "7e8fc356-9548-4496-ae63-d791e057b337",
+ "eventTags": [
+  {
+   "id": 13003,
+   "name": "Bucks",
+   "slug": "bucks"
+  },
+  {
+   "id": 6961,
+   "name": "Bulls",
+   "slug": "bulls"
+  },
+  {
+   "id": 13876,
+   "name": "Eastern",
+   "slug": "eastern"
+  },
+  {
+   "id": 2,
+   "name": "Games",
+   "slug": "games"
+  }
+ ],
+ "sourceDetails": {
+  "agency": "statscore-rest-api",
+  "index": "Basketball"
+ },
+ "volumeDelta24hPct": "199.57",
+ "sportsMarket": {
+  "sport": "basketball",
+  "type": "moneyline",
+  "subject": "contest",
+  "scope": {
+   "type": "full_contest"
+  },
+  "team": {
+   "symbol": "CHI",
+   "name": "Chicago Bulls",
+   "externalIds": {
+    "sportradarId": "583ec5fd-fb46-11e1-82cb-f4ce4684ea4c"
+   }
+  }
+ },
+ "combos": [
+  {
+   "contract": {
+    "contractId": "880920",
+    "contractName": "UConn Yes + Milwaukee Yes + 4 more",
+    "contractTicker": "CMB",
+    "eventTicker": "CMB-261025-76215CB40501FD7B",
+    "eventName": "",
+    "category": "Sports",
+    "contractStatus": "Active",
+    "eventType": "binary",
+    "instrumentSymbol": "GEMI-CMB-261025-76215CB40501FD7B-CMB",
+    "imageUrl": "https://assets.gemini.com/predictions/images/Baseball_in_Dirt_d2ec3f42-c768-48da-aeab-2cdd4164abe7.png",
+    "expiryDate": "2026-10-25T14:00:00.000Z",
+    "description": "UConn-College Football-Yes, Milwaukee-Pro Basketball-Yes, Atlanta-Pro Basketball-Yes, Minnesota-Pro Basketball-Yes, San Antonio-Pro Basketball-Yes, Los Angeles L-Pro Basketball-Yes [terms & conditions](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_-_Combos_Class_c3a4c1f2-a3fe-4d21-976a-2643cabf017f.pdf)"
+   },
+   "legs": [
+    {
+     "comboId": 880920,
+     "legIndex": 0,
+     "contractId": "836849",
+     "requiredOutcome": "Yes",
+     "contract": {
+      "contractId": "836849",
+      "contractName": "UConn",
+      "contractTicker": "UCO",
+      "eventTicker": "NCAAF-2610232300-MAS-UCO-M",
+      "eventName": "",
+      "category": "College Football",
+      "contractStatus": "Active",
+      "eventType": "binary",
+      "instrumentSymbol": "GEMI-NCAAF-2610232300-MAS-UCO-M-UCO",
+      "imageUrl": "https://assets.gemini.com/predictions/images/Connecticut_Huskies_0f9b6aba-07dc-4eaa-8610-de387d7bf5fb.avif",
+      "expiryDate": "2026-10-24T23:00:00.000Z",
+      "description": "This market resolves to Yes if UConn wins the College Football game\n between UConn and Massachusetts originally scheduled for October 23, 2026 at 7:00 PM. Otherwise, it resolves to No. The Underlying is the official result of the specified sporting event. Source Agencies, in order, are the league governing the event, ESPN, Fox Sports, and the broadcast partner of the event\n. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the  [full rules](https://assets.gemini.com/predictions/terms_and_conditions/NCAA_FBS_Win-Loss_23ef351f-7ee0-4503-a740-5da5c95d4b2c.pdf).",
+      "sortOrder": 2
+     }
+    },
+    {
+     "comboId": 880920,
+     "legIndex": 1,
+     "contractId": "858483",
+     "requiredOutcome": "Yes",
+     "contract": {
+      "contractId": "858483",
+      "contractName": "Milwaukee",
+      "contractTicker": "MIL",
+      "eventTicker": "NBA-2610232000-CHI-MIL-M",
+      "eventName": "",
+      "category": "Pro Basketball",
+      "contractStatus": "Active",
+      "eventType": "binary",
+      "instrumentSymbol": "GEMI-NBA-2610232000-CHI-MIL-M-MIL",
+      "imageUrl": "https://assets.gemini.com/predictions/images/MIL_5d06f35a-b234-4ee0-b615-ae4eb0452046.png",
+      "expiryDate": "2026-10-25T08:00:00.000Z",
+      "description": "If Milwaukee wins the Pro Basketball game between Milwaukee and Chicago originally scheduled for October 23, 2026 at 4:00 PM ET, this market will resolve to Yes. Otherwise, it will resolve to No. The Underlying is the official result of the specified sporting event. Source Agencies, in order, are the league governing body, ESPN, Fox Sports, and the broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules.](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf)",
+      "sortOrder": 2
+     }
+    },
+    {
+     "comboId": 880920,
+     "legIndex": 2,
+     "contractId": "858497",
+     "requiredOutcome": "Yes",
+     "contract": {
+      "contractId": "858497",
+      "contractName": "Atlanta",
+      "contractTicker": "ATL",
+      "eventTicker": "NBA-2610232300-ATL-CHA-M",
+      "eventName": "",
+      "category": "Pro Basketball",
+      "contractStatus": "Active",
+      "eventType": "binary",
+      "instrumentSymbol": "GEMI-NBA-2610232300-ATL-CHA-M-ATL",
+      "imageUrl": "https://assets.gemini.com/predictions/images/ATL_9a65de7f-ea47-4d1e-910c-889ef04bcc9d.png",
+      "expiryDate": "2026-10-25T11:00:00.000Z",
+      "description": "If Atlanta wins the Pro Basketball game between Atlanta and Charlotte originally scheduled for October 23, 2026 at 7:00 PM ET, this market will resolve to Yes. Otherwise, it will resolve to No. The Underlying is the official result of the specified sporting event. Source Agencies, in order, are the league governing body, ESPN, Fox Sports, and the broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules.](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf)",
+      "sortOrder": 1
+     }
+    },
+    {
+     "comboId": 880920,
+     "legIndex": 3,
+     "contractId": "858591",
+     "requiredOutcome": "Yes",
+     "contract": {
+      "contractId": "858591",
+      "contractName": "Minnesota",
+      "contractTicker": "MIN",
+      "eventTicker": "NBA-2610232300-MIN-ORL-M",
+      "eventName": "",
+      "category": "Pro Basketball",
+      "contractStatus": "Active",
+      "eventType": "binary",
+      "instrumentSymbol": "GEMI-NBA-2610232300-MIN-ORL-M-MIN",
+      "imageUrl": "https://assets.gemini.com/predictions/images/MIN_785101e4-755a-4850-a4ff-4bed91f39e81.png",
+      "expiryDate": "2026-10-25T11:00:00.000Z",
+      "description": "If Minnesota wins the Pro Basketball game between Minnesota and Orlando originally scheduled for October 23, 2026 at 7:00 PM ET, this market will resolve to Yes. Otherwise, it will resolve to No. The Underlying is the official result of the specified sporting event. Source Agencies, in order, are the league governing body, ESPN, Fox Sports, and the broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules.](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf)",
+      "sortOrder": 1
+     }
+    },
+    {
+     "comboId": 880920,
+     "legIndex": 4,
+     "contractId": "861954",
+     "requiredOutcome": "Yes",
+     "contract": {
+      "contractId": "861954",
+      "contractName": "San Antonio",
+      "contractTicker": "SAS",
+      "eventTicker": "NBA-2610240130-HOU-SAS-M",
+      "eventName": "",
+      "category": "Pro Basketball",
+      "contractStatus": "Active",
+      "eventType": "binary",
+      "instrumentSymbol": "GEMI-NBA-2610240130-HOU-SAS-M-SAS",
+      "imageUrl": "https://assets.gemini.com/predictions/images/SAS_2eb39eb7-ca58-4ad8-b58d-36add7053fe6.png",
+      "expiryDate": "2026-10-25T13:30:00.000Z",
+      "description": "If San Antonio wins the Pro Basketball game between San Antonio and Houston originally scheduled for October 23, 2026 at 9:30 PM ET, this market will resolve to Yes. Otherwise, it will resolve to No. The Underlying is the official result of the specified sporting event. Source Agencies, in order, are the league governing body, ESPN, Fox Sports, and the broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules.](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf)",
+      "sortOrder": 2
+     }
+    },
+    {
+     "comboId": 880920,
+     "legIndex": 5,
+     "contractId": "861958",
+     "requiredOutcome": "Yes",
+     "contract": {
+      "contractId": "861958",
+      "contractName": "Los Angeles L",
+      "contractTicker": "LAL",
+      "eventTicker": "NBA-2610240200-LAC-LAL-M",
+      "eventName": "",
+      "category": "Pro Basketball",
+      "contractStatus": "Active",
+      "eventType": "binary",
+      "instrumentSymbol": "GEMI-NBA-2610240200-LAC-LAL-M-LAL",
+      "imageUrl": "https://assets.gemini.com/predictions/images/LAL_b9eaf22e-3646-42fa-aec4-8f64cfda7f76.png",
+      "expiryDate": "2026-10-25T14:00:00.000Z",
+      "description": "If Los Angeles L wins the Pro Basketball game between Los Angeles L and Los Angeles C originally scheduled for October 23, 2026 at 10:00 PM ET, this market will resolve to Yes. Otherwise, it will resolve to No. The Underlying is the official result of the specified sporting event. Source Agencies, in order, are the league governing body, ESPN, Fox Sports, and the broadcast partner of the event. If the Expiration Value cannot be determined on the Expiration Date (including because the event is cancelled or a team forfeits, withdraws, or is disqualified), the Exchange may determine payouts pursuant to the Market Outcome Review Process. View the [full rules.](https://assets.gemini.com/predictions/terms_and_conditions/Terms_and_Conditions_NBA_Win_Lose_Class_925aa13e-b255-4ef8-85e0-534a6f0a9012.pdf)",
+      "sortOrder": 2
+     }
+    }
+   ]
+  }
+ ]
+}
