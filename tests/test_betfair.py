@@ -532,8 +532,10 @@ class TestCapabilities:
             adapter.fetch_ohlcv(ARSENAL)
         assert betting.requests == []
 
-    def test_order_entry_is_not_offered(self):
-        with pytest.raises(NotSupported, match="no order entry"):
+    def test_order_entry_needs_the_account(self):
+        from synpath.trading.errors import CredentialsMissing
+
+        with pytest.raises(CredentialsMissing, match="BETFAIR_APP_KEY"):
             synpath.Client({}).trading("betfair")
 
     def test_venue_rules_note_the_minimum_stake(self):

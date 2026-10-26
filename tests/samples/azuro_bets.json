@@ -1,0 +1,54 @@
+{
+ "data": {
+  "v3Bets": [
+   {
+    "id": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7_472063",
+    "betId": "472063",
+    "amount": "11",
+    "odds": "2.6",
+    "potentialPayout": "28.6",
+    "status": "Resolved",
+    "result": "Lost",
+    "type": "Ordinar",
+    "createdBlockTimestamp": "1792688426",
+    "createdTxHash": "0x59b29b0d343ce1351fbb99ddd1e8069d5caa24644a46ea45ff4a3333023b027f",
+    "selections": [
+     {
+      "odds": "2.6",
+      "outcome": {
+       "outcomeId": "2",
+       "condition": {
+        "conditionId": "600610060000000000028666020000000000001624778125",
+        "gameId": "1006000000000002866602"
+       }
+      }
+     }
+    ]
+   },
+   {
+    "id": "0xf9548be470a4e130c90cea8b179fcd66d2972ac7_472062",
+    "betId": "472062",
+    "amount": "11",
+    "odds": "2.39",
+    "potentialPayout": "26.29",
+    "status": "Resolved",
+    "result": "Lost",
+    "type": "Ordinar",
+    "createdBlockTimestamp": "1792688402",
+    "createdTxHash": "0xc0f78f338f5089ba0c688a1e77319acf9a4c05b853e46a03077301c46770ef3d",
+    "selections": [
+     {
+      "odds": "2.39",
+      "outcome": {
+       "outcomeId": "1",
+       "condition": {
+        "conditionId": "600610060000000000028666020000000000001624778127",
+        "gameId": "1006000000000002866602"
+       }
+      }
+     }
+    ]
+   }
+  ]
+ }
+}

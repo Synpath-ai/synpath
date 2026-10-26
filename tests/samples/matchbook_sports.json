@@ -1,0 +1,25 @@
+{
+ "total": 3,
+ "per-page": 60,
+ "offset": 0,
+ "sports": [
+  {
+   "name": "Horse Racing",
+   "id": 24735152712200,
+   "type": "SPORT",
+   "url-name": "horse-racing"
+  },
+  {
+   "name": "Soccer",
+   "id": 15,
+   "type": "SPORT",
+   "url-name": "soccer"
+  },
+  {
+   "name": "Tennis",
+   "id": 9,
+   "type": "SPORT",
+   "url-name": "tennis"
+  }
+ ]
+}

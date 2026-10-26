@@ -216,14 +216,15 @@ class RiskEngine:
         self,
         request: OrderRequest,
         *,
-        venue: str,
-        account: Account,
+        venue: str | None,
+        account: Account | None,
         open_orders: Iterable[Order] = (),
         risk_reference_price: Decimal | None = None,
         market_close_ts: int | None = None,
         event_id: str | None = None,
         venue_notional: Decimal | None = None,
         caller_supplied_order_id: bool = False,
+        instruction_only: bool = False,
     ) -> Decision:
         """Everything that must be true before this order is signed.
 
@@ -289,6 +290,12 @@ class RiskEngine:
                 self._sent.popleft()
             if len(self._sent) >= config.max_orders_per_minute:
                 return self._no("order_rate", f"{len(self._sent)} orders in the last minute, at the {config.max_orders_per_minute} limit")
+
+        if instruction_only:
+            if config.daily_loss_limit is not None and self.ledger is not None:
+                if -self.realized_today() >= config.daily_loss_limit:
+                    return self._no("daily_loss", "daily realized loss limit reached")
+            return self._ok()
 
         if config.closing_soon_s is not None and market_close_ts is not None and request.leg[1] != "sell":
             left = (market_close_ts - now * 1000) / 1000

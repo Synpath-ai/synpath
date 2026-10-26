@@ -1,0 +1,98 @@
+{
+ "event": {
+  "id": 34257819090800081,
+  "name": "Walker Cup 2026 BT",
+  "sport-id": 8,
+  "start": "2026-09-05T07:00:00.000Z",
+  "in-running-flag": false,
+  "allow-live-betting": false,
+  "category-id": [
+   8,
+   10812641776701,
+   292022482330036
+  ],
+  "status": "closed",
+  "volume": 12336.06434,
+  "markets": [],
+  "meta-tags": [
+   {
+    "id": 8,
+    "name": "Golf",
+    "type": "SPORT",
+    "url-name": "golf"
+   },
+   {
+    "id": 10812641776701,
+    "name": "Ireland",
+    "type": "COUNTRY",
+    "url-name": "ireland"
+   },
+   {
+    "id": 292022482330036,
+    "name": "Block Trade",
+    "type": "OTHER",
+    "url-name": "block-trade"
+   }
+  ]
+ },
+ "markets": {
+  "markets": [
+   {
+    "live": false,
+    "event-id": 34257819090800081,
+    "id": 34257827385400081,
+    "name": "Winner",
+    "product": "EXCHANGE",
+    "start": "2026-09-05T07:00:00.000Z",
+    "status": "closed",
+    "market-type": "one_x_two",
+    "type": "multirunner",
+    "in-running-flag": false,
+    "allow-live-betting": false,
+    "volume": 12336.06434,
+    "number-of-winners": 1,
+    "runners": []
+   }
+  ],
+  "offset": 0,
+  "total": 1,
+  "per-page": 20
+ },
+ "runners": {
+  "runners": [
+   {
+    "withdrawn": false,
+    "prices": [],
+    "event-id": 34257819090800081,
+    "id": 34257827385600081,
+    "market-id": 34257827385400081,
+    "name": "GB & Ireland",
+    "status": "closed",
+    "volume": 12336.06434,
+    "event-participant-id": 34257820894700081
+   },
+   {
+    "withdrawn": false,
+    "prices": [],
+    "event-id": 34257819090800081,
+    "id": 34257827385900081,
+    "market-id": 34257827385400081,
+    "name": "USA ㅤ",
+    "status": "closed",
+    "volume": 0.0,
+    "event-participant-id": 34257823438500081
+   },
+   {
+    "withdrawn": false,
+    "prices": [],
+    "event-id": 34257819090800081,
+    "id": 34257827386200081,
+    "market-id": 34257827385400081,
+    "name": "DRAW (GB /USA)",
+    "status": "closed",
+    "volume": 0.0
+   }
+  ],
+  "total": 3
+ }
+}

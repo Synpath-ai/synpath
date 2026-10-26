@@ -260,10 +260,12 @@ class OrderRequest(_Base):
     """What the order does, in the caller's terms: buy or sell YES or NO.
     The engine, ledger and risk work on the YES leg (`side`, the YES
     `price`); a venue adapter reads these to send it. On a venue that nets
-    (Kalshi, Polymarket US) Buy NO and Sell YES are the same order. Where YES
-    and NO are separate tokens (Polymarket, Opinion, Limitless, predict.fun,
-    Hyperliquid) they are not: `sell` sells the tokens held, `buy` buys them.
-    Both or neither: with neither, `side` decides (`default_leg`: `buy` buys
+    (Kalshi, Polymarket US, SX Bet, Betfair, Smarkets, Matchbook) Buy NO and
+    Sell YES are the same order. Where YES and NO are separate tokens
+    (Polymarket, Opinion, Limitless, predict.fun, Hyperliquid, Myriad,
+    Gemini) they are not: `sell` sells the tokens held, `buy` buys them.
+    Where every order buys an outcome (Novig, ProphetX, Azuro) a `sell` is
+    refused. Both or neither: with neither, `side` decides (`default_leg`: `buy` buys
     YES, `sell` buys NO)."""
     quantity: Decimal
     """Contracts."""
@@ -379,8 +381,22 @@ class Order(_Base):
     user_id: str | None = None
     id: str
     client_order_id: str | None = None
-    venue: str
+    venue: str | None
     account: Account | None = None
+    execution_accounts: dict[str, Account] = Field(default_factory=dict)
+    """Eligible execution accounts captured by a routed engine parent.
+    Its venue and singular account are null; actual children remain venue orders."""
+
+    @model_validator(mode="after")
+    def validate_execution_identity(self):
+        if self.execution_accounts:
+            if self.held_by != HeldBy.ENGINE or self.venue is not None or self.account is not None:
+                raise ValueError("cross-venue execution scope belongs to an engine parent without a singular venue/account")
+            if any(venue != account.venue for venue, account in self.execution_accounts.items()):
+                raise ValueError("execution account venue does not match its scope")
+        elif self.venue is None:
+            raise ValueError("an order without a venue needs its captured execution accounts")
+        return self
     market_id: str
     """Synpath id, `venue:native`."""
     side: Side

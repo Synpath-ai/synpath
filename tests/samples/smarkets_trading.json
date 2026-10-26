@@ -1,0 +1,235 @@
+{
+ "login": {
+  "created_social_member": true,
+  "factor": "complete",
+  "stop": "2018-01-24T19:49:43.964757",
+  "token": "WzM2NjI1MDIsMjIyMDIxMzJd.jKWaw5j3XtYX6huY7HZVEvISu6k",
+  "verify": false
+ },
+ "create": {
+  "available_balance": "100.00",
+  "available_quantity": 15000,
+  "contract_id": "123456",
+  "executed_avg_price": 5000,
+  "exposure": "-50.00",
+  "market_id": "128939",
+  "order_id": "1518455672861",
+  "orig_price": 5000,
+  "price": 5000,
+  "quantity": 10000,
+  "side": "buy",
+  "total_executed_quantity": 15000
+ },
+ "order": {
+  "average_price_matched": 5000,
+  "average_price_matched_precise": "5000",
+  "best_price": {
+   "price": 5000,
+   "source": "bet365"
+  },
+  "bonus_bet": false,
+  "contract_id": "123456",
+  "created_datetime": "2012-08-14T00:56:45.291688Z",
+  "id": "1518455672861",
+  "label": "strategy_1",
+  "last_modified_datetime": "2012-08-14T00:56:45.291688Z",
+  "market_id": "128939",
+  "original_order_id": "1518455672861",
+  "otc_available": false,
+  "outcome": "winner",
+  "price": 5000,
+  "quantity": 10000,
+  "quantity_filled": 10000,
+  "quantity_filled_pending": 2500,
+  "quantity_filled_pending_user_currency": 2500,
+  "quantity_filled_user_currency": 10000,
+  "quantity_traded_out_user_currency": 10000,
+  "quantity_unfilled": 2500,
+  "quantity_unfilled_user_currency": 2500,
+  "quantity_user_currency": 10000,
+  "sequence_number": 94115,
+  "side": "buy",
+  "stake_traded_out_user_currency": "24.08",
+  "state": "created",
+  "token_used": {
+   "bet_token_type": "free_bet",
+   "boost_percent": 1.0,
+   "original_price": 5000
+  },
+  "type": "good_til_halted"
+ },
+ "orders": {
+  "orders": [
+   {
+    "average_price_matched": 5000,
+    "average_price_matched_precise": "5000",
+    "best_price": {
+     "price": 5000,
+     "source": "bet365"
+    },
+    "bonus_bet": false,
+    "contract_id": "123456",
+    "created_datetime": "2012-08-14T00:56:45.291688Z",
+    "id": "1518455672861",
+    "label": "strategy_1",
+    "last_modified_datetime": "2012-08-14T00:56:45.291688Z",
+    "market_id": "128939",
+    "original_order_id": "1518455672861",
+    "otc_available": false,
+    "outcome": "winner",
+    "price": 5000,
+    "quantity": 10000,
+    "quantity_filled": 10000,
+    "quantity_filled_pending": 2500,
+    "quantity_filled_pending_user_currency": 2500,
+    "quantity_filled_user_currency": 10000,
+    "quantity_traded_out_user_currency": 10000,
+    "quantity_unfilled": 2500,
+    "quantity_unfilled_user_currency": 2500,
+    "quantity_user_currency": 10000,
+    "sequence_number": 94115,
+    "side": "buy",
+    "stake_traded_out_user_currency": "24.08",
+    "state": "created",
+    "token_used": {
+     "bet_token_type": "free_bet",
+     "boost_percent": 1.0,
+     "original_price": 5000
+    },
+    "type": "good_til_halted"
+   }
+  ],
+  "otc_available": false,
+  "pagination": {
+   "next_page": "?limit=20&pagination_last_id=810214202189041"
+  }
+ },
+ "account": {
+  "account": {
+   "account_id": "123556546",
+   "available_balance": "100.00",
+   "balance": "150.00",
+   "bonus_balance": "10.00",
+   "commission_type": "0.02",
+   "currency": "GBP",
+   "exposure": "-50.00",
+   "is_first_time_deposit": true,
+   "signup_date": "2021-01-01T00:00:00.000000"
+  }
+ },
+ "activity": {
+  "account_activity": [
+   {
+    "amount": "-19.00",
+    "bet_token_type": "free_bet",
+    "bonus_bet": false,
+    "bonus_change": "10.00",
+    "commission": "2.20",
+    "contract_id": "123456",
+    "event_id": "565413",
+    "exposure": "-50.00",
+    "extra": "market_halted",
+    "label": "strategy_1",
+    "market_id": "128939",
+    "money": "483.56",
+    "money_change": "2.20",
+    "order_id": "1518455672861",
+    "price": 5000,
+    "quantity": 10000,
+    "quantity_change": -290023,
+    "quantity_user_currency": 10000,
+    "quantity_user_currency_change": -2819,
+    "seq": 11423,
+    "side": "buy",
+    "source": "admin.credit",
+    "subseq": 123242,
+    "timestamp": "2017-02-01T10:23:54.361612"
+   }
+  ],
+  "contracts": [
+   {
+    "name": "Arsenal",
+    "state_or_outcome": "live"
+   }
+  ],
+  "events": [
+   {
+    "full_slug": "/sport/horse-racing/ascot/2017/12/22/15:40",
+    "name": "15:40",
+    "parent_id": "565413",
+    "slug": "ascot-2017-12-22T00:00:00-15-40",
+    "state": "new",
+    "type": "horse_racing_race"
+   }
+  ],
+  "markets": [
+   {
+    "contract_selections": [
+     254245,
+     4565452,
+     7894545
+    ],
+    "market_type": {
+     "name": "OVER_UNDER",
+     "param": "2.5",
+     "params": {
+      "HANDICAP": "1.5",
+      "TOTAL": "151.5"
+     }
+    },
+    "name": "To win"
+   }
+  ],
+  "pagination": {
+   "next_page": "?limit=20&sort=seq,subseq&pagination_last_seq=20&pagination_last_seq=3"
+  }
+ },
+ "cancel": {},
+ "cancel_all": {},
+ "errors": {
+  "ORDER_REJECTED_INSUFFICIENT_FUNDS": {
+   "data": null,
+   "error_type": "ORDER_REJECTED_INSUFFICIENT_FUNDS"
+  },
+  "ORDER_REJECTED_MARKET_HALTED": {
+   "data": null,
+   "error_type": "ORDER_REJECTED_MARKET_HALTED"
+  },
+  "ORDER_INVALID_INVALID_PRICE": {
+   "data": null,
+   "error_type": "ORDER_INVALID_INVALID_PRICE"
+  },
+  "ORDER_CANCELLED_INSUFFICIENT_LIQUIDITY": {
+   "data": null,
+   "error_type": "ORDER_CANCELLED_INSUFFICIENT_LIQUIDITY"
+  },
+  "ORDER_REJECTED_CROSSED_SELF": {
+   "data": null,
+   "error_type": "ORDER_REJECTED_CROSSED_SELF"
+  },
+  "FORBIDDEN": {
+   "data": null,
+   "error_type": "FORBIDDEN"
+  },
+  "AUTH_REQUIRED": {
+   "data": null,
+   "error_type": "AUTH_REQUIRED"
+  },
+  "ORDER_NOT_FOUND": {
+   "data": null,
+   "error_type": "ORDER_NOT_FOUND"
+  },
+  "ORDER_CANCEL_REJECTED_NOT_FOUND": {
+   "data": null,
+   "error_type": "ORDER_CANCEL_REJECTED_NOT_FOUND"
+  },
+  "ORDER_CANCEL_REJECTED_TOO_LATE": {
+   "data": null,
+   "error_type": "ORDER_CANCEL_REJECTED_TOO_LATE"
+  },
+  "RATE_LIMIT_EXCEEDED": {
+   "data": null,
+   "error_type": "RATE_LIMIT_EXCEEDED"
+  }
+ }
+}

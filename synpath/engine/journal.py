@@ -41,7 +41,9 @@ from .storage_types import Intent, IntentState, JournalEvent, Lease, LeaseLost
 from .submissions import request_identity
 from .order_storage import OrderRecords, UNATTRIBUTED_USER, schema as order_schema
 
-SCHEMA_VERSION = 10
+from .execution_scope import MANAGED_NAMESPACE, storage_identity
+
+SCHEMA_VERSION = 11
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS submissions (
@@ -590,24 +592,25 @@ class Journal:
         return result
 
     async def record_submission(self, original: OrderRequest, effective: OrderRequest,
-                                *, venue: str, account: Account) -> None:
+                                *, venue: str, account: Account | None) -> None:
         """Reserve the instruction and its audit event in one transaction."""
         stamp = now_ms()
         identity = request_identity(original)
+        account_key = account.key if account else MANAGED_NAMESPACE
         async with self._write:
             await self._db.execute("BEGIN IMMEDIATE")
             try:
                 cursor = await self._db.execute(
                     "INSERT INTO submissions(client_order_id,user_id,account_key,venue,request,effective_request,created_ts,updated_ts) "
                     "VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(client_order_id) DO NOTHING",
-                    (original.client_order_id, original.user_id, account.key, venue,
+                    (original.client_order_id, original.user_id, account_key, venue,
                      _dump(identity), _dump(effective.model_dump(mode="json")), stamp, stamp),
                 )
                 if cursor.rowcount:
                     await self._db.execute(
                         "INSERT INTO events(ts,kind,key,payload) VALUES(?,?,?,?)",
                         (stamp, "submission.reserved", original.client_order_id,
-                         _dump({"user_id": original.user_id, "account": account.key, "venue": venue,
+                         _dump({"user_id": original.user_id, "account": account_key, "venue": venue,
                                 "request": identity, "effective_request": effective.model_dump(mode="json")})),
                     )
                 else:
@@ -751,45 +754,48 @@ class Journal:
     # -- orders and fills -----------------------------------------------------
 
     async def upsert_order(self, order: Order, *, event: str = "order.updated") -> None:
-        stamp = now_ms()
-        body = order.model_dump(mode="json")
-        account_key = order.account.key if order.account else f"{order.venue}:default"
         async with self._write:
             await self._db.execute("BEGIN IMMEDIATE")
             try:
-                await self._db.execute(
-                    """INSERT INTO orders(venue, id, client_order_id, account_key, market_id, side,
-                                          status, terminal, book, trader, quantity, filled, price, parent_id, payload,
-                                          created_ts, updated_ts)
-                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                       ON CONFLICT(venue, id) DO UPDATE SET
-                          client_order_id=COALESCE(excluded.client_order_id, orders.client_order_id),
-                          status=excluded.status, terminal=excluded.terminal, filled=excluded.filled,
-                          price=excluded.price, quantity=excluded.quantity, payload=excluded.payload,
-                          book=COALESCE(excluded.book, orders.book), trader=COALESCE(excluded.trader, orders.trader),
-                          parent_id=COALESCE(excluded.parent_id, orders.parent_id),
-                          updated_ts=excluded.updated_ts""",
-                    (order.venue, order.id, order.client_order_id, account_key, order.market_id,
-                     _word(order.side), _word(order.status), 1 if order.is_terminal else 0, order.book, order.trader,
-                     str(order.quantity), str(order.filled), _text(order.price),
-                     order.parent_id or order.tags.get("parent"), _dump(body),
-                     order.created_at or stamp, stamp),
-                )
-                if order.held_by.value == "venue":
-                    await self._order_records.write_order(order, stamp=stamp)
-                await self._db.execute(
-                    "UPDATE submissions SET result_id=?, state='accepted', updated_ts=? "
-                    "WHERE client_order_id=? AND user_id=? AND account_key=?",
-                    (order.id, stamp, order.client_order_id, order.user_id, account_key),
-                )
-                await self._db.execute(
-                    "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
-                    (stamp, event, f"{order.venue}:{order.id}", _dump(body)),
-                )
+                await self._write_order(order, event=event, stamp=now_ms())
                 await self._db.execute("COMMIT")
             except BaseException:
                 await self._db.execute("ROLLBACK")
                 raise
+
+    async def _write_order(self, order: Order, *, event: str, stamp: int) -> None:
+        """Write the order projection inside the caller's transaction."""
+        body = order.model_dump(mode="json")
+        storage_venue, account_key = storage_identity(order)
+        await self._db.execute(
+            """INSERT INTO orders(venue, id, client_order_id, account_key, market_id, side,
+                                  status, terminal, book, trader, quantity, filled, price, parent_id, payload,
+                                  created_ts, updated_ts)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(venue, id) DO UPDATE SET
+                  client_order_id=COALESCE(excluded.client_order_id, orders.client_order_id),
+                  status=excluded.status, terminal=excluded.terminal, filled=excluded.filled,
+                  price=excluded.price, quantity=excluded.quantity, payload=excluded.payload,
+                  book=COALESCE(excluded.book, orders.book), trader=COALESCE(excluded.trader, orders.trader),
+                  parent_id=COALESCE(excluded.parent_id, orders.parent_id),
+                  updated_ts=excluded.updated_ts""",
+            (storage_venue, order.id, order.client_order_id, account_key, order.market_id,
+             _word(order.side), _word(order.status), 1 if order.is_terminal else 0, order.book, order.trader,
+             str(order.quantity), str(order.filled), _text(order.price),
+             order.parent_id or order.tags.get("parent"), _dump(body),
+             order.created_at or stamp, stamp),
+        )
+        if order.held_by.value == "venue":
+            await self._order_records.write_order(order, stamp=stamp)
+        await self._db.execute(
+            "UPDATE submissions SET result_id=?, state='accepted', updated_ts=? "
+            "WHERE client_order_id=? AND user_id=? AND account_key=?",
+            (order.id, stamp, order.client_order_id, order.user_id, account_key),
+        )
+        await self._db.execute(
+            "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
+            (stamp, event, f"{storage_venue}:{order.id}", _dump(body)),
+        )
 
     async def record_fill(self, fill: Fill, *, book: str | None = None, trader: str | None = None) -> bool:
         """Store a fill. `False` means this fill id was already known, which
@@ -828,7 +834,8 @@ class Journal:
                 raise
         return changed
 
-    async def order(self, venue: str, order_id: str) -> Order | None:
+    async def order(self, venue: str | None, order_id: str) -> Order | None:
+        venue = venue or MANAGED_NAMESPACE
         async with self._db.execute("SELECT payload FROM orders WHERE venue=? AND id=?", (venue, order_id)) as cursor:
             row = await cursor.fetchone()
         return Order.model_validate(json.loads(row["payload"])) if row else None
@@ -845,8 +852,13 @@ class Journal:
         args: list[Any] = []
         for column, value in (("venue", venue), ("account_key", account_key), ("book", book)):
             if value is not None:
-                sql += f" AND {column}=?"
-                args.append(value)
+                if column in ("venue", "account_key"):
+                    sql += (f" AND ({column}=? OR (orders.venue=? AND EXISTS "
+                            f"(SELECT 1 FROM parent_execution_accounts scope WHERE scope.parent_id=orders.id AND scope.{column}=?)))")
+                    args.extend([value, MANAGED_NAMESPACE, value])
+                else:
+                    sql += f" AND {column}=?"
+                    args.append(value)
         async with self._db.execute(sql + " ORDER BY updated_ts", args) as cursor:
             return [Order.model_validate(json.loads(row["payload"])) async for row in cursor]
 
@@ -863,8 +875,13 @@ class Journal:
         args: list[Any] = []
         for column, value in (("venue", venue), ("book", book), ("market_id", market_id)):
             if value is not None:
-                sql += f" AND {column}=?"
-                args.append(value)
+                if column in ("venue", "account_key"):
+                    sql += (f" AND ({column}=? OR (orders.venue=? AND EXISTS "
+                            f"(SELECT 1 FROM parent_execution_accounts scope WHERE scope.parent_id=orders.id AND scope.{column}=?)))")
+                    args.extend([value, MANAGED_NAMESPACE, value])
+                else:
+                    sql += f" AND {column}=?"
+                    args.append(value)
         if since_ts is not None:
             sql += " AND created_ts >= ?"
             args.append(since_ts)
@@ -988,25 +1005,30 @@ class Journal:
 
     # -- engine-held orders ---------------------------------------------------
 
-    async def save_managed(self, snapshot: dict[str, Any]) -> None:
+    async def save_managed(self, snapshot: dict[str, Any], *, order: Order | None = None) -> None:
         """Commit the authoritative snapshot, shared projection and event."""
         async with self._write:
             await self._db.execute("BEGIN IMMEDIATE")
             try:
-                await self._write_managed(snapshot, stamp=now_ms())
+                stamp = now_ms()
+                await self._write_managed(snapshot, stamp=stamp)
+                if order is not None:
+                    await self._write_order(order, event=f"managed.{snapshot['state']}", stamp=stamp)
                 await self._db.execute("COMMIT")
             except BaseException:
                 await self._db.execute("ROLLBACK")
                 raise
 
     async def plan_managed_child(self, snapshot: dict[str, Any], request: OrderRequest,
-                                 *, venue: str, account: Account) -> None:
+                                 *, venue: str, account: Account, parent_order: Order | None = None) -> None:
         """The irreversible parent transition and child dispatch commit together."""
         async with self._write:
             await self._db.execute("BEGIN IMMEDIATE")
             try:
                 stamp = now_ms()
                 await self._write_managed(snapshot, stamp=stamp)
+                if parent_order is not None:
+                    await self._write_order(parent_order, event=f"managed.{snapshot['state']}", stamp=stamp)
                 await self._write_intent(request, client_order_id=request.client_order_id,
                                          venue=venue, account=account, stamp=stamp)
                 await self._db.execute("COMMIT")
@@ -1036,6 +1058,20 @@ class Journal:
              _dump(snapshot), children[-1]["order_id"] if children else None,
              int(snapshot.get("created_ms") or stamp), stamp),
         )
+        if snapshot.get("execution_accounts"):
+            async with self._db.execute("SELECT venue,account_key FROM parent_execution_accounts WHERE parent_id=?",
+                                        (snapshot["id"],)) as cursor:
+                existing_scope = {row["venue"]: row["account_key"] async for row in cursor}
+            proposed_scope = {venue: Account.model_validate(body).key
+                              for venue, body in snapshot["execution_accounts"].items()}
+            if existing_scope and existing_scope != proposed_scope:
+                raise ValueError("a routed parent's saved execution scope is immutable")
+            for venue, body in snapshot["execution_accounts"].items():
+                execution_account = Account.model_validate(body)
+                await self._db.execute(
+                    "INSERT INTO parent_execution_accounts(parent_id,venue,account_key) VALUES(?,?,?) "
+                    "ON CONFLICT(parent_id,venue) DO NOTHING",
+                    (snapshot["id"], venue, execution_account.key))
         await self._order_records.write_managed(snapshot, user_id=self.user_id, stamp=stamp)
         await self._db.execute(
             "INSERT INTO events(ts, kind, key, payload) VALUES(?,?,?,?)",
@@ -1065,6 +1101,14 @@ class Journal:
             f"SELECT kind, payload FROM ({MANAGED_SOURCE}) AS managed_source WHERE market_id=? ORDER BY created_ts", (market_id,)
         ) as cursor:
             return [(row["kind"], json.loads(row["payload"])) async for row in cursor]
+
+    async def routed_account_keys(self, venue: str) -> list[str]:
+        """Indexed live-parent account scope for polling/reconciliation guards."""
+        async with self._db.execute(
+            "SELECT DISTINCT scope.account_key FROM parent_execution_accounts scope "
+            "JOIN managed_orders parent ON parent.id=scope.parent_id "
+            "WHERE scope.venue=? AND parent.state IN ('waiting','working','cancelling')", (venue,)) as cursor:
+            return [row["account_key"] async for row in cursor]
 
     async def managed_one(self, parent_id: str) -> tuple[str, dict[str, Any]] | None:
         async with self._db.execute(f"SELECT kind, payload FROM ({MANAGED_SOURCE}) AS managed_source WHERE id=?", (parent_id,)) as cursor:

@@ -33,6 +33,9 @@ import asyncio
 import base64
 import json
 import logging
+from ..engine.execution_scope import BucketNotFound
+from .order_access import may_view_order, may_trade_order, may_view_event
+
 from decimal import Decimal
 from typing import Annotated, Any, Iterable, Literal
 
@@ -68,6 +71,7 @@ TRADING_STATUS: dict[type[Exception], int] = {
     SubmissionPending: 202,
     CancelUnconfirmed: 409,
     OrderNotFound: 404,
+    BucketNotFound: 404,
     InsufficientFunds: 400,
     OrderRejected: 400,
     InvalidOrder: 400,
@@ -102,16 +106,19 @@ MAX_ORDERS_PAGE = 1000
 
 def orders_cursor(key: tuple[int, str, str]) -> str:
     """The paging key of a page's last order, `(created_ts, venue, id)`, as an opaque token."""
-    return base64.urlsafe_b64encode(json.dumps(list(key)).encode()).decode().rstrip("=")
+    return base64.urlsafe_b64encode(json.dumps({"v": 2, "key": list(key)}).encode()).decode().rstrip("=")
 
 
 def orders_cursor_key(cursor: str | None) -> tuple[int, str, str] | None:
     if not cursor:
         return None
     try:
-        created_ts, venue, order_id = json.loads(base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
+        decoded = json.loads(base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
+        if not isinstance(decoded, dict) or decoded.get("v") != 2:
+            raise ValueError("old cursor; restart pagination")
+        created_ts, venue, order_id = decoded["key"]
         return int(created_ts), str(venue), str(order_id)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         raise HTTPException(status_code=400, detail="cursor is not one this server gave out") from None
 
 
@@ -539,14 +546,10 @@ def create_trading_router() -> APIRouter:
         status_code=201)
     async def create_order(principal: Caller, engine: EngineDep, body: OrderRequest) -> Order:
         if is_bucket_id(body.market_id):
-            # A bucket order puts legs on every member venue: the caller must
-            # be allowed to trade on each of them.
-            row = await engine.journal.bucket(bucket_id_of(body.market_id))
-            if row is None:
-                raise HTTPException(status_code=404, detail=f"{body.market_id}: no such bucket")
-            for member_venue in sorted(Bucket.model_validate(row).venues()):
-                require(principal, "trade", account_key(None, engine, member_venue))
-            venue = None
+            def authorize(accounts):
+                for account in accounts.values():
+                    require(principal, "trade", account.key)
+            return await engine.submit(body, authorize_execution_accounts=authorize)
         else:
             venue = order_venue(body, engine)
             if venue is None:
@@ -662,18 +665,20 @@ def create_trading_router() -> APIRouter:
                 responses=RESPONSES)
     async def bucket_orders(principal: Caller, engine: EngineDep,
                             bucket_id: Annotated[str, Path()]) -> PageResponse[BucketOrderReport]:
-        bucket = await _bucket(principal, engine, bucket_id)
-        reports = [bucket_report(p) for p in await engine.bucket_orders(bucket.id)]
+        if await engine.journal.bucket(bucket_id) is None:
+            raise HTTPException(status_code=404, detail=f"no bucket {bucket_id}")
+        reports = [bucket_report(p) for p in await engine.bucket_orders(bucket_id) if may_view_order(principal, p.as_order())]
         return PageResponse[BucketOrderReport](data=reports, next_cursor=None, count=len(reports))
 
     @router.get("/buckets/{bucket_id}/orders/{order_id}", tags=["buckets"], summary="One order on a bucket",
                 responses=RESPONSES)
     async def bucket_order(principal: Caller, engine: EngineDep, bucket_id: Annotated[str, Path()],
                            order_id: Annotated[str, Path()]) -> BucketOrderReport:
-        bucket = await _bucket(principal, engine, bucket_id)
         parent = await engine.bucket_order(order_id)
-        if parent is None or parent.market_id != bucket.market_id:
+        if parent is None or parent.market_id != f"bucket:{bucket_id}":
             raise HTTPException(status_code=404, detail=f"no order {order_id} on bucket {bucket_id}")
+        if not may_view_order(principal, parent.as_order()):
+            raise HTTPException(status_code=403, detail="this key may not view every execution account")
         return bucket_report(parent)
 
     @router.get("/orders", tags=["orders"], summary="Orders: open ones, or every state", responses=RESPONSES)
@@ -704,32 +709,23 @@ def create_trading_router() -> APIRouter:
             open_only=scope == "open", limit=limit)
         orders = [current_view(engine, order) for order, _ in rows
                   if order.user_id in (None, engine.config.user_id)
-                  and visible(principal, (order.account.key if order.account else f"{order.venue}:default"))]
+                  and may_view_order(principal, order)]
         next_cursor = orders_cursor(rows[-1][1]) if limit is not None and len(rows) == limit else None
         return PageResponse[Order](data=orders, next_cursor=next_cursor, count=len(orders))
 
     @router.get("/orders/{order_id}", tags=["orders"], summary="One order", responses=RESPONSES)
     async def get_order(principal: Caller, engine: EngineDep, order_id: Annotated[str, Path()]) -> Order:
-        parent = engine.managed_order_controller.get(order_id)
-        order = parent.as_order() if parent is not None else None
-        if order is None:
-            for venue in engine.adapters:
-                order = await engine.journal.order(venue, order_id)
-                if order is not None:
-                    break
-        if order is None:
-            raise HTTPException(status_code=404, detail=f"no order {order_id}")
-        account = order.account.key if order.account else f"{order.venue}:default"
-        if not visible(principal, account):
-            raise HTTPException(status_code=403, detail="this key may not view that account")
+        order = await _known(engine, order_id)
+        if not may_view_order(principal, order):
+            raise HTTPException(status_code=403, detail="this key may not view every execution account")
         return order
 
     @router.patch("/orders/{order_id}", tags=["orders"], summary="Amend an order", responses=RESPONSES)
     async def edit_order(principal: Caller, engine: EngineDep, order_id: Annotated[str, Path()],
                          body: EditBody) -> Order:
         order = await _known(engine, order_id)
-        account = order.account.key if order.account else f"{order.venue}:default"
-        require(principal, "trade", account)
+        if not may_trade_order(principal, order):
+            raise HTTPException(status_code=403, detail="this key may not trade on every execution account")
         try:
             return await engine.edit(EditRequest(order_id=order_id, **body.model_dump(exclude_none=True)))
         except SynpathError as exc:
@@ -741,8 +737,8 @@ def create_trading_router() -> APIRouter:
     @router.delete("/orders/{order_id}", tags=["orders"], summary="Cancel an order", responses=RESPONSES)
     async def cancel_order(principal: Caller, engine: EngineDep, order_id: Annotated[str, Path()]) -> Order:
         order = await _known(engine, order_id)
-        account = order.account.key if order.account else f"{order.venue}:default"
-        require(principal, "trade", account)
+        if not may_trade_order(principal, order):
+            raise HTTPException(status_code=403, detail="this key may not trade on every execution account")
         try:
             return await engine.cancel(order_id)
         except SynpathError as exc:
@@ -750,14 +746,10 @@ def create_trading_router() -> APIRouter:
             raise
 
     async def _known(engine: Engine, order_id: str) -> Order:
-        parent = engine.managed_order_controller.get(order_id)
-        if parent is not None:
-            return parent.as_order()
-        for venue in engine.adapters:
-            order = await engine.journal.order(venue, order_id)
-            if order is not None:
-                return order
-        raise HTTPException(status_code=404, detail=f"no order {order_id}")
+        try:
+            return await engine._known(order_id, None)
+        except OrderNotFound:
+            raise HTTPException(status_code=404, detail=f"no order {order_id}") from None
 
     # -- fills, positions, balances ------------------------------------------
 
@@ -825,7 +817,13 @@ def create_trading_router() -> APIRouter:
         repeats folded. Read only."""
         require(principal, "view")
         from ..engine.order_log import order_log
-        rows, cursor = await order_log(engine, order_id=order_id, limit=limit, before=before)
+        if order_id:
+            order = await _known(engine, order_id)
+            if not may_view_order(principal, order):
+                raise HTTPException(status_code=403, detail="this key may not view every execution account")
+        async def allow(event):
+            return await may_view_event(principal, engine, event)
+        rows, cursor = await order_log(engine, order_id=order_id, limit=limit, before=before, allow_event=allow)
         return {"data": rows, "next": cursor}
 
     @router.get("/journal", tags=["status"], summary="The engine's journal events, newest first", responses=RESPONSES)
@@ -840,8 +838,8 @@ def create_trading_router() -> APIRouter:
         and its `payload`. Read only."""
         require(principal, "view")
         events = await engine.journal.events_page(prefixes=[kind] if kind else (), before=before, limit=limit)
-        rows = [{"seq": e.seq, "ts": e.ts, "kind": e.kind, "key": e.key, "payload": e.payload} for e in events]
-        return {"data": rows, "next": rows[-1]["seq"] if len(rows) == limit else None}
+        rows = [{"seq": e.seq, "ts": e.ts, "kind": e.kind, "key": e.key, "payload": e.payload} for e in events if await may_view_event(principal, engine, e)]
+        return {"data": rows, "next": events[-1].seq if len(events) == limit else None}
 
     # -- risk and the kill switch --------------------------------------------
 
@@ -954,12 +952,16 @@ def add_event_socket(app: FastAPI) -> None:
             async for event in engine.bus.replay(since):
                 if wanted and not subscription.wants(event):
                     continue
+                if not await may_view_event(principal, engine, event):
+                    continue
                 await socket.send_text(json.dumps({
                     "seq": event.seq, "ts": event.ts, "kind": event.kind, "key": event.key, "payload": event.payload,
                 }, default=str))
             while True:
                 event = await subscription.queue.get()
                 if wanted and not subscription.wants(event):
+                    continue
+                if not await may_view_event(principal, engine, event):
                     continue
                 await socket.send_text(json.dumps({
                     "seq": event.seq, "ts": event.ts, "kind": event.kind, "key": event.key,

@@ -25,6 +25,7 @@ from decimal import Decimal
 from typing import Any, Iterable, Mapping, Type
 
 from ...errors import NetworkError
+from ...trading.errors import SubmissionPending
 from ..storage_types import IntentState
 from ...trading.types import Fill, Order, OrderRequest, OrderType
 from .base import Child, Context, ManagedOrder, State, now_ms
@@ -77,7 +78,8 @@ class ManagedOrderController:
 
     # -- creating -------------------------------------------------------------
 
-    def build(self, request: OrderRequest, *, venue: str, account: Any) -> ManagedOrder:
+    def build(self, request: OrderRequest, *, venue: str | None, account: Any,
+              execution_accounts: dict | None = None) -> ManagedOrder:
         """Construct the requested order implementation without saving or starting it."""
         # `managed_kind` lets one venue type map to an engine-held variant:
         # a market order the engine walks the book with, rather than the
@@ -89,9 +91,10 @@ class ManagedOrderController:
                 f"{kind} is an engine-held order type with no implementation loaded; "
                 f"known: {sorted(REGISTRY)}"
             )
-        return cls(request, venue=venue, account=account)
+        return cls(request, venue=venue, account=account, execution_accounts=execution_accounts)
 
-    async def create(self, request: OrderRequest, *, venue: str, account: Any, owner: ManagedOrder | None = None) -> ManagedOrder:
+    async def create(self, request: OrderRequest, *, venue: str | None, account: Any,
+                     execution_accounts: dict | None = None, owner: ManagedOrder | None = None) -> ManagedOrder:
         """Save and register an engine-held order, announce it, then start its behavior.
 
         `owner` is another managed order, not a user: for example, a bracket
@@ -100,7 +103,7 @@ class ManagedOrderController:
         """
         # Choose the implementation (for example, RoutedLimit for a bucket).
         # A managed order can itself be a child of another managed order.
-        parent = self.build(request, venue=venue, account=account)
+        parent = self.build(request, venue=venue, account=account, execution_accounts=execution_accounts)
         parent.owner_id = owner.id if owner else None
 
         # Persist the initial instruction before start() can send venue orders.
@@ -157,7 +160,12 @@ class ManagedOrderController:
         """Run one hook, catching what it raises so the others keep working."""
         ctx = self.context(parent)
         try:
+            if parent.execution_accounts:
+                for venue, account in parent.execution_accounts.items():
+                    self.engine.assert_execution_account(venue, account)
             await call(ctx)
+        except SubmissionPending as exc:
+            parent.detail = str(exc)
         except (NetworkError, asyncio.TimeoutError):
             parent.detail = "venue action is unresolved; waiting for reconciliation"
         except Exception as exc:
@@ -277,8 +285,7 @@ class ManagedOrderController:
         for child in parent.children:
             self.by_child.setdefault(child.order_id, parent.id)
             self.by_child.setdefault(f"{child.venue}:{child.order_id}", parent.id)
-        await self.engine.journal.save_managed(parent.snapshot())
-        await self.engine.journal.upsert_order(parent.as_order(), event=f"managed.{parent.state}")
+        await self.engine.journal.save_managed(parent.snapshot(), order=parent.as_order())
         self.engine._remember(parent.as_order())
 
     async def restore(self) -> int:

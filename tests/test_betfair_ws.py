@@ -1,8 +1,11 @@
 """Betfair's Exchange Stream API, spoken against a fake TLS socket.
 
-The messages are hand-built to the shapes in Betfair's Exchange Stream API
-documentation (and betfairlightweight's streaming fixtures); nothing here
-opens a connection to Betfair.
+The market messages are hand-built to the shapes in Betfair's Exchange
+Stream API documentation (and betfairlightweight's streaming fixtures). The
+order change messages are the documentation's own examples (a market-level
+snapshot, a reconnection image, a runner removal, a VAR void), the VAR
+example's bare runner changes wrapped in an `ocm`. Nothing here opens a
+connection to Betfair.
 """
 from __future__ import annotations
 
@@ -13,9 +16,12 @@ from decimal import Decimal
 
 import pytest
 
-from synpath import AuthenticationError, BetfairMarketStream
+from synpath import AuthenticationError, BetfairMarketStream, BetfairUserStream
 from synpath.betfair import BetfairSession
-from synpath.ws.base import BookEvent, MarketStatusEvent, QuoteEvent, StreamStatusEvent
+from synpath.trading.types import OrderStatus, PositionSide, Side
+from synpath.ws.base import (
+    BookEvent, FillEvent, MarketStatusEvent, OrderEvent, PositionEvent, QuoteEvent, StreamStatusEvent,
+)
 from synpath.ws.betfair import (
     DELAYED_CONFLATE_MS, MAX_MARKETS, LineSocket, apply_ladder, changed, yes_levels, yes_price,
 )
@@ -355,11 +361,145 @@ class TestSubscriptionCap:
 
 
 class TestFeeds:
-    def test_the_engine_gets_a_market_stream_and_no_account_stream(self):
+    def test_the_engine_gets_a_market_stream_and_an_account_stream(self):
         from synpath.engine.feeds import default_streams
         from synpath.trading.credentials import BetfairCredentials
 
         creds = BetfairCredentials(app_key="k", username="u", password="p")
         streams = default_streams({"betfair": object()}, {"betfair": creds})
-        assert isinstance(streams["betfair"].market, BetfairMarketStream) and streams["betfair"].private is None
+        assert isinstance(streams["betfair"].market, BetfairMarketStream)
+        assert isinstance(streams["betfair"].private, BetfairUserStream)
         assert default_streams({"betfair": object()}, {}) == {}
+
+
+ORDERS = load("betfair_trading_stream.json")
+REMOVAL_RUNNER = "betfair:1.102151675-6113662"
+
+
+def order_message(name: str, **changes) -> str:
+    return json.dumps({**ORDERS[name], **changes})
+
+
+async def order_stream(*kinds, **kwargs) -> BetfairUserStream:
+    stream = BetfairUserStream(session=a_session(), **kwargs)
+    for kind in kinds or ("orders", "fills", "positions"):
+        await getattr(stream, {"orders": "watch_orders", "fills": "watch_my_trades",
+                               "positions": "watch_positions"}[kind])()
+    await authenticated(stream)
+    stream._dispatch(order_message("subscribe_success", id=stream._sub_id))
+    drain(stream)
+    return stream
+
+
+class TestOrderStream:
+    async def test_the_order_subscription_follows_authentication(self):
+        stream = await order_stream(strategy_refs=["betstrategy1"])
+        subscription = stream._ws.sent[-1]
+        documented = ORDERS["subscription_example"]
+        assert subscription["op"] == documented["op"] and subscription["segmentationEnabled"] is True
+        assert subscription["orderFilter"] == {"includeOverallPosition": True, "customerStrategyRefs": ["betstrategy1"]}
+        assert "clk" not in subscription
+
+    async def test_nothing_is_subscribed_until_something_is_watched(self):
+        stream = BetfairUserStream(session=a_session())
+        await authenticated(stream)
+        assert [frame["op"] for frame in stream._ws.sent] == ["authentication"]
+
+    async def test_a_snapshot_reports_the_resting_bet_without_a_fill(self):
+        stream = await order_stream()
+        stream._dispatch(order_message("market_snapshot"))
+        events = drain(stream)
+        [event] = [e for e in events if isinstance(e, OrderEvent)]
+        order = event.order
+        assert order.id == "215144775671" and order.market_id == "betfair:1.174743281-30246"
+        assert order.side == Side.BUY and order.status == OrderStatus.OPEN and order.price == yes_price(990)
+        assert order.quantity == Decimal("1980") and order.created_at == 1603894536000
+        assert not [e for e in events if isinstance(e, FillEvent)]
+
+    async def test_a_bet_matching_is_a_fill_then_a_runner_removal_is_not(self):
+        stream = await order_stream()
+        stream._dispatch(order_message("rule4_placed"))
+        placed = drain(stream)
+        assert [type(e).__name__ for e in placed] == ["OrderEvent", "PositionEvent"]
+        assert placed[0].order.status == OrderStatus.OPEN and placed[1].position.contracts == 0
+
+        stream._dispatch(order_message("rule4_matched"))
+        fill, order, position = drain(stream)
+        assert isinstance(fill, FillEvent) and fill.fill.id == "10822867886:2"
+        assert fill.fill.quantity == Decimal("24") and fill.fill.price == yes_price(12)
+        assert order.order.status == OrderStatus.CLOSED and order.order.filled == Decimal("24")
+        assert order.order.last_fill_quantity == Decimal("24")
+        assert position.position.market_id == REMOVAL_RUNNER and position.position.inventory_yes == Decimal("24")
+        assert position.position.side == PositionSide.LONG
+
+        # A runner removed: the matched price is reduced to 9.47, nothing new matched.
+        stream._dispatch(order_message("rule4_reduced"))
+        events = drain(stream)
+        assert not [e for e in events if isinstance(e, FillEvent)]
+        [position] = [e.position for e in events if isinstance(e, PositionEvent)]
+        assert position.inventory_yes == Decimal("2") * Decimal("9.47")
+        assert position.info["matched_backs"] == [["9.47", "2"]]
+
+    async def test_a_reconnection_image_is_the_baseline(self):
+        stream = await order_stream()
+        stream._dispatch(order_message("reconnect_image"))
+        events = drain(stream)
+        assert not [e for e in events if isinstance(e, FillEvent)]
+        [order] = [e.order for e in events if isinstance(e, OrderEvent)]
+        assert order.filled == Decimal("4.75") * 12 and order.remaining == Decimal("0.25") * 12
+        positions = {e.position.market_id: e.position for e in events if isinstance(e, PositionEvent)}
+        assert positions["betfair:1.125657695-48756"].inventory_yes == Decimal("2.8")
+        assert stream.initial_clk == ORDERS["reconnect_image"]["initialClk"]
+
+        # The rest matched while disconnected: the next image has the bet gone and the position whole.
+        stream._dispatch(order_message("reconnect_image_matched"))
+        events = drain(stream)
+        positions = {e.position.market_id: e.position for e in events if isinstance(e, PositionEvent)}
+        assert positions["betfair:1.125657760-151478"].inventory_yes == Decimal("60")
+        assert positions["betfair:1.125670254-5643663"].contracts == 0
+        assert stream.orders == {}
+
+    async def test_a_reconnect_resumes_from_the_clock(self):
+        stream = await order_stream()
+        stream._dispatch(order_message("reconnect_image"))
+        await authenticated(stream)
+        resubscribe = stream._ws.sent[-1]
+        assert resubscribe["initialClk"] == ORDERS["reconnect_image"]["initialClk"]
+        assert resubscribe["clk"] == ORDERS["reconnect_image"]["clk"]
+
+    async def test_a_var_void_and_a_lapse_end_bets_without_fills(self):
+        stream = await order_stream()
+        stream._dispatch(order_message("var_lay_matched"))
+        events = drain(stream)
+        status = [e for e in events if isinstance(e, StreamStatusEvent)]
+        assert status[0].state == "error" and status[0].reconcile_required and "503" in status[0].detail
+        [fill] = [e.fill for e in events if isinstance(e, FillEvent)]
+        assert fill.side == Side.SELL and fill.quantity == Decimal("4") and fill.price == Decimal("0.5")
+        [position] = [e.position for e in events if isinstance(e, PositionEvent)]
+        assert position.side == PositionSide.SHORT and position.inventory_no == Decimal("8")
+
+        stream._dispatch(order_message("var_back_placed"))
+        drain(stream)
+        stream._dispatch(order_message("var_lay_voided"))
+        stream._dispatch(order_message("var_back_lapsed"))
+        events = drain(stream)
+        assert not [e for e in events if isinstance(e, FillEvent)]
+        assert [e.state for e in events if isinstance(e, StreamStatusEvent)] == ["resynced"]
+        voided, lapsed = [e.order for e in events if isinstance(e, OrderEvent)]
+        assert voided.status == OrderStatus.CANCELED and voided.filled == 0 and voided.info["sizeVoided"] == 2
+        assert lapsed.status == OrderStatus.CANCELED and lapsed.info["sizeLapsed"] == 2 and lapsed.remaining == 0
+
+    async def test_only_the_markets_watched_are_passed_on(self):
+        stream = BetfairUserStream(session=a_session())
+        await stream.watch_orders(["betfair:1.102151675"])
+        await authenticated(stream)
+        stream._dispatch(order_message("market_snapshot"))
+        stream._dispatch(order_message("rule4_placed"))
+        orders = [e.order for e in drain(stream) if isinstance(e, OrderEvent)]
+        assert [o.market_id for o in orders] == [REMOVAL_RUNNER]
+
+    async def test_a_heartbeat_carries_the_streams_health(self):
+        stream = await order_stream()
+        stream._dispatch(order_message("heartbeat_503"))
+        [status] = drain(stream)
+        assert status.state == "error" and stream.clk == "AAAAAAAA"

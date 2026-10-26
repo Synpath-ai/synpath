@@ -565,7 +565,7 @@ class TestErrorsAndAnswers:
         try:
             with TestClient(create_trading_app(engine, store)) as client:
                 rows = client.get("/accounts", headers=auth(key.secret)).json()
-            assert [r["account"] for r in rows] == ["kalshi:default"]
+            assert [r["account"] for r in rows] == ["kalshi:paper"]  # the adapter's actual execution identity
         finally:
             await store.close()
             await engine.stop()
