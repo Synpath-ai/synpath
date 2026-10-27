@@ -477,10 +477,14 @@ def _clean(params: Any) -> Any:
 
 
 def complete_capabilities(cls: type) -> None:
-    """Fill `cls.has` from `CAPABILITIES`, refusing typos and illegal values.
+    """Build a complete `cls.has` map for every name in `CAPABILITIES`.
 
-    Shared by the read adapters and the trading adapters, so both answer
-    every question the same way. See `Exchange.__init_subclass__`.
+    Validate the class's own declarations, rejecting unknown capability names
+    and illegal values. Inherit from the nearest ancestor in method resolution
+    order with a non-empty `has` dictionary, then apply the class's overrides.
+    Capabilities declared by neither default to `False`.
+
+    Shared by read, trading and WebSocket adapters during subclass creation.
     """
     declared = cls.__dict__.get("has", {})
     if not isinstance(declared, dict):
