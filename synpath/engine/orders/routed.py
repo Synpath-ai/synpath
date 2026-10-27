@@ -152,9 +152,12 @@ class RoutedLimit(ManagedOrder):
     def known_remaining(self) -> Decimal:
         return self.remaining
 
-    def budget(self) -> Decimal:
-        """Size new legs may add: what is left after every live leg's whole
-        size is reserved and every closed leg's fill is counted."""
+    def remaining_quantity_after_fills_and_outstanding_orders(self) -> Decimal:
+        """Quantity available for new orders after fills and live reservations.
+
+        A live child's original quantity covers both its fills and its remaining
+        outstanding quantity. An ended child reserves only its filled quantity.
+        """
         reserved = sum((c.quantity if c.live else self.known(c) for c in self.children), ZERO)
         return max(ZERO, self.quantity - reserved)
 
@@ -306,30 +309,73 @@ class RoutedLimit(ManagedOrder):
 
     # -- the plan and the legs ------------------------------------------------
 
-    def may_move(self, ctx: Context, leg: LegState) -> bool:
+    def minimum_stay_has_elapsed(self, ctx: Context, leg: LegState) -> bool:
+        """Whether this leg has rested long enough to allow routine cancel/replacement."""
         return ctx.now - leg.placed_at >= self.min_stay_s
 
     async def replan(self, ctx: Context, *, first: bool = False) -> None:
-        """Re-entrant safe: a cancel inside a plan can hand the engine a
-        terminal child, whose `on_child_order_updated` asks for a plan of its own. That
-        request is noted and honoured once this plan is through."""
+        """Run planning passes in sequence, remembering requests received during a pass.
+
+        Cancelling a child can synchronously deliver an order update, whose
+        callback calls replan() before the current pass returns. The controller
+        permits these callbacks on the same task, so its per-order lock alone
+        does not prevent nested planning. These flags defer that work until the
+        current pass finishes updating the legs and quantity reservations.
+        """
+        # A stopping or finished parent must not allocate more venue orders.
         if self.state != "working":
             return
+
+        # The active pass owns the leg changes. Remember that another pass is
+        # needed, then return to it instead of recursively changing the same legs.
+        # Several nested requests share one flag because the next pass reads
+        # the latest state rather than replaying each notification separately.
         if self._replanning:
             self._replan_again = True
             return
+
+        # Set the guard before awaiting anything that could call back into us.
         self._replanning = True
         try:
+            # Only the initial placement uses first=True; later reallocations
+            # are eligible to increment the parent's routing-round counter.
             await self._replan(ctx, first=first)
+
+            # Honour deferred requests after the current pass settles. A pass
+            # may also stop the parent, in which case no further routing is allowed.
             while self._replan_again and self.state == "working":
+                # Consume this request before awaiting: a callback during the
+                # next pass must be able to request yet another pass.
                 self._replan_again = False
                 await self._replan(ctx)
         finally:
+            # Release the guard even on failure, and leave no deferred request
+            # attached to this invocation when a later event calls replan().
             self._replanning = False
             self._replan_again = False
 
     async def _replan(self, ctx: Context, *, first: bool = False) -> None:
-        """Reconcile the new allocation with existing children before adding orders."""
+        """Reconcile a fresh proposal with existing children in one planning pass.
+
+        First remove inactive leg references and trim live children's outstanding
+        quantity to fit the parent quantity still needed. Then plan from available
+        books for target minus all known fills, initially ignoring outstanding orders.
+
+        For each tracked child, keep it unchanged if its side and price match the
+        proposal and its outstanding quantity fits within the remaining target,
+        even when its size differs from the proposed size. Otherwise cancel it
+        once its minimum stay has elapsed. Keep children with no current book
+        because missing data alone does not justify cancellation.
+
+        Then add orders from the remaining proposals, skipping member markets
+        where a child was kept. Reserve all live children's outstanding quantity
+        before adding orders so the total does not exceed the requested quantity.
+        Current leg tracking is per member market, not per venue.
+
+        Report and save the result, or begin stopping when a routing bound is met.
+        Callbacks can change lifecycle state during awaits; only working parents
+        may continue allocating. The replan() wrapper handles deferred passes.
+        """
         if self.state != "working":
             return
         if self.known_remaining <= 0:
@@ -353,7 +399,12 @@ class RoutedLimit(ManagedOrder):
         )
 
     async def _clean_up_existing_legs(self, ctx: Context) -> int:
-        """Remove inactive legs and cancel excess resting quantity, newest first."""
+        """Clean up tracked allocations before calculating a fresh proposal.
+
+        First remove leg metadata whose child is missing or no longer live.
+        Then cancel excess outstanding child quantity so it fits within the
+        parent's remaining target. Return the number of children canceled.
+        """
         self._forget_dead_legs()
         return await self._trim(ctx)
 
@@ -400,6 +451,7 @@ class RoutedLimit(ManagedOrder):
         stage cannot submit another child there during this round.
         """
         canceled_count = 0
+        # Outstanding quantity retained so far by the missing-book and matching-price checks.
         kept_resting_quantity = ZERO
         for market_id, leg in list(self.legs.items()):
             child = self.child_of(leg.order_id, leg.venue)
@@ -422,12 +474,13 @@ class RoutedLimit(ManagedOrder):
             if (proposed_leg is not None and proposed_leg.price == leg.price and proposed_leg.side == leg.side
                     and kept_resting_quantity + resting_quantity <= self.known_remaining):
                 kept_resting_quantity += resting_quantity
+                # Skip new placement on this market because its existing child is kept.
                 proposed_legs.pop(market_id)
                 continue
 
             # The proposal no longer fits, but the minimum stay has not passed.
-            # Keep the child for now; budget() still reserves its outstanding size.
-            if not self.may_move(ctx, leg):
+            # Keep the child for now; its outstanding quantity remains reserved.
+            if not self.minimum_stay_has_elapsed(ctx, leg):
                 proposed_legs.pop(market_id, None)
                 continue
 
@@ -443,7 +496,7 @@ class RoutedLimit(ManagedOrder):
         """Submit remaining proposals within the unreserved quantity and venue minimums."""
         # Reserve every live child's size before adding orders, including those
         # kept despite missing books or an unelapsed minimum stay.
-        available_quantity = self.budget()
+        available_quantity = self.remaining_quantity_after_fills_and_outstanding_orders()
         placed_count = 0
         for market_id, proposed_leg in proposed_legs.items():
             # A venue response can call back into the parent and start stopping.
@@ -528,6 +581,18 @@ class RoutedLimit(ManagedOrder):
         return pulled
 
     def _forget_dead_legs(self) -> None:
+        """Remove current-leg metadata that no longer points to a live child.
+
+        self.legs tracks an allocation already submitted on each member market:
+        its child order ID, side, price, quantity and placement information.
+        It is separate from the fresh proposal returned by router.plan().
+
+        A leg is dead when its child is missing or its recorded status is no
+        longer live, for example after a full fill or cancellation. Remove only
+        the entry in self.legs; retain the child and its fills in self.children
+        so they still count toward parent progress. This method sends no venue
+        requests and does not cancel orders.
+        """
         for market_id, leg in list(self.legs.items()):
             child = self.child_of(leg.order_id, leg.venue)
             if child is None or not child.live:
