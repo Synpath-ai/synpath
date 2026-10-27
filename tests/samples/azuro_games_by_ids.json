@@ -1,0 +1,84 @@
+{
+ "games": [
+  {
+   "id": "1006000000000002866602",
+   "gameId": "1006000000000002866602",
+   "slug": "sangal-esports-metizport-1006000000000002866602",
+   "title": "Sangal Esports - Metizport",
+   "startsAt": "1792687980",
+   "state": "Finished",
+   "turnover": "22",
+   "sport": {
+    "sportId": "1061",
+    "slug": "cs2",
+    "name": "Counter-Strike 2",
+    "sporthub": {
+     "id": "ee5c8776-e9ad-4aa0-8334-d8392f8da16e",
+     "slug": "esports"
+    }
+   },
+   "league": {
+    "id": "caf20ffa-01fb-4f9c-b58d-35eed0fc5c4f",
+    "slug": "ranked-episode-6-closed-qualifier",
+    "name": "Ranked Episode 6: Closed Qualifier",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "699286d6-12ac-42f2-9fd8-06d55eaf20ff",
+    "slug": "international-tournaments",
+    "name": "International Tournaments"
+   },
+   "participants": [
+    {
+     "name": "Sangal Esports",
+     "image": "https://avatars.azuro.org/images/1061/1006000000000002866602/Sangal Esports.png"
+    },
+    {
+     "name": "Metizport",
+     "image": "https://avatars.azuro.org/images/1061/1006000000000002866602/Metizport.png"
+    }
+   ]
+  },
+  {
+   "id": "1006000000000094301994",
+   "gameId": "1006000000000094301994",
+   "slug": "trefelin-fc-flint-town-united-1006000000000094301994",
+   "title": "Trefelin FC - Flint Town United",
+   "startsAt": "1792781100",
+   "state": "Prematch",
+   "turnover": "87.0329",
+   "sport": {
+    "sportId": "33",
+    "slug": "football",
+    "name": "Football",
+    "sporthub": {
+     "id": "f800a0de-5fb6-45ff-8ed2-35daab086119",
+     "slug": "sports"
+    }
+   },
+   "league": {
+    "id": "b987f703-0250-407d-9bac-16252097ece2",
+    "slug": "cymru-premier",
+    "name": "Cymru Premier",
+    "isTopLeague": false,
+    "topWeight": 0
+   },
+   "country": {
+    "id": "c139e7c4-77ea-47e4-853e-6e4c82b1eab8",
+    "slug": "wales",
+    "name": "Wales"
+   },
+   "participants": [
+    {
+     "name": "Trefelin FC",
+     "image": "https://avatars.azuro.org/images/33/1006000000000094301994/Trefelin FC.png"
+    },
+    {
+     "name": "Flint Town United",
+     "image": "https://avatars.azuro.org/images/33/1006000000000094301994/Flint Town United.png"
+    }
+   ]
+  }
+ ]
+}

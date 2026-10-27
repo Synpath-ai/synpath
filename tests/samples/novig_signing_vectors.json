@@ -1,0 +1,610 @@
+{
+    "$schema": "https://novig.co/schemas/signing-vectors/v1",
+    "spec_version": "NOVIG-V3",
+    "description": "NOVIG-V3 string-to-sign specification and committed test vectors. Both the Rust and Nest signing stacks test against this file. It is also the source that the Mintlify docs publish verbatim.",
+    "string_to_sign_rules": {
+        "format": "Six lines joined by LF (U+000A, byte 0x0A), no trailing newline:\n  line 1: NOVIG-V3\n  line 2: {unix_millis} — unpadded decimal, same value as Novig-Timestamp\n  line 3: {METHOD} — uppercase ASCII\n  line 4: {path} — with leading /, sent verbatim, never normalised\n  line 5: {canonical_query} — see below; empty string when no query\n  line 6: {lowercase_hex(sha256(raw_body))} — lowercase hex",
+        "canonical_query": "1. Split the raw query string on '&'.\n2. For each pair: split at the FIRST '=' only. The substring before the first '='\n   is the name; the substring after is the value. If no '=' is present, the name\n   is the whole token and the value is the empty string. This means a value that\n   itself contains '=' (e.g. a base64 string 'abc=') is preserved correctly.\n3. Call URI-decode on each part, interpreting percent-encoded sequences\n   as UTF-8. A bare '+' is NOT decoded as a space — RFC 3986 does not give '+'\n   special meaning in query strings. Only '%XX' sequences are decoded.\n4. Re-encode each decoded part: keep RFC 3986 unreserved characters\n   (ALPHA DIGIT - . _ ~) unchanged; encode everything else as %XX with\n   UPPERCASE hex digits.\n5. Sort the encoded pairs bytewise: first by encoded name, then by encoded\n   value as a tiebreaker (relevant when the same name appears more than once).\n6. Join with '&'.\n7. When no query string is present, the canonical query is the empty string,\n   producing an empty line 5. The line is never omitted.",
+        "divergence_points": {
+            "absent_query": "When no query string is present, line 5 is an empty string. The line must appear; it is never omitted from the string to sign.",
+            "empty_body": "An absent or empty body hashes to e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855. The literal string '{}' produces a different hash.",
+            "plus_vs_percent20": "Spaces must be encoded as %20, not as '+'. A '+' in the input is treated as a literal '+' and re-encoded as %2B.",
+            "hex_case": "Percent-encoding in the canonical query always uses uppercase hex (e.g., %2F not %2f). The body hash always uses lowercase hex.",
+            "sort_by_name_then_value": "Query parameters are sorted bytewise by encoded name, then by encoded value. When the same name appears more than once, all occurrences are preserved and sorted by their value. The sort is never by name only.",
+            "duplicate_query_params": "When a parameter name appears more than once, all occurrences are preserved in the canonical query. None are dropped or merged.",
+            "trailing_slash": "The path is included exactly as sent. A trailing slash is never added or removed. /api/orders and /api/orders/ produce different string to signs.",
+            "path_not_decoded": "The path is never percent-decoded before canonicalization. /api/v1/items/foo%2Fbar is not the same as /api/v1/items/foo/bar.",
+            "non_ascii_value": "Non-ASCII query values are percent-encoded as their UTF-8 byte sequences with uppercase hex. For example, ü (U+00FC) encodes as %C3%BC.",
+            "equals_in_query_value": "A '=' character inside a query value is encoded as '%3D' in the canonical form. Split each pair at the FIRST '=' only; any subsequent '=' belongs to the value. Example: 'token=abc=' → name 'token', value 'abc=', canonical 'token=abc%3D'.",
+            "bare_query_param": "A query token with no '=' (e.g. '?flag') has name equal to the whole token and value equal to the empty string. Canonical form: 'flag='."
+        }
+    },
+    "headers": {
+        "Novig-Key-Id": "The key's UUID. Not included in the string to sign.",
+        "Novig-Timestamp": "Unix time in milliseconds, as an unpadded decimal integer. Accepted clock skew is ±30 seconds.",
+        "Novig-Signature": "Standard padded base64 of the raw signature bytes. For Ed25519: the 64-byte output of the Ed25519 signing operation. For ECDSA P-256: sign the string to sign with ECDSA using the P-256 curve and the SHA-256 hash function (i.e. ES256 / prime256v1 + SHA-256). The output is the DER-encoded ASN.1 SEQUENCE of two INTEGERs (r, s), as produced by OpenSSL and Node.js crypto.sign('SHA256', data, ecKey). The DER signature length varies (typically 70–72 bytes); this is expected."
+    },
+    "algorithm_note": "The client never sends the algorithm in the request. The verifier reads it from the stored key row. This prevents algorithm-confusion attacks (analogous to the JWT alg:none class).",
+    "keypairs": {
+        "ed25519-test-1": {
+            "label": "TEST KEY — NOT FOR PRODUCTION USE",
+            "algorithm": "ed25519",
+            "private_key_pkcs8_pem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIJvNzamVA44euwrCHa4ZdHbACbiOx+HIYd07z4WUnIL3\n-----END PRIVATE KEY-----\n",
+            "public_key_spki_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAXs8T0ekGF/etWU01dggL39Ojb0+1YtuTtbNx6gr8K+Q=\n-----END PUBLIC KEY-----\n",
+            "public_key_fingerprint": "sha256:6d4058ea55f365a60868b7a29f302deee40cd738f1ee98f14f43381c13f1a232"
+        },
+        "ecdsa-p256-test-1": {
+            "label": "TEST KEY — NOT FOR PRODUCTION USE",
+            "algorithm": "ecdsa-p256",
+            "private_key_pkcs8_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg4Da5JjoTw0/Qr4qg\nJFt7dDOE7AOxh+lAK3q+kdzctUChRANCAAQTaERl4TLnQHkdaLKN9WP1mSIOk6UB\nX89QHEHCX1YpJfkx5HnSI2SitUTYs21DlKz2VCS+kTNb7miyuygnlfGz\n-----END PRIVATE KEY-----\n",
+            "public_key_spki_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEE2hEZeEy50B5HWiyjfVj9ZkiDpOl\nAV/PUBxBwl9WKSX5MeR50iNkorVE2LNtQ5Ss9lQkvpEzW+5osrsoJ5Xxsw==\n-----END PUBLIC KEY-----\n",
+            "public_key_fingerprint": "sha256:c17518535299f8a3cc3a2cece4aaf612d3826bb001d4d7be60d33199ce3f46ee"
+        }
+    },
+    "vectors": [
+        {
+            "id": "ed25519_get_absent_query_empty_body",
+            "description": "GET with no query string and empty body. The string-to-sign line 5 is empty (never omitted). The body hash is the SHA-256 of zero bytes.",
+            "covers_divergence_point": [
+                "absent_query",
+                "empty_body"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders/all",
+                "query": "",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders/all\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "Joy/3dQBha3GmPeSqlXLvx871R/vRcm6eEJsRja82vzdEyfXulwC15+T+fDwVzvRHnwHJRurOatFQfVpw2M2DA=="
+        },
+        {
+            "id": "ed25519_post_empty_body",
+            "description": "POST with an empty body. The body hash must equal the SHA-256 of zero bytes: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.",
+            "covers_divergence_point": [
+                "empty_body"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "POST",
+                "path": "/api/orders",
+                "query": "",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nPOST\n/api/orders\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "HMhMgjvlkg7ftMQeXkct6okH9AaSGdv68hR2NtfW3GTOdFzYGLn7SAlo4Z4Y+JB7yNhR/LTA8MMMk6lkY9wHAA=="
+        },
+        {
+            "id": "ed25519_post_json_body",
+            "description": "POST with a JSON body. The body hash is the SHA-256 of the raw UTF-8 bytes, not of the parsed object.",
+            "covers_divergence_point": [],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "POST",
+                "path": "/api/orders",
+                "query": "",
+                "body": "{\"side\":\"BUY\",\"price\":\"0.55\",\"size\":\"100\",\"market_id\":\"abc123\"}"
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nPOST\n/api/orders\n\n3d8f6e268d1ac3ab4943df1c1e1a985e0f1d411327e364d1ab147ea6e9c26936",
+            "body_hash": "3d8f6e268d1ac3ab4943df1c1e1a985e0f1d411327e364d1ab147ea6e9c26936",
+            "signature": "/SIxOTIOTqWTbvU8eREjb6jISel1qGXm8r2tWqtj5VL48vN3wk5jWBmH+xLCCAhsdcnOyKvxFL5uL1n0VWUOAQ=="
+        },
+        {
+            "id": "ed25519_post_empty_json_object",
+            "description": "POST with a literal {} body. This produces a different hash from an empty body. Do not treat an absent body and {} as equivalent.",
+            "covers_divergence_point": [
+                "empty_body"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "POST",
+                "path": "/api/orders",
+                "query": "",
+                "body": "{}"
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nPOST\n/api/orders\n\n44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "body_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "signature": "iq333q+XPiJkmenMK0ghw8zl8SH/34bzw27gTfc3NY9vHhuh99Pm8MM2yTnW99xnGO/PDvE9eSYsqstlEzHWCw=="
+        },
+        {
+            "id": "ed25519_get_trailing_slash",
+            "description": "GET where the path ends with a trailing slash. The path is included verbatim in the string to sign — the slash is never removed.",
+            "covers_divergence_point": [
+                "trailing_slash"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders/",
+                "query": "",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders/\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "GbfUpPdTmPVxih7to9mO9gwlttW+PkCzENkpGNAlH2WbMemSp7j3MciSUgGXwJc5qBqIoBUTSrtVu524OhQpBQ=="
+        },
+        {
+            "id": "ed25519_get_no_trailing_slash",
+            "description": "GET on the same logical resource without a trailing slash. The string to signs for this vector and ed25519_get_trailing_slash differ because paths are sent verbatim.",
+            "covers_divergence_point": [
+                "trailing_slash"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders",
+                "query": "",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "M9p5nsCH7Fsre1D+RFzPKXk4eViL1YeaAteVY8L4nDXJz81jdYIQ1SBNjcYHUFzqcDxLQn0n5GhF4DPmjMe1Cw=="
+        },
+        {
+            "id": "ed25519_get_path_not_decoded",
+            "description": "GET where the path contains a percent-encoded slash (%2F). The string to sign includes the path exactly as sent. The client must never percent-decode the path before canonicalizing.",
+            "covers_divergence_point": [
+                "path_not_decoded"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/v1/items/foo%2Fbar",
+                "query": "",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/v1/items/foo%2Fbar\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "7O2wnFJ/k2JLt9DW4JZcl807ChV7vLQJFu9sSA/jmtbgGca1fdAs9y6DFaxPe4WnbBC8Wpjdez1MlKFUQFy3AQ=="
+        },
+        {
+            "id": "ed25519_get_simple_query",
+            "description": "GET with two query parameters in reverse alphabetical order in the input. The canonical query must sort them bytewise by encoded name.",
+            "covers_divergence_point": [],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders",
+                "query": "status=open&limit=50",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders\nlimit=50&status=open\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "D9/FzREoDCsoQwdcwUB2TnINgSoE+axZdcP8f/UbpCFd++Rdn4vmUhRtEKXHxKIT3YiFsvfZoMLBv/RN04yGCA=="
+        },
+        {
+            "id": "ed25519_get_query_sort_by_name",
+            "description": "GET with parameters whose encoded names require bytewise sort. 'Z' (0x5A) sorts before 'a' (0x61) in bytewise comparison. The canonical query here has 'Zebra' before 'apple'.",
+            "covers_divergence_point": [
+                "sort_by_name_then_value"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/search",
+                "query": "apple=1&Zebra=2",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/search\nZebra=2&apple=1\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "RUR6E1RBqhNzRxaP788pQJk3jj+EsQK1Sz1kwCm4YStL6TX849LFrU8913BzikbpKONMRgYMGU8rTNyv6HJoAw=="
+        },
+        {
+            "id": "ed25519_get_duplicate_query_params",
+            "description": "GET where the same parameter name appears twice with different values. The canonical query sorts by name, then by value as a tiebreaker. Both occurrences are preserved; neither is dropped.",
+            "covers_divergence_point": [
+                "duplicate_query_params",
+                "sort_by_name_then_value"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders",
+                "query": "status=open&status=closed",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders\nstatus=closed&status=open\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "xX0BasdE9P3GDi7D5NKc8+iRdIJRUz+vX77L41d6a2Ukei6gnjwLc/s0yw5h0NejpXdsN6Lw5w1w82uymUSODw=="
+        },
+        {
+            "id": "ed25519_get_triple_duplicate_param",
+            "description": "GET with three occurrences of the same parameter name. All three are preserved and sorted by value.",
+            "covers_divergence_point": [
+                "duplicate_query_params",
+                "sort_by_name_then_value"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/markets",
+                "query": "league=nfl&league=nba&league=mlb",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/markets\nleague=mlb&league=nba&league=nfl\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "AfcLvixPt6+mJY3Qf/1BM7JEs3HAhLkqxtgkQMOP8KZl7AUOA4p5Z1xVeQXGIK5zXn20gK54PJyovtjcWV/CBA=="
+        },
+        {
+            "id": "ed25519_get_space_as_percent20",
+            "description": "GET where a query value contains a space encoded as %20. The canonical form keeps it as %20. A client that encodes the same space as '+' would produce a different string to sign and a verification failure.",
+            "covers_divergence_point": [
+                "plus_vs_percent20"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/search",
+                "query": "q=New%20York",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/search\nq=New%20York\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "TML2dP2JQDNDcqG1JIpVj+w0m9U07L6X5ExxZXQHs/I8fjIbHAssk5lbtrLnBaKO1Ci4/+yONsmQ/NOdyFIADw=="
+        },
+        {
+            "id": "ed25519_get_bare_plus_not_decoded_as_space",
+            "description": "GET where the raw query string contains a bare '+' (not percent-encoded). RFC 3986 does not give '+' special meaning in query strings. A correct implementation decodes '+' as a literal '+' and re-encodes it as '%2B'. A buggy implementation using form-decoding (URLSearchParams, urllib.parse.parse_qs, etc.) would decode '+' as a space and produce 'q=foo%20bar' — a different string to sign that causes a verification failure. Both 'q=foo+bar' (bare) and 'q=foo%2Bbar' (pre-encoded) must produce 'q=foo%2Bbar'.",
+            "covers_divergence_point": [
+                "plus_vs_percent20"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/search",
+                "query": "q=foo+bar",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/search\nq=foo%2Bbar\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "UK3xQTFq9tPqWmBmuBxBAnnbfKnZI0PjEWbN/GkXMd+EkC+74//J3a81BNI9KNmIVvwB8+xrQhRU1wUL+ioyCg=="
+        },
+        {
+            "id": "ed25519_get_preencoded_plus_roundtrip",
+            "description": "GET where the raw query string contains '%2B' (the percent-encoded form of '+'). Decode('%2B') = '+', then re-encode('+') = '%2B'. This vector and ed25519_get_bare_plus_not_decoded_as_space must produce the same canonical query: 'q=foo%2Bbar'.",
+            "covers_divergence_point": [
+                "plus_vs_percent20"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/search",
+                "query": "q=foo%2Bbar",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/search\nq=foo%2Bbar\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "UK3xQTFq9tPqWmBmuBxBAnnbfKnZI0PjEWbN/GkXMd+EkC+74//J3a81BNI9KNmIVvwB8+xrQhRU1wUL+ioyCg=="
+        },
+        {
+            "id": "ed25519_get_lowercase_hex_normalised",
+            "description": "GET where the input query contains lowercase percent-encoding (%2f). The canonical form normalises to uppercase hex (%2F). The decoded-then-re-encoded value is the same regardless of the input casing.",
+            "covers_divergence_point": [
+                "hex_case"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/search",
+                "query": "path=%2ftmp%2ffile",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/search\npath=%2Ftmp%2Ffile\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "PlaH9D3dPJqAfB/PH3JN6/rpGYlSToVRiSq48zeJM9OmFyxu/xhLox0rHZ2/4rfM91WuYsGqV9/KJH4vWFLZAQ=="
+        },
+        {
+            "id": "ed25519_get_non_ascii_query_value",
+            "description": "GET where a query value contains a non-ASCII character (ü, U+00FC). The value arrives percent-encoded as %C3%BC (UTF-8, uppercase hex). The canonical query decodes and re-encodes it, producing %C3%BC. A client sending %c3%bc (lowercase) would also canonicalize to %C3%BC.",
+            "covers_divergence_point": [
+                "non_ascii_value"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/search",
+                "query": "lang=%C3%BC",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/search\nlang=%C3%BC\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "YUKyRzueHvdyXe4GjaLHl6vMhREdl3AxcAIQLjwAV7GPzv7QncVigqvzjg2HAidXlXQJcTWhMDSVrFOZmfCmAw=="
+        },
+        {
+            "id": "ed25519_get_emoji_query",
+            "description": "GET where both the query name and value contain non-ASCII characters. The emoji U+1F600 (😀) encodes as %F0%9F%98%80 in UTF-8.",
+            "covers_divergence_point": [
+                "non_ascii_value"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/events",
+                "query": "emoji=%F0%9F%98%80",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/events\nemoji=%F0%9F%98%80\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "HSH1hJ+f0MelEmn3lIHpC2NgnyEyzNiSZ7k2ccH7lT1E4MF35Xnlv8s3bYseOvRWeHyFVKjlnO4p8+YMFkaACg=="
+        },
+        {
+            "id": "ed25519_put_with_body_and_query",
+            "description": "PUT with a JSON body and a query string. Exercises the full string to sign: all six lines are non-trivial.",
+            "covers_divergence_point": [],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000001,
+                "method": "PUT",
+                "path": "/api/orders/ord_abc123",
+                "query": "dry_run=false",
+                "body": "{\"price\":\"0.60\",\"size\":\"50\"}"
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000001\nPUT\n/api/orders/ord_abc123\ndry_run=false\n21178b55526b358c39816cbdfeb5e521fb80b474dcf0acf752228eb898377293",
+            "body_hash": "21178b55526b358c39816cbdfeb5e521fb80b474dcf0acf752228eb898377293",
+            "signature": "2QRbkXNnb/tI8jzfQlEh8gduLLaJJjOjAlx7jjUvikKJXkAKoh7nmypARuZNI9Dy41Esz/XLzhz9nwlmtNNyBg=="
+        },
+        {
+            "id": "ed25519_delete_no_body",
+            "description": "DELETE with no query string and no body.",
+            "covers_divergence_point": [
+                "empty_body",
+                "absent_query"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000002,
+                "method": "DELETE",
+                "path": "/api/orders/ord_abc123",
+                "query": "",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000002\nDELETE\n/api/orders/ord_abc123\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "5AmCB2+JXuNNXQfZhLeJgfnjf51WL3u8kafAbZHNKDLaCOTjqiAsqkiQftYwjdJh1v04XkM2xhg0RWU39rcfCw=="
+        },
+        {
+            "id": "ed25519_patch_body",
+            "description": "PATCH method. All HTTP methods are uppercase in the string to sign.",
+            "covers_divergence_point": [],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000003,
+                "method": "PATCH",
+                "path": "/api/keys/key_xyz",
+                "query": "",
+                "body": "{\"name\":\"production-bot\"}"
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000003\nPATCH\n/api/keys/key_xyz\n\nbbe7e1be0f13c9f393f4add8de4a05cda2d73e75f9c9dbc2dab9867b22118091",
+            "body_hash": "bbe7e1be0f13c9f393f4add8de4a05cda2d73e75f9c9dbc2dab9867b22118091",
+            "signature": "HVkf3LG3Go01RffqmM/VgKoiJbw4DCPPJK8WGbz7iZ/iW4Pgc4hLCd1G1vJnZO/mtxh5gxsbeBYU1NrTYg9lBg=="
+        },
+        {
+            "id": "ed25519_get_equals_in_query_value",
+            "description": "GET where a query value contains a literal '=' character (common in base64 padding). The spec splits each pair at the FIRST '=' only. For 'token=abc=', name is 'token' and value is 'abc='. The '=' in the value is not an unreserved RFC 3986 character, so it is encoded as '%3D'. Canonical query: 'token=abc%3D'.",
+            "covers_divergence_point": [
+                "equals_in_query_value"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/keys",
+                "query": "token=abc=",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/keys\ntoken=abc%3D\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "ldR9iLkKsoZV0NWXmXFoDs9nfBxNItjKAM7GUjHr/fVqQqkipQpUQgCsKzc66rfpw0Ojs1FkAsr1TZzGPhWnCQ=="
+        },
+        {
+            "id": "ed25519_get_bare_query_param",
+            "description": "GET with a query parameter that has no '=' and no value (e.g. '?flag'). The spec splits at the first '=': when no '=' is present, the name is the whole token and the value is the empty string. Canonical form: 'flag='.",
+            "covers_divergence_point": [
+                "bare_query_param"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders",
+                "query": "flag",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders\nflag=\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "oXNBKFrTmPDdPCdewCGLHgUxAym6wZ1sovrhwELpUhiFudd//74ZmiJHgkWPhNHuGEfalEAYLqub+Fn3mQIaBQ=="
+        },
+        {
+            "id": "ed25519_post_large_body",
+            "description": "POST with a larger JSON body, exercising the SHA-256 path with non-trivial input.",
+            "covers_divergence_point": [],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000004,
+                "method": "POST",
+                "path": "/api/orders/batch",
+                "query": "",
+                "body": "{\"orders\":[{\"side\":\"BUY\",\"price\":\"0.55\",\"size\":\"100\",\"market_id\":\"m1\",\"client_order_id\":\"co-1\"},{\"side\":\"SELL\",\"price\":\"0.60\",\"size\":\"200\",\"market_id\":\"m2\",\"client_order_id\":\"co-2\"},{\"side\":\"BUY\",\"price\":\"0.45\",\"size\":\"500\",\"market_id\":\"m3\",\"client_order_id\":\"co-3\"}]}"
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000004\nPOST\n/api/orders/batch\n\n955e06d8eff25b5e024e114fbc67bb5b05e9267444e8fbf05c5662cb56247f56",
+            "body_hash": "955e06d8eff25b5e024e114fbc67bb5b05e9267444e8fbf05c5662cb56247f56",
+            "signature": "54T/G2ZUDHP4lR8x+ptTEDsNmANoSueUF+BdfRuX8OP12gl1xSnC5BIP7P0vtHlf1cmEheykiCcG2dbhKopPDA=="
+        },
+        {
+            "id": "ed25519_get_tilde_unreserved",
+            "description": "GET where a query value contains '~', once pre-encoded as %7E and once bare. RFC 3986 lists '~' as unreserved, so the canonical form keeps it bare in both places. A verifier that encodes '~' as %7E produces a different string to sign and a verification failure.",
+            "covers_divergence_point": [
+                "tilde_unreserved"
+            ],
+            "algorithm": "ed25519",
+            "keypair_id": "ed25519-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/search",
+                "query": "path=%7Ehome&tag=a~b",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/search\npath=~home&tag=a~b\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "t7pSHUNCi0fvAUngSSnRDxLn6r8GJ26wkeBeMvgtBDo+Sr22POME/u8luzxEnhKJvIhCxVjNd+FPwAEiIRiMBA=="
+        },
+        {
+            "id": "ecdsa_p256_get_absent_query_empty_body",
+            "description": "ECDSA P-256 equivalent of ed25519_get_absent_query_empty_body. The string to sign is identical; only the algorithm and signature differ. The ECDSA signature is a DER-encoded ASN.1 SEQUENCE of two INTEGERs (r, s). It is base64-encoded using standard (padded) base64.",
+            "covers_divergence_point": [
+                "absent_query",
+                "empty_body"
+            ],
+            "algorithm": "ecdsa-p256",
+            "keypair_id": "ecdsa-p256-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders/all",
+                "query": "",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders/all\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "MEYCIQDaOiI6d9t71y9XHnHNRu144p+Gwvk4Xkh6yUpCSP9XfwIhAKqiOUFyCC7EeSHH0QF14UhBI3cRG/UW74GUbwVqmwgc"
+        },
+        {
+            "id": "ecdsa_p256_post_json_body",
+            "description": "ECDSA P-256 equivalent of ed25519_post_json_body.",
+            "covers_divergence_point": [],
+            "algorithm": "ecdsa-p256",
+            "keypair_id": "ecdsa-p256-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "POST",
+                "path": "/api/orders",
+                "query": "",
+                "body": "{\"side\":\"BUY\",\"price\":\"0.55\",\"size\":\"100\",\"market_id\":\"abc123\"}"
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nPOST\n/api/orders\n\n3d8f6e268d1ac3ab4943df1c1e1a985e0f1d411327e364d1ab147ea6e9c26936",
+            "body_hash": "3d8f6e268d1ac3ab4943df1c1e1a985e0f1d411327e364d1ab147ea6e9c26936",
+            "signature": "MEUCIQCSfmZPXLUzYoT3oRbf6F7lQkcia0N7vvfokvjzYc5ZrwIgJ+51IiK6ftKMNw7LhkMAS4LEeJtx6ON0lP3vfk+QFZs="
+        },
+        {
+            "id": "ecdsa_p256_get_trailing_slash",
+            "description": "ECDSA P-256 equivalent of ed25519_get_trailing_slash. The trailing slash is preserved in the canonical path.",
+            "covers_divergence_point": [
+                "trailing_slash"
+            ],
+            "algorithm": "ecdsa-p256",
+            "keypair_id": "ecdsa-p256-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders/",
+                "query": "",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders/\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "MEYCIQDE+vowH6NqoptDBU/72CmlVIiaNrZ8tYlatSm41T/ICwIhAIp/P0m8tVUa0er5Pnv5VxqUkmPle45KFc7FN8L48JQu"
+        },
+        {
+            "id": "ecdsa_p256_get_duplicate_query_params",
+            "description": "ECDSA P-256 equivalent of ed25519_get_duplicate_query_params.",
+            "covers_divergence_point": [
+                "duplicate_query_params",
+                "sort_by_name_then_value"
+            ],
+            "algorithm": "ecdsa-p256",
+            "keypair_id": "ecdsa-p256-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/orders",
+                "query": "status=open&status=closed",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/orders\nstatus=closed&status=open\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "MEUCIB5crYErCSI6dLiTg+QUTR1jsc/P2oQYSd0DQh/dsxFrAiEA2oS4fhZnjaDN5fKvuD4/Ez3wmu9vwq2Z2OssU+uUKY8="
+        },
+        {
+            "id": "ecdsa_p256_get_non_ascii_query_value",
+            "description": "ECDSA P-256 equivalent of ed25519_get_non_ascii_query_value.",
+            "covers_divergence_point": [
+                "non_ascii_value"
+            ],
+            "algorithm": "ecdsa-p256",
+            "keypair_id": "ecdsa-p256-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "GET",
+                "path": "/api/search",
+                "query": "lang=%C3%BC",
+                "body": ""
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nGET\n/api/search\nlang=%C3%BC\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "body_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "signature": "MEUCIQDn4c7KlVFKUt+5/gx9rhkzOxTMc56FaMaCfmUJnqarWQIgGvzN09Zkq8iJBrnR1vFCYwdgHPOla4pbf/RHkplTF98="
+        },
+        {
+            "id": "ecdsa_p256_post_empty_json_object",
+            "description": "ECDSA P-256 equivalent of ed25519_post_empty_json_object.",
+            "covers_divergence_point": [
+                "empty_body"
+            ],
+            "algorithm": "ecdsa-p256",
+            "keypair_id": "ecdsa-p256-test-1",
+            "input": {
+                "timestamp": 1755000000000,
+                "method": "POST",
+                "path": "/api/orders",
+                "query": "",
+                "body": "{}"
+            },
+            "string_to_sign": "NOVIG-V3\n1755000000000\nPOST\n/api/orders\n\n44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "body_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "signature": "MEQCIDlZiaDdRyKhoP2sv51iinSOl6ZSAqHDTmYyxgiAWrPCAiAyeRrgdgVfwQtKw1BNJyWgHwszFFw2x5SOFXbaS/owZQ=="
+        }
+    ]
+}

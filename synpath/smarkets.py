@@ -7,8 +7,8 @@ by how much) and the rate limits are lower; every book and quote read here
 records which in its `info` (`delayed`). An optional login
 (`SMARKETS_USERNAME`, `SMARKETS_PASSWORD`) sends a session token for
 undelayed quotes and the account's own limits; see `SmarketsSession`.
-Betting needs approved API access from Smarkets (a one-off £150 fee) and is
-not offered here yet.
+Order entry is `synpath.trading.smarkets.SmarketsTrading`, on the same login;
+placing orders needs approved API access from Smarkets (a one-off £150 fee).
 
 Five things about this venue that shape the adapter:
 

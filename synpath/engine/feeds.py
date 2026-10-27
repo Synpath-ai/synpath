@@ -176,17 +176,81 @@ def venue_streams(venue: str, creds: Any, adapter: Any | None, *, private: bool 
             private=SxBetUserStream(api_key=creds.api_key, testnet=testnet, address=address)
             if private and address else None,
         )
+    if venue == "myriad" and creds is not None:
+        # Books are public; the account's orders and positions channels take a
+        # subscription token the adapter signs for, fills the public per-wallet tape.
+        from ..ws.myriad import MyriadMarketStream, MyriadUserStream
+        catalog = getattr(adapter, "catalog", None)
+        address = getattr(creds, "address", None)
+        token = getattr(adapter, "subscription_token", None)
+        if private and not address:
+            log.warning("synpath.engine.feeds: myriad has an API key but no wallet address, so its orders "
+                        "reach the engine by polling; set MYRIAD_ACCOUNT_ADDRESS for the account stream")
+        return VenueStreams(
+            market=MyriadMarketStream(catalog=catalog),
+            private=MyriadUserStream(address=address, token=token) if private and address and token else None,
+        )
     if venue == "betfair" and creds is not None:
-        # Market data only: no Betfair order entry, so no account stream.
-        # Every Betfair stream, books included, logs in with the account.
-        from ..ws.betfair import BetfairMarketStream
-        return VenueStreams(market=BetfairMarketStream(credentials=creds), private=None)
+        # Every Betfair stream, books included, logs in with the account;
+        # both share the trading adapter's session, so one login serves all.
+        from ..ws.betfair import BetfairMarketStream, BetfairUserStream
+        session = getattr(adapter, "session", None)
+        return VenueStreams(
+            market=BetfairMarketStream(credentials=creds, session=session),
+            private=BetfairUserStream(credentials=creds, session=session) if private else None,
+        )
+    if venue == "gemini":
+        # Books are public; the account stream signs its handshake with
+        # the API key, which must be account-scoped and time-based.
+        from ..ws.gemini import GeminiMarketStream, GeminiUserStream
+        sandbox = getattr(creds, "env", "prod") == "sandbox"
+        return VenueStreams(
+            market=GeminiMarketStream(sandbox=sandbox),
+            private=GeminiUserStream(creds) if private and creds is not None else None,
+        )
     if venue == "smarkets":
-        # Market data only, and public: a polled stream on REST quotes
-        # (Smarkets' socket stream is for approved market makers). The
-        # login, when configured, only undelays the quotes.
+        # A polled stream on REST quotes (Smarkets' socket stream is for
+        # approved market makers), on the trading adapter's session when
+        # there is one, so the login undelays the quotes. No account
+        # stream; the engine polls the orders.
         from ..ws.smarkets import SmarketsMarketStream
-        return VenueStreams(market=SmarketsMarketStream(credentials=creds), private=None)
+        session = getattr(adapter, "session", None)
+        return VenueStreams(market=SmarketsMarketStream(credentials=creds, session=session), private=None)
+    if venue == "novig":
+        # The websocket takes a subaccount's trading key; without one the
+        # market stream polls the public book.
+        from ..ws.novig import NovigMarketStream, NovigUserStream
+        catalog = getattr(adapter, "catalog", None)
+        keyed = bool(getattr(creds, "key_id", None))
+        return VenueStreams(
+            market=NovigMarketStream(credentials=creds, catalog=catalog),
+            private=NovigUserStream(credentials=creds, trading=adapter, catalog=catalog) if private and keyed else None,
+        )
+    if venue == "matchbook":
+        # Polled, as Matchbook has no push API: books from public REST
+        # reads, with no session so the polls are not the account's. No
+        # account stream; the engine polls the offers.
+        from ..ws.matchbook import MatchbookMarketStream
+        return VenueStreams(market=MatchbookMarketStream(), private=None)
+    if venue == "prophetx" and getattr(creds, "trades", False):
+        # Every ProphetX channel is private: both streams register on the
+        # trading adapter's session, which ProphetX counts per key.
+        from ..ws.prophetx import ProphetXMarketStream, ProphetXUserStream
+        session = getattr(adapter, "session", None)
+        catalog = getattr(adapter, "catalog", None)
+        resolver = getattr(adapter, "side", None)
+        return VenueStreams(
+            market=ProphetXMarketStream(credentials=creds, session=session, catalog=catalog),
+            private=ProphetXUserStream(credentials=creds, session=session, catalog=catalog, resolver=resolver)
+            if private else None,
+        )
+    if venue == "azuro":
+        # Public odds over the feed's socket; bets are read back by
+        # polling, since the feed streams no account channel.
+        from ..ws.azuro import AzuroMarketStream
+        chain = getattr(creds, "chain", "polygon")
+        return VenueStreams(market=AzuroMarketStream(chain=chain, catalog=getattr(adapter, "catalog", None)),
+                            private=None)
     return None
 
 

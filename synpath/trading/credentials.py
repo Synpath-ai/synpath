@@ -11,7 +11,8 @@ loaded; the adapters are what use it.
 
 Two sets per venue. `load_credentials` is what a trading adapter needs: the
 private key included, except for SX Bet, whose API key alone reads the
-account and cancels and whose private key only places orders.
+account and cancels and whose private key only places orders, and Myriad,
+whose API key alone reads the account.
 `load_market_data` is the API key alone, for the three venues whose market
 data wants one and no wallet: Opinion, predict.fun and SX Bet.
 
@@ -40,11 +41,40 @@ data wants one and no wallet: Opinion, predict.fun and SX Bet.
   SX Bet              SX_BET_API_KEY (market data, the account, cancels), and
                       optionally SX_BET_PRIVATE_KEY (placing orders),
                       SX_BET_ACCOUNT_ADDRESS, SX_BET_TESTNET
-  Betfair             BETFAIR_APP_KEY, BETFAIR_USERNAME, BETFAIR_PASSWORD, and
-    (market data)     optionally BETFAIR_CERT_PATH / BETFAIR_KEY_PATH
-                      (certificate login) and BETFAIR_JURISDICTION
-  Smarkets            optionally SMARKETS_USERNAME and SMARKETS_PASSWORD: market
-    (market data)     data needs no login; one gives undelayed quotes
+  Myriad              MYRIAD_PRIVATE_KEY (signs orders and cancels; signs in
+                      when there is no API key), and optionally
+                      MYRIAD_API_KEY with MYRIAD_API_SECRET (HMAC-signed
+                      requests), MYRIAD_ACCOUNT_ADDRESS, MYRIAD_RPC_URL
+  Betfair             BETFAIR_APP_KEY (a live key bets; a delayed one reads),
+                      BETFAIR_USERNAME, BETFAIR_PASSWORD, and optionally
+                      BETFAIR_CERT_PATH / BETFAIR_KEY_PATH (certificate
+                      login) and BETFAIR_JURISDICTION
+  Smarkets            SMARKETS_USERNAME, SMARKETS_PASSWORD: betting and the
+                      account log in (placing orders needs Smarkets' approved
+                      API access); market data needs no login, and one gives
+                      undelayed quotes
+  Novig               NOVIG_KEY_ID, NOVIG_PRIVATE_KEY_PATH (a subaccount's trading
+                      key, PEM, Ed25519 or P-256), NOVIG_ENV (production, the
+                      default, or paper), and optionally NOVIG_MANAGEMENT_KEY_ID /
+                      NOVIG_MANAGEMENT_PRIVATE_KEY_PATH (subaccounts and funding)
+  Novig parlay RFQ    NOVIG_RFQ_CLIENT_ID, NOVIG_RFQ_CLIENT_SECRET (the liquidity
+                      provider's OAuth client credentials), or NOVIG_RFQ_ACCESS_TOKEN;
+                      NOVIG_RFQ_SHARED_SECRET (webhooks only; NOVIG_RFQ_SECRET is
+                      read too), NOVIG_RFQ_ENV (production, the default, or qa),
+                      NOVIG_RFQ_TOKEN_URL; read by `load_novig_rfq`, not
+                      `load_credentials`
+  Matchbook           MATCHBOOK_USERNAME, MATCHBOOK_PASSWORD: betting logs in;
+                      market data needs no login
+  ProphetX            PROPHETX_ACCESS_KEY, PROPHETX_SECRET_KEY (the Trading API:
+                      market data, streams and orders), and optionally
+                      PROPHETX_AFFILIATE_KEY (the Market Data API, market data
+                      alone) and PROPHETX_SANDBOX
+  Azuro               AZURO_PRIVATE_KEY, and optionally AZURO_CHAIN (polygon,
+                      the default, base, polygon_amoy, base_sepolia),
+                      AZURO_AFFILIATE, AZURO_RPC_URL
+  Gemini              GEMINI_API_KEY, GEMINI_API_SECRET, and optionally
+                      GEMINI_ACCOUNT (a master key's subaccount) and GEMINI_ENV
+                      (prod, the default, or sandbox); market data needs neither
 """
 from __future__ import annotations
 
@@ -317,10 +347,50 @@ class SxBetCredentials:
 
 
 @dataclass(frozen=True, repr=False)
+class MyriadCredentials:
+    """Myriad: the wallet that signs orders, and how requests prove whose they are.
+
+    Every order and every cancel is an EIP-712 message signed by the wallet.
+    Requests to the account's endpoints are signed with an API key and its
+    secret (HMAC); without a key, the wallet signs in (SIWE) for a session
+    token instead. The venue refuses a bare key. A key acts for the wallet
+    that minted it, so a key with no private key reads the account but
+    cannot place or cancel."""
+
+    private_key: str | None = field(default=None, repr=False)
+    """The wallet's private key, hex: the wallet the Myriad account is
+    connected to. Signs orders, cancels and the sign-in."""
+    api_key: str | None = None
+    api_secret: str | None = field(default=None, repr=False)
+    """An API key and its secret (Myriad Account settings, or `POST
+    /auth/api-keys` from a signed-in session; the secret is shown once)."""
+    account_address: str | None = None
+    """The wallet's address, when no private key names it. Public."""
+    rpc_url: str | None = None
+    """A BNB Chain node for the balance read and AMM trades there. A public one when unset."""
+    _public = ("api_key", "account_address", "rpc_url")
+    __repr__ = _redacted_repr
+
+    @property
+    def address(self) -> str | None:
+        """The trading wallet: the signer's address, else the one given."""
+        if self.private_key:
+            from .polymarket_signing import WalletSigner
+
+            return WalletSigner(self.private_key).address
+        return self.account_address
+
+    @property
+    def secrets(self) -> list[str]:
+        return [v for v in (self.private_key, self.api_secret) if v]
+
+
+@dataclass(frozen=True, repr=False)
 class BetfairCredentials:
     """Betfair: the account's application key and its login. Every Betfair
     call, market data included, needs both: the key names the application,
-    the login's session token the account."""
+    the login's session token the account. Betting needs a live key; a
+    delayed key reads market data and the account only."""
 
     app_key: str = field(repr=False)
     """The application key (delayed or live) from the account's developer
@@ -343,9 +413,11 @@ class BetfairCredentials:
 
 @dataclass(frozen=True, repr=False)
 class SmarketsCredentials:
-    """Smarkets: an optional account login. Market data needs none; a session
-    from it gives undelayed quotes and the account's own rate limits. Betting
-    needs Smarkets' approved API access, which this library does not use yet."""
+    """Smarkets: the account's login. Betting and the account's reads (orders,
+    statement, balance) log in with it; market data needs none, and a session
+    from it gives undelayed quotes and the account's own rate limits. Placing
+    orders needs Smarkets' approved API access. An account with two-factor
+    login cannot log in from here (pass a session token instead)."""
 
     username: str
     password: str = field(repr=False)
@@ -357,10 +429,172 @@ class SmarketsCredentials:
         return [self.password]
 
 
+@dataclass(frozen=True, repr=False)
+class NovigCredentials:
+    """Novig: a subaccount's trading key, and optionally the account's
+    management key. Each is a key id and a PKCS#8 PEM private key, Ed25519
+    or P-256, that signs every request (NOVIG-V3).
+
+    The trading key places and cancels orders on its one subaccount, reads
+    its orders, fills, positions and balance, and opens the websocket. The
+    management key (Profile -> Settings -> Novig API in the web app) opens,
+    funds and labels subaccounts and never places an order. A key works only
+    in the environment it was made in."""
+
+    key_id: str | None = None
+    """The trading key's id: also the address of its subaccount."""
+    private_key_pem: bytes | None = field(default=None, repr=False)
+    management_key_id: str | None = None
+    management_private_key_pem: bytes | None = field(default=None, repr=False)
+    env: Literal["production", "paper"] = "production"
+    """`production` trades real money at api.novig.com (US identity and
+    location checks); `paper` play money at api.paper.novig.com."""
+    _public = ("key_id", "management_key_id", "env")
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [pem.decode(errors="ignore") for pem in (self.private_key_pem, self.management_private_key_pem) if pem]
+
+
+@dataclass(frozen=True, repr=False)
+class NovigRFQCredentials:
+    """Novig's parlay RFQ, for a liquidity provider's pricer: separate from
+    the order-entry keys (`NovigCredentials`).
+
+    The RFQ routes (`/rfq/pricer`, `/rfq/executions`, `/rfq/collateral`) and
+    both RFQ WebSockets take the OAuth 2.0 client-credentials bearer token
+    Novig issues to market makers, not a NOVIG-V3 signature. The client id
+    and secret are exchanged for a token (30 minutes) as needed; a token
+    obtained elsewhere can be given instead. The shared secret, returned
+    once by `POST /rfq/pricer` with a `webhookUrl`, checks the signature on
+    every webhook; a WebSocket-only pricer has none."""
+
+    client_id: str | None = None
+    client_secret: str | None = field(default=None, repr=False)
+    access_token: str | None = field(default=None, repr=False)
+    """A bearer token used as it is, instead of the client credentials."""
+    shared_secret: str | None = field(default=None, repr=False)
+    """64 hex characters: the BLAKE3 key the webhooks are signed with."""
+    env: Literal["production", "qa"] = "production"
+    """`production` at api.novig.com; `qa` at api-qa.novig.us. Registrations
+    are separate in each."""
+    token_url: str | None = None
+    """Where the client credentials are exchanged; the environment's
+    `/nbx/v1/auth/emm-token` by default."""
+    _public = ("client_id", "env", "token_url")
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [s for s in (self.client_secret, self.access_token, self.shared_secret) if s]
+
+
+@dataclass(frozen=True, repr=False)
+class MatchbookCredentials:
+    """Matchbook: the account's login. Betting and the account's reads (offers,
+    bets, balance) log in with it; market data needs none. An account with
+    two-factor login cannot log in from here (pass a session token instead)."""
+
+    username: str
+    password: str = field(repr=False)
+    _public = ("username",)
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.password]
+
+
+@dataclass(frozen=True, repr=False)
+class ProphetXCredentials:
+    """ProphetX: the Trading API's key pair, and optionally the Market Data
+    API's affiliate key. Either reads market data; only the key pair trades
+    and streams."""
+
+    access_key: str | None = field(default=None, repr=False)
+    secret_key: str | None = field(default=None, repr=False)
+    """The Trading API key pair, generated by any KYC-approved account under
+    API Integration on prophetx.co (the secret is shown once). Exchanged at
+    `/auth/login` for a ten-minute bearer token."""
+    affiliate_key: str | None = field(default=None, repr=False)
+    """A Market Data API key, issued on request by ProphetX's market data
+    team. Sent as it is in `Authorization`; reads market data only."""
+    sandbox: bool = False
+    """ProphetX's sandbox (api.sandbox.prophetx.dev, demo funds) instead of
+    production. Sandbox keys are made on sandbox.prophetx.dev."""
+    _public = ("sandbox",)
+    __repr__ = _redacted_repr
+
+    @property
+    def trades(self) -> bool:
+        return bool(self.access_key and self.secret_key)
+
+    @property
+    def secrets(self) -> list[str]:
+        return [v for v in (self.access_key, self.secret_key, self.affiliate_key) if v]
+
+
+@dataclass(frozen=True, repr=False)
+class AzuroCredentials:
+    """Azuro: the wallet that signs every bet (EIP-712) and holds the bet
+    token, and the chain whose pool it bets with. Market data needs nothing."""
+
+    private_key: str = field(repr=False)
+    """The wallet's private key, hex. Signs every bet and cash-out; the
+    relayer places them on chain and is paid from this wallet's tokens."""
+    chain: str = "polygon"
+    """The deployment bet with: `polygon` (USDT), `base` (WETH), or the
+    testnets `polygon_amoy` and `base_sepolia`."""
+    affiliate: str | None = None
+    """The affiliate address every bet names; the wallet's own when unset."""
+    rpc_url: str | None = None
+    """A JSON-RPC endpoint on the chain, for the balance, the allowance and
+    the approval; the chain's public endpoint when unset."""
+    _public = ("chain", "affiliate", "rpc_url")
+    __repr__ = _redacted_repr
+
+    @property
+    def address(self) -> str:
+        from .polymarket_signing import WalletSigner
+
+        return WalletSigner(self.private_key).address
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.private_key]
+
+
+@dataclass(frozen=True, repr=False)
+class GeminiCredentials:
+    """Gemini Predictions: an API key pair from exchange.gemini.com/settings/api.
+
+    Account-scoped, with the Trader role and a time-based nonce: the
+    WebSocket takes no other key, and the REST nonces here are Unix seconds.
+    The account needs Prediction Markets access (US) and the current
+    Prediction Markets terms accepted."""
+
+    api_key: str
+    """The key id, `account-...` (or `master-...` for a master key)."""
+    api_secret: str = field(repr=False)
+    """The secret shown once at creation. Signs every private request (HMAC-SHA384)."""
+    account: str | None = None
+    """The subaccount a master key acts for (its short name). Unset for an
+    account-scoped key."""
+    env: Literal["prod", "sandbox"] = "prod"
+    """`prod` trades on Gemini itself; `sandbox` on api.sandbox.gemini.com with a sandbox key."""
+    _public = ("api_key", "account", "env")
+    __repr__ = _redacted_repr
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.api_secret]
+
+
 Credentials = (
     KalshiCredentials | PolymarketCredentials | PolymarketUSCredentials | PolymarketUSExchangeCredentials
     | OpinionCredentials | HyperliquidCredentials | PredictFunCredentials | LimitlessCredentials | SxBetCredentials
-    | BetfairCredentials | SmarketsCredentials
+    | BetfairCredentials | SmarketsCredentials | NovigCredentials | MatchbookCredentials | ProphetXCredentials | AzuroCredentials | MyriadCredentials | GeminiCredentials
 )
 
 ENV_NAMES: dict[str, tuple[str, ...]] = {
@@ -389,6 +623,15 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
         "BETFAIR_JURISDICTION",
     ),
     "smarkets": ("SMARKETS_USERNAME", "SMARKETS_PASSWORD"),
+    "novig": (
+        "NOVIG_KEY_ID", "NOVIG_PRIVATE_KEY_PATH", "NOVIG_ENV", "NOVIG_MANAGEMENT_KEY_ID",
+        "NOVIG_MANAGEMENT_PRIVATE_KEY_PATH",
+    ),
+    "matchbook": ("MATCHBOOK_USERNAME", "MATCHBOOK_PASSWORD"),
+    "prophetx": ("PROPHETX_ACCESS_KEY", "PROPHETX_SECRET_KEY", "PROPHETX_AFFILIATE_KEY", "PROPHETX_SANDBOX"),
+    "azuro": ("AZURO_PRIVATE_KEY", "AZURO_CHAIN", "AZURO_AFFILIATE", "AZURO_RPC_URL"),
+    "myriad": ("MYRIAD_PRIVATE_KEY", "MYRIAD_API_KEY", "MYRIAD_API_SECRET", "MYRIAD_ACCOUNT_ADDRESS", "MYRIAD_RPC_URL"),
+    "gemini": ("GEMINI_API_KEY", "GEMINI_API_SECRET", "GEMINI_ACCOUNT", "GEMINI_ENV"),
 }
 """What each venue reads. The first entry is the one whose absence means
 "not configured"; the rest are optional or have defaults."""
@@ -638,6 +881,35 @@ def load_sx_bet(env: Mapping[str, str]) -> SxBetCredentials | None:
     return SxBetCredentials(api_key=api_key, private_key=key, account_address=account, testnet=testnet)
 
 
+def load_myriad(env: Mapping[str, str]) -> MyriadCredentials | None:
+    key = env.get("MYRIAD_PRIVATE_KEY") or None
+    api_key, secret = env.get("MYRIAD_API_KEY") or None, env.get("MYRIAD_API_SECRET") or None
+    if api_key and not secret:
+        raise CredentialsMissing(
+            "MYRIAD_API_KEY is set but MYRIAD_API_SECRET is not; the venue refuses a key without its signature "
+            "since 2026-08-15. A key made before secrets existed cannot be upgraded: mint a new one in Myriad "
+            "Account settings")
+    if secret and not api_key:
+        raise CredentialsMissing("MYRIAD_API_SECRET is set but MYRIAD_API_KEY is not")
+    if not key and not api_key:
+        return None
+    if key and not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("MYRIAD_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    key = None if key is None else key if key.startswith("0x") else "0x" + key
+    account = env.get("MYRIAD_ACCOUNT_ADDRESS") or None
+    if account and not re.match(r"^0x[0-9a-fA-F]{40}$", account):
+        raise CredentialsMissing(
+            f"MYRIAD_ACCOUNT_ADDRESS must be the wallet's 0x address (40 hex characters), not its private key; "
+            f"got {_shape_of(account)}")
+    if account and key:
+        from .polymarket_signing import WalletSigner
+
+        if WalletSigner(key).address.lower() != account.lower():
+            raise CredentialsMissing("MYRIAD_ACCOUNT_ADDRESS is not the address of MYRIAD_PRIVATE_KEY")
+    return MyriadCredentials(private_key=key, api_key=api_key, api_secret=secret, account_address=account,
+                             rpc_url=env.get("MYRIAD_RPC_URL") or None)
+
+
 def _shape_of(value: str) -> str:
     """What a malformed value looks like, without echoing it: it may be a
     private key pasted into the wrong variable."""
@@ -685,6 +957,136 @@ def load_smarkets(env: Mapping[str, str]) -> SmarketsCredentials | None:
     return SmarketsCredentials(username=username, password=password)
 
 
+NOVIG_ENVS = ("production", "paper")
+
+
+def load_novig(env: Mapping[str, str]) -> NovigCredentials | None:
+    key_id, management_id = env.get("NOVIG_KEY_ID") or None, env.get("NOVIG_MANAGEMENT_KEY_ID") or None
+    if not key_id and not management_id:
+        return None
+    pems: list[bytes | None] = []
+    for name, path_var in ((key_id, "NOVIG_PRIVATE_KEY_PATH"), (management_id, "NOVIG_MANAGEMENT_PRIVATE_KEY_PATH")):
+        path = env.get(path_var) or None
+        if name and not path:
+            id_var = "NOVIG_KEY_ID" if path_var == "NOVIG_PRIVATE_KEY_PATH" else "NOVIG_MANAGEMENT_KEY_ID"
+            raise CredentialsMissing(f"{id_var} is set but {path_var} is not")
+        pem = _read_pem(path, var=path_var) if name and path else None
+        if pem is not None:
+            from .novig_signing import load_private_key
+
+            try:
+                load_private_key(pem)
+            except (ValueError, TypeError) as exc:
+                raise CredentialsMissing(f"{path_var} points at {path!r}, which is not an unencrypted "
+                                         f"Ed25519 or P-256 PKCS#8 key: {exc}") from None
+        pems.append(pem)
+    stage = (env.get("NOVIG_ENV") or "production").strip().lower()
+    if stage not in NOVIG_ENVS:
+        raise CredentialsMissing(f"NOVIG_ENV must be production or paper, got {stage!r}")
+    return NovigCredentials(
+        key_id=key_id, private_key_pem=pems[0], management_key_id=management_id,
+        management_private_key_pem=pems[1], env=stage,  # type: ignore[arg-type]
+    )
+
+
+NOVIG_RFQ_ENVS = ("production", "qa")
+
+
+def load_novig_rfq(
+    env: Mapping[str, str] | None = None, *, dotenv: Path | str | None = None, redact_logs: bool = True,
+) -> NovigRFQCredentials | None:
+    """A Novig pricer's credentials from the environment (and `.env`), or
+    `None` when none are set. Not part of `load_credentials`: the pricer is
+    a liquidity provider's service, not an order-entry adapter."""
+    merged = merged_env(env, dotenv=dotenv)
+    client_id = (merged.get("NOVIG_RFQ_CLIENT_ID") or "").strip() or None
+    client_secret = (merged.get("NOVIG_RFQ_CLIENT_SECRET") or "").strip() or None
+    token = (merged.get("NOVIG_RFQ_ACCESS_TOKEN") or "").strip() or None
+    shared = (merged.get("NOVIG_RFQ_SHARED_SECRET") or merged.get("NOVIG_RFQ_SECRET") or "").strip() or None
+    if not (client_id or client_secret or token or shared):
+        return None
+    if bool(client_id) != bool(client_secret):
+        raise CredentialsMissing("Novig's RFQ client credentials are a pair: set both NOVIG_RFQ_CLIENT_ID and "
+                                 "NOVIG_RFQ_CLIENT_SECRET (issued by Novig to liquidity providers)")
+    if shared is not None and not re.match(r"^[0-9a-fA-F]{64}$", shared):
+        raise CredentialsMissing(f"NOVIG_RFQ_SHARED_SECRET must be the 64 hex characters POST /rfq/pricer returned; "
+                                 f"got {_shape_of(shared)}")
+    stage = (merged.get("NOVIG_RFQ_ENV") or "production").strip().lower()
+    if stage not in NOVIG_RFQ_ENVS:
+        raise CredentialsMissing(f"NOVIG_RFQ_ENV must be production or qa, got {stage!r}")
+    creds = NovigRFQCredentials(
+        client_id=client_id, client_secret=client_secret, access_token=token, shared_secret=shared.lower() if shared else None,
+        env=stage, token_url=(merged.get("NOVIG_RFQ_TOKEN_URL") or "").strip() or None,  # type: ignore[arg-type]
+    )
+    if redact_logs:
+        SecretFilter.install(creds.secrets)
+    return creds
+
+
+def load_matchbook(env: Mapping[str, str]) -> MatchbookCredentials | None:
+    username, password = env.get("MATCHBOOK_USERNAME"), env.get("MATCHBOOK_PASSWORD")
+    if not username and not password:
+        return None
+    if not username or not password:
+        raise CredentialsMissing("a Matchbook login needs both MATCHBOOK_USERNAME and MATCHBOOK_PASSWORD")
+    return MatchbookCredentials(username=username, password=password)
+
+
+def load_prophetx(env: Mapping[str, str]) -> ProphetXCredentials | None:
+    access, secret = env.get("PROPHETX_ACCESS_KEY") or None, env.get("PROPHETX_SECRET_KEY") or None
+    affiliate = env.get("PROPHETX_AFFILIATE_KEY") or None
+    if not access and not secret and not affiliate:
+        return None
+    if bool(access) != bool(secret):
+        raise CredentialsMissing(
+            "ProphetX's Trading API key is a pair: set both PROPHETX_ACCESS_KEY and PROPHETX_SECRET_KEY "
+            "(prophetx.co, API Integration; the secret is shown once)"
+        )
+    sandbox = str(env.get("PROPHETX_SANDBOX") or "").strip().lower() in ("1", "true", "yes")
+    return ProphetXCredentials(access_key=access, secret_key=secret, affiliate_key=affiliate, sandbox=sandbox)
+
+
+AZURO_CHAINS = ("polygon", "base", "polygon_amoy", "base_sepolia")
+"""The deployments that take bets; Gnosis and Chiliz are discontinued."""
+
+
+def load_azuro(env: Mapping[str, str]) -> AzuroCredentials | None:
+    key = env.get("AZURO_PRIVATE_KEY")
+    if not key:
+        return None
+    if not re.match(r"^(0x)?[0-9a-fA-F]{64}$", key):
+        raise CredentialsMissing("AZURO_PRIVATE_KEY must be 64 hex characters, optionally starting with 0x")
+    chain = (env.get("AZURO_CHAIN") or "polygon").strip().lower().replace("-", "_")
+    if chain not in AZURO_CHAINS:
+        raise CredentialsMissing(f"AZURO_CHAIN must be one of {', '.join(AZURO_CHAINS)} (Gnosis and Chiliz are discontinued)")
+    affiliate = env.get("AZURO_AFFILIATE") or None
+    if affiliate and not re.match(r"^0x[0-9a-fA-F]{40}$", affiliate):
+        raise CredentialsMissing(f"AZURO_AFFILIATE must be a 0x address (40 hex characters); got {_shape_of(affiliate)}")
+    return AzuroCredentials(
+        private_key=key if key.startswith("0x") else "0x" + key, chain=chain, affiliate=affiliate,
+        rpc_url=env.get("AZURO_RPC_URL") or None,
+    )
+
+
+def load_gemini(env: Mapping[str, str]) -> GeminiCredentials | None:
+    api_key = (env.get("GEMINI_API_KEY") or "").strip()
+    secret = (env.get("GEMINI_API_SECRET") or "").strip()
+    if not api_key:
+        if secret:
+            raise CredentialsMissing("GEMINI_API_SECRET is set but GEMINI_API_KEY is not")
+        return None
+    if not secret:
+        raise CredentialsMissing("GEMINI_API_KEY is set but GEMINI_API_SECRET is not; it is shown once when the key "
+                                 "is created (exchange.gemini.com/settings/api)")
+    if secret == api_key:
+        raise CredentialsMissing("GEMINI_API_SECRET is the same as GEMINI_API_KEY; the secret is the other half of the pair")
+    stage = (env.get("GEMINI_ENV") or "prod").strip().lower()
+    if stage not in ("prod", "sandbox"):
+        raise CredentialsMissing(f"GEMINI_ENV must be prod or sandbox, got {stage!r}")
+    account = (env.get("GEMINI_ACCOUNT") or "").strip() or None
+    return GeminiCredentials(api_key=api_key, api_secret=secret, account=account, env=stage)  # type: ignore[arg-type]
+
+
 LOADERS = {
     "kalshi": load_kalshi,
     "polymarket": load_polymarket,
@@ -697,6 +1099,12 @@ LOADERS = {
     "sx_bet": load_sx_bet,
     "betfair": load_betfair,
     "smarkets": load_smarkets,
+    "novig": load_novig,
+    "matchbook": load_matchbook,
+    "prophetx": load_prophetx,
+    "azuro": load_azuro,
+    "myriad": load_myriad,
+    "gemini": load_gemini,
 }
 
 

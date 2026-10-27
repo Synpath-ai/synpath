@@ -1,0 +1,6636 @@
+{
+ "conditions": [
+  {
+   "id": "600610060000000000028666020000000000001810552036",
+   "conditionId": "600610060000000000028666020000000000001810552036",
+   "state": "Resolved",
+   "title": "Map 2 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215575,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00207",
+   "outcomes": [
+    {
+     "title": "Under 11.5",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "11.5",
+     "sort": "0020006150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 11.5",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "11.5",
+     "sort": "0000006150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001812226478",
+   "conditionId": "600610060000000000028666020000000000001812226478",
+   "state": "Resolved",
+   "title": "Map 3 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189360,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00306",
+   "outcomes": [
+    {
+     "title": "Under 10.5",
+     "outcomeId": "1",
+     "odds": "3.25",
+     "point": "10.5",
+     "sort": "0020006050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 10.5",
+     "outcomeId": "2",
+     "odds": "1.22",
+     "point": "10.5",
+     "sort": "0000006050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778123",
+   "conditionId": "600610060000000000028666020000000000001624778123",
+   "state": "Resolved",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189358,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00106",
+   "outcomes": [
+    {
+     "title": "Under 10.5",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "10.5",
+     "sort": "0020006050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 10.5",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "10.5",
+     "sort": "0000006050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817747005",
+   "conditionId": "600610060000000000028666020000000000001817747005",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-11.5)",
+     "outcomeId": "1",
+     "odds": "4.6",
+     "point": "-11.5",
+     "sort": "0000003850",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+11.5)",
+     "outcomeId": "2",
+     "odds": "1.09",
+     "point": "+11.5",
+     "sort": "0020006150",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778075",
+   "conditionId": "600610060000000000028666020000000000001624778075",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-5.5)",
+     "outcomeId": "1",
+     "odds": "4.23",
+     "point": "-5.5",
+     "sort": "0000004450",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+5.5)",
+     "outcomeId": "2",
+     "odds": "1.12",
+     "point": "+5.5",
+     "sort": "0020005550",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817298551",
+   "conditionId": "600610060000000000028666020000000000001817298551",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-10.5)",
+     "outcomeId": "1",
+     "odds": "4.95",
+     "point": "-10.5",
+     "sort": "0000003950",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+10.5)",
+     "outcomeId": "2",
+     "odds": "1.11",
+     "point": "+10.5",
+     "sort": "0020006050",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778111",
+   "conditionId": "600610060000000000028666020000000000001624778111",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-7.5)",
+     "outcomeId": "1",
+     "odds": "7.74",
+     "point": "-7.5",
+     "sort": "0000004250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+7.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+7.5",
+     "sort": "0020005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778141",
+   "conditionId": "600610060000000000028666020000000000001624778141",
+   "state": "Resolved",
+   "title": "Map 2 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541522,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00202",
+   "outcomes": [
+    {
+     "title": "Under 17.5",
+     "outcomeId": "1",
+     "odds": "7.24",
+     "point": "17.5",
+     "sort": "0020006750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 17.5",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "17.5",
+     "sort": "0000006750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001810552030",
+   "conditionId": "600610060000000000028666020000000000001810552030",
+   "state": "Resolved",
+   "title": "Map 2 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215575,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00207",
+   "outcomes": [
+    {
+     "title": "Under 8.5",
+     "outcomeId": "1",
+     "odds": "2.41",
+     "point": "8.5",
+     "sort": "0020005850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 8.5",
+     "outcomeId": "2",
+     "odds": "1.4",
+     "point": "8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001853453622",
+   "conditionId": "600610060000000000028666020000000000001853453622",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 1471964954,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Under 5.5",
+     "outcomeId": "1",
+     "odds": "3.36",
+     "point": "5.5",
+     "sort": "0020005550",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 5.5",
+     "outcomeId": "2",
+     "odds": "1.24",
+     "point": "5.5",
+     "sort": "0000005550",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778135",
+   "conditionId": "600610060000000000028666020000000000001624778135",
+   "state": "Resolved",
+   "title": "Map 1 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541521,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00102",
+   "outcomes": [
+    {
+     "title": "Under 20.5",
+     "outcomeId": "1",
+     "odds": "4.23",
+     "point": "20.5",
+     "sort": "0020007050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 20.5",
+     "outcomeId": "2",
+     "odds": "1.12",
+     "point": "20.5",
+     "sort": "0000007050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001854777570",
+   "conditionId": "600610060000000000028666020000000000001854777570",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 1471964954,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Over 3.5",
+     "outcomeId": "1",
+     "odds": "1.16",
+     "point": "3.5",
+     "sort": "0000005350",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 3.5",
+     "outcomeId": "2",
+     "odds": "3.65",
+     "point": "3.5",
+     "sort": "0020005350",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778035",
+   "conditionId": "600610060000000000028666020000000000001624778035",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+9.5)",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "+9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-9.5)",
+     "outcomeId": "2",
+     "odds": "7.24",
+     "point": "-9.5",
+     "sort": "0020004050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778041",
+   "conditionId": "600610060000000000028666020000000000001624778041",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Metizport (+4.5)",
+     "outcomeId": "1",
+     "odds": "1.01",
+     "point": "+4.5",
+     "sort": "0020005450",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-4.5)",
+     "outcomeId": "2",
+     "odds": "6.77",
+     "point": "-4.5",
+     "sort": "0000004550",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001633261381",
+   "conditionId": "600610060000000000028666020000000000001633261381",
+   "state": "Resolved",
+   "title": "Map 2 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189359,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00206",
+   "outcomes": [
+    {
+     "title": "Under 8.5",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "8.5",
+     "sort": "0020005850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 8.5",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817080657",
+   "conditionId": "600610060000000000028666020000000000001817080657",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (-2.5)",
+     "outcomeId": "1",
+     "odds": "1.16",
+     "point": "-2.5",
+     "sort": "0020004750",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+2.5)",
+     "outcomeId": "2",
+     "odds": "3.65",
+     "point": "+2.5",
+     "sort": "0000005250",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001811389689",
+   "conditionId": "600610060000000000028666020000000000001811389689",
+   "state": "Resolved",
+   "title": "Map 2 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215575,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00207",
+   "outcomes": [
+    {
+     "title": "Over 7.5",
+     "outcomeId": "1",
+     "odds": "1.24",
+     "point": "7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 7.5",
+     "outcomeId": "2",
+     "odds": "3.07",
+     "point": "7.5",
+     "sort": "0020005750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817298549",
+   "conditionId": "600610060000000000028666020000000000001817298549",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (+8.5)",
+     "outcomeId": "1",
+     "odds": "1.08",
+     "point": "+8.5",
+     "sort": "0020005850",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-8.5)",
+     "outcomeId": "2",
+     "odds": "4.82",
+     "point": "-8.5",
+     "sort": "0000004150",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778051",
+   "conditionId": "600610060000000000028666020000000000001624778051",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-9.5)",
+     "outcomeId": "1",
+     "odds": "9.9",
+     "point": "-9.5",
+     "sort": "0000004050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+9.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+9.5",
+     "sort": "0020005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001812226438",
+   "conditionId": "600610060000000000028666020000000000001812226438",
+   "state": "Resolved",
+   "title": "Map 1 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215574,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00107",
+   "outcomes": [
+    {
+     "title": "Under 7.5",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "7.5",
+     "sort": "0020005750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 7.5",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778047",
+   "conditionId": "600610060000000000028666020000000000001624778047",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-7.5)",
+     "outcomeId": "1",
+     "odds": "9.9",
+     "point": "-7.5",
+     "sort": "0000004250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+7.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+7.5",
+     "sort": "0020005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778029",
+   "conditionId": "600610060000000000028666020000000000001624778029",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+6.5)",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "+6.5",
+     "sort": "0000005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-6.5)",
+     "outcomeId": "2",
+     "odds": "7.24",
+     "point": "-6.5",
+     "sort": "0020004350",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778165",
+   "conditionId": "600610060000000000028666020000000000001624778165",
+   "state": "Resolved",
+   "title": "Map 1 - Total Rounds Odd/Even",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119755,
+   "marketVarietyId": 1580174544,
+   "category": "odd_even",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00124",
+   "outcomes": [
+    {
+     "title": "Odd",
+     "outcomeId": "1",
+     "odds": "2.07",
+     "point": null,
+     "sort": "0000000000",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Even",
+     "outcomeId": "2",
+     "odds": "1.63",
+     "point": null,
+     "sort": "0010000000",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778031",
+   "conditionId": "600610060000000000028666020000000000001624778031",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Metizport (-7.5)",
+     "outcomeId": "1",
+     "odds": "7.74",
+     "point": "-7.5",
+     "sort": "0020004250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+7.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778071",
+   "conditionId": "600610060000000000028666020000000000001624778071",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-3.5)",
+     "outcomeId": "1",
+     "odds": "6.07",
+     "point": "-3.5",
+     "sort": "0000004650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+3.5)",
+     "outcomeId": "2",
+     "odds": "1.03",
+     "point": "+3.5",
+     "sort": "0020005350",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817369630",
+   "conditionId": "600610060000000000028666020000000000001817369630",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+5.5)",
+     "outcomeId": "1",
+     "odds": "1.26",
+     "point": "+5.5",
+     "sort": "0000005550",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-5.5)",
+     "outcomeId": "2",
+     "odds": "2.97",
+     "point": "-5.5",
+     "sort": "0020004450",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778099",
+   "conditionId": "600610060000000000028666020000000000001624778099",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 126736,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Metizport (-9.5)",
+     "outcomeId": "1",
+     "odds": "9.9",
+     "point": "-9.5",
+     "sort": "0020004050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+9.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778113",
+   "conditionId": "600610060000000000028666020000000000001624778113",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Metizport (+8.5)",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "+8.5",
+     "sort": "0020005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-8.5)",
+     "outcomeId": "2",
+     "odds": "7.74",
+     "point": "-8.5",
+     "sort": "0000004150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001819782775",
+   "conditionId": "600610060000000000028666020000000000001819782775",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (+7.5)",
+     "outcomeId": "1",
+     "odds": "1.09",
+     "point": "+7.5",
+     "sort": "0020005750",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-7.5)",
+     "outcomeId": "2",
+     "odds": "4.6",
+     "point": "-7.5",
+     "sort": "0000004250",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778065",
+   "conditionId": "600610060000000000028666020000000000001624778065",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Metizport (-8.5)",
+     "outcomeId": "1",
+     "odds": "8.91",
+     "point": "-8.5",
+     "sort": "0020004150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+8.5)",
+     "outcomeId": "2",
+     "odds": "1.01",
+     "point": "+8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778025",
+   "conditionId": "600610060000000000028666020000000000001624778025",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+4.5)",
+     "outcomeId": "1",
+     "odds": "1.24",
+     "point": "+4.5",
+     "sort": "0000005450",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-4.5)",
+     "outcomeId": "2",
+     "odds": "3.07",
+     "point": "-4.5",
+     "sort": "0020004550",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001811389707",
+   "conditionId": "600610060000000000028666020000000000001811389707",
+   "state": "Resolved",
+   "title": "Map 3 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189360,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00306",
+   "outcomes": [
+    {
+     "title": "Under 7.5",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "7.5",
+     "sort": "0020005750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 7.5",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778083",
+   "conditionId": "600610060000000000028666020000000000001624778083",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Metizport (+9.5)",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "+9.5",
+     "sort": "0020005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-9.5)",
+     "outcomeId": "2",
+     "odds": "8.59",
+     "point": "-9.5",
+     "sort": "0000004050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778127",
+   "conditionId": "600610060000000000028666020000000000001624778127",
+   "state": "Resolved",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189358,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00106",
+   "outcomes": [
+    {
+     "title": "Under 12.5",
+     "outcomeId": "1",
+     "odds": "3.06",
+     "point": "12.5",
+     "sort": "0020006250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 12.5",
+     "outcomeId": "2",
+     "odds": "1.3",
+     "point": "12.5",
+     "sort": "0000006250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778091",
+   "conditionId": "600610060000000000028666020000000000001624778091",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Metizport (-5.5)",
+     "outcomeId": "1",
+     "odds": "7.24",
+     "point": "-5.5",
+     "sort": "0020004450",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+5.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+5.5",
+     "sort": "0000005550",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817080659",
+   "conditionId": "600610060000000000028666020000000000001817080659",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (-4.5)",
+     "outcomeId": "1",
+     "odds": "2.01",
+     "point": "-4.5",
+     "sort": "0020004550",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+4.5)",
+     "outcomeId": "2",
+     "odds": "1.59",
+     "point": "+4.5",
+     "sort": "0000005450",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894711",
+   "conditionId": "600610060000000000028666020000000000001630894711",
+   "state": "Resolved",
+   "title": "Map 2 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189359,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00206",
+   "outcomes": [
+    {
+     "title": "Under 10.5",
+     "outcomeId": "1",
+     "odds": "2.31",
+     "point": "10.5",
+     "sort": "0020006050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 10.5",
+     "outcomeId": "2",
+     "odds": "1.44",
+     "point": "10.5",
+     "sort": "0000006050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778149",
+   "conditionId": "600610060000000000028666020000000000001624778149",
+   "state": "Resolved",
+   "title": "Map 2 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541522,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00202",
+   "outcomes": [
+    {
+     "title": "Under 21.5",
+     "outcomeId": "1",
+     "odds": "6.07",
+     "point": "21.5",
+     "sort": "0020007150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 21.5",
+     "outcomeId": "2",
+     "odds": "1.03",
+     "point": "21.5",
+     "sort": "0000007150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778033",
+   "conditionId": "600610060000000000028666020000000000001624778033",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Metizport (-8.5)",
+     "outcomeId": "1",
+     "odds": "7.24",
+     "point": "-8.5",
+     "sort": "0020004150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+8.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778009",
+   "conditionId": "600610060000000000028666020000000000001624778009",
+   "state": "Resolved",
+   "title": "Match Winner",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119976,
+   "marketVarietyId": null,
+   "category": "winner",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "100",
+   "outcomes": [
+    {
+     "title": "Metizport",
+     "outcomeId": "1",
+     "odds": "5.58",
+     "point": null,
+     "sort": "0020000000",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports",
+     "outcomeId": "2",
+     "odds": "1.05",
+     "point": null,
+     "sort": "0000000000",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778167",
+   "conditionId": "600610060000000000028666020000000000001624778167",
+   "state": "Resolved",
+   "title": "Map 2 - Total Rounds Odd/Even",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119755,
+   "marketVarietyId": 1580174545,
+   "category": "odd_even",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00224",
+   "outcomes": [
+    {
+     "title": "Odd",
+     "outcomeId": "1",
+     "odds": "2.07",
+     "point": null,
+     "sort": "0000000000",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Even",
+     "outcomeId": "2",
+     "odds": "1.63",
+     "point": null,
+     "sort": "0010000000",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001811389711",
+   "conditionId": "600610060000000000028666020000000000001811389711",
+   "state": "Resolved",
+   "title": "Map 3 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189360,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00306",
+   "outcomes": [
+    {
+     "title": "Under 11.5",
+     "outcomeId": "2",
+     "odds": "4.23",
+     "point": "11.5",
+     "sort": "0020006150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 11.5",
+     "outcomeId": "1",
+     "odds": "1.12",
+     "point": "11.5",
+     "sort": "0000006150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778059",
+   "conditionId": "600610060000000000028666020000000000001624778059",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+5.5)",
+     "outcomeId": "2",
+     "odds": "1.04",
+     "point": "+5.5",
+     "sort": "0000005550",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-5.5)",
+     "outcomeId": "1",
+     "odds": "6.93",
+     "point": "-5.5",
+     "sort": "0020004450",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778079",
+   "conditionId": "600610060000000000028666020000000000001624778079",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-7.5)",
+     "outcomeId": "2",
+     "odds": "8.91",
+     "point": "-7.5",
+     "sort": "0000004250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+7.5)",
+     "outcomeId": "1",
+     "odds": "1.01",
+     "point": "+7.5",
+     "sort": "0020005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817080669",
+   "conditionId": "600610060000000000028666020000000000001817080669",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (+6.5)",
+     "outcomeId": "1",
+     "odds": "1.09",
+     "point": "+6.5",
+     "sort": "0020005650",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-6.5)",
+     "outcomeId": "2",
+     "odds": "4.6",
+     "point": "-6.5",
+     "sort": "0000004350",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001817489831",
+   "conditionId": "600610060000000000028666020000000000001817489831",
+   "state": "Resolved",
+   "title": "Map 1 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 1471964952,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00107",
+   "outcomes": [
+    {
+     "title": "Over 6.5",
+     "outcomeId": "1",
+     "odds": "1.2",
+     "point": "6.5",
+     "sort": "0000005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 6.5",
+     "outcomeId": "2",
+     "odds": "3.38",
+     "point": "6.5",
+     "sort": "0020005650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778049",
+   "conditionId": "600610060000000000028666020000000000001624778049",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-8.5)",
+     "outcomeId": "1",
+     "odds": "6.07",
+     "point": "-8.5",
+     "sort": "0000004150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+8.5)",
+     "outcomeId": "2",
+     "odds": "1.03",
+     "point": "+8.5",
+     "sort": "0020005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001854206180",
+   "conditionId": "600610060000000000028666020000000000001854206180",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 1471964954,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Over 4.5",
+     "outcomeId": "1",
+     "odds": "1.26",
+     "point": "4.5",
+     "sort": "0000005450",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 4.5",
+     "outcomeId": "2",
+     "odds": "2.97",
+     "point": "4.5",
+     "sort": "0020005450",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001853103912",
+   "conditionId": "600610060000000000028666020000000000001853103912",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 1471964954,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Under 6.5",
+     "outcomeId": "1",
+     "odds": "3.26",
+     "point": "6.5",
+     "sort": "0020005650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 6.5",
+     "outcomeId": "2",
+     "odds": "1.26",
+     "point": "6.5",
+     "sort": "0000005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001811057591",
+   "conditionId": "600610060000000000028666020000000000001811057591",
+   "state": "Resolved",
+   "title": "Map 1 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215574,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00107",
+   "outcomes": [
+    {
+     "title": "Over 10.5",
+     "outcomeId": "1",
+     "odds": "1.24",
+     "point": "10.5",
+     "sort": "0000006050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 10.5",
+     "outcomeId": "2",
+     "odds": "3.07",
+     "point": "10.5",
+     "sort": "0020006050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778115",
+   "conditionId": "600610060000000000028666020000000000001624778115",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Metizport (+9.5)",
+     "outcomeId": "1",
+     "odds": "1.06",
+     "point": "+9.5",
+     "sort": "0020005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-9.5)",
+     "outcomeId": "2",
+     "odds": "5.09",
+     "point": "-9.5",
+     "sort": "0000004050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778085",
+   "conditionId": "600610060000000000028666020000000000001624778085",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Metizport (-2.5)",
+     "outcomeId": "1",
+     "odds": "6.77",
+     "point": "-2.5",
+     "sort": "0020004750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+2.5)",
+     "outcomeId": "2",
+     "odds": "1.01",
+     "point": "+2.5",
+     "sort": "0000005250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001633261363",
+   "conditionId": "600610060000000000028666020000000000001633261363",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215576,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Under 10.5",
+     "outcomeId": "1",
+     "odds": "1.44",
+     "point": "10.5",
+     "sort": "0020006050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 10.5",
+     "outcomeId": "2",
+     "odds": "2.31",
+     "point": "10.5",
+     "sort": "0000006050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001811057593",
+   "conditionId": "600610060000000000028666020000000000001811057593",
+   "state": "Stopped",
+   "title": "Map 1 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215574,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00107",
+   "outcomes": [
+    {
+     "title": "Over 11.5",
+     "outcomeId": "1",
+     "odds": "1.78",
+     "point": "11.5",
+     "sort": "0000006150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 11.5",
+     "outcomeId": "2",
+     "odds": "1.78",
+     "point": "11.5",
+     "sort": "0020006150",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817080667",
+   "conditionId": "600610060000000000028666020000000000001817080667",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-4.5)",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "-4.5",
+     "sort": "0000004550",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+4.5)",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "+4.5",
+     "sort": "0020005450",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778133",
+   "conditionId": "600610060000000000028666020000000000001624778133",
+   "state": "Resolved",
+   "title": "Map 1 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541521,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00102",
+   "outcomes": [
+    {
+     "title": "Over 19.5",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "19.5",
+     "sort": "0000006950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 19.5",
+     "outcomeId": "2",
+     "odds": "7.24",
+     "point": "19.5",
+     "sort": "0020006950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778139",
+   "conditionId": "600610060000000000028666020000000000001624778139",
+   "state": "Resolved",
+   "title": "Map 1 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541521,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00102",
+   "outcomes": [
+    {
+     "title": "Over 22.5",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "22.5",
+     "sort": "0000007250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 22.5",
+     "outcomeId": "2",
+     "odds": "7.74",
+     "point": "22.5",
+     "sort": "0020007250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778037",
+   "conditionId": "600610060000000000028666020000000000001624778037",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Metizport (+2.5)",
+     "outcomeId": "2",
+     "odds": "1.36",
+     "point": "+2.5",
+     "sort": "0020005250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-2.5)",
+     "outcomeId": "1",
+     "odds": "2.77",
+     "point": "-2.5",
+     "sort": "0000004750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817080665",
+   "conditionId": "600610060000000000028666020000000000001817080665",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (+2.5)",
+     "outcomeId": "1",
+     "odds": "1.23",
+     "point": "+2.5",
+     "sort": "0020005250",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-2.5)",
+     "outcomeId": "2",
+     "odds": "3.14",
+     "point": "-2.5",
+     "sort": "0000004750",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778129",
+   "conditionId": "600610060000000000028666020000000000001624778129",
+   "state": "Resolved",
+   "title": "Map 1 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541521,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00102",
+   "outcomes": [
+    {
+     "title": "Under 17.5",
+     "outcomeId": "1",
+     "odds": "7.24",
+     "point": "17.5",
+     "sort": "0020006750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 17.5",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "17.5",
+     "sort": "0000006750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778137",
+   "conditionId": "600610060000000000028666020000000000001624778137",
+   "state": "Resolved",
+   "title": "Map 1 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541521,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00102",
+   "outcomes": [
+    {
+     "title": "Under 21.5",
+     "outcomeId": "1",
+     "odds": "3.07",
+     "point": "21.5",
+     "sort": "0020007150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 21.5",
+     "outcomeId": "2",
+     "odds": "1.24",
+     "point": "21.5",
+     "sort": "0000007150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817213451",
+   "conditionId": "600610060000000000028666020000000000001817213451",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+3.5)",
+     "outcomeId": "1",
+     "odds": "2.2",
+     "point": "+3.5",
+     "sort": "0000005350",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-3.5)",
+     "outcomeId": "2",
+     "odds": "1.48",
+     "point": "-3.5",
+     "sort": "0020004650",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001811057589",
+   "conditionId": "600610060000000000028666020000000000001811057589",
+   "state": "Resolved",
+   "title": "Map 1 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215574,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00107",
+   "outcomes": [
+    {
+     "title": "Over 9.5",
+     "outcomeId": "1",
+     "odds": "1.16",
+     "point": "9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 9.5",
+     "outcomeId": "2",
+     "odds": "3.65",
+     "point": "9.5",
+     "sort": "0020005950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778021",
+   "conditionId": "600610060000000000028666020000000000001624778021",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Metizport (-2.5)",
+     "outcomeId": "1",
+     "odds": "4.95",
+     "point": "-2.5",
+     "sort": "0020004750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+2.5)",
+     "outcomeId": "2",
+     "odds": "1.11",
+     "point": "+2.5",
+     "sort": "0000005250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778119",
+   "conditionId": "600610060000000000028666020000000000001624778119",
+   "state": "Resolved",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189358,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00106",
+   "outcomes": [
+    {
+     "title": "Under 8.5",
+     "outcomeId": "1",
+     "odds": "3.07",
+     "point": "8.5",
+     "sort": "0020005850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 8.5",
+     "outcomeId": "2",
+     "odds": "1.24",
+     "point": "8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894693",
+   "conditionId": "600610060000000000028666020000000000001630894693",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215576,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Over 7.5",
+     "outcomeId": "1",
+     "odds": "1.71",
+     "point": "7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 7.5",
+     "outcomeId": "2",
+     "odds": "1.85",
+     "point": "7.5",
+     "sort": "0020005750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778073",
+   "conditionId": "600610060000000000028666020000000000001624778073",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Metizport (+4.5)",
+     "outcomeId": "1",
+     "odds": "1.03",
+     "point": "+4.5",
+     "sort": "0020005450",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-4.5)",
+     "outcomeId": "2",
+     "odds": "6.07",
+     "point": "-4.5",
+     "sort": "0000004550",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778155",
+   "conditionId": "600610060000000000028666020000000000001624778155",
+   "state": "Resolved",
+   "title": "Map 3 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541523,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00302",
+   "outcomes": [
+    {
+     "title": "Under 18.5",
+     "outcomeId": "1",
+     "odds": "7.74",
+     "point": "18.5",
+     "sort": "0020006850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 18.5",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "18.5",
+     "sort": "0000006850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778027",
+   "conditionId": "600610060000000000028666020000000000001624778027",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+5.5)",
+     "outcomeId": "1",
+     "odds": "1.12",
+     "point": "+5.5",
+     "sort": "0000005550",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-5.5)",
+     "outcomeId": "2",
+     "odds": "4.23",
+     "point": "-5.5",
+     "sort": "0020004450",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778121",
+   "conditionId": "600610060000000000028666020000000000001624778121",
+   "state": "Resolved",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189358,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00106",
+   "outcomes": [
+    {
+     "title": "Over 9.5",
+     "outcomeId": "1",
+     "odds": "1.15",
+     "point": "9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 9.5",
+     "outcomeId": "2",
+     "odds": "3.85",
+     "point": "9.5",
+     "sort": "0020005950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001810552062",
+   "conditionId": "600610060000000000028666020000000000001810552062",
+   "state": "Resolved",
+   "title": "Map 2 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189359,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00206",
+   "outcomes": [
+    {
+     "title": "Over 7.5",
+     "outcomeId": "1",
+     "odds": "1.16",
+     "point": "7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 7.5",
+     "outcomeId": "2",
+     "odds": "3.65",
+     "point": "7.5",
+     "sort": "0020005750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894709",
+   "conditionId": "600610060000000000028666020000000000001630894709",
+   "state": "Resolved",
+   "title": "Map 2 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189359,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00206",
+   "outcomes": [
+    {
+     "title": "Under 9.5",
+     "outcomeId": "1",
+     "odds": "2.31",
+     "point": "9.5",
+     "sort": "0020005950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 9.5",
+     "outcomeId": "2",
+     "odds": "1.44",
+     "point": "9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778063",
+   "conditionId": "600610060000000000028666020000000000001624778063",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+7.5)",
+     "outcomeId": "1",
+     "odds": "1.01",
+     "point": "+7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-7.5)",
+     "outcomeId": "2",
+     "odds": "8.91",
+     "point": "-7.5",
+     "sort": "0020004250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817080661",
+   "conditionId": "600610060000000000028666020000000000001817080661",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+6.5)",
+     "outcomeId": "1",
+     "odds": "1.09",
+     "point": "+6.5",
+     "sort": "0000005650",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-6.5)",
+     "outcomeId": "2",
+     "odds": "4.6",
+     "point": "-6.5",
+     "sort": "0020004350",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001854270433",
+   "conditionId": "600610060000000000028666020000000000001854270433",
+   "state": "Resolved",
+   "title": "Map 3 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 1243496220,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00302",
+   "outcomes": [
+    {
+     "title": "Over 16.5",
+     "outcomeId": "1",
+     "odds": "1.15",
+     "point": "16.5",
+     "sort": "0000006650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 16.5",
+     "outcomeId": "2",
+     "odds": "3.85",
+     "point": "16.5",
+     "sort": "0020006650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778015",
+   "conditionId": "600610060000000000028666020000000000001624778015",
+   "state": "Resolved",
+   "title": "Map 1 - Winner",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119618,
+   "marketVarietyId": 2029550238,
+   "category": "winner",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00101",
+   "outcomes": [
+    {
+     "title": "Metizport",
+     "outcomeId": "1",
+     "odds": "1.41",
+     "point": null,
+     "sort": "0020000000",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports",
+     "outcomeId": "2",
+     "odds": "2.39",
+     "point": null,
+     "sort": "0000000000",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778011",
+   "conditionId": "600610060000000000028666020000000000001624778011",
+   "state": "Resolved",
+   "title": "Maps Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119611,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "300",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+1.5)",
+     "outcomeId": "1",
+     "odds": "1.06",
+     "point": "+1.5",
+     "sort": "0000005150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-1.5)",
+     "outcomeId": "2",
+     "odds": "5.37",
+     "point": "-1.5",
+     "sort": "0020004850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778131",
+   "conditionId": "600610060000000000028666020000000000001624778131",
+   "state": "Resolved",
+   "title": "Map 1 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541521,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00102",
+   "outcomes": [
+    {
+     "title": "Over 18.5",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "18.5",
+     "sort": "0000006850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 18.5",
+     "outcomeId": "2",
+     "odds": "7.74",
+     "point": "18.5",
+     "sort": "0020006850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817213455",
+   "conditionId": "600610060000000000028666020000000000001817213455",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (-9.5)",
+     "outcomeId": "1",
+     "odds": "5.24",
+     "point": "-9.5",
+     "sort": "0020004050",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+9.5)",
+     "outcomeId": "2",
+     "odds": "1.1",
+     "point": "+9.5",
+     "sort": "0000005950",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001811057587",
+   "conditionId": "600610060000000000028666020000000000001811057587",
+   "state": "Resolved",
+   "title": "Map 1 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215574,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00107",
+   "outcomes": [
+    {
+     "title": "Over 8.5",
+     "outcomeId": "1",
+     "odds": "1.12",
+     "point": "8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 8.5",
+     "outcomeId": "2",
+     "odds": "4.23",
+     "point": "8.5",
+     "sort": "0020005850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817080671",
+   "conditionId": "600610060000000000028666020000000000001817080671",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (+9.5)",
+     "outcomeId": "1",
+     "odds": "1.13",
+     "point": "+9.5",
+     "sort": "0020005950",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-9.5)",
+     "outcomeId": "2",
+     "odds": "4.75",
+     "point": "-9.5",
+     "sort": "0000004050",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001817213453",
+   "conditionId": "600610060000000000028666020000000000001817213453",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+7.5)",
+     "outcomeId": "1",
+     "odds": "1.09",
+     "point": "+7.5",
+     "sort": "0000005750",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-7.5)",
+     "outcomeId": "2",
+     "odds": "4.6",
+     "point": "-7.5",
+     "sort": "0020004250",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778017",
+   "conditionId": "600610060000000000028666020000000000001624778017",
+   "state": "Resolved",
+   "title": "Map 2 - Winner",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119618,
+   "marketVarietyId": 2029550239,
+   "category": "winner",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00201",
+   "outcomes": [
+    {
+     "title": "Sangal Esports",
+     "outcomeId": "1",
+     "odds": "1.06",
+     "point": null,
+     "sort": "0000000000",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport",
+     "outcomeId": "2",
+     "odds": "5.37",
+     "point": null,
+     "sort": "0020000000",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778169",
+   "conditionId": "600610060000000000028666020000000000001624778169",
+   "state": "Resolved",
+   "title": "Map 3 - Total Rounds Odd/Even",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119755,
+   "marketVarietyId": 1580174546,
+   "category": "odd_even",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00324",
+   "outcomes": [
+    {
+     "title": "Even",
+     "outcomeId": "1",
+     "odds": "1.73",
+     "point": null,
+     "sort": "0010000000",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Odd",
+     "outcomeId": "2",
+     "odds": "1.93",
+     "point": null,
+     "sort": "0000000000",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778117",
+   "conditionId": "600610060000000000028666020000000000001624778117",
+   "state": "Resolved",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189358,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00106",
+   "outcomes": [
+    {
+     "title": "Under 7.5",
+     "outcomeId": "1",
+     "odds": "2.8",
+     "point": "7.5",
+     "sort": "0020005750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 7.5",
+     "outcomeId": "2",
+     "odds": "1.3",
+     "point": "7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778125",
+   "conditionId": "600610060000000000028666020000000000001624778125",
+   "state": "Resolved",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189358,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00106",
+   "outcomes": [
+    {
+     "title": "Under 11.5",
+     "outcomeId": "2",
+     "odds": "3.26",
+     "point": "11.5",
+     "sort": "0020006150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 11.5",
+     "outcomeId": "1",
+     "odds": "1.26",
+     "point": "11.5",
+     "sort": "0000006150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778081",
+   "conditionId": "600610060000000000028666020000000000001624778081",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Metizport (+8.5)",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "+8.5",
+     "sort": "0020005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-8.5)",
+     "outcomeId": "2",
+     "odds": "9.9",
+     "point": "-8.5",
+     "sort": "0000004150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001810552038",
+   "conditionId": "600610060000000000028666020000000000001810552038",
+   "state": "Resolved",
+   "title": "Map 2 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215575,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00207",
+   "outcomes": [
+    {
+     "title": "Over 12.5",
+     "outcomeId": "1",
+     "odds": "1.16",
+     "point": "12.5",
+     "sort": "0000006250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 12.5",
+     "outcomeId": "2",
+     "odds": "3.65",
+     "point": "12.5",
+     "sort": "0020006250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778089",
+   "conditionId": "600610060000000000028666020000000000001624778089",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Metizport (-4.5)",
+     "outcomeId": "1",
+     "odds": "9.9",
+     "point": "-4.5",
+     "sort": "0020004550",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+4.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+4.5",
+     "sort": "0000005450",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778171",
+   "conditionId": "600610060000000000028666020000000000001624778171",
+   "state": "Resolved",
+   "title": "Total Maps Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119975,
+   "marketVarietyId": null,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "200",
+   "outcomes": [
+    {
+     "title": "Over 2.5",
+     "outcomeId": "1",
+     "odds": "1.06",
+     "point": "2.5",
+     "sort": "0000005250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 2.5",
+     "outcomeId": "2",
+     "odds": "5.37",
+     "point": "2.5",
+     "sort": "0020005250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778039",
+   "conditionId": "600610060000000000028666020000000000001624778039",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-3.5)",
+     "outcomeId": "1",
+     "odds": "3.18",
+     "point": "-3.5",
+     "sort": "0000004650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+3.5)",
+     "outcomeId": "2",
+     "odds": "1.23",
+     "point": "+3.5",
+     "sort": "0020005350",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778043",
+   "conditionId": "600610060000000000028666020000000000001624778043",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-5.5)",
+     "outcomeId": "1",
+     "odds": "7.74",
+     "point": "-5.5",
+     "sort": "0000004450",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+5.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+5.5",
+     "sort": "0020005550",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894695",
+   "conditionId": "600610060000000000028666020000000000001630894695",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215576,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Under 8.5",
+     "outcomeId": "1",
+     "odds": "2.39",
+     "point": "8.5",
+     "sort": "0020005850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 8.5",
+     "outcomeId": "2",
+     "odds": "1.41",
+     "point": "8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894713",
+   "conditionId": "600610060000000000028666020000000000001630894713",
+   "state": "Resolved",
+   "title": "Map 2 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189359,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00206",
+   "outcomes": [
+    {
+     "title": "Over 11.5",
+     "outcomeId": "1",
+     "odds": "2.12",
+     "point": "11.5",
+     "sort": "0000006150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 11.5",
+     "outcomeId": "2",
+     "odds": "1.52",
+     "point": "11.5",
+     "sort": "0020006150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894697",
+   "conditionId": "600610060000000000028666020000000000001630894697",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215576,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Over 9.5",
+     "outcomeId": "1",
+     "odds": "1.72",
+     "point": "9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 9.5",
+     "outcomeId": "2",
+     "odds": "1.84",
+     "point": "9.5",
+     "sort": "0020005950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778101",
+   "conditionId": "600610060000000000028666020000000000001624778101",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-2.5)",
+     "outcomeId": "1",
+     "odds": "2.87",
+     "point": "-2.5",
+     "sort": "0000004750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+2.5)",
+     "outcomeId": "2",
+     "odds": "1.33",
+     "point": "+2.5",
+     "sort": "0020005250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001835644504",
+   "conditionId": "600610060000000000028666020000000000001835644504",
+   "state": "Resolved",
+   "title": "Map 2 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 1091385743,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00206",
+   "outcomes": [
+    {
+     "title": "Under 6.5",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "6.5",
+     "sort": "0020005650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 6.5",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "6.5",
+     "sort": "0000005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778087",
+   "conditionId": "600610060000000000028666020000000000001624778087",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Metizport (-3.5)",
+     "outcomeId": "1",
+     "odds": "5.58",
+     "point": "-3.5",
+     "sort": "0020004650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+3.5)",
+     "outcomeId": "2",
+     "odds": "1.05",
+     "point": "+3.5",
+     "sort": "0000005350",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778055",
+   "conditionId": "600610060000000000028666020000000000001624778055",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Metizport (-3.5)",
+     "outcomeId": "1",
+     "odds": "3.06",
+     "point": "-3.5",
+     "sort": "0020004650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+3.5)",
+     "outcomeId": "2",
+     "odds": "1.3",
+     "point": "+3.5",
+     "sort": "0000005350",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778045",
+   "conditionId": "600610060000000000028666020000000000001624778045",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Metizport (+6.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+6.5",
+     "sort": "0020005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-6.5)",
+     "outcomeId": "1",
+     "odds": "9.9",
+     "point": "-6.5",
+     "sort": "0000004350",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001819782761",
+   "conditionId": "600610060000000000028666020000000000001819782761",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (-10.5)",
+     "outcomeId": "1",
+     "odds": "4.6",
+     "point": "-10.5",
+     "sort": "0020003950",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+10.5)",
+     "outcomeId": "2",
+     "odds": "1.09",
+     "point": "+10.5",
+     "sort": "0000006050",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778151",
+   "conditionId": "600610060000000000028666020000000000001624778151",
+   "state": "Resolved",
+   "title": "Map 2 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541522,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00202",
+   "outcomes": [
+    {
+     "title": "Over 22.5",
+     "outcomeId": "1",
+     "odds": "2.69",
+     "point": "22.5",
+     "sort": "0000007250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 22.5",
+     "outcomeId": "2",
+     "odds": "1.32",
+     "point": "22.5",
+     "sort": "0020007250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778145",
+   "conditionId": "600610060000000000028666020000000000001624778145",
+   "state": "Resolved",
+   "title": "Map 2 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541522,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00202",
+   "outcomes": [
+    {
+     "title": "Over 19.5",
+     "outcomeId": "1",
+     "odds": "1.03",
+     "point": "19.5",
+     "sort": "0000006950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 19.5",
+     "outcomeId": "2",
+     "odds": "6.07",
+     "point": "19.5",
+     "sort": "0020006950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778097",
+   "conditionId": "600610060000000000028666020000000000001624778097",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+8.5)",
+     "outcomeId": "1",
+     "odds": "1.03",
+     "point": "+8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-8.5)",
+     "outcomeId": "2",
+     "odds": "9.9",
+     "point": "-8.5",
+     "sort": "0020004150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894715",
+   "conditionId": "600610060000000000028666020000000000001630894715",
+   "state": "Resolved",
+   "title": "Map 2 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189359,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00206",
+   "outcomes": [
+    {
+     "title": "Under 12.5",
+     "outcomeId": "1",
+     "odds": "1.44",
+     "point": "12.5",
+     "sort": "0020006250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 12.5",
+     "outcomeId": "2",
+     "odds": "2.31",
+     "point": "12.5",
+     "sort": "0000006250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778013",
+   "conditionId": "600610060000000000028666020000000000001624778013",
+   "state": "Resolved",
+   "title": "Maps Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119611,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "300",
+   "outcomes": [
+    {
+     "title": "Metizport (+1.5)",
+     "outcomeId": "1",
+     "odds": "1.11",
+     "point": "+1.5",
+     "sort": "0020005150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-1.5)",
+     "outcomeId": "2",
+     "odds": "4.29",
+     "point": "-1.5",
+     "sort": "0000004850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778095",
+   "conditionId": "600610060000000000028666020000000000001624778095",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+7.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+7.5",
+     "sort": "0000005750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-7.5)",
+     "outcomeId": "1",
+     "odds": "9.9",
+     "point": "-7.5",
+     "sort": "0020004250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778019",
+   "conditionId": "600610060000000000028666020000000000001624778019",
+   "state": "Resolved",
+   "title": "Map 3 - Winner",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119618,
+   "marketVarietyId": 2029550240,
+   "category": "winner",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00301",
+   "outcomes": [
+    {
+     "title": "Sangal Esports",
+     "outcomeId": "1",
+     "odds": "1.05",
+     "point": null,
+     "sort": "0000000000",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport",
+     "outcomeId": "2",
+     "odds": "5.58",
+     "point": null,
+     "sort": "0020000000",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778061",
+   "conditionId": "600610060000000000028666020000000000001624778061",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Metizport (-6.5)",
+     "outcomeId": "2",
+     "odds": "9.9",
+     "point": "-6.5",
+     "sort": "0020004350",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+6.5)",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "+6.5",
+     "sort": "0000005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001817080663",
+   "conditionId": "600610060000000000028666020000000000001817080663",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+8.5)",
+     "outcomeId": "1",
+     "odds": "1.12",
+     "point": "+8.5",
+     "sort": "0000005850",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-8.5)",
+     "outcomeId": "2",
+     "odds": "4.23",
+     "point": "-8.5",
+     "sort": "0020004150",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778143",
+   "conditionId": "600610060000000000028666020000000000001624778143",
+   "state": "Resolved",
+   "title": "Map 2 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541522,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00202",
+   "outcomes": [
+    {
+     "title": "Over 18.5",
+     "outcomeId": "1",
+     "odds": "1.02",
+     "point": "18.5",
+     "sort": "0000006850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 18.5",
+     "outcomeId": "2",
+     "odds": "7.92",
+     "point": "18.5",
+     "sort": "0020006850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778161",
+   "conditionId": "600610060000000000028666020000000000001624778161",
+   "state": "Resolved",
+   "title": "Map 3 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541523,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00302",
+   "outcomes": [
+    {
+     "title": "Under 21.5",
+     "outcomeId": "1",
+     "odds": "2.39",
+     "point": "21.5",
+     "sort": "0020007150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 21.5",
+     "outcomeId": "2",
+     "odds": "1.41",
+     "point": "21.5",
+     "sort": "0000007150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001812226476",
+   "conditionId": "600610060000000000028666020000000000001812226476",
+   "state": "Resolved",
+   "title": "Map 3 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189360,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00306",
+   "outcomes": [
+    {
+     "title": "Under 9.5",
+     "outcomeId": "1",
+     "odds": "3.85",
+     "point": "9.5",
+     "sort": "0020005950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 9.5",
+     "outcomeId": "2",
+     "odds": "1.15",
+     "point": "9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001811057595",
+   "conditionId": "600610060000000000028666020000000000001811057595",
+   "state": "Resolved",
+   "title": "Map 1 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215574,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00107",
+   "outcomes": [
+    {
+     "title": "Under 12.5",
+     "outcomeId": "1",
+     "odds": "1.69",
+     "point": "12.5",
+     "sort": "0020006250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 12.5",
+     "outcomeId": "2",
+     "odds": "1.87",
+     "point": "12.5",
+     "sort": "0000006250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778023",
+   "conditionId": "600610060000000000028666020000000000001624778023",
+   "state": "Resolved",
+   "title": "Map 1 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055026,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00103",
+   "outcomes": [
+    {
+     "title": "Metizport (-3.5)",
+     "outcomeId": "1",
+     "odds": "7.24",
+     "point": "-3.5",
+     "sort": "0020004650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+3.5)",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "+3.5",
+     "sort": "0000005350",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778077",
+   "conditionId": "600610060000000000028666020000000000001624778077",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-6.5)",
+     "outcomeId": "1",
+     "odds": "6.07",
+     "point": "-6.5",
+     "sort": "0000004350",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+6.5)",
+     "outcomeId": "2",
+     "odds": "1.03",
+     "point": "+6.5",
+     "sort": "0020005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778057",
+   "conditionId": "600610060000000000028666020000000000001624778057",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+4.5)",
+     "outcomeId": "2",
+     "odds": "1.08",
+     "point": "+4.5",
+     "sort": "0000005450",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-4.5)",
+     "outcomeId": "1",
+     "odds": "4.82",
+     "point": "-4.5",
+     "sort": "0020004550",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778147",
+   "conditionId": "600610060000000000028666020000000000001624778147",
+   "state": "Resolved",
+   "title": "Map 2 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541522,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00202",
+   "outcomes": [
+    {
+     "title": "Over 20.5",
+     "outcomeId": "1",
+     "odds": "1.12",
+     "point": "20.5",
+     "sort": "0000007050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 20.5",
+     "outcomeId": "2",
+     "odds": "4.23",
+     "point": "20.5",
+     "sort": "0020007050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778053",
+   "conditionId": "600610060000000000028666020000000000001624778053",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Metizport (-2.5)",
+     "outcomeId": "2",
+     "odds": "2.17",
+     "point": "-2.5",
+     "sort": "0020004750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (+2.5)",
+     "outcomeId": "1",
+     "odds": "1.56",
+     "point": "+2.5",
+     "sort": "0000005250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778069",
+   "conditionId": "600610060000000000028666020000000000001624778069",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Metizport (+2.5)",
+     "outcomeId": "1",
+     "odds": "1.1",
+     "point": "+2.5",
+     "sort": "0020005250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-2.5)",
+     "outcomeId": "2",
+     "odds": "4.38",
+     "point": "-2.5",
+     "sort": "0000004750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778103",
+   "conditionId": "600610060000000000028666020000000000001624778103",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-3.5)",
+     "outcomeId": "1",
+     "odds": "6.77",
+     "point": "-3.5",
+     "sort": "0000004650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+3.5)",
+     "outcomeId": "2",
+     "odds": "1.01",
+     "point": "+3.5",
+     "sort": "0020005350",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001812226482",
+   "conditionId": "600610060000000000028666020000000000001812226482",
+   "state": "Resolved",
+   "title": "Map 3 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189360,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00306",
+   "outcomes": [
+    {
+     "title": "Under 12.5",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "12.5",
+     "sort": "0020006250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 12.5",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "12.5",
+     "sort": "0000006250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894701",
+   "conditionId": "600610060000000000028666020000000000001630894701",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215576,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Over 12.5",
+     "outcomeId": "1",
+     "odds": "2.07",
+     "point": "12.5",
+     "sort": "0000006250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 12.5",
+     "outcomeId": "2",
+     "odds": "1.63",
+     "point": "12.5",
+     "sort": "0020006250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778157",
+   "conditionId": "600610060000000000028666020000000000001624778157",
+   "state": "Resolved",
+   "title": "Map 3 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541523,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00302",
+   "outcomes": [
+    {
+     "title": "Under 19.5",
+     "outcomeId": "1",
+     "odds": "5.58",
+     "point": "19.5",
+     "sort": "0020006950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 19.5",
+     "outcomeId": "2",
+     "odds": "1.05",
+     "point": "19.5",
+     "sort": "0000006950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001630894699",
+   "conditionId": "600610060000000000028666020000000000001630894699",
+   "state": "Resolved",
+   "title": "Map 3 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215576,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00307",
+   "outcomes": [
+    {
+     "title": "Over 11.5",
+     "outcomeId": "1",
+     "odds": "1.93",
+     "point": "11.5",
+     "sort": "0000006150",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 11.5",
+     "outcomeId": "2",
+     "odds": "1.73",
+     "point": "11.5",
+     "sort": "0020006150",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778173",
+   "conditionId": "600610060000000000028666020000000000001624778173",
+   "state": "Stopped",
+   "title": "Total Maps Odd/Even",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 164984,
+   "marketVarietyId": null,
+   "category": "odd_even",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "100000",
+   "outcomes": [
+    {
+     "title": "Odd",
+     "outcomeId": "2",
+     "odds": "1.13",
+     "point": null,
+     "sort": "0000000000",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Even",
+     "outcomeId": "1",
+     "odds": "5.74",
+     "point": null,
+     "sort": "0010000000",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001810552032",
+   "conditionId": "600610060000000000028666020000000000001810552032",
+   "state": "Resolved",
+   "title": "Map 2 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215575,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00207",
+   "outcomes": [
+    {
+     "title": "Under 9.5",
+     "outcomeId": "1",
+     "odds": "3.38",
+     "point": "9.5",
+     "sort": "0020005950",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 9.5",
+     "outcomeId": "2",
+     "odds": "1.2",
+     "point": "9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778153",
+   "conditionId": "600610060000000000028666020000000000001624778153",
+   "state": "Resolved",
+   "title": "Map 3 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541523,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00302",
+   "outcomes": [
+    {
+     "title": "Under 17.5",
+     "outcomeId": "1",
+     "odds": "7.74",
+     "point": "17.5",
+     "sort": "0020006750",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 17.5",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "17.5",
+     "sort": "0000006750",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001820775749",
+   "conditionId": "600610060000000000028666020000000000001820775749",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+11.5)",
+     "outcomeId": "1",
+     "odds": "1.12",
+     "point": "+11.5",
+     "sort": "0000006150",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-11.5)",
+     "outcomeId": "2",
+     "odds": "4.23",
+     "point": "-11.5",
+     "sort": "0020003850",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001819991459",
+   "conditionId": "600610060000000000028666020000000000001819991459",
+   "state": "Resolved",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 1091385742,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00106",
+   "outcomes": [
+    {
+     "title": "Under 6.5",
+     "outcomeId": "1",
+     "odds": "4.23",
+     "point": "6.5",
+     "sort": "0020005650",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 6.5",
+     "outcomeId": "2",
+     "odds": "1.12",
+     "point": "6.5",
+     "sort": "0000005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778105",
+   "conditionId": "600610060000000000028666020000000000001624778105",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-4.5)",
+     "outcomeId": "1",
+     "odds": "2.39",
+     "point": "-4.5",
+     "sort": "0000004550",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+4.5)",
+     "outcomeId": "2",
+     "odds": "1.41",
+     "point": "+4.5",
+     "sort": "0020005450",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001820775689",
+   "conditionId": "600610060000000000028666020000000000001820775689",
+   "state": "Resolved",
+   "title": "Map 1 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 1091385742,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00106",
+   "outcomes": [
+    {
+     "title": "Over 5.5",
+     "outcomeId": "1",
+     "odds": "1.28",
+     "point": "5.5",
+     "sort": "0000005550",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Under 5.5",
+     "outcomeId": "2",
+     "odds": "3.26",
+     "point": "5.5",
+     "sort": "0020005550",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001820795807",
+   "conditionId": "600610060000000000028666020000000000001820795807",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-5.5)",
+     "outcomeId": "1",
+     "odds": "4.54",
+     "point": "-5.5",
+     "sort": "0000004450",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+5.5)",
+     "outcomeId": "2",
+     "odds": "1.09",
+     "point": "+5.5",
+     "sort": "0020005550",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001810552034",
+   "conditionId": "600610060000000000028666020000000000001810552034",
+   "state": "Resolved",
+   "title": "Map 2 - Metizport Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120058,
+   "marketVarietyId": 2065215575,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00207",
+   "outcomes": [
+    {
+     "title": "Under 10.5",
+     "outcomeId": "1",
+     "odds": "2.97",
+     "point": "10.5",
+     "sort": "0020006050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 10.5",
+     "outcomeId": "2",
+     "odds": "1.26",
+     "point": "10.5",
+     "sort": "0000006050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778067",
+   "conditionId": "600610060000000000028666020000000000001624778067",
+   "state": "Resolved",
+   "title": "Map 2 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055027,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00203",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+9.5)",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "+9.5",
+     "sort": "0000005950",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-9.5)",
+     "outcomeId": "2",
+     "odds": "9.9",
+     "point": "-9.5",
+     "sort": "0020004050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001832225491",
+   "conditionId": "600610060000000000028666020000000000001832225491",
+   "state": "Stopped",
+   "title": "Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 158375,
+   "marketVarietyId": null,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "700",
+   "outcomes": [
+    {
+     "title": "Metizport (+3.5)",
+     "outcomeId": "1",
+     "odds": "1.09",
+     "point": "+3.5",
+     "sort": "0020005350",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-3.5)",
+     "outcomeId": "2",
+     "odds": "4.6",
+     "point": "-3.5",
+     "sort": "0000004650",
+     "state": "Stopped",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": []
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778159",
+   "conditionId": "600610060000000000028666020000000000001624778159",
+   "state": "Resolved",
+   "title": "Map 3 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541523,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00302",
+   "outcomes": [
+    {
+     "title": "Under 20.5",
+     "outcomeId": "1",
+     "odds": "1.85",
+     "point": "20.5",
+     "sort": "0020007050",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 20.5",
+     "outcomeId": "2",
+     "odds": "1.71",
+     "point": "20.5",
+     "sort": "0000007050",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778107",
+   "conditionId": "600610060000000000028666020000000000001624778107",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Metizport (+5.5)",
+     "outcomeId": "1",
+     "odds": "1.71",
+     "point": "+5.5",
+     "sort": "0020005550",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Sangal Esports (-5.5)",
+     "outcomeId": "2",
+     "odds": "1.85",
+     "point": "-5.5",
+     "sort": "0000004450",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001811389709",
+   "conditionId": "600610060000000000028666020000000000001811389709",
+   "state": "Resolved",
+   "title": "Map 3 - Sangal Esports Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 120024,
+   "marketVarietyId": 922189360,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00306",
+   "outcomes": [
+    {
+     "title": "Under 8.5",
+     "outcomeId": "1",
+     "odds": "3.65",
+     "point": "8.5",
+     "sort": "0020005850",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 8.5",
+     "outcomeId": "2",
+     "odds": "1.16",
+     "point": "8.5",
+     "sort": "0000005850",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778093",
+   "conditionId": "600610060000000000028666020000000000001624778093",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (+6.5)",
+     "outcomeId": "1",
+     "odds": "1",
+     "point": "+6.5",
+     "sort": "0000005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (-6.5)",
+     "outcomeId": "2",
+     "odds": "7.24",
+     "point": "-6.5",
+     "sort": "0020004350",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "1"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778109",
+   "conditionId": "600610060000000000028666020000000000001624778109",
+   "state": "Resolved",
+   "title": "Map 3 - Rounds Handicap",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119752,
+   "marketVarietyId": 524055028,
+   "category": "handicap",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00303",
+   "outcomes": [
+    {
+     "title": "Sangal Esports (-6.5)",
+     "outcomeId": "1",
+     "odds": "5.58",
+     "point": "-6.5",
+     "sort": "0000004350",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Metizport (+6.5)",
+     "outcomeId": "2",
+     "odds": "1.05",
+     "point": "+6.5",
+     "sort": "0020005650",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  },
+  {
+   "id": "600610060000000000028666020000000000001624778163",
+   "conditionId": "600610060000000000028666020000000000001624778163",
+   "state": "Resolved",
+   "title": "Map 3 - Total Rounds Over/Under",
+   "isExpressForbidden": true,
+   "isPrematchEnabled": true,
+   "isLiveEnabled": true,
+   "margin": 0,
+   "marketId": 119754,
+   "marketVarietyId": 327541523,
+   "category": "total",
+   "marketGroupKeys": [],
+   "hidden": true,
+   "sort": "15000.00302",
+   "outcomes": [
+    {
+     "title": "Under 22.5",
+     "outcomeId": "1",
+     "odds": "7.74",
+     "point": "22.5",
+     "sort": "0020007250",
+     "state": "Lost",
+     "hidden": true,
+     "isManuallyStopped": false
+    },
+    {
+     "title": "Over 22.5",
+     "outcomeId": "2",
+     "odds": "1",
+     "point": "22.5",
+     "sort": "0000007250",
+     "state": "Won",
+     "hidden": true,
+     "isManuallyStopped": false
+    }
+   ],
+   "game": {
+    "gameId": "1006000000000002866602",
+    "sport": {
+     "sportId": "1061"
+    }
+   },
+   "wonOutcomeIds": [
+    "2"
+   ]
+  }
+ ]
+}

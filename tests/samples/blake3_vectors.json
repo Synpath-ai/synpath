@@ -1,0 +1,67 @@
+{
+  "_source": "https://github.com/BLAKE3-team/BLAKE3/blob/master/test_vectors/test_vectors.json (the official BLAKE3 test vectors, trimmed to 32-byte outputs and a subset of lengths)",
+  "_input": "input_len bytes of the repeating sequence 0, 1, ..., 250, 0, 1, ...",
+  "key": "whats the Elvish word for friend",
+  "cases": [
+    {
+      "input_len": 0,
+      "keyed_hash": "92b2b75604ed3c761f9d6f62392c8a9227ad0ea3f09573e783f1498a4ed60d26"
+    },
+    {
+      "input_len": 1,
+      "keyed_hash": "6d7878dfff2f485635d39013278ae14f1454b8c0a3a2d34bc1ab38228a80c95b"
+    },
+    {
+      "input_len": 63,
+      "keyed_hash": "bb1eb5d4afa793c1ebdd9fb08def6c36d10096986ae0cfe148cd101170ce37ae"
+    },
+    {
+      "input_len": 64,
+      "keyed_hash": "ba8ced36f327700d213f120b1a207a3b8c04330528586f414d09f2f7d9ccb7e6"
+    },
+    {
+      "input_len": 65,
+      "keyed_hash": "c0a4edefa2d2accb9277c371ac12fcdbb52988a86edc54f0716e1591b4326e72"
+    },
+    {
+      "input_len": 1023,
+      "keyed_hash": "c951ecdf03288d0fcc96ee3413563d8a6d3589547f2c2fb36d9786470f1b9d6e"
+    },
+    {
+      "input_len": 1024,
+      "keyed_hash": "75c46f6f3d9eb4f55ecaaee480db732e6c2105546f1e675003687c31719c7ba4"
+    },
+    {
+      "input_len": 1025,
+      "keyed_hash": "357dc55de0c7e382c900fd6e320acc04146be01db6a8ce7210b7189bd664ea69"
+    },
+    {
+      "input_len": 2048,
+      "keyed_hash": "879cf1fa2ea0e79126cb1063617a05b6ad9d0b696d0d757cf053439f60a99dd1"
+    },
+    {
+      "input_len": 2049,
+      "keyed_hash": "9f29700902f7c86e514ddc4df1e3049f258b2472b6dd5267f61bf13983b78dd5"
+    },
+    {
+      "input_len": 3072,
+      "keyed_hash": "044a0e7b172a312dc02a4c9a818c036ffa2776368d7f528268d2e6b5df191770"
+    },
+    {
+      "input_len": 4097,
+      "keyed_hash": "00df940cd36bb9fa7cbbc3556744e0dbc8191401afe70520ba292ee3ca80abbc"
+    },
+    {
+      "input_len": 8193,
+      "keyed_hash": "954a2a75420c8d6547e3ba5b98d963e6fa6491addc8c023189cc519821b4a1f5"
+    },
+    {
+      "input_len": 16384,
+      "keyed_hash": "9e9fc4eb7cf081ea7c47d1807790ed211bfec56aa25bb7037784c13c4b707b0d"
+    },
+    {
+      "input_len": 31744,
+      "keyed_hash": "efa53b389ab67c593dba624d898d0f7353ab99e4ac9d42302ee64cbf9939a419"
+    }
+  ]
+}

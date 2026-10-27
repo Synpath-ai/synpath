@@ -13,6 +13,7 @@ Venue rules that are not in any payload:
                   market's price ladder, 0.01 when it publishes none
   Polymarket      five shares minimum; tick per market, 0.01 by default
   Polymarket US   whole contracts only; tick per market
+  Gemini          tick per contract (`priceIncrement`), contracts in hundredths
 """
 from __future__ import annotations
 
@@ -53,20 +54,56 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
     # so contracts take any size to a millionth.
     "sx_bet": {"default_tick": Decimal("0.00125"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
                "whole": False, "min_notional": Decimal("1")},
-    # No order entry yet; written down for when there is. Prices are decimal
-    # odds on Betfair's ladder (1.01 to 1000), so the step in YES price runs
-    # from about 0.0097 near 1.01 to 0.00001 near 1000: the tick here is the
-    # finest, and an order must still land on the ladder in odds. Stakes are
-    # in the account's currency, to the penny, at least 1 (GBP) a bet.
+    # Prices are decimal odds on Betfair's CLASSIC ladder (1.01 to 1000), so
+    # the step in YES price runs from about 0.0097 near 1.01 to 0.00001 near
+    # 1000: the tick here is the finest, and the trading adapter snaps each
+    # order onto the ladder in odds. Stakes are in the account's currency,
+    # to the penny, at least 1 (GBP) a bet unless its payout is 10 or more,
+    # which the adapter checks; the notional here is the plain minimum.
     "betfair": {"default_tick": Decimal("0.00001"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.0001"),
                 "whole": False, "min_notional": Decimal("1")},
-    # No order entry yet; written down for when there is. Prices are basis
-    # points of 100% on an odds ladder (5000, 4762, 4545 are odds 2.0, 2.1,
-    # 2.2), so the tick here is the finest, one basis point. Quantities are
-    # pots in 1/10,000 GBP, so contracts step by 0.0001; the minimum stake is
-    # £0.05.
+    # Prices are basis points of 100% on an odds ladder (5000, 4762, 4545 are
+    # odds 2.0, 2.1, 2.2), so the tick here is the finest, one basis point,
+    # and the trading adapter snaps each order onto the ladder. Quantities
+    # are pots in 1/10,000 of the account's currency, so contracts step by
+    # 0.0001; the minimum back stake is £0.05.
     "smarkets": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.0001"), "quantity_step": Decimal("0.0001"),
                  "whole": False, "min_notional": Decimal("0.05")},
+    # Prices on a grid of 0.001 near the ends (to 0.050, from 0.950) and
+    # 0.005 between, so the tick here is the finest and an order is snapped
+    # onto the grid on the cheaper side. The venue's contract pays 1 cent, so
+    # dollar contracts step by 0.01.
+    "novig": {"default_tick": Decimal("0.001"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.01"),
+              "whole": False},
+    # Prices are decimal odds on Matchbook's ladder (1.01 to 1000, the same
+    # bands as Betfair's), so the tick here is the finest and the trading
+    # adapter snaps each order onto the ladder in odds. Stakes are in the
+    # account's currency to the penny; Matchbook publishes no minimum.
+    "matchbook": {"default_tick": Decimal("0.00001"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.0001"),
+                  "whole": False},
+    # Prices are American odds on ProphetX's ladder (-10000 to +10000), whose
+    # steps are 0.0017 to 0.0076 in YES price: the tick here is finer than
+    # any, and the adapter snaps an order onto the ladder on the cheaper side.
+    # The stake is what is counted, in USD to the cent, at least $1, so
+    # contracts take any size to a millionth.
+    "prophetx": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.000001"),
+                 "quantity_step": Decimal("0.000001"), "whole": False, "min_notional": Decimal("1")},
+    # A bet's price is a worst price, turned into minimum odds of `1 / price`
+    # at 12 decimals, so any price in (0, 1) is accepted: the tick here is
+    # only the grid prices are quoted on. The stake is in the bet token (USDT
+    # to six decimals, WETH to eighteen), so contracts take any size to a
+    # millionth; the pool's own minimum bet is read per selection.
+    "azuro": {"default_tick": Decimal("0.0001"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
+              "whole": False},
+    # Order books only: prices in whole cents; sizes are 18-decimal shares and
+    # the venue publishes no minimum, so a millionth of a share is the step.
+    "myriad": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("0.000001"), "quantity_step": Decimal("0.000001"),
+               "whole": False},
+    # Each contract publishes its grid (priceIncrement, quantityIncrement,
+    # quantityMinimum); every one read so far is a cent and a hundredth of a
+    # contract, which is the default here. The tick comes from the market.
+    "gemini": {"default_tick": Decimal("0.01"), "min_quantity": Decimal("0.01"), "quantity_step": Decimal("0.01"),
+               "whole": False},
 }
 
 

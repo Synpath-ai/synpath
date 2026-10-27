@@ -539,6 +539,10 @@ class FeeSchedule(_Base):
     min_fee: float | None = None
     """Smallest fee one taker order is charged, in collateral, where the venue
     has a floor (Opinion: 0.25 USDT). `None` means no floor."""
+    taker_bps_by_cent: list[float] | None = None
+    maker_bps_by_cent: list[float] | None = None
+    """`bps_by_price` (Myriad): the rate at each whole-cent price, in basis
+    points of the notional, entry 0 at 1c and entry 99 at $1."""
     info: dict[str, Any] = Field(default_factory=dict)
 
     def estimate(self, price: float, contracts: float, *, taker: bool = True) -> float | None:
@@ -559,14 +563,20 @@ class FeeSchedule(_Base):
           Kalshi schedule) the fee for the order is rounded up to the cent, as
           the venue charges it. Kalshi's `flat` type follows a separate table
           this library does not have, so it returns `None`.
-        * `quadratic_theta` (Polymarket US, Polymarket) — `theta * C *
+        * `quadratic_theta` (Polymarket US, Polymarket, Novig, Gemini) — `theta * C *
           (P * (1 - P)) ** exponent`, the same shape with the coefficient
           published directly: `taker_rate` and `maker_rate` hold the venue's
           thetas, and a negative maker theta is a rebate, returned here as a
           negative fee. `exponent` is 1 unless the venue says otherwise.
-        * `min_price` (predict.fun) — `rate * min(P, 1 - P) * C` for a
-          taker, on the cheaper side of the market; a maker pays `maker_rate`
-          (zero on every market read so far).
+          Novig's maker theta is its maker credit, a share of the taker's
+          fee; on a game market both apply only while the event is in play
+          (`info["charged"]` is `WHEN_LIVE`).
+          Gemini's rates are 0.07 and 0.0175, rounded up to the cent
+          (`rounding="up_to_cent"`).
+        * `min_price` (predict.fun, Gemini's legacy schedule) — `rate *
+          min(P, 1 - P) * C` for a taker, on the cheaper side of the market;
+          a maker pays `maker_rate` (zero on every predict.fun market read so
+          far). Rounded up to the cent where `rounding="up_to_cent"`.
         * `hyperliquid_outcome` (Hyperliquid) — `rate * P * C`, the notional
           of the fill, charged only when the fill closes a position (and at
           settlement); a fill that opens one pays nothing. The estimate is the
@@ -585,7 +595,7 @@ class FeeSchedule(_Base):
         * `profit_on_win` (SX Bet) — `rate * (1 - P) * C`, a share of the
           profit, charged at settlement and only if the bet wins. The estimate
           is that charge, so on a bet that loses it is an upper bound.
-        * `net_market_winnings` (Betfair, Smarkets) — `rate * (1 - P) * C`, the
+        * `net_market_winnings` (Betfair, Smarkets, Matchbook) — `rate * (1 - P) * C`, the
           commission on what this fill wins if it wins, at the market's base
           rate (`taker_rate` and `maker_rate` alike: Betfair charges both
           sides). Betfair cannot be priced per fill exactly: it charges the
@@ -596,7 +606,22 @@ class FeeSchedule(_Base):
           upper bound when other bets in the market lose and leaves the
           Expert Fee out.
           Smarkets charges the same way (2% on its standard tier, no
-          Expert Fee), on net winnings per Smarkets market.
+          Expert Fee), on net winnings per Smarkets market, and Matchbook
+          too (2% in the UK and Ireland, 4% elsewhere), per Matchbook market.
+        * `pool_margin` (Azuro) — nothing: the pool's margin is inside the
+          odds it quotes, so the price is already the whole cost. A bet sent
+          through Azuro's relayer pays it a flat fee per bet, in the bet
+          token, which is not a function of price or size and is left out
+          here (`AzuroTrading.fetch_fee_estimate` reads it).
+        * `bps_by_price` (Myriad order books) — `table[cents - 1] / 10,000 *
+          P * C`, a share of the notional that depends on the price, read
+          from the venue's table at the whole cent `P` rounds to
+          (`taker_bps_by_cent`, `maker_bps_by_cent`): 3 bps at 1c, 180 at 50c.
+          `taker_rate` and `maker_rate` are the tables' ceilings. Pass the
+          price of the outcome actually traded.
+        * `share_of_value` (Myriad AMM markets) — `rate * P * C`, a share of
+          the value traded, set per market; `taker_rate` is the buy rate
+          (the sell rate is in `info`).
         """
         rate = self.taker_rate if taker else self.maker_rate
         if self.fee_type in KALSHI_MAKER_SHARE and self.multiplier is not None:
@@ -611,7 +636,7 @@ class FeeSchedule(_Base):
                 fee = max(fee, self.min_fee)
             return round(fee, 6)
         if self.fee_type == "min_price" and rate is not None:
-            return round(rate * min(price, 1 - price) * contracts, 6)
+            return self._rounded(rate * min(price, 1 - price) * contracts)
         if self.fee_type == "hyperliquid_outcome" and rate is not None:
             return round(rate * price * contracts, 6)
         if self.fee_type == "limitless_curve" and rate is not None:
@@ -620,10 +645,28 @@ class FeeSchedule(_Base):
             return round(limitless_buy_rate(price) * rate / LIMITLESS_FEE_CEILING * price * contracts, 6)
         if self.fee_type in ("profit_on_win", "net_market_winnings") and rate is not None:
             return round(rate * (1 - price) * contracts, 6)
+        if self.fee_type == "pool_margin":
+            return 0.0
+        if self.fee_type == "bps_by_price":
+            table = self.taker_bps_by_cent if taker else self.maker_bps_by_cent
+            if table:
+                cents = min(len(table), max(1, round(price * 100)))
+                return round(table[cents - 1] / 10_000 * price * contracts, 6)
+            return round(rate * price * contracts, 6) if rate is not None else None
+        if self.fee_type == "share_of_value" and rate is not None:
+            return round(rate * price * contracts, 6)
         if self.fee_type == "quadratic_theta" and rate is not None:
             power = 1.0 if self.exponent is None else self.exponent
-            return round(rate * contracts * (price * (1 - price)) ** power, 6)
+            return self._rounded(rate * contracts * (price * (1 - price)) ** power)
         return None
+
+    def _rounded(self, fee: float) -> float:
+        """A fee as the venue charges it: up to the cent where `rounding` is
+        `up_to_cent` (a rebate, negative, rounds toward zero), else to six
+        decimals."""
+        if self.rounding == "up_to_cent":
+            fee = math.ceil(round(fee, 9) * 100 - 1e-9) / 100
+        return round(fee, 6)
 
 
 LIMITLESS_FEE_CEILING = 0.03
