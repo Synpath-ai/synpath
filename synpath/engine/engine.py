@@ -308,64 +308,138 @@ class Engine:
 
         `risk_reference_price` overrides the book midpoint for the limit-price risk check.
         """
-        if request.user_id not in (None, self.config.user_id):
-            raise BadRequest("user_id is assigned by the execution worker")
-        if self.config.require_lease and not await self.journal.holds_lease():
-            raise LeaseLost("this execution worker no longer holds the journal lease")
-        request = request.model_copy(update={"user_id": self.config.user_id})
-        if request.type in (OrderType.RFQ_TAKER, OrderType.RFQ_MAKER):
-            raise BadRequest(f"a {request.type.value} order comes from a quote: use accept_quote or confirm_quote")
+        request = await self._prepare_submission_request(request)
+        # Bucket parents capture and authorize their cross-venue execution scope separately.
         if is_bucket_id(request.market_id):
             if venue is not None:
                 raise BadRequest("a bucket parent has no singular execution venue")
             return await self._submit_bucket(request, risk_reference_price=risk_reference_price,
                                              authorize_execution_accounts=authorize_execution_accounts)
+        return await self._submit_with_retry_protection(
+            request, venue=venue, risk_reference_price=risk_reference_price, precision=precision,
+        )
+
+    async def _prepare_submission_request(self, request: OrderRequest) -> OrderRequest:
+        """Check execution ownership and entry-point rules, then assign the worker's user."""
+        # A caller cannot submit as another user.
+        if request.user_id not in (None, self.config.user_id):
+            raise BadRequest("user_id is assigned by the execution worker")
+        # Only the active lease holder may submit.
+        if self.config.require_lease and not await self.journal.holds_lease():
+            raise LeaseLost("this execution worker no longer holds the journal lease")
+        # Persist the configured owner on the instruction.
+        request = request.model_copy(update={"user_id": self.config.user_id})
+        # RFQ orders require the quote acceptance/confirmation workflow.
+        if request.type in (OrderType.RFQ_TAKER, OrderType.RFQ_MAKER):
+            raise BadRequest(f"a {request.type.value} order comes from a quote: use accept_quote or confirm_quote")
+        return request
+
+    async def _submit_with_retry_protection(
+        self, request: OrderRequest, *, venue: str | None,
+        risk_reference_price: Decimal | None, precision: Precision | None,
+    ) -> Order:
+        """Reuse a durable submission or reserve its identity before executing it.
+
+        Venue orders and stops use this retry reservation. Other managed types
+        retain their own lifecycle path through _submit_once(). Bucket parents
+        are dispatched separately by submit().
+        """
+        # Other managed types keep their existing lifecycle path.
         supported = VENUE_ORDER_TYPES | {OrderType.STOP_MARKET, OrderType.STOP_LIMIT}
         if request.type not in supported or request.params.get("walk"):
             return await self._submit_once(request, venue=venue, risk_reference_price=risk_reference_price, precision=precision)
-        venue = venue or self._venue_of(request)
-        account = request.account or self.accounts.get(venue) or Account(venue=venue)
-        # Caller-assigned IDs bypass the accidental-duplicate check, not same-ID retry protection.
-        caller_supplied_order_id = request.client_order_id is not None
-        request = request.model_copy(update={"account": account,
-                                             "client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"})
+
+        # Establish the account and stable order ID before looking for earlier attempts.
+        venue, account, request, caller_supplied_order_id = self._prepare_submission_identity(request, venue=venue)
+
+        # Serialize lookup, reservation and execution for this submission ID.
         async with self._lock(f"submission:{request.client_order_id}"):
-            previous = await self.journal.submission(request.client_order_id)
-            if previous is not None:
-                if previous["request"] != request_identity(request):
-                    raise BadRequest("client_order_id already identifies a different instruction or account")
-                result = await self._existing_submission_result(previous)
-                if result is not None:
-                    return result
-                request = OrderRequest.stored(previous["effective_request"])
-            else:
-                effective = as_gtd(request, now_s=self.clock(), timezone_name=self.config.session_timezone,
-                                   session_end=self.config.session_end)
-                prior_intent = await self.journal.intent(request.client_order_id)
-                if prior_intent is not None:
-                    prior_request = OrderRequest.stored(prior_intent.request)
-                    if prior_intent.operation != "create" or request_identity(prior_request) != request_identity(effective):
-                        raise BadRequest("client_order_id already identifies a different durable action")
-                elif await self.journal.order_by_client_id(request.client_order_id) is not None:
-                    raise BadRequest("client_order_id belongs to an older order without a verifiable instruction")
-                await self.journal.record_submission(request, effective, venue=venue, account=account)
-                if prior_intent is not None:
-                    result = await self._existing_submission_result(await self.journal.submission(request.client_order_id))
-                    if result is not None:
-                        return result
-                request = effective
+            request, previous_result = await self._resume_or_reserve_submission(request, venue=venue, account=account)
+            if previous_result is not None:
+                return previous_result
+
+            # Execute only after confirming this instruction can safely proceed.
             try:
                 return await self._submit_once(
                     request, venue=venue, risk_reference_price=risk_reference_price,
                     caller_supplied_order_id=caller_supplied_order_id, precision=precision,
                 )
             except (RiskRejected, BadRequest, OrderRejected) as error:
-                intent = await self.journal.intent(request.client_order_id)
-                if intent is not None and intent.state == IntentState.PLANNED:
-                    await self.journal.mark_intent(request.client_order_id, IntentState.REJECTED, detail=str(error))
-                await self.journal.reject_submission(request.client_order_id,
-                    {"kind": type(error).__name__, "message": str(error), "rule": getattr(error, "rule", None)})
+                # Preserve definite failures so retries observe the same rejection.
+                await self._record_submission_rejection(request, error)
                 raise
+
+    def _prepare_submission_identity(
+        self, request: OrderRequest, *, venue: str | None,
+    ) -> tuple[str, Account, OrderRequest, bool]:
+        """Resolve the destination and assign an order ID while retaining its origin."""
+        venue = venue or self._venue_of(request)
+        account = request.account or self.accounts.get(venue) or Account(venue=venue)
+        # Caller-assigned IDs bypass the accidental-duplicate check, not same-ID retry protection.
+        caller_supplied_order_id = request.client_order_id is not None
+        request = request.model_copy(update={
+            "account": account,
+            "client_order_id": request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}",
+        })
+        return venue, account, request, caller_supplied_order_id
+
+    async def _resume_or_reserve_submission(
+        self, request: OrderRequest, *, venue: str, account: Account,
+    ) -> tuple[OrderRequest, Order | None]:
+        """Return an earlier outcome or the effective instruction safe to execute.
+
+        The caller must hold the submission lock through any subsequent execution.
+        """
+        previous_submission = await self.journal.submission(request.client_order_id)
+        if previous_submission is None:
+            return await self._reserve_new_submission(request, venue=venue, account=account)
+
+        # Reusing an ID for another instruction or account must never return an unrelated order.
+        if previous_submission["request"] != request_identity(request):
+            raise BadRequest("client_order_id already identifies a different instruction or account")
+        previous_result = await self._existing_submission_result(previous_submission)
+        if previous_result is not None:
+            return request, previous_result
+
+        # Keep the original effective expiry; retrying a DAY order must not extend its life.
+        return OrderRequest.stored(previous_submission["effective_request"]), None
+
+    async def _reserve_new_submission(
+        self, request: OrderRequest, *, venue: str, account: Account,
+    ) -> tuple[OrderRequest, Order | None]:
+        """Reserve a new submission, reconciling any older intent before allowing execution."""
+        # Freeze session-relative DAY expiry before saving the instruction used for execution.
+        effective_request = as_gtd(request, now_s=self.clock(), timezone_name=self.config.session_timezone,
+                                   session_end=self.config.session_end)
+
+        # Older durable actions may already own this ID without a submission reservation.
+        prior_intent = await self.journal.intent(request.client_order_id)
+        if prior_intent is not None:
+            prior_request = OrderRequest.stored(prior_intent.request)
+            if prior_intent.operation != "create" or request_identity(prior_request) != request_identity(effective_request):
+                raise BadRequest("client_order_id already identifies a different durable action")
+        elif await self.journal.order_by_client_id(request.client_order_id) is not None:
+            raise BadRequest("client_order_id belongs to an older order without a verifiable instruction")
+
+        await self.journal.record_submission(request, effective_request, venue=venue, account=account)
+        if prior_intent is not None:
+            # Resolve the older send before execution; an unanswered send may already be accepted.
+            submission = await self.journal.submission(request.client_order_id)
+            previous_result = await self._existing_submission_result(submission)
+            if previous_result is not None:
+                return effective_request, previous_result
+        return effective_request, None
+
+    async def _record_submission_rejection(
+        self, request: OrderRequest, error: RiskRejected | BadRequest | OrderRejected,
+    ) -> None:
+        """Persist a definite failure without rewriting a send that may have reached the venue."""
+        # Only an unsent, planned intent can be marked rejected here.
+        intent = await self.journal.intent(request.client_order_id)
+        if intent is not None and intent.state == IntentState.PLANNED:
+            await self.journal.mark_intent(request.client_order_id, IntentState.REJECTED, detail=str(error))
+        await self.journal.reject_submission(request.client_order_id,
+            {"kind": type(error).__name__, "message": str(error), "rule": getattr(error, "rule", None)})
 
     async def _existing_submission_result(self, submission: dict[str, Any]) -> Order | None:
         if submission["result_id"]:
@@ -435,6 +509,21 @@ class Engine:
         client_order_id = request.client_order_id or f"sp-{uuid.uuid4().hex[:20]}"
         request = request.model_copy(update={"client_order_id": client_order_id, "account": account})
 
+        await self._check_venue_order_risk(
+            request, venue=venue, account=account, risk_reference_price=risk_reference_price,
+            caller_supplied_order_id=caller_supplied_order_id,
+        )
+        order = await self._send_venue_order_with_journaled_intent(
+            request, venue=venue, account=account, adapter=adapter, precision=precision,
+        )
+        return await self._record_accepted_venue_order(order, request, venue=venue)
+
+    async def _check_venue_order_risk(
+        self, request: OrderRequest, *, venue: str, account: Account,
+        risk_reference_price: Decimal | None, caller_supplied_order_id: bool,
+    ) -> None:
+        """Reject and explain a failed risk check before any venue intent is written."""
+        client_order_id = request.client_order_id
         decision = self.evaluate_order_risk(
             request, venue=venue, account=account, risk_reference_price=risk_reference_price,
             caller_supplied_order_id=caller_supplied_order_id,
@@ -447,6 +536,16 @@ class Engine:
             }, key=client_order_id)
             raise RiskRejected(decision.message, rule=decision.rule)
 
+    async def _send_venue_order_with_journaled_intent(
+        self, request: OrderRequest, *, venue: str, account: Account,
+        adapter: TradingExchange, precision: Precision | None,
+    ) -> Order:
+        """Persist the intent before sending; leave unanswered sends for reconciliation.
+
+        Keep the sending transition and venue call under the same dispatch lock.
+        A timeout cannot prove rejection, so it must never trigger a fresh send.
+        """
+        client_order_id = request.client_order_id
         await self.journal.record_intent(request, client_order_id=client_order_id, venue=venue, account=account)
         async with self._lock(f"{venue}:{client_order_id}"):
             await self.journal.mark_intent(client_order_id, IntentState.SENDING, bump_attempt=True)
@@ -473,6 +572,11 @@ class Engine:
                 await self.journal.mark_intent(client_order_id, IntentState.FAILED, detail=str(exc))
                 await self.bus.publish("order.failed", {"client_order_id": client_order_id, "error": str(exc)}, key=client_order_id)
                 raise
+        return order
+
+    async def _record_accepted_venue_order(self, order: Order, request: OrderRequest, *, venue: str) -> Order:
+        """Save the venue response before marking its intent sent and announcing acceptance."""
+        client_order_id = request.client_order_id
         order = self._stamp(order, request)
         await self.journal.upsert_order(order, event="order.accepted")
         self._remember(order)
@@ -659,6 +763,7 @@ class Engine:
             return parent.venue
 
     async def cancel_child(self, parent: Any, order_id: str, venue: str | None = None) -> Order | None:
+        """Cancel a managed child through its controller, or a venue child through cancel()."""
         if order_id in self.managed_order_controller.parents:
             return (await self.managed_order_controller.cancel(order_id, reason=f"cancelled by {parent.id}")).as_order()
         child = parent.child_of(order_id, venue)

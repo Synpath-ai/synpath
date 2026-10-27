@@ -209,6 +209,7 @@ class Context:
         return await self.engine.submit_child(self.parent, request, **kw)
 
     async def cancel_child(self, order_id: str, venue: str | None = None) -> Order | None:
+        """Delegate to Engine.cancel_child(), supplying this context's managed parent."""
         return await self.engine.cancel_child(self.parent, order_id, venue=venue)
 
     async def publish(self, kind: str, payload: dict[str, Any] | None = None) -> None:
