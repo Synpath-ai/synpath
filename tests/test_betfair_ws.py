@@ -72,11 +72,11 @@ def message(name: str, **changes) -> str:
 async def authenticated(stream):
     """A stream past authentication: the frame sent, Betfair's SUCCESS read."""
     stream._ws = FakeSocket()
-    stream._dispatch(message("connection"))
+    stream._process_raw_frame_and_emit_events(message("connection"))
     await stream.on_connect()
     auth = stream._ws.sent[-1]
     assert auth == {"op": "authentication", "id": auth["id"], "appKey": "APP-KEY-DELAYED", "session": "SESSION-TOKEN-1"}
-    stream._dispatch(message("auth_success", id=auth["id"]))
+    stream._process_raw_frame_and_emit_events(message("auth_success", id=auth["id"]))
     await settle()
     return stream
 
@@ -220,7 +220,7 @@ class TestAuthentication:
         stream = stream_with()
         stream._ws = FakeSocket()
         await stream.on_connect()
-        stream._dispatch(message("auth_failure", id=stream._auth_id))
+        stream._process_raw_frame_and_emit_events(message("auth_failure", id=stream._auth_id))
         assert stream.session._token is None
         assert drain(stream)[-1].state == "error"
 
@@ -228,7 +228,7 @@ class TestAuthentication:
         stream = stream_with()
         stream._ws = FakeSocket()
         await stream.on_connect()
-        stream._dispatch(message("app_key_failure", id=stream._auth_id))
+        stream._process_raw_frame_and_emit_events(message("app_key_failure", id=stream._auth_id))
         await settle()
         states = [e.state for e in drain(stream) if isinstance(e, StreamStatusEvent)]
         assert "failed" in states and stream._closing
@@ -240,13 +240,13 @@ class TestBooks:
         await stream.watch_order_book([ARSENAL])
         await stream.watch_ticker([CHELSEA])
         await authenticated(stream)
-        stream._dispatch(message("subscribe_success", id=stream._sub_id))
+        stream._process_raw_frame_and_emit_events(message("subscribe_success", id=stream._sub_id))
         drain(stream)
         return stream
 
     async def test_an_image_then_deltas(self):
         stream = await self.started()
-        stream._dispatch(message("image"))
+        stream._process_raw_frame_and_emit_events(message("image"))
         events = drain(stream)
         snapshot = next(e for e in events if isinstance(e, BookEvent))
         assert snapshot.market_id == ARSENAL and snapshot.kind == "snapshot"
@@ -257,7 +257,7 @@ class TestBooks:
         assert quote.market_id == CHELSEA and quote.bid == yes_price(3.7) and quote.ask == yes_price(3.65)
         assert stream.initial_clk == "G1jHgcgNHPgjjcwRj5LFHw==" and stream.clk == "AAAAAAAAAAAAAA=="
 
-        stream._dispatch(message("delta"))
+        stream._process_raw_frame_and_emit_events(message("delta"))
         delta = next(e for e in drain(stream) if isinstance(e, BookEvent))
         assert delta.kind == "delta" and stream.clk == "AAAAAAAAAAAAAB=="
         # Level 0 of batb moved from 2.08 to 2.10: the old price is gone, the new one in.
@@ -273,22 +273,22 @@ class TestBooks:
 
     async def test_a_heartbeat_moves_the_clock_only(self):
         stream = await self.started()
-        stream._dispatch(message("image"))
+        stream._process_raw_frame_and_emit_events(message("image"))
         drain(stream)
-        stream._dispatch(message("heartbeat"))
+        stream._process_raw_frame_and_emit_events(message("heartbeat"))
         assert drain(stream) == [] and stream.clk == "AAAAAAAAAAAAAD=="
 
     async def test_reconnect_resubscribes_with_the_clock_and_applies_the_delta(self):
         stream = await self.started()
-        stream._dispatch(message("image"))
-        stream._dispatch(message("delta"))
+        stream._process_raw_frame_and_emit_events(message("image"))
+        stream._process_raw_frame_and_emit_events(message("delta"))
         drain(stream)
         stream.on_disconnect()
         assert not stream.book(ARSENAL).ready
         await authenticated(stream)
         resubscription = stream._ws.sent[-1]
         assert resubscription["initialClk"] == "G1jHgcgNHPgjjcwRj5LFHw==" and resubscription["clk"] == "AAAAAAAAAAAAAB=="
-        stream._dispatch(message("resub_delta"))
+        stream._process_raw_frame_and_emit_events(message("resub_delta"))
         events = drain(stream)
         book = next(e for e in events if isinstance(e, BookEvent))
         assert book.kind == "snapshot" and stream.book(ARSENAL).ready
@@ -298,7 +298,7 @@ class TestBooks:
 
     async def test_a_changed_market_set_starts_a_fresh_image(self):
         stream = await self.started()
-        stream._dispatch(message("image"))
+        stream._process_raw_frame_and_emit_events(message("image"))
         await stream.watch_order_book(["betfair:1.234567891-47972"])
         subscription = stream._ws.sent[-1]
         assert subscription["marketFilter"]["marketIds"] == ["1.234567890", "1.234567891"]
@@ -307,8 +307,8 @@ class TestBooks:
     async def test_a_delayed_key_is_warned_about_once(self, caplog):
         stream = await self.started()
         with caplog.at_level(logging.WARNING, logger="synpath.ws.betfair"):
-            stream._dispatch(message("image"))
-            stream._dispatch(message("resub_delta"))
+            stream._process_raw_frame_and_emit_events(message("image"))
+            stream._process_raw_frame_and_emit_events(message("resub_delta"))
         warnings = [r for r in caplog.records if "conflated" in r.getMessage()]
         assert len(warnings) == 1 and str(DELAYED_CONFLATE_MS) in warnings[0].getMessage()
         assert stream.idle_timeout >= DELAYED_CONFLATE_MS / 1000
@@ -326,11 +326,11 @@ class TestStatus:
         stream = stream_with()
         await stream.watch_market_status(["betfair:1.234567890"])
         await authenticated(stream)
-        stream._dispatch(message("image"))
+        stream._process_raw_frame_and_emit_events(message("image"))
         opened = [e for e in drain(stream) if isinstance(e, MarketStatusEvent)]
         assert {e.market_id for e in opened} == {ARSENAL, CHELSEA, "betfair:1.234567890-58805"}
         assert {e.state for e in opened} == {"open"}
-        stream._dispatch(message("status_change"))
+        stream._process_raw_frame_and_emit_events(message("status_change"))
         changes = {e.market_id: e for e in drain(stream) if isinstance(e, MarketStatusEvent)}
         assert changes[ARSENAL].state == "paused" and changes[ARSENAL].info["in_play"] is True
         assert changes["betfair:1.234567890-58805"].state == "settled"
@@ -350,7 +350,7 @@ class TestSubscriptionCap:
         stream = stream_with()
         await stream.watch_order_book([ARSENAL])
         await authenticated(stream)
-        stream._dispatch(message("subscription_limit", id=stream._sub_id))
+        stream._process_raw_frame_and_emit_events(message("subscription_limit", id=stream._sub_id))
         assert "SUBSCRIPTION_LIMIT_EXCEEDED" in drain(stream)[-1].detail
 
 

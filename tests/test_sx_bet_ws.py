@@ -71,14 +71,14 @@ async def connected(stream):
     await stream.on_connect()
     connect = stream._ws.sent[-1]
     assert connect["connect"]["token"] == "tok"
-    stream._dispatch(json.dumps({"id": connect["id"], "connect": {"client": "c", "ping": 25, "pong": True}}))
+    stream._process_raw_frame_and_emit_events(json.dumps({"id": connect["id"], "connect": {"client": "c", "ping": 25, "pong": True}}))
     await settle()
     return stream
 
 
 def confirm_subscriptions(stream):
     for command in [c for c in stream._ws.sent if "subscribe" in c]:
-        stream._dispatch(json.dumps({"id": command["id"], "subscribe": {}}))
+        stream._process_raw_frame_and_emit_events(json.dumps({"id": command["id"], "subscribe": {}}))
 
 
 class TestRecords:
@@ -127,7 +127,7 @@ class TestProtocol:
         async def go():
             stream = await connected(stream_with())
             before = len(stream._ws.sent)
-            stream._dispatch("{}")
+            stream._process_raw_frame_and_emit_events("{}")
             await settle()
             return stream._ws.sent[before:]
 
@@ -138,7 +138,7 @@ class TestProtocol:
             stream = await connected(stream_with())
             await stream.watch_ticker([MARKET])
             body = {**BOOK, "version": "9" * 30}
-            stream._dispatch(push(f"orderbook_v3:{HASH}", body) + "\n" + "{}")
+            stream._process_raw_frame_and_emit_events(push(f"orderbook_v3:{HASH}", body) + "\n" + "{}")
             await settle()
             return stream._ws.sent, drain(stream)
 
@@ -150,8 +150,8 @@ class TestProtocol:
             stream = await connected(stream_with())
             await stream.watch_order_book([MARKET])
             drain(stream)
-            stream._dispatch(push(f"orderbook_v3:{HASH}", {**BOOK, "version": "2"}))
-            stream._dispatch(push(f"orderbook_v3:{HASH}", {**BOOK, "version": "1", "outcomeOne": []}))
+            stream._process_raw_frame_and_emit_events(push(f"orderbook_v3:{HASH}", {**BOOK, "version": "2"}))
+            stream._process_raw_frame_and_emit_events(push(f"orderbook_v3:{HASH}", {**BOOK, "version": "1", "outcomeOne": []}))
             return drain(stream)
 
         books = [e for e in asyncio.run(go()) if isinstance(e, BookEvent)]
@@ -162,7 +162,7 @@ class TestProtocol:
             stream = await connected(stream_with())
             await stream.watch_trades()
             command = [c for c in stream._ws.sent if "subscribe" in c][-1]
-            stream._dispatch(json.dumps({"id": command["id"], "error": {"code": 103, "message": "permission denied"}}))
+            stream._process_raw_frame_and_emit_events(json.dumps({"id": command["id"], "error": {"code": 103, "message": "permission denied"}}))
             return stream, drain(stream)
 
         stream, events = asyncio.run(go())
@@ -175,7 +175,7 @@ class TestProtocol:
             stream._ws = FakeSocket()
             await stream.on_connect()
             connect = stream._ws.sent[-1]
-            stream._dispatch(json.dumps({"id": connect["id"], "connect": {"expires": True, "ttl": 1}}))
+            stream._process_raw_frame_and_emit_events(json.dumps({"id": connect["id"], "connect": {"expires": True, "ttl": 1}}))
             await asyncio.sleep(5.2)
             sent = stream._ws.sent
             stream.on_disconnect()
@@ -192,8 +192,8 @@ class TestGlobalChannels:
         async def go():
             stream = await connected(stream_with())
             await stream.watch_trades([MARKET])
-            stream._dispatch(push("recent_trades_v3:global", {"trade": other}))
-            stream._dispatch(push("recent_trades_v3:global", {"trade": mine}))
+            stream._process_raw_frame_and_emit_events(push("recent_trades_v3:global", {"trade": other}))
+            stream._process_raw_frame_and_emit_events(push("recent_trades_v3:global", {"trade": mine}))
             return drain(stream)
 
         trades = [e for e in asyncio.run(go()) if isinstance(e, TradeEvent)]
@@ -205,7 +205,7 @@ class TestGlobalChannels:
         async def go():
             stream = await connected(stream_with())
             await stream.watch_market_status()
-            stream._dispatch(push("markets:global", rows))
+            stream._process_raw_frame_and_emit_events(push("markets:global", rows))
             return drain(stream)
 
         states = [(e.market_id, e.state) for e in asyncio.run(go()) if isinstance(e, MarketStatusEvent)]

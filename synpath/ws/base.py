@@ -45,6 +45,18 @@ ZERO = Decimal("0")
 ONE = Decimal("1")
 
 
+def decode_json_or_text(raw: str) -> Any:
+    """Decode JSON while preserving text frames such as heartbeat responses.
+
+    This is an optional utility for adapters, not a parsing policy imposed by
+    Stream. Wire protocols such as Socket.IO use their own frame decoder.
+    """
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return raw
+
+
 def now_ms() -> int:
     return int(time.time() * 1000)
 
@@ -56,8 +68,8 @@ def now_ms() -> int:
 @dataclass(frozen=True, slots=True)
 class BookLevel:
     price: Decimal
+    # For a delta, the level's size after the change; zero means removed.
     size: Decimal
-    """For a delta, the level's size after the change; zero means removed."""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -73,8 +85,8 @@ class BookEvent(Event):
     the terms of `side`: a NO book is what NO costs. `best_bid` and
     `best_ask` are the local book's after the change."""
 
+    # Synpath id, `venue:native`.
     market_id: str
-    """Synpath id, `venue:native`."""
     side: Literal["yes", "no"] = "yes"
     kind: Literal["snapshot", "delta"]
     bids: tuple[BookLevel, ...] = ()
@@ -266,8 +278,8 @@ class PyLocalBook:
         return other
 
 
+# The book every stream keeps: the Rust core's when installed, else `PyLocalBook`.
 LocalBook = _native.pick("LocalBook", PyLocalBook)
-"""The book every stream keeps: the Rust core's when installed, else `PyLocalBook`."""
 
 
 def D(value: Any) -> Decimal:
@@ -288,8 +300,10 @@ def maybe_D(value: Any) -> Decimal | None:
 # Stream
 # ---------------------------------------------------------------------------
 
-Connector = Callable[..., Awaitable[Any]]
+WebSocketConnectionOpener = Callable[..., Awaitable[Any]]
 
+# A unique queue marker, not a venue event. close() adds it after pending
+# events so events() can stop instead of waiting forever for another message.
 _CLOSED = object()
 
 
@@ -308,25 +322,30 @@ class Stream:
     """One venue WebSocket, kept alive, turned into events.
 
     Subclasses provide the endpoint (`url`, `headers()`), what to send after
-    connecting (`on_connect()`), how to read a message (`handle()`), and what
+    connecting (`on_connect()`), how to process a frame (`handle_raw()`), and what
     to forget when the connection drops (`on_disconnect()`). Subscribing is
     recording an intent: it is sent now if connected and again after every
     reconnect.
+
+    websocket_connection_opener optionally supplies an async function that
+    opens a socket from the endpoint URL and additional_headers. It is called
+    for every connection attempt, including reconnects. Tests can supply
+    scripted sockets without replacing the venue adapter or receiver loop.
     """
 
     venue: str = ""
     name: str = "stream"
     has: dict[str, Capability] = {}
+    # Carries account data the venue cannot replay after a disconnect.
     private: bool = False
-    """Carries account data the venue cannot replay after a disconnect."""
+    # A text frame the venue wants as its heartbeat, sent every `ping_interval`.
     app_ping: str | None = None
-    """A text frame the venue wants as its heartbeat, sent every `ping_interval`."""
+    # Whether the venue's keepalive arrives as data this stream can see (a
+    # `PONG` text frame, a heartbeat message). Only then does silence mean a
+    # dead connection: a venue that keeps the socket alive with protocol ping
+    # frames can be quiet for minutes on a slow market, and there the
+    # WebSocket library's own ping/pong is what detects a dead peer.
     data_heartbeat: bool = False
-    """Whether the venue's keepalive arrives as data this stream can see (a
-    `PONG` text frame, a heartbeat message). Only then does silence mean a
-    dead connection: a venue that keeps the socket alive with protocol ping
-    frames can be quiet for minutes on a slow market, and there the
-    WebSocket library's own ping/pong is what detects a dead peer."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -336,7 +355,7 @@ class Stream:
         self,
         url: str,
         *,
-        connect: Connector | None = None,
+        websocket_connection_opener: WebSocketConnectionOpener | None = None,
         ping_interval: float = 10.0,
         idle_timeout: float | None | Literal["auto"] = "auto",
         backoff_initial: float = 0.5,
@@ -344,18 +363,32 @@ class Stream:
         max_queue: int = 0,
     ):
         self.url = url
-        self._connect = connect
+        # Optional async function used instead of the normal WebSocket opener.
+        # Called on every connection attempt, including reconnects; tests can
+        # return scripted sockets while exercising the real stream lifecycle.
+        self._websocket_connection_opener = websocket_connection_opener
         self.ping_interval = ping_interval
         self.idle_timeout = (60.0 if self.data_heartbeat else None) if idle_timeout == "auto" else idle_timeout
         self.backoff_initial = backoff_initial
         self.backoff_max = backoff_max
+        # The receiver puts interpreted events here; events() removes them.
+        # One queue delivers each item to one reader, rather than broadcasting.
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
         self._last_seen = 0
         self._stale = ""
         self._ws: Any = None
-        self._task: asyncio.Task | None = None
+        # Background connection/receive/reconnect loop created by start().
+        # Runs _run_connection_and_receive_loop(), not the caller's strategy loop.
+        # None means no task has been created, or close() has cleared it.
+        self._receiver_task: asyncio.Task | None = None
+        # A deliberate shutdown must stop reconnecting and prevent events()
+        # from automatically starting another receiver.
         self._closing = False
+        # Named status operations own lifecycle counters; frame reception owns
+        # message counts/timestamps. Neither establishes book readiness.
         self.stats = StreamStats()
+        # A waitable signal for an open connection. Set before on_connect(),
+        # so it does not establish subscription completion or book readiness.
         self.connected = asyncio.Event()
 
     # -- venue hooks ----------------------------------------------------------
@@ -370,22 +403,32 @@ class Stream:
     def on_disconnect(self) -> None:
         """Forget connection-scoped state: subscription ids, sequence numbers, book readiness."""
 
-    def handle(self, message: Any) -> list[Event]:
-        """One decoded message as events."""
-        return []
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Process one complete frame and return its SDK events, possibly none.
 
-    def handle_raw(self, raw: str) -> list[Event] | None:
-        """One undecoded frame as events, by the Rust core, or `None` to have
-        `handle` read it instead. A stream overrides this where the core
-        handles its messages; whatever the core declines goes to `handle`."""
-        return None
+        The venue adapter owns framing, decoding, derived state updates and
+        any native/Python selection. It must return a list, never None.
+        """
+        raise NotImplementedError("WebSocket adapters must implement handle_raw()")
 
     # -- lifecycle ------------------------------------------------------------
 
     def start(self) -> "Stream":
-        if self._task is None or self._task.done():
+        """Schedule the background receiver without waiting for a connection.
+
+        Call inside a running asyncio event loop. Repeated calls share a
+        running receiver task; a missing or finished task is replaced.
+        Connection failures are retried without a configured attempt limit
+        until shutdown. Returning self supports async context-manager entry.
+
+        This does not wait for connection, subscription completion or a ready
+        book. Consumers must use the appropriate connection/readiness signals.
+        """
+        if self._receiver_task is None or self._receiver_task.done():
             self._closing = False
-            self._task = asyncio.get_running_loop().create_task(self._run(), name=f"synpath-{self.venue}-{self.name}")
+            self._receiver_task = asyncio.get_running_loop().create_task(
+                self._run_connection_and_receive_loop(), name=f"synpath-{self.venue}-{self.name}",
+            )
         return self
 
     async def close(self) -> None:
@@ -396,31 +439,45 @@ class Stream:
                 await ws.close()
             except Exception:  # pragma: no cover - closing a dead socket
                 pass
-        if self._task is not None:
-            self._task.cancel()
+        if self._receiver_task is not None:
+            self._receiver_task.cancel()
             try:
-                await self._task
+                await self._receiver_task
             except (asyncio.CancelledError, Exception):
                 pass
-        self._task = None
+        self._receiver_task = None
         self._queue.put_nowait(_CLOSED)
 
     async def __aenter__(self) -> "Stream":
+        """Enter `async with stream`: start receiving and bind self after `as`."""
         return self.start()
 
     async def __aexit__(self, *exc: Any) -> None:
+        """Leave `async with`: close even if the block raises an exception.
+
+        Returning None leaves the exception to propagate to the caller.
+        """
         await self.close()
 
     def __aiter__(self) -> AsyncIterator[Event]:
+        """Give `async for event in stream` its asynchronous event iterator."""
         return self.events()
 
     async def events(self) -> AsyncIterator[Event]:
-        """Every event, in the order it was produced, until `close()`. Starts
-        the stream if it has not been started; a closed stream stays closed."""
-        if self._task is None and not self._closing:
+        """Yield queued events in production order, waiting when none are ready.
+
+        Start the background receiver if it has not been started. After
+        close(), do not automatically restart it; finish when the shutdown
+        marker reaches this reader. Queue items are removed, not broadcast.
+        """
+        # Allow direct iteration without requiring a separate start() call.
+        if self._receiver_task is None and not self._closing:
             self.start()
         while True:
+            # Waiting suspends this consumer, allowing the receiver and other
+            # coroutines to run. The returned item has been removed from the queue.
             item = await self._queue.get()
+            # Identity distinguishes our shutdown marker from every real event.
             if item is _CLOSED:
                 return
             yield item
@@ -428,13 +485,58 @@ class Stream:
     def emit(self, event: Event) -> None:
         self._queue.put_nowait(event)
 
-    def status(self, state: StreamState, detail: str = "", *, key: str | None = None, reconcile: bool = False) -> None:
-        if state == "gap":
-            self.stats.gaps += 1
-        elif state == "resynced":
-            self.stats.resyncs += 1
-        elif state == "error":
-            self.stats.errors += 1
+    # -- status operations ----------------------------------------------------
+
+    def _record_connection_opened_and_emit_status(self, *, reconcile_on_reconnect: bool | None = None) -> None:
+        """Count one established connection, wake waiters and publish its status.
+
+        The caller decides when the transport is established: an open socket
+        for WebSockets, the first response/headers for gRPC. This does not
+        establish subscription completion or book readiness.
+        """
+        reconnect = self.stats.connects > 0
+        self.stats.connects += 1
+        self.connected.set()
+        needs_reconciliation = self.private if reconcile_on_reconnect is None else reconcile_on_reconnect
+        self._emit_status_event(
+            "connected", "reconnected" if reconnect else "", reconcile=reconnect and needs_reconciliation,
+        )
+
+    def _record_connection_closed_and_emit_status(self, detail: str, *, notify_consumers: bool = True) -> None:
+        """Clear the connection, count its end and invalidate venue state before notifying.
+
+        A deliberate shutdown or cancelled receiver still records the end and
+        runs on_disconnect(), but the caller suppresses the disconnect event.
+        Only call this for a connection previously recorded as established.
+        """
+        self._ws = None
+        self.connected.clear()
+        self.stats.disconnects += 1
+        self.on_disconnect()
+        if notify_consumers:
+            self._emit_status_event("disconnected", detail)
+
+    def _record_gap_and_emit_status(self, detail: str = "", *, key: str | None = None, reconcile: bool = False) -> None:
+        """Count and report missing data; the venue adapter owns its recovery policy."""
+        self.stats.gaps += 1
+        self._emit_status_event("gap", detail, key=key, reconcile=reconcile)
+
+    def _record_resync_and_emit_status(self, detail: str = "", *, key: str | None = None, reconcile: bool = False) -> None:
+        """Count and report a recovery already performed by the venue adapter."""
+        self.stats.resyncs += 1
+        self._emit_status_event("resynced", detail, key=key, reconcile=reconcile)
+
+    def _record_error_and_emit_status(self, detail: str = "", *, key: str | None = None, reconcile: bool = False) -> None:
+        """Count and report an error without changing connection or book readiness."""
+        self.stats.errors += 1
+        self._emit_status_event("error", detail, key=key, reconcile=reconcile)
+
+    def _emit_status_event(self, state: StreamState, detail: str = "", *, key: str | None = None, reconcile: bool = False) -> None:
+        """Construct and enqueue a status event without mutating lifecycle state or counters.
+
+        Venue subclasses can redact sensitive details here so all status
+        operations, including connection failures, use the same protection.
+        """
         self.emit(StreamStatusEvent(
             venue=self.venue, stream=self.name, state=state, detail=detail, key=key, reconcile_required=reconcile,
         ))
@@ -448,12 +550,17 @@ class Stream:
         return True
 
     def backoff(self, attempt: int) -> float:
+        """Calculate a randomized retry delay in seconds; do not sleep.
+
+        attempt is the zero-based consecutive failure index. backoff_max caps
+        the delay, not the number of retries; there is no retry budget here.
+        """
         base = min(self.backoff_max, self.backoff_initial * (2 ** attempt))
         return base * (0.5 + random.random() / 2)
 
     async def _open(self) -> Any:
-        if self._connect is not None:
-            return await self._connect(self.url, additional_headers=self.headers())
+        if self._websocket_connection_opener is not None:
+            return await self._websocket_connection_opener(self.url, additional_headers=self.headers())
         import websockets
 
         return await websockets.connect(
@@ -461,40 +568,48 @@ class Stream:
             ping_interval=None if self.app_ping else 20, max_size=None,
         )
 
-    async def _run(self) -> None:
+    async def _run_connection_and_receive_loop(self) -> None:
+        """Maintain a connection and process incoming frames until shutdown."""
         attempt = 0
+        # The outer loop manages successive connections. Failed opens retry
+        # without an attempt limit; shutdown/cancellation stops the receiver.
         while not self._closing:
             try:
                 ws = await self._open()
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
-                self.status("connect_failed", f"{type(exc).__name__}: {exc}")
+                self._emit_status_event("connect_failed", f"{type(exc).__name__}: {exc}")
                 await asyncio.sleep(self.backoff(attempt))
                 attempt += 1
                 continue
             attempt = 0
+            # Record an open transport and notify waiters/consumers. Subscription
+            # setup happens below, so "connected" does not mean market data is ready.
             self._ws = ws
-            reconnect = self.stats.connects > 0
-            self.stats.connects += 1
-            self.connected.set()
-            self.status("connected", "reconnected" if reconnect else "", reconcile=reconnect and self.private)
+            self._record_connection_opened_and_emit_status()
             pinger = watchdog = None
+            receiver_cancelled = False
             reason = "closed"
             self._last_seen, self._stale = now_ms(), ""
             try:
+                # Subclass defined behaviour (e.g. send subscription message) after connection is established
                 await self.on_connect()
                 if self.app_ping:
                     pinger = asyncio.get_running_loop().create_task(self._pinger(ws))
                 if self.idle_timeout:
                     watchdog = asyncio.get_running_loop().create_task(self._watchdog(ws))
+                # The inner loop receives successive frames on one connection.
+                # A receive/setup failure leaves this connection's scope and
+                # returns control to the outer connection loop after cleanup.
                 while not self._closing:
                     if self.idle_timeout:
                         raw = await asyncio.wait_for(ws.recv(), timeout=self.idle_timeout)
                     else:
                         raw = await ws.recv()
-                    self._dispatch(raw)
+                    self._process_raw_frame_and_emit_events(raw)
             except asyncio.CancelledError:
+                receiver_cancelled = True
                 raise
             except asyncio.TimeoutError:
                 reason = f"no message for {self.idle_timeout}s"
@@ -504,13 +619,11 @@ class Stream:
                 for task in (pinger, watchdog):
                     if task:
                         task.cancel()
-                self._ws = None
-                self.connected.clear()
-                self.stats.disconnects += 1
-                self.on_disconnect()
+                self._record_connection_closed_and_emit_status(
+                    reason, notify_consumers=not self._closing and not receiver_cancelled,
+                )
             if self._closing:
                 return
-            self.status("disconnected", reason)
             try:
                 await ws.close()
             except Exception:
@@ -544,24 +657,22 @@ class Stream:
             await asyncio.sleep(self.ping_interval)
             await ws.send(self.app_ping)
 
-    def _dispatch(self, raw: Any) -> None:
+    def _process_raw_frame_and_emit_events(self, raw: Any) -> None:
+        """Process one received frame, update venue state and enqueue its events.
+
+        A frame can produce zero, one or several events. The adapter's
+        handle_raw() owns parsing, implementation selection and derived state
+        such as cached books. This method counts receipt, enqueues the returned
+        events and reports processing errors as status events for consumers.
+        """
         self.stats.messages += 1
         self._last_seen = now_ms()
         self.stats.last_message_at = now_ms()
         if isinstance(raw, bytes):
             raw = raw.decode("utf-8")
         try:
-            fast = self.handle_raw(raw) if isinstance(raw, str) else None
-            if fast is not None:
-                for event in fast:
-                    self.emit(event)
-                return
-            try:
-                message = json.loads(raw)
-            except ValueError:
-                message = raw
-            for event in self.handle(message):
+            for event in self.handle_raw(raw):
                 self.emit(event)
         except Exception as exc:
             log.debug("synpath.ws %s %s: unreadable message %r", self.venue, self.name, raw, exc_info=True)
-            self.status("error", f"unreadable message: {type(exc).__name__}: {exc}")
+            self._record_error_and_emit_status(f"unreadable message: {type(exc).__name__}: {exc}")

@@ -23,6 +23,7 @@ BOOK = WS["predictOrderbook"]
 NATIVE = BOOK["topic"].split("/")[1]
 MARKET = f"predict_fun:{NATIVE}"
 
+# The venue's documented example of a wallet event.
 BASE_EVENT = {
     "type": "orderAccepted", "orderId": "123456789", "orderHash": "0xabc", "walletAddress": "0xdef",
     "timestamp": 1736696400000,
@@ -30,7 +31,6 @@ BASE_EVENT = {
                 "quoteType": "BID", "quantity": "100.000", "quantityFilled": "0.000", "price": "0.620",
                 "value": "62.00", "valueFilled": "0.00", "strategyType": "LIMIT", "categorySlug": "politics"},
 }
-"""The venue's documented example of a wallet event."""
 
 
 def event(kind: str, **extra) -> dict:
@@ -125,7 +125,7 @@ class TestMarketStream:
     def test_every_book_message_is_a_snapshot_in_yes_prices(self):
         stream = market_stream()
         asyncio.run(watching(stream, stream.watch_order_book([MARKET])))
-        stream._dispatch(json.dumps(BOOK))
+        stream._process_raw_frame_and_emit_events(json.dumps(BOOK))
         [book_event] = [e for e in drain(stream) if isinstance(e, BookEvent)]
         assert book_event.kind == "snapshot" and book_event.market_id == MARKET
         book = stream.book(MARKET)
@@ -135,8 +135,8 @@ class TestMarketStream:
     def test_the_ticker_reports_a_new_last_price_once(self):
         stream = market_stream()
         asyncio.run(watching(stream, stream.watch_ticker([MARKET])))
-        stream._dispatch(json.dumps(BOOK))
-        stream._dispatch(json.dumps(BOOK))
+        stream._process_raw_frame_and_emit_events(json.dumps(BOOK))
+        stream._process_raw_frame_and_emit_events(json.dumps(BOOK))
         first, second = [e for e in drain(stream) if isinstance(e, QuoteEvent)]
         settled = BOOK["data"]["lastOrderSettled"]
         expected = Decimal(settled["price"]) if settled["outcome"] == "Yes" else 1 - Decimal(settled["price"])
@@ -145,8 +145,8 @@ class TestMarketStream:
 
     def test_market_and_trading_status(self):
         stream = market_stream()
-        stream._dispatch(json.dumps(WS["predictMarketStatus"]))
-        stream._dispatch(json.dumps(WS["predictTradingStatus"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["predictMarketStatus"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["predictTradingStatus"]))
         states = [e.state for e in drain(stream) if isinstance(e, MarketStatusEvent)]
         assert states == ["open", "open"]
 
@@ -155,7 +155,7 @@ class TestMarketStream:
 
         async def run():
             stream._ws = FakeSocket()
-            stream._dispatch(json.dumps(WS["heartbeat"]))
+            stream._process_raw_frame_and_emit_events(json.dumps(WS["heartbeat"]))
             await asyncio.sleep(0)
             return stream._ws.sent
 
@@ -164,14 +164,14 @@ class TestMarketStream:
     def test_a_refused_subscription_is_reported(self):
         stream = market_stream()
         asyncio.run(watching(stream, stream.watch_order_book([MARKET])))
-        stream._dispatch(json.dumps({"type": "R", "requestId": 1, "success": False,
+        stream._process_raw_frame_and_emit_events(json.dumps({"type": "R", "requestId": 1, "success": False,
                                      "error": {"code": "invalid_topic", "message": "unknown topic"}}))
         assert [e.state for e in drain(stream) if isinstance(e, StreamStatusEvent)] == ["error"]
 
     def test_a_reconnect_marks_books_not_ready(self):
         stream = market_stream()
         asyncio.run(watching(stream, stream.watch_order_book([MARKET])))
-        stream._dispatch(json.dumps(BOOK))
+        stream._process_raw_frame_and_emit_events(json.dumps(BOOK))
         stream.on_disconnect()
         assert not stream.book(MARKET).ready
 
@@ -181,13 +181,14 @@ class TestUserStream:
         stream = PredictFunUserStream(api_key="test-key", jwt="secret.jwt.value")
         sent = asyncio.run(watching(stream, stream.watch_orders()))
         assert sent[0]["params"] == ["predictWalletEvents/secret.jwt.value"]
-        stream.status("error", "refused predictWalletEvents/secret.jwt.value")
+        stream._record_error_and_emit_status("refused predictWalletEvents/secret.jwt.value")
         assert "secret.jwt.value" not in drain(stream)[-1].detail
+        assert stream.stats.errors == 1
 
     def test_events_become_orders_and_fills(self):
         stream = PredictFunUserStream(api_key="test-key", jwt="j")
         fill = {"executedPriceWei": str(62 * 10**16), "executedSizeWei": str(10**19), "executedValueWei": "0"}
-        stream._dispatch(json.dumps({"type": "M", "topic": "predictWalletEvents/j",
+        stream._process_raw_frame_and_emit_events(json.dumps({"type": "M", "topic": "predictWalletEvents/j",
                                      "data": event("orderTransactionSuccess", settlementId="s", fill=fill)}))
         events = drain(stream)
         assert [type(e) for e in events] == [OrderEvent, FillEvent]
@@ -200,7 +201,7 @@ class TestUserStream:
         async def run():
             sent = await watching(stream, stream.watch_orders())
             request_id = sent[0]["requestId"]
-            stream._dispatch(json.dumps({"type": "R", "requestId": request_id, "success": False,
+            stream._process_raw_frame_and_emit_events(json.dumps({"type": "R", "requestId": request_id, "success": False,
                                          "error": {"code": "invalid_credentials"}}))
             await asyncio.sleep(0)
             await asyncio.sleep(0)
@@ -221,7 +222,7 @@ def test_a_source_that_takes_fresh_is_asked_for_a_new_login():
 
     async def run():
         sent = await watching(stream, stream.watch_orders())
-        stream._dispatch(json.dumps({"type": "R", "requestId": sent[0]["requestId"], "success": False,
+        stream._process_raw_frame_and_emit_events(json.dumps({"type": "R", "requestId": sent[0]["requestId"], "success": False,
                                      "error": {"code": "invalid_credentials"}}))
         for _ in range(3):
             await asyncio.sleep(0)

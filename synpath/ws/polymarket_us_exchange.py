@@ -98,13 +98,13 @@ INSTRUMENT_STATE = {
     "INSTRUMENT_STATE_TERMINATED": "settled",
 }
 
+# Every other state (new, in flight, pending, acknowledged, retrying, and any
+# state added later) is a trade still on its way: `matched`.
 TRADE_SETTLEMENT = {
     "TRADE_STATE_CLEARED": SettlementState.CONFIRMED,
     "TRADE_STATE_BUSTED": SettlementState.FAILED,
     "TRADE_STATE_REJECTED": SettlementState.FAILED,
 }
-"""Every other state (new, in flight, pending, acknowledged, retrying, and any
-state added later) is a trade still on its way: `matched`."""
 
 
 def load_protos(path: Any = None, **kwargs: Any) -> ProtoBundle:
@@ -232,8 +232,8 @@ def book_sides(update: dict[str, Any], scale: InstrumentScale) -> tuple[list[tup
 
 class _ExchangeStream(GrpcStream):
     venue = VENUE
+    # Sends `x-participant-id`; reference and market data need none.
     account_scoped = True
-    """Sends `x-participant-id`; reference and market data need none."""
 
     def __init__(
         self,
@@ -288,7 +288,7 @@ class _ExchangeStream(GrpcStream):
             try:
                 await self.trading.load_instruments(missing, strict=False)
             except ExchangeError as exc:
-                self.status("error", f"reference data for {missing[:3]} failed: {exc}")
+                self._record_error_and_emit_status(f"reference data for {missing[:3]} failed: {exc}")
 
     def _each(self, items: Any, read: Callable[[dict[str, Any]], list[Event]]) -> list[Event]:
         """Read items one at a time, so one unreadable item costs only itself."""
@@ -297,7 +297,7 @@ class _ExchangeStream(GrpcStream):
             try:
                 events.extend(read(item))
             except Exception as exc:
-                self.status("error", f"unreadable item: {type(exc).__name__}: {exc}")
+                self._record_error_and_emit_status(f"unreadable item: {type(exc).__name__}: {exc}")
         return events
 
 
@@ -322,10 +322,10 @@ class _ResumableStream(_ExchangeStream):
         self.firms = list(firms or [])
         if isinstance(resume_token, bytes):
             resume_token = base64.b64encode(resume_token).decode()
+        # The last token, base64 as the venue's JSON mapping writes bytes.
         self.resume_token: str | None = resume_token or None
-        """The last token, base64 as the venue's JSON mapping writes bytes."""
+        # Where to resume from without a token, in milliseconds.
         self.resume_time: int | None = resume_time
-        """Where to resume from without a token, in milliseconds."""
         self.last_event_time: int | None = None
 
     request_fields: tuple[str, ...] = ("symbols", "firms")
@@ -352,7 +352,7 @@ class _ResumableStream(_ExchangeStream):
             since = self.last_event_time if self.last_event_time is not None else self.resume_time
             self.resume_token = None
             self.resume_time = since
-            self.status("error", f"the venue refused the resume token ({code}); resuming from {rfc3339(since) if since else 'now'}")
+            self._record_error_and_emit_status(f"the venue refused the resume token ({code}); resuming from {rfc3339(since) if since else 'now'}")
             return "retry"
         return super().classify(code)
 
@@ -499,8 +499,8 @@ class PolymarketUSExchangeOrderStream(_ExchangeStream):
         self.session_id: str | None = None
 
     async def watch_orders(self, market_ids: list[str] | None = None, accounts: list[str] | None = None) -> None:
+        # Narrow (or widen, with `None`) what the stream carries; empty means everything.
         symbols = None if market_ids is None else [ids.native(VENUE, m) for m in market_ids]
-        """Narrow (or widen, with `None`) what the stream carries; empty means everything."""
         symbols, accounts = list(symbols or []), list(accounts or [])
         if (symbols, accounts) != (self.symbols, self.accounts):
             self.symbols, self.accounts = symbols, accounts
@@ -644,7 +644,7 @@ class PolymarketUSExchangeMarketDataStream(_ExchangeStream):
             await self.trading.load_instruments(missing, strict=False)
         unknown = [s for s in request["symbols"] if self.trading.cached_scale(s) is None]
         if unknown:
-            self.status("error", f"no reference data for {unknown[:5]}; not subscribed")
+            self._record_error_and_emit_status(f"no reference data for {unknown[:5]}; not subscribed")
             self.symbols = [s for s in self.symbols if s not in unknown]
             request = {**request, "symbols": [s for s in request["symbols"] if s not in unknown]}
         return request if request["symbols"] else None

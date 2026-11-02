@@ -30,6 +30,7 @@ from ..base import Capability
 from ..trading.polymarket import GAMMA_URL, MarketTokens, fills_of, order_of
 from ..trading.types import Account, OrderStatus, Side
 from .base import (
+    decode_json_or_text,
     ONE,
     BookEvent, BookLevel, D, Event, FillEvent, LocalBook, MarketStatusEvent, OrderEvent, QuoteEvent, Stream,
     TradeEvent, VenueEvent, maybe_D,
@@ -60,12 +61,12 @@ class PolymarketMarketStream(Stream):
         super().__init__(url, **kwargs)
         self.tokens: set[str] = set()
         self.books: dict[str, LocalBook] = {}
+        # Token id -> condition id, learned from the stream.
         self.markets: dict[str, str] = {}
-        """Token id -> condition id, learned from the stream."""
+        # Which token is which side of which market, from the Gamma catalog.
         self.catalog = TokenCatalog(gamma_url)
-        """Which token is which side of which market, from the Gamma catalog."""
+        # Token -> (timestamp, venue best bid, venue best ask) not yet checked.
         self._unverified: dict[str, tuple[int | None, Any, Any]] = {}
-        """Token -> (timestamp, venue best bid, venue best ask) not yet checked."""
 
     async def watch_order_book(self, market_ids: list[str]) -> None:
         """Books, trades, top of book and lifecycle for these markets, both
@@ -128,11 +129,19 @@ class PolymarketMarketStream(Stream):
 
     # -- reading --------------------------------------------------------------
 
-    def handle_raw(self, raw: str) -> list[Event] | None:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Process a complete frame; this adapter owns native/Python selection."""
+        events = self._try_process_frame_with_rust(raw)
+        # An empty list means handled with no events; only None requests fallback.
+        if events is not None:
+            return events
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _try_process_frame_with_rust(self, raw: str) -> list[Event] | None:
         """Book snapshots and price changes, parsed and applied by the Rust
         core on these same books, with the same top-of-book checks. Frames
         holding anything else, and everything when the core is not built,
-        go to `handle`."""
+        go to `_handle_decoded_message`."""
         if _native.core is None:
             return None
         done = _native.core.polymarket_market(raw, self.books, self._unverified, self.markets)
@@ -149,17 +158,17 @@ class PolymarketMarketStream(Stream):
                 ))
             elif item[0] == "gap":
                 _, token, local_bid, local_ask, venue_bid, venue_ask = item
-                self.status("gap", f"book {token}: local top {local_bid}/{local_ask}, venue {venue_bid}/{venue_ask}", key=token)
+                self._record_gap_and_emit_status(f"book {token}: local top {local_bid}/{local_ask}, venue {venue_bid}/{venue_ask}", key=token)
                 self._later(self._resubscribe(token))
             elif item[0] == "resynced":
-                self.status("resynced", f"book {item[1]}", key=item[1])
+                self._record_resync_and_emit_status(f"book {item[1]}", key=item[1])
         return events
 
-    def handle(self, message: Any) -> list[Event]:
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if isinstance(message, list):
             events: list[Event] = []
             for item in message:
-                events.extend(self.handle(item))
+                events.extend(self._handle_decoded_message(item))
             return events
         if not isinstance(message, dict):
             return []  # PONG
@@ -217,7 +226,7 @@ class PolymarketMarketStream(Stream):
         book.timestamp = _ms(message.get("timestamp"))
         self._unverified.pop(token, None)
         if recovering:
-            self.status("resynced", f"book {token}", key=token)
+            self._record_resync_and_emit_status(f"book {token}", key=token)
         bids, asks = book.levels()
         market_id, side = self._where(token, market)
         return [BookEvent(
@@ -276,8 +285,7 @@ class PolymarketMarketStream(Stream):
         _, best_bid, best_ask = pending
         if _agrees(book.best_bid, best_bid) and _agrees(book.best_ask, best_ask):
             return True
-        self.status(
-            "gap", f"book {token}: local top {book.best_bid}/{book.best_ask}, venue {best_bid}/{best_ask}", key=token,
+        self._record_gap_and_emit_status(f"book {token}: local top {book.best_bid}/{book.best_ask}, venue {best_bid}/{best_ask}", key=token,
         )
         book.invalidate()
         self._later(self._resubscribe(token))
@@ -357,11 +365,15 @@ class PolymarketUserStream(Stream):
             frame["markets"] = sorted(self.markets)
         await self.send(frame)
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if isinstance(message, list):
             events: list[Event] = []
             for item in message:
-                events.extend(self.handle(item))
+                events.extend(self._handle_decoded_message(item))
             return events
         if not isinstance(message, dict):
             return []

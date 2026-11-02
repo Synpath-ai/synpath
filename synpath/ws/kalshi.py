@@ -41,6 +41,7 @@ from ..trading.credentials import KalshiCredentials
 from ..trading.kalshi import KalshiSigner, fill_of, order_of, position_of
 from ..trading.types import Account, Side
 from .base import (
+    decode_json_or_text,
     ONE, BookEvent, BookLevel, D, Event, LocalBook, MarketStatusEvent, OrderEvent, FillEvent, PositionEvent,
     QuoteEvent, Stream, TradeEvent, VenueEvent, maybe_D,
 )
@@ -53,11 +54,11 @@ URLS = {
 }
 
 PRIVATE_CHANNELS = frozenset({"fill", "user_orders", "market_positions", "order_group_updates"})
+# Channels that take a market filter; the rest take none.
 MARKET_SCOPED = frozenset({"orderbook_delta", "ticker", "trade", "fill", "user_orders", "market_positions"})
-"""Channels that take a market filter; the rest take none."""
 
+# Ask again for a snapshot that has not arrived after this long.
 RESYNC_AFTER_S = 10.0
-"""Ask again for a snapshot that has not arrived after this long."""
 
 LIFECYCLE_STATE = {
     "created": "created",
@@ -76,8 +77,8 @@ class Channel:
     server calls it on this connection."""
 
     name: str
+    # `None` means every market.
     tickers: set[str] | None
-    """`None` means every market."""
     sid: int | None = None
     command_id: int | None = None
     last_seq: int | None = None
@@ -227,11 +228,19 @@ class KalshiStream(Stream):
 
     # -- reading --------------------------------------------------------------
 
-    def handle_raw(self, raw: str) -> list[Event] | None:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Process a complete frame; this adapter owns native/Python selection."""
+        events = self._try_process_frame_with_rust(raw)
+        # An empty list means handled with no events; only None requests fallback.
+        if events is not None:
+            return events
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _try_process_frame_with_rust(self, raw: str) -> list[Event] | None:
         """Book snapshots and deltas, decoded and applied by the Rust core on
         these same books. The sequence check runs here in between, as in
-        `handle`. Everything else, and everything when the core is not built,
-        goes to `handle`."""
+        `_handle_decoded_message`. Everything else, and everything when the core is not built,
+        goes to `_handle_decoded_message`."""
         if _native.core is None:
             return None
         decoded = _native.core.kalshi_book_message(raw, self.books)
@@ -249,7 +258,7 @@ class KalshiStream(Stream):
             _, ticker, recovering, bids, asks, best_bid, best_ask, info = done
             self._snapshot_requested.pop(ticker, None)
             if recovering:
-                self.status("resynced", f"orderbook {ticker}", key=ticker)
+                self._record_resync_and_emit_status(f"orderbook {ticker}", key=ticker)
             return [BookEvent(
                 venue=VENUE, market_id=ids.qualify(VENUE, ticker), kind="snapshot", bids=bids, asks=asks,
                 best_bid=best_bid, best_ask=best_ask, sequence=seq, info=info,
@@ -260,7 +269,7 @@ class KalshiStream(Stream):
             best_bid=best_bid, best_ask=best_ask, sequence=seq, timestamp=stamp, info=info,
         )]
 
-    def handle(self, message: Any) -> list[Event]:
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if not isinstance(message, dict):
             return []
         kind = message.get("type")
@@ -310,7 +319,7 @@ class KalshiStream(Stream):
             return []
         channel.sid = int(body["sid"])
         self._by_sid[channel.sid] = channel
-        self.status("subscribed", channel.name, key=channel.name)
+        self._emit_status_event("subscribed", channel.name, key=channel.name)
         if channel.pending_add:
             added, channel.pending_add = sorted(channel.pending_add), set()
             self._later(self._send_command("update_subscription", {
@@ -325,10 +334,10 @@ class KalshiStream(Stream):
         channel = self._by_command.pop(message.get("id"), None) or self._by_sid.get(message.get("sid"))
         if code == 25 and channel is not None:
             # The server dropped messages for this subscription: start it again.
-            self.status("gap", f"{channel.name}: {detail}", key=channel.name, reconcile=channel.name in PRIVATE_CHANNELS)
+            self._record_gap_and_emit_status(f"{channel.name}: {detail}", key=channel.name, reconcile=channel.name in PRIVATE_CHANNELS)
             self._restart(channel)
             return []
-        self.status("error", detail, key=channel.name if channel else None)
+        self._record_error_and_emit_status(detail, key=channel.name if channel else None)
         return []
 
     def _check_sequence(self, channel: Channel, seq: int, kind: str | None) -> None:
@@ -336,8 +345,7 @@ class KalshiStream(Stream):
         channel.last_seq = seq
         if last is None or seq == last + 1:
             return
-        self.status(
-            "gap", f"{channel.name}: expected seq {last + 1}, got {seq}", key=channel.name,
+        self._record_gap_and_emit_status(f"{channel.name}: expected seq {last + 1}, got {seq}", key=channel.name,
             reconcile=channel.name in PRIVATE_CHANNELS,
         )
         if channel.name == "orderbook_delta":
@@ -383,7 +391,7 @@ class KalshiStream(Stream):
         book.sequence = message.get("seq")
         self._snapshot_requested.pop(ticker, None)
         if recovering:
-            self.status("resynced", f"orderbook {ticker}", key=ticker)
+            self._record_resync_and_emit_status(f"orderbook {ticker}", key=ticker)
         bids, asks = book.levels()
         return [BookEvent(
             venue=VENUE, market_id=ids.qualify(VENUE, ticker), kind="snapshot", bids=bids, asks=asks,

@@ -37,6 +37,7 @@ from ..errors import BadRequest
 from ..trading.hyperliquid import fill_of, order_of, outcome_coin
 from ..trading.types import Account, Side
 from .base import (
+    decode_json_or_text,
     BookEvent, BookLevel, Event, FillEvent, LocalBook, OrderEvent, QuoteEvent, Stream, TradeEvent, VenueEvent,
     maybe_D, now_ms,
 )
@@ -73,9 +74,9 @@ class _HyperliquidStream(Stream):
 
     def __init__(self, *, testnet: bool = False, url: str | None = None, ping_interval: float = 30.0, **kwargs: Any):
         super().__init__(url or (TESTNET_WS_URL if testnet else WS_URL), ping_interval=ping_interval, **kwargs)
+        # Every subscription asked for, keyed for de-duplication, sent again
+        # on every connect.
         self.subscriptions: dict[str, dict[str, Any]] = {}
-        """Every subscription asked for, keyed for de-duplication, sent again
-        on every connect."""
 
     async def _subscribe(self, subscription: dict[str, Any]) -> None:
         key = repr(sorted(subscription.items()))
@@ -98,10 +99,10 @@ class _HyperliquidStream(Stream):
         if channel in ("pong", "subscriptionResponse"):
             if channel == "subscriptionResponse":
                 sub = (message.get("data") or {}).get("subscription") or {}
-                self.status("subscribed", str(sub.get("type") or ""), key=str(sub.get("coin") or sub.get("user") or ""))
+                self._emit_status_event("subscribed", str(sub.get("type") or ""), key=str(sub.get("coin") or sub.get("user") or ""))
             return []
         if channel == "error":
-            self.status("error", f"venue: {message.get('data')}")
+            self._record_error_and_emit_status(f"venue: {message.get('data')}")
             return []
         return None
 
@@ -129,13 +130,13 @@ class HyperliquidMarketStream(_HyperliquidStream):
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
+        # YES coin -> its book.
         self.books: dict[str, LocalBook] = {}
-        """YES coin -> its book."""
+        # YES coin -> Synpath market id.
         self.markets: dict[str, str] = {}
-        """YES coin -> Synpath market id."""
+        # YES coin -> when its prints were last subscribed, in ms: the
+        # replayed prints before it are dropped.
         self.trades_since: dict[str, int] = {}
-        """YES coin -> when its prints were last subscribed, in ms: the
-        replayed prints before it are dropped."""
 
     def _track(self, market_id: str) -> str:
         coin = yes_coin(market_id)
@@ -191,7 +192,11 @@ class HyperliquidMarketStream(_HyperliquidStream):
 
     # -- reading --------------------------------------------------------------
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if not isinstance(message, dict):
             return []
         channel = message.get("channel")
@@ -219,7 +224,7 @@ class HyperliquidMarketStream(_HyperliquidStream):
         book.replace(levels_of(rows[0] if rows else []), levels_of(rows[1] if len(rows) > 1 else []))
         book.timestamp = int(data["time"]) if data.get("time") else None
         if recovering:
-            self.status("resynced", f"book {self.markets.get(coin, coin)}", key=self.markets.get(coin))
+            self._record_resync_and_emit_status(f"book {self.markets.get(coin, coin)}", key=self.markets.get(coin))
         bids, asks = book.levels()
         return [BookEvent(
             venue=VENUE, market_id=self.markets.get(coin, coin), side="yes", kind="snapshot",
@@ -286,8 +291,8 @@ class HyperliquidUserStream(_HyperliquidStream):
                              f"or set HYPERLIQUID_ACCOUNT_ADDRESS")
         self.address = found.lower()
         self.account = Account(venue=VENUE, name=account_name)
+        # Markets to report, or `None` for every outcome.
         self.only: set[str] | None = None
-        """Markets to report, or `None` for every outcome."""
 
     async def watch_orders(self, market_ids: list[str] | None = None) -> None:
         """This address's orders, on every outcome or only these markets."""
@@ -309,7 +314,11 @@ class HyperliquidUserStream(_HyperliquidStream):
     def _wanted(self, market_id: str) -> bool:
         return self.only is None or market_id in self.only
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if not isinstance(message, dict):
             return []
         channel = message.get("channel")
@@ -332,7 +341,7 @@ class HyperliquidUserStream(_HyperliquidStream):
         rows = data.get("fills") or []
         if data.get("isSnapshot"):
             outcome_rows = sum(1 for row in rows if outcome_coin(str(row.get("coin") or "")))
-            self.status("subscribed", f"userFills: snapshot of {outcome_rows} recent outcome fills not replayed",
+            self._emit_status_event("subscribed", f"userFills: snapshot of {outcome_rows} recent outcome fills not replayed",
                         key="userFills")
             return []
         events: list[Event] = []

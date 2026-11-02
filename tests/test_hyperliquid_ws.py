@@ -115,8 +115,8 @@ class TestMarketStream:
     def test_every_book_message_is_a_snapshot(self):
         stream = HyperliquidMarketStream()
         asyncio.run(watching(stream, stream.watch_order_book([MARKET])))
-        stream._dispatch(json.dumps(WS["l2Book"]))
-        stream._dispatch(json.dumps(WS["l2Book"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["l2Book"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["l2Book"]))
         events = [e for e in drain(stream) if isinstance(e, BookEvent)]
         assert [e.kind for e in events] == ["snapshot", "snapshot"]
         book = stream.book(MARKET)
@@ -128,27 +128,27 @@ class TestMarketStream:
         stream = HyperliquidMarketStream()
         asyncio.run(watching(stream, stream.watch_order_book([MARKET])))
         before = stream.book(MARKET)
-        stream._dispatch(json.dumps(WS["l2Book"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["l2Book"]))
         assert stream.book(MARKET) is before
 
     def test_a_reconnect_marks_books_not_ready_until_the_next_message(self):
         stream = HyperliquidMarketStream()
         asyncio.run(watching(stream, stream.watch_order_book([MARKET])))
-        stream._dispatch(json.dumps(WS["l2Book"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["l2Book"]))
         stream.on_disconnect()
         assert not stream.book(MARKET).ready
         drain(stream)
-        stream._dispatch(json.dumps(WS["l2Book"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["l2Book"]))
         states = [e.state for e in drain(stream) if isinstance(e, StreamStatusEvent)]
         assert stream.book(MARKET).ready and states == ["resynced"]
 
     def test_prints_from_before_the_subscription_are_dropped(self):
         stream = HyperliquidMarketStream()
         asyncio.run(watching(stream, stream.watch_trades([MARKET])))
-        stream._dispatch(json.dumps(WS["trades"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["trades"]))
         assert not [e for e in drain(stream) if isinstance(e, TradeEvent)]
         stream.trades_since["#75440"] = 0
-        stream._dispatch(json.dumps(WS["trades"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["trades"]))
         trades = [e for e in drain(stream) if isinstance(e, TradeEvent)]
         assert len(trades) == len(WS["trades"]["data"])
         row = WS["trades"]["data"][0]
@@ -158,8 +158,8 @@ class TestMarketStream:
     def test_quotes_and_volume(self):
         stream = HyperliquidMarketStream()
         asyncio.run(watching(stream, stream.watch_ticker([MARKET])))
-        stream._dispatch(json.dumps(WS["bbo"]))
-        stream._dispatch(json.dumps(WS["activeSpotAssetCtx"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["bbo"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["activeSpotAssetCtx"]))
         bbo, ctx = [e for e in drain(stream) if isinstance(e, QuoteEvent)]
         assert bbo.bid == Decimal(WS["bbo"]["data"]["bbo"][0]["px"])
         assert bbo.ask == Decimal(WS["bbo"]["data"]["bbo"][1]["px"])
@@ -167,9 +167,9 @@ class TestMarketStream:
 
     def test_acknowledgements_and_pongs(self):
         stream = HyperliquidMarketStream()
-        stream._dispatch(json.dumps(WS["subscriptionResponse"]))
-        stream._dispatch(json.dumps(WS["pong"]))
-        stream._dispatch(json.dumps({"channel": "error", "data": "Invalid subscription"}))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["subscriptionResponse"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["pong"]))
+        stream._process_raw_frame_and_emit_events(json.dumps({"channel": "error", "data": "Invalid subscription"}))
         states = [e.state for e in drain(stream) if isinstance(e, StreamStatusEvent)]
         assert states == ["subscribed", "error"]
 
@@ -198,14 +198,14 @@ class TestUserStream:
 
     def test_the_fill_snapshot_is_reported_not_replayed(self):
         stream = self.user()
-        stream._dispatch(json.dumps(WS["userFills_snapshot"]))
+        stream._process_raw_frame_and_emit_events(json.dumps(WS["userFills_snapshot"]))
         events = drain(stream)
         assert not [e for e in events if isinstance(e, FillEvent)]
         assert [e.state for e in events if isinstance(e, StreamStatusEvent)] == ["subscribed"]
 
     def test_new_fills_and_transfers(self):
         stream = self.user()
-        stream._dispatch(json.dumps({"channel": "userFills", "data": {"user": stream.address, "fills": FILLS}}))
+        stream._process_raw_frame_and_emit_events(json.dumps({"channel": "userFills", "data": {"user": stream.address, "fills": FILLS}}))
         events = drain(stream)
         fills = [e for e in events if isinstance(e, FillEvent)]
         transfers = [e for e in events if isinstance(e, VenueEvent)]
@@ -214,14 +214,14 @@ class TestUserStream:
 
     def test_order_updates(self):
         stream = self.user()
-        stream._dispatch(json.dumps({"channel": "orderUpdates", "data": ORDERS}))
+        stream._process_raw_frame_and_emit_events(json.dumps({"channel": "orderUpdates", "data": ORDERS}))
         orders = [e for e in drain(stream) if isinstance(e, OrderEvent)]
         assert [e.native for e in orders] == [row["status"] for row in ORDERS]
 
     def test_a_market_filter_narrows(self):
         stream = self.user()
         asyncio.run(watching(stream, stream.watch_orders(["hyperliquid:3600"])))
-        stream._dispatch(json.dumps({"channel": "orderUpdates", "data": ORDERS}))
+        stream._process_raw_frame_and_emit_events(json.dumps({"channel": "orderUpdates", "data": ORDERS}))
         assert not [e for e in drain(stream) if isinstance(e, OrderEvent)]
 
 
