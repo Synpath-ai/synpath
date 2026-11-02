@@ -39,8 +39,8 @@ MARKET_ORDER, LIMIT_ORDER = 1, 2
 
 MIN_PRICE = Decimal("0.001")
 MAX_PRICE = Decimal("0.999")
+# The venue's bounds on a limit price, as its client enforces them.
 MAX_PRICE_PLACES = 6
-"""The venue's bounds on a limit price, as its client enforces them."""
 
 ORDER_FIELDS = [
     {"name": "salt", "type": "uint256"},

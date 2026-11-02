@@ -31,16 +31,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, AsyncIterator, Awaitable, Callable, Literal
 
-from .base import _CLOSED, Stream, log, now_ms
+from .base import _CLOSED, Event, Stream, log, now_ms
 
 PROTO_ENV = "SYNPATH_POLYMARKET_US_PROTOS"
 
+# `(method, request, metadata) -> responses`: how a stream opens one call.
+# The default speaks gRPC; tests pass scripted responses.
 CallOpener = Callable[[str, dict[str, Any], list[tuple[str, str]]], Awaitable[AsyncIterator[Any]]]
-"""`(method, request, metadata) -> responses`: how a stream opens one call.
-The default speaks gRPC; tests pass scripted responses."""
 
+# Yielded by a call once the server has answered (its headers arrived).
 READY = object()
-"""Yielded by a call once the server has answered (its headers arrived)."""
 
 Outcome = Literal["retry", "reauthenticate", "slow_down", "fatal"]
 
@@ -297,8 +297,8 @@ class GrpcStream(Stream):
         **kwargs: Any,
     ):
         super().__init__(target, **kwargs)
+        # Plaintext, for a local test server only.
         self.insecure = insecure
-        """Plaintext, for a local test server only."""
         self.protos = protos
         self._call_opener = call
         self.keepalive_s = keepalive_s
@@ -309,6 +309,10 @@ class GrpcStream(Stream):
         self.last_status: str | None = None
 
     # -- venue hooks ----------------------------------------------------------
+
+    def handle(self, message: dict[str, Any]) -> list[Event]:
+        """Interpret one decoded RPC message; separate from WebSocket frames."""
+        return []
 
     def request(self) -> dict[str, Any] | None:
         """The request for the next call; `None` waits for `resubscribe()`."""
@@ -429,17 +433,17 @@ class GrpcStream(Stream):
                 events = self.handle(message)
             except Exception as exc:
                 log.debug("synpath.ws %s %s: unreadable message %r", self.venue, self.name, item, exc_info=True)
-                self.status("error", f"unreadable message: {type(exc).__name__}: {exc}")
+                self._record_error_and_emit_status(f"unreadable message: {type(exc).__name__}: {exc}")
                 continue
             for event in events:
                 self.emit(event)
 
     def _fail(self, detail: str) -> None:
         self._closing = True
-        self.status("failed", detail)
+        self._emit_status_event("failed", detail)
         self._queue.put_nowait(_CLOSED)
 
-    async def _run(self) -> None:
+    async def _run_connection_and_receive_loop(self) -> None:
         attempt = 0
         while not self._closing:
             self._resubscribe.clear()
@@ -450,7 +454,7 @@ class GrpcStream(Stream):
                 except asyncio.CancelledError:
                     raise
                 except Exception as exc:
-                    self.status("connect_failed", f"{type(exc).__name__}: {exc}")
+                    self._emit_status_event("connect_failed", f"{type(exc).__name__}: {exc}")
                     await self._sleep(self.backoff(attempt))
                     attempt += 1
                     continue
@@ -467,7 +471,7 @@ class GrpcStream(Stream):
             except Exception as exc:
                 code = status_code(exc)
                 self.last_status = code
-                self.status("connect_failed", f"{code or type(exc).__name__}: {status_details(exc) if code else exc}")
+                self._emit_status_event("connect_failed", f"{code or type(exc).__name__}: {status_details(exc) if code else exc}")
                 if await self._after_failure(code, f"{code}: {status_details(exc)}", attempt):
                     return
                 attempt += 1
@@ -481,10 +485,9 @@ class GrpcStream(Stream):
                     return
                 confirmed = True
                 attempt = 0
-                reconnect = self.stats.connects > 0
-                self.stats.connects += 1
-                self.connected.set()
-                self.status("connected", "reconnected" if reconnect else "", reconcile=reconnect and self.reconcile_on_reconnect())
+                self._record_connection_opened_and_emit_status(
+                    reconcile_on_reconnect=self.reconcile_on_reconnect(),
+                )
 
             self._last_seen, self._stale = now_ms(), ""
             loop = asyncio.get_running_loop()
@@ -495,6 +498,7 @@ class GrpcStream(Stream):
             code: str | None = None
             reason = "closed"
             resubscribing = False
+            receiver_cancelled = False
             try:
                 done, _ = await asyncio.wait(watched, return_when=asyncio.FIRST_COMPLETED)
                 if reader in done:
@@ -506,6 +510,9 @@ class GrpcStream(Stream):
                 else:
                     resubscribing = True
                     reason = "resubscribing"
+            except asyncio.CancelledError:
+                receiver_cancelled = True
+                raise
             finally:
                 for task in (reader, waker, watching):
                     if task is not None and not task.done():
@@ -522,18 +529,22 @@ class GrpcStream(Stream):
                         pass
                 self._grpc_call = None
                 if confirmed:
-                    self.connected.clear()
-                    self.stats.disconnects += 1
-                self.on_disconnect()
+                    # Preserve the last status visible when publishing a normal
+                    # disconnect; shutdown/cancellation previously left it alone.
+                    if not self._closing and not receiver_cancelled:
+                        self.last_status = code
+                    self._record_connection_closed_and_emit_status(
+                        reason, notify_consumers=not self._closing and not receiver_cancelled,
+                    )
+                else:
+                    # A call refused before its first response was never an
+                    # established connection, but may still hold venue state.
+                    self.on_disconnect()
             if self._closing:
                 return
             self.last_status = code
-            # A call the venue refused before answering was never a connection,
-            # and one replaced before it answered was neither.
-            if confirmed:
-                self.status("disconnected", reason)
-            elif not resubscribing:
-                self.status("connect_failed", reason)
+            if not confirmed and not resubscribing:
+                self._emit_status_event("connect_failed", reason)
             if resubscribing:
                 continue
             if await self._after_failure(code, reason, attempt):

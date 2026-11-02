@@ -18,8 +18,8 @@ from synpath.trading.types import OrderRequest, OrderStatus, OrderType, Position
 
 from conftest import load
 
+# The private key the venue's Python SDK signs its test vectors with.
 SDK_KEY = "0x0123456789012345678901234567890123456789012345678901234567890123"
-"""The private key the venue's Python SDK signs its test vectors with."""
 
 
 def sdk_order(**extra):

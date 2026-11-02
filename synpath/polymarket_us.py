@@ -55,37 +55,37 @@ GATEWAY_URL = "https://gateway.polymarket.us/v1"
 SITE_URL = "https://polymarket.us"
 VENUE = "polymarket_us"
 
+# The venue documents 20 requests per second per IP for the public gateway,
+# answering 429 with no Retry-After beyond that. Set below the ceiling because
+# the limit is per IP and this budget is per process: two processes on one
+# machine each at 20/s would be at 40/s. Shared process-wide, as the others are.
 LIMITER = RateLimiter(15.0, burst=15)
-"""The venue documents 20 requests per second per IP for the public gateway,
-answering 429 with no Retry-After beyond that. Set below the ceiling because
-the limit is per IP and this budget is per process: two processes on one
-machine each at 20/s would be at 40/s. Shared process-wide, as the others are."""
 
+# Slugs per `/markets?slug=` call. The ceiling is URI length; 50 slugs of the
+# lengths seen here stay under 2,500 characters.
 MARKET_BATCH = 50
-"""Slugs per `/markets?slug=` call. The ceiling is URI length; 50 slugs of the
-lengths seen here stay under 2,500 characters."""
 
+# The venue's published maker coefficient, a rebate. Fees are `theta * C * p
+# * (1 - p)`; the taker theta is on each market as `feeCoefficient`, the maker
+# theta is venue-wide and appears only in the fee schedule document.
 MAKER_THETA = -0.0125
-"""The venue's published maker coefficient, a rebate. Fees are `theta * C * p
-* (1 - p)`; the taker theta is on each market as `feeCoefficient`, the maker
-theta is venue-wide and appears only in the fee schedule document."""
 
+# Most search pages one `search_markets` call reads while filling `limit`
+# markets. Past it the call returns what it has, with a cursor.
 MAX_SEARCH_PAGES = 5
-"""Most search pages one `search_markets` call reads while filling `limit`
-markets. Past it the call returns what it has, with a cursor."""
 
+# Packs a search cursor's page and markets-to-skip into one number:
+# `page * SEARCH_SKIP + skip`.
 SEARCH_SKIP = 1_000_000
-"""Packs a search cursor's page and markets-to-skip into one number:
-`page * SEARCH_SKIP + skip`."""
 
+# Results per search page when the caller gives no limit.
 SEARCH_PAGE = 20
-"""Results per search page when the caller gives no limit."""
 
 _SETTLED_STATUSES = {"MARKET_STATUS_RESOLVED", "MARKET_STATUS_SETTLED"}
+# Book states in which the venue accepts orders. Everything else --
+# pre-open, suspended, halted, expired, terminated, auction -- is listed and not
+# trading, which is `status="open"` with `active=False`.
 _OPEN_STATES = {"MARKET_STATE_OPEN"}
-"""Book states in which the venue accepts orders. Everything else --
-pre-open, suspended, halted, expired, terminated, auction -- is listed and not
-trading, which is `status="open"` with `active=False`."""
 
 
 # ---------------------------------------------------------------------------

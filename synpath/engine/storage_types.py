@@ -11,18 +11,18 @@ class LeaseLost(RuntimeError):
 
 
 class IntentState:
+    # Written, risk passed, not yet sent.
     PLANNED = "planned"
-    """Written, risk passed, not yet sent."""
+    # Handed to the venue; the answer has not come back.
     SENDING = "sending"
-    """Handed to the venue; the answer has not come back."""
     SENT = "sent"
+    # The order reached a terminal status.
     SETTLED = "settled"
-    """The order reached a terminal status."""
     REJECTED = "rejected"
+    # The venue refused it, or the call failed in a way that proves nothing left.
     FAILED = "failed"
-    """The venue refused it, or the call failed in a way that proves nothing left."""
+    # In doubt for longer than the sweep allows and not found at the venue.
     LOST = "lost"
-    """In doubt for longer than the sweep allows and not found at the venue."""
 
 
 @dataclass(frozen=True, slots=True)

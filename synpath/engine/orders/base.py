@@ -247,8 +247,8 @@ class ManagedOrder:
         self.updated_ms = self.created_ms
         self.detail: str = ""
         self.params: dict[str, Any] = dict(request.params or {})
+        # Set when this parent is a leg of another one (a bracket's stop).
         self.owner_id: str | None = None
-        """Set when this parent is a leg of another one (a bracket's stop)."""
 
     # -- identity -------------------------------------------------------------
 

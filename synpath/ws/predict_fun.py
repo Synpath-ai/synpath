@@ -34,12 +34,13 @@ from ..predict_fun import api_key_from
 from ..trading.predict_fun import fill_of_event, order_of_event
 from ..trading.types import Account
 from .base import (
+    decode_json_or_text,
     BookEvent, Event, FillEvent, LocalBook, MarketStatusEvent, OrderEvent, QuoteEvent, Stream, VenueEvent, maybe_D,
 )
 
 VENUE = "predict_fun"
+# Mainnet. The venue documents no test-network WebSocket; pass `url=` for one.
 WS_URL = "wss://ws.predict.fun/ws"
-"""Mainnet. The venue documents no test-network WebSocket; pass `url=` for one."""
 
 MARKET_STATE = {
     "REGISTERED": "open", "OPEN": "open", "UNPAUSED": "open", "PAUSED": "paused",
@@ -70,17 +71,17 @@ class _PredictFunStream(Stream):
             )
         super().__init__(url or WS_URL, **kwargs)
         self._key = key
+        # Topic -> the request id it was last subscribed with; sent again on every connect.
         self.topics: dict[str, int] = {}
-        """Topic -> the request id it was last subscribed with; sent again on every connect."""
         self._next_id = 1
 
     def headers(self) -> dict[str, str]:
         return {"x-api-key": self._key} if self._key else {}
 
-    def status(self, state: Any, detail: str = "", **kwargs: Any) -> None:
+    def _emit_status_event(self, state: Any, detail: str = "", **kwargs: Any) -> None:
         # A wallet JWT travels in a topic string, so it is kept out of anything reported.
         jwt = getattr(self, "_jwt", None)
-        super().status(state, detail.replace(jwt, "***") if jwt and detail else detail, **kwargs)
+        super()._emit_status_event(state, detail.replace(jwt, "***") if jwt and detail else detail, **kwargs)
 
     async def _subscribe(self, topic: str) -> None:
         if topic in self.topics:
@@ -116,7 +117,7 @@ class _PredictFunStream(Stream):
             else:
                 topic = next((t for t, rid in self.topics.items() if rid == message.get("requestId")), None)
                 if topic:
-                    self.status("subscribed", topic.split("/")[0], key=topic.split("/")[-1] if "Wallet" not in topic else None)
+                    self._emit_status_event("subscribed", topic.split("/")[0], key=topic.split("/")[-1] if "Wallet" not in topic else None)
             return None
         topic = str(message.get("topic") or "")
         if topic == "heartbeat":
@@ -125,7 +126,7 @@ class _PredictFunStream(Stream):
         return topic, message.get("data")
 
     def _refused(self, topic: str, code: str, detail: str) -> None:
-        self.status("error", f"venue refused {topic.split('/')[0] or 'a request'}: {code} {detail}".strip())
+        self._record_error_and_emit_status(f"venue refused {topic.split('/')[0] or 'a request'}: {code} {detail}".strip())
 
     def _later(self, coroutine: Any) -> None:
         import asyncio
@@ -156,11 +157,11 @@ class PredictFunMarketStream(_PredictFunStream):
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
+        # Native market id -> its YES book.
         self.books: dict[str, LocalBook] = {}
-        """Native market id -> its YES book."""
         self.tickers: set[str] = set()
+        # Native market id -> the id of the last settled order seen.
         self._last: dict[str, str] = {}
-        """Native market id -> the id of the last settled order seen."""
 
     async def watch_order_book(self, market_ids: list[str]) -> None:
         """Each market's whole book, on every change."""
@@ -201,7 +202,11 @@ class PredictFunMarketStream(_PredictFunStream):
         for book in self.books.values():
             book.invalidate()
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         envelope = self._envelope(message)
         if envelope is None:
             return []
@@ -226,7 +231,7 @@ class PredictFunMarketStream(_PredictFunStream):
             book.replace(_levels(data.get("bids")), _levels(data.get("asks")))
             book.timestamp = int(data["updateTimestampMs"]) if data.get("updateTimestampMs") else None
             if recovering:
-                self.status("resynced", f"book {market_id}", key=market_id)
+                self._record_resync_and_emit_status(f"book {market_id}", key=market_id)
             bids, asks = book.levels()
             events.append(BookEvent(
                 venue=VENUE, market_id=market_id, side="yes", kind="snapshot", bids=bids, asks=asks,
@@ -305,7 +310,7 @@ class PredictFunUserStream(_PredictFunStream):
             self._later(self._renew())
             return
         if code == "invalid_credentials":
-            self.status("failed", "the wallet JWT was refused (expired or revoked); pass a fresh one")
+            self._emit_status_event("failed", "the wallet JWT was refused (expired or revoked); pass a fresh one")
             self._later(self.close())
             return
         super()._refused(topic, code, detail)
@@ -313,7 +318,11 @@ class PredictFunUserStream(_PredictFunStream):
     async def _renew(self) -> None:
         await self._subscribe(f"predictWalletEvents/{await self._token(fresh=True)}")
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         envelope = self._envelope(message)
         if envelope is None:
             return []

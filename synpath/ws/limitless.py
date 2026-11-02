@@ -83,7 +83,7 @@ class _LimitlessStream(Stream):
 
     # -- Socket.IO framing --------------------------------------------------
 
-    def handle_raw(self, raw: str) -> list[Event] | None:
+    def handle_raw(self, raw: str) -> list[Event]:
         if raw.startswith("0"):
             self._later(self.send(f"40{NAMESPACE},"))
             return []
@@ -95,12 +95,12 @@ class _LimitlessStream(Stream):
         prefix = f"4{{}}{NAMESPACE}"
         if raw.startswith(prefix.format("0")):
             self.joined = True
-            self.status("subscribed", NAMESPACE)
+            self._emit_status_event("subscribed", NAMESPACE)
             self._later(self.subscribe())
             return []
         if raw.startswith(prefix.format("4")):
             detail = raw[len(prefix.format("4")) + 1:]
-            self.status("error", f"venue refused the connection: {detail}")
+            self._record_error_and_emit_status(f"venue refused the connection: {detail}")
             return []
         if raw.startswith(prefix.format("1")):
             self.joined = False
@@ -129,7 +129,7 @@ class _LimitlessStream(Stream):
     def on_event(self, name: str, data: Any) -> list[Event]:
         if name in ("exception", "error"):
             detail = data.get("message") if isinstance(data, dict) else data
-            self.status("error", f"venue error: {detail}")
+            self._record_error_and_emit_status(f"venue error: {detail}")
         return []
 
     def _later(self, coroutine: Any) -> None:
@@ -163,8 +163,8 @@ class LimitlessMarketStream(_LimitlessStream):
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
+        # Slug -> its YES book.
         self.books: dict[str, LocalBook] = {}
-        """Slug -> its YES book."""
         self.tickers: set[str] = set()
         self.statuses: set[str] = set()
         self._versions: dict[str, int] = {}
@@ -246,7 +246,7 @@ class LimitlessMarketStream(_LimitlessStream):
             book.replace(bids, asks)
             book.timestamp = stamp
             if recovering:
-                self.status("resynced", f"book {market_id}", key=market_id)
+                self._record_resync_and_emit_status(f"book {market_id}", key=market_id)
             levels_bids, levels_asks = book.levels()
             events.append(BookEvent(
                 venue=VENUE, market_id=market_id, side="yes", kind="snapshot", bids=levels_bids, asks=levels_asks,
@@ -287,8 +287,8 @@ class LimitlessUserStream(_LimitlessStream):
         self.catalog = catalog
         self.account = Account(venue=VENUE, name=account_name)
         self.watching = False
+        # Token id -> (market id, "yes" or "no").
         self.tokens: dict[str, tuple[str, str]] = {}
-        """Token id -> (market id, "yes" or "no")."""
         self._indexed = False
         self._waiting: list[dict[str, Any]] = []
 
@@ -361,12 +361,12 @@ class LimitlessUserStream(_LimitlessStream):
                 self._indexed = True
                 self.tokens.update(await asyncio.to_thread(self._catalog().token_index))
         except Exception as exc:  # pragma: no cover - the catalog being down
-            self.status("error", f"could not place order events: {type(exc).__name__}: {exc}")
+            self._record_error_and_emit_status(f"could not place order events: {type(exc).__name__}: {exc}")
         waiting, self._waiting = self._waiting, []
         for data in waiting:
             placed = self._place(data)
             if placed is None:
-                self.status("error", f"order event for an unknown token: {data.get('orderId')}")
+                self._record_error_and_emit_status(f"order event for an unknown token: {data.get('orderId')}")
                 continue
             for event in self._events(data, *placed):
                 self.emit(event)

@@ -49,10 +49,10 @@ class TWAP(ManagedOrder):
         self.style = str(self.params.get("style") or "limit")
         if self.style not in ("limit", "taker"):
             raise ValueError("a TWAP's style is 'limit' or 'taker'")
+        # The worst price any slice may pay. `None` means the market's.
         self.limit = D(self.params.get("limit")) or D(self.request.price)
-        """The worst price any slice may pay. `None` means the market's."""
+        # What the end of the window does with anything unfilled.
         self.at_end = str(self.params.get("finish") or "complete")
-        """What the end of the window does with anything unfilled."""
         self.started_at: float = 0.0
         self.sent_slices = 0
 

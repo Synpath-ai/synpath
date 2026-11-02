@@ -46,7 +46,7 @@ from typing import Any, Callable
 from .. import ids
 from ..base import Capability
 from ..errors import AuthenticationError
-from .base import BookEvent, BookLevel, Event, LocalBook, MarketStatusEvent, QuoteEvent, Stream, now_ms
+from .base import BookEvent, BookLevel, Event, LocalBook, MarketStatusEvent, QuoteEvent, Stream, now_ms, decode_json_or_text
 
 log = logging.getLogger("synpath.ws.betfair")
 
@@ -54,21 +54,21 @@ VENUE = "betfair"
 STREAM_HOST = "stream-api.betfair.com"
 STREAM_PORT = 443
 
+# Markets one connection may subscribe, by default, before Betfair refuses
+# with SUBSCRIPTION_LIMIT_EXCEEDED.
 MAX_MARKETS = 200
-"""Markets one connection may subscribe, by default, before Betfair refuses
-with SUBSCRIPTION_LIMIT_EXCEEDED."""
 
+# Deepest best-offers ladder Betfair streams.
 MAX_LADDER_LEVELS = 10
-"""Deepest best-offers ladder Betfair streams."""
 
+# Seconds Betfair waits for, and this stream allows for, a connection's first message.
 FIRST_MESSAGE_TIMEOUT = 15.0
-"""Seconds Betfair waits for, and this stream allows for, a connection's first message."""
 
+# What Betfair conflates a delayed key's stream to: one update per market every three minutes.
 DELAYED_CONFLATE_MS = 180_000
-"""What Betfair conflates a delayed key's stream to: one update per market every three minutes."""
 
+# Largest line read: a subscription image of many markets is one line.
 LINE_LIMIT = 2 ** 24
-"""Largest line read: a subscription image of many markets is one line."""
 
 ONE = Decimal(1)
 PRICE_PLACES = Decimal("1e-10")
@@ -140,10 +140,10 @@ def state_of(market_status: str | None, runner_status: str | None) -> tuple[str,
 
 @dataclass
 class RunnerCache:
+    # `batb`: what a taker can back at, resting lays. YES asks.
     back: dict[int, tuple[Decimal, Decimal]] = field(default_factory=dict)
-    """`batb`: what a taker can back at, resting lays. YES asks."""
+    # `batl`: what a taker can lay at, resting backs. YES bids.
     lay: dict[int, tuple[Decimal, Decimal]] = field(default_factory=dict)
-    """`batl`: what a taker can lay at, resting backs. YES bids."""
 
 
 @dataclass
@@ -216,23 +216,23 @@ class BetfairMarketStream(Stream):
         self.delayed = delayed
         self._open_connection = open_connection or asyncio.open_connection
         self._ssl = ssl_context or ssl.create_default_context()
+        # Betfair market id -> its cache, kept across reconnects for the resubscribe delta.
         self.markets: dict[str, MarketCache] = {}
-        """Betfair market id -> its cache, kept across reconnects for the resubscribe delta."""
+        # Runner's Synpath id -> its YES book.
         self.books: dict[str, LocalBook] = {}
-        """Runner's Synpath id -> its YES book."""
         self.tickers: set[str] = set()
+        # Betfair market ids whose status changes are passed on; `None` while not watching.
         self.statuses: set[str] | None = None
-        """Betfair market ids whose status changes are passed on; `None` while not watching."""
+        # Betfair market ids the subscription carries.
         self.wanted: set[str] = set()
-        """Betfair market ids the subscription carries."""
+        # Betfair markets watched as a whole: every runner's book is kept.
         self.whole_markets: set[str] = set()
-        """Betfair markets watched as a whole: every runner's book is kept."""
         self.authenticated = False
         self.connection_id: str | None = None
         self.initial_clk: str | None = None
         self.clk: str | None = None
+        # The market set `clk` belongs to: a resubscribe only resumes that one.
         self._clk_for: frozenset[str] = frozenset()
-        """The market set `clk` belongs to: a resubscribe only resumes that one."""
         self._next_id = 0
         self._auth_id: int | None = None
         self._sub_id: int | None = None
@@ -290,7 +290,7 @@ class BetfairMarketStream(Stream):
                 continue
             self.wanted.add(market)
         if refused:
-            self.status("error", f"more than {MAX_MARKETS} markets on one connection; not subscribed: {', '.join(refused)}")
+            self._record_error_and_emit_status(f"more than {MAX_MARKETS} markets on one connection; not subscribed: {', '.join(refused)}")
         return refused
 
     async def watch_order_book(self, market_ids: list[str]) -> None:
@@ -375,7 +375,11 @@ class BetfairMarketStream(Stream):
 
     # -- messages -------------------------------------------------------------
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if not isinstance(message, dict):
             return []
         op = message.get("op")
@@ -394,19 +398,19 @@ class BetfairMarketStream(Stream):
                 self.authenticated = True
                 self._later(self.resubscribe())
             elif message.get("id") == self._sub_id:
-                self.status("subscribed", f"{len(self.wanted)} markets")
+                self._emit_status_event("subscribed", f"{len(self.wanted)} markets")
             return []
         code = str(message.get("errorCode") or "")
         detail = f"{code}: {message.get('errorMessage') or ''}".strip(": ")
         if code in APP_KEY_ERRORS:
-            self.status("failed", f"Betfair refused the application key for streaming ({detail})")
+            self._emit_status_event("failed", f"Betfair refused the application key for streaming ({detail})")
             self._later(self.close())
         elif code in SESSION_ERRORS:
             # The next connection logs in again.
             self.session.invalidate()
-            self.status("error", f"session refused ({detail}); logging in again")
+            self._record_error_and_emit_status(f"session refused ({detail}); logging in again")
         else:
-            self.status("error", f"Betfair refused: {detail}")
+            self._record_error_and_emit_status(f"Betfair refused: {detail}")
         return []
 
     def _on_market_changes(self, message: dict[str, Any]) -> list[Event]:
@@ -488,7 +492,7 @@ class BetfairMarketStream(Stream):
                 best_bid=book.best_bid, best_ask=book.best_ask, info={"delayed": self.delayed, "clk": self.clk},
             ))
             if recovering:
-                self.status("resynced", f"book {synpath_id}", key=synpath_id)
+                self._record_resync_and_emit_status(f"book {synpath_id}", key=synpath_id)
         if synpath_id in self.tickers:
             best_bid = max(bids, default=None, key=lambda level: level[0])
             best_ask = min(asks, default=None, key=lambda level: level[0])

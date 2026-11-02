@@ -43,16 +43,16 @@ log = logging.getLogger("synpath.server")
 
 ZERO = Decimal("0")
 
+# How long a member's fee schedule is trusted before it is read again.
 FEE_SCHEDULE_TTL_S = 600.0
-"""How long a member's fee schedule is trusted before it is read again."""
 
+# How long a member whose schedule could not be read counts as free before
+# it is asked again.
 FEE_SCHEDULE_RETRY_S = 60.0
-"""How long a member whose schedule could not be read counts as free before
-it is asked again."""
 
+# Where a member's book came from: `stream` (serve's live venue stream),
+# `rest` (read from the venue for this request) or `missing`.
 BookSource = str
-"""Where a member's book came from: `stream` (serve's live venue stream),
-`rest` (read from the venue for this request) or `missing`."""
 
 
 def _text(value: Decimal | None) -> str | None:
@@ -65,8 +65,8 @@ def _text(value: Decimal | None) -> str | None:
 
 @dataclass
 class _Schedule:
+    # The member's `FeeSchedule`, or `None` where it could not be read.
     schedule: Any | None
-    """The member's `FeeSchedule`, or `None` where it could not be read."""
     read_at: float
 
 
@@ -183,8 +183,8 @@ class MemberState:
     """What a bucket subscription knows about one member beyond its book."""
 
     market_id: str
+    # Why serve cannot stream this member (`credentials_required`, …), if it cannot.
     error: str | None = None
-    """Why serve cannot stream this member (`credentials_required`, …), if it cannot."""
 
 
 def merged_levels(bucket: Bucket, views: dict[str, router.BookView], fees: BucketFees,

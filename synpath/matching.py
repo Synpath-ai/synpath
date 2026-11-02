@@ -33,9 +33,9 @@ from .hosted import call, hosted_client
 from .types import EventMatch, MarketLink, MarketMatch
 
 BASE_URL_ENV = "SYNPATH_MATCHING_URL"
+# Where the hosted matching service lives: Synpath's own, unless `base_url=` or
+# `SYNPATH_MATCHING_URL` points somewhere else (a staging deployment, a local one).
 DEFAULT_URL = "https://api.synpath.dev"
-"""Where the hosted matching service lives: Synpath's own, unless `base_url=` or
-`SYNPATH_MATCHING_URL` points somewhere else (a staging deployment, a local one)."""
 
 
 def _client(base_url: str | None, http_client: Any = None) -> HttpClient:

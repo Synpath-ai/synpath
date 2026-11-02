@@ -51,7 +51,7 @@ def run(stream, *frames, then=None):
     async def go():
         stream._ws = FakeSocket()
         for raw in frames:
-            stream._dispatch(raw)
+            stream._process_raw_frame_and_emit_events(raw)
             await asyncio.sleep(0)
         if then is not None:
             await then

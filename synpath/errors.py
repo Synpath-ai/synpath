@@ -47,8 +47,8 @@ class RateLimitExceeded(NetworkError):
 
     def __init__(self, message: str, *, retry_after: float | None = None):
         super().__init__(message)
+        # Seconds to wait, when the venue said. Kalshi does not, so usually None.
         self.retry_after = retry_after
-        """Seconds to wait, when the venue said. Kalshi does not, so usually None."""
 
 
 class ExchangeError(SynpathError):

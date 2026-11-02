@@ -22,6 +22,42 @@ async def main():
 asyncio.run(main())
 ```
 
+## Stream lifecycle and adapter hooks
+
+`start()` schedules one background receiver and returns the stream immediately.
+It needs a running asyncio loop. It does not wait for an open connection,
+completed subscriptions or a ready book. `async with stream` starts receiving
+on entry and closes on exit; `async for event in stream` starts receiving if
+needed and removes events from the stream's single queue. Multiple readers
+share that queue rather than each receiving a copy. Closing ends iteration
+when the queued shutdown marker reaches the reader.
+
+For tests or a custom transport, pass
+`websocket_connection_opener=async_opener`. The opener is called on every
+connection attempt, including reconnects, with the URL and
+`additional_headers=stream.headers()`. It must return a connected socket
+supporting the adapter's send, receive and close operations. The default
+opener remains unchanged.
+
+For custom WebSocket adapters, implement `handle_raw(raw: str) -> list[Event]`.
+The adapter owns framing, decoding, cached-state updates and any native/Python
+selection. Return an empty list for a handled frame with no events; never
+return `None`. The shared receiver counts frames and emits the returned
+events. gRPC adapters retain their decoded-message `handle()` hook on
+`GrpcStream`.
+
+Migration on the experimental SDK branch:
+
+- Rename constructor argument `connect` to `websocket_connection_opener`.
+- Move a WebSocket subclass's old `handle(message)` logic behind `handle_raw()`;
+  the base class no longer decodes JSON or chooses a fallback handler.
+- Replace calls to the removed `status()` helper with the appropriate private
+  `_record_*_and_emit_status()` operation. These operations own the related
+  counters and lifecycle state. `_emit_status_event()` only publishes a status.
+- Instrumentation overriding private hooks must follow `_task` →
+  `_receiver_task`, `_run()` → `_run_connection_and_receive_loop()` and
+  `_dispatch()` → `_process_raw_frame_and_emit_events()`.
+
 ## Streams
 
 | Stream | Endpoint | Credentials | Carries |

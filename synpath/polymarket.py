@@ -40,51 +40,51 @@ CLOB_URL = "https://clob.polymarket.com"
 DATA_URL = "https://data-api.polymarket.com"
 VENUE = "polymarket"
 
+# Gamma took 30 requests at 43/s without complaint, so this is headroom rather
+# than a measured ceiling: present so an undocumented limit throttles us instead
+# of failing us. Shared process-wide, as Kalshi's is.
 LIMITER = RateLimiter(20.0, burst=20)
-"""Gamma took 30 requests at 43/s without complaint, so this is headroom rather
-than a measured ceiling: present so an undocumented limit throttles us instead
-of failing us. Shared process-wide, as Kalshi's is."""
 
+# Tokens per POST /books. 500 answered in 0.32s; 672 was "Payload exceeds the limit".
 BOOK_BATCH = 500
-"""Tokens per POST /books. 500 answered in 0.32s; 672 was "Payload exceeds the limit"."""
 
+# Gamma enforces this: 200 ids returns `422 expected array length <= 100`.
 MARKET_BATCH = 100
-"""Gamma enforces this: 200 ids returns `422 expected array length <= 100`."""
+# Gamma events per `GET /events?id=` read: each carries every market of its event.
 EVENT_BATCH = 20
-"""Gamma events per `GET /events?id=` read: each carries every market of its event."""
 
+# Rows per Data API `/trades` call, its maximum.
 TRADE_PAGE = 500
-"""Rows per Data API `/trades` call, its maximum."""
 
+# Most tape pages one `fetch_ohlcv` call reads: 10,000 trades. A hot market
+# was measured printing 500 trades in 68 minutes, so this is a few hours of
+# one and weeks of a quiet one. Past it the call stops and marks the earliest
+# bar incomplete rather than walking the tape indefinitely.
 MAX_TRADE_PAGES = 20
-"""Most tape pages one `fetch_ohlcv` call reads: 10,000 trades. A hot market
-was measured printing 500 trades in 68 minutes, so this is a few hours of
-one and weeks of a quiet one. Past it the call stops and marks the earliest
-bar incomplete rather than walking the tape indefinitely."""
 
+# Widest `startTs`..`endTs` span, in seconds, one `prices-history` request is
+# sent. The venue refuses a wider one (`interval is too long`; 15 days measured
+# fine, 16 refused), so longer windows are read in pieces and joined.
 QUOTE_WINDOW = 14 * 86400
-"""Widest `startTs`..`endTs` span, in seconds, one `prices-history` request is
-sent. The venue refuses a wider one (`interval is too long`; 15 days measured
-fine, 16 refused), so longer windows are read in pieces and joined."""
 
+# Bars looked back when neither `since` nor `limit` bounds the window.
 DEFAULT_BARS = 100
-"""Bars looked back when neither `since` nor `limit` bounds the window."""
 
+# Events per `/public-search` page: its maximum; a larger `limit_per_type`
+# is answered with 50.
 SEARCH_PAGE = 50
-"""Events per `/public-search` page: its maximum; a larger `limit_per_type`
-is answered with 50."""
 
+# Most search pages one `fetch_markets(query=...)` call reads while filling
+# `limit` markets. Past it the call returns what it has, with a cursor.
 MAX_SEARCH_PAGES = 5
-"""Most search pages one `fetch_markets(query=...)` call reads while filling
-`limit` markets. Past it the call returns what it has, with a cursor."""
 
+# The deepest offset the Data API's `/trades` accepts; past it the venue
+# answers `max historical trades offset of 10000 exceeded`.
 MAX_TRADE_OFFSET = 10_000
-"""The deepest offset the Data API's `/trades` accepts; past it the venue
-answers `max historical trades offset of 10000 exceeded`."""
 
 
+# This library's sort keys as Gamma's own field names.
 SORT_FIELDS = {"volume": "volume24hr", "liquidity": "liquidityNum", "newest": "startDate"}
-"""This library's sort keys as Gamma's own field names."""
 
 from .base import MAX_PAGE_LIMIT  # noqa: E402  (kept next to the cap it mirrors)
 """Gamma's keyset endpoints cap a page at 100 rows whatever is asked for, which
@@ -542,8 +542,8 @@ class Polymarket(Exchange):
         self.gamma = HttpClient(gamma_url, limiter=limiter, timeout=timeout, client=client, venue=VENUE)
         self.clob = HttpClient(clob_url, limiter=limiter, timeout=timeout, client=client, venue=VENUE)
         self.data = HttpClient(data_url, limiter=limiter, timeout=timeout, client=client, venue=VENUE)
+        # Per market: `(yes_token, no_token, condition_id)`, filled by every catalog read.
         self._tokens: dict[str, tuple[str, str, str]] = {}
-        """Per market: `(yes_token, no_token, condition_id)`, filled by every catalog read."""
 
     # -- catalog ------------------------------------------------------------
 

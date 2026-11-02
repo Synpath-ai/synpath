@@ -73,23 +73,23 @@ VENUE_RULES: dict[str, dict[str, Any]] = {
 class MarketSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    # Synpath id, `venue:native`.
     market_id: str
-    """Synpath id, `venue:native`."""
     venue: str
     precision: Precision
+    # Accepting orders right now, as far as the catalog knew.
     tradable: bool
-    """Accepting orders right now, as far as the catalog knew."""
     tradable_yes: bool = True
+    # Per side, where a venue says (Polymarket US). Both true elsewhere.
     tradable_no: bool = True
-    """Per side, where a venue says (Polymarket US). Both true elsewhere."""
     status: str
     close_at: int | None = None
     resolution_at: int | None = None
+    # A per-market cap the venue imposes, where it publishes one.
     position_limit: Decimal | None = None
-    """A per-market cap the venue imposes, where it publishes one."""
     yes_token: str | None = None
+    # The venue's own ids for the two sides, where it has them (Polymarket).
     no_token: str | None = None
-    """The venue's own ids for the two sides, where it has them (Polymarket)."""
     read_at: int = Field(default_factory=lambda: int(time.time() * 1000))
     info: dict[str, Any] = Field(default_factory=dict)
 
@@ -98,8 +98,8 @@ class MarketSpec(BaseModel):
         return max(0.0, (now - self.read_at) / 1000)
 
 
+# The old name, kept so an import written against it still resolves.
 InstrumentSpec = MarketSpec
-"""The old name, kept so an import written against it still resolves."""
 
 
 def precision_for(market: Market) -> Precision:
@@ -150,8 +150,8 @@ def spec_from_market(market: Market) -> MarketSpec:
     )
 
 
+# `(venue, market_ids) -> markets`, however the caller reaches the venue.
 Loader = Callable[[str, list[str]], Awaitable[list[Market]]]
-"""`(venue, market_ids) -> markets`, however the caller reaches the venue."""
 
 
 class MarketMaster:
@@ -205,5 +205,5 @@ class MarketMaster:
         return len(self._specs)
 
 
+# The old name, kept so an import written against it still resolves.
 InstrumentMaster = MarketMaster
-"""The old name, kept so an import written against it still resolves."""

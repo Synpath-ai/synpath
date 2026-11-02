@@ -49,8 +49,8 @@ TOKEN_PATH = "/user/realtime-token-v3/api-key"
 
 ODDS_SCALE = Decimal(10) ** 20
 USDC = Decimal(1_000_000)
+# Subscriptions one connection takes.
 MAX_CHANNELS = 512
-"""Subscriptions one connection takes."""
 
 
 def hash_of(market_id: str) -> str:
@@ -127,9 +127,9 @@ class _CentrifugoStream(Stream):
         super().__init__(url or (TESTNET_WS_URL if testnet else WS_URL), **kwargs)
         self.api_url = api_url or (TESTNET_API_URL if testnet else API_URL)
         self._api_key = api_key
+        # A token string, or a callable (sync or async) returning one; for tests
+        # and for callers who fetch tokens themselves.
         self._token_source = token
-        """A token string, or a callable (sync or async) returning one; for tests
-        and for callers who fetch tokens themselves."""
         self.ready = False
         self.channels: set[str] = set()
         self._live: set[str] = set()
@@ -181,7 +181,7 @@ class _CentrifugoStream(Stream):
             self._renewer.cancel()
             self._renewer = None
 
-    def handle_raw(self, raw: str) -> list[Event] | None:
+    def handle_raw(self, raw: str) -> list[Event]:
         events: list[Event] = []
         for line in raw.split("\n"):
             if not line.strip():
@@ -203,14 +203,14 @@ class _CentrifugoStream(Stream):
             kind, channel = self._pending.pop(int(message["id"]), ("", ""))
             if message.get("error"):
                 error = message["error"]
-                self.status("error", f"venue refused {kind} {channel}: {error.get('code')} {error.get('message')}".strip())
+                self._record_error_and_emit_status(f"venue refused {kind} {channel}: {error.get('code')} {error.get('message')}".strip())
                 if kind == "subscribe":
                     self._live.discard(channel)
                 return []
             if kind == "connect":
                 self._on_connected(message.get("connect") or {})
             elif kind == "subscribe":
-                self.status("subscribed", channel, key=channel)
+                self._emit_status_event("subscribed", channel, key=channel)
                 return self.on_subscribed(channel)
             return []
         push = message.get("push")
@@ -220,7 +220,7 @@ class _CentrifugoStream(Stream):
             if isinstance(publication, dict) and channel:
                 return self.on_publication(channel, publication.get("data"))
             if push.get("disconnect"):
-                self.status("error", f"venue disconnected the stream: {push['disconnect']}")
+                self._record_error_and_emit_status(f"venue disconnected the stream: {push['disconnect']}")
         return []
 
     def _on_connected(self, reply: dict[str, Any]) -> None:
@@ -237,7 +237,7 @@ class _CentrifugoStream(Stream):
             try:
                 token = await self.fetch_token()
             except Exception as exc:  # pragma: no cover - the venue's API down
-                self.status("error", f"could not renew the realtime token: {type(exc).__name__}: {exc}")
+                self._record_error_and_emit_status(f"could not renew the realtime token: {type(exc).__name__}: {exc}")
                 continue
             await self.send(self._command("refresh", {"token": token}))
 
@@ -247,7 +247,7 @@ class _CentrifugoStream(Stream):
             return
         for channel in sorted(self.channels - self._live):
             if len(self._live) >= MAX_CHANNELS:
-                self.status("error", f"more than {MAX_CHANNELS} channels on one connection; {channel} not subscribed")
+                self._record_error_and_emit_status(f"more than {MAX_CHANNELS} channels on one connection; {channel} not subscribed")
                 return
             self._live.add(channel)
             await self.send(self._command("subscribe", {"channel": channel}, channel=channel))
@@ -300,13 +300,13 @@ class SxBetMarketStream(_CentrifugoStream):
 
     def __init__(self, *, catalog: Any = None, **kwargs: Any):
         super().__init__(**kwargs)
+        # An `SxBet` for seeding books from REST; made when first needed.
         self.catalog = catalog
-        """An `SxBet` for seeding books from REST; made when first needed."""
+        # Hash -> its YES book.
         self.books: dict[str, LocalBook] = {}
-        """Hash -> its YES book."""
         self.tickers: set[str] = set()
+        # Hashes whose bets are passed on; `None` while not watching, empty for all.
         self.trades: set[str] | None = None
-        """Hashes whose bets are passed on; `None` while not watching, empty for all."""
         self.statuses: set[str] | None = None
         self._versions: dict[str, str] = {}
 
@@ -382,7 +382,7 @@ class SxBetMarketStream(_CentrifugoStream):
                 catalog._get, "/orderbook-v3/snapshot", {"marketHash": market_hash},
             )
         except Exception as exc:  # pragma: no cover - the venue's API down
-            self.status("error", f"could not seed book {market_hash}: {type(exc).__name__}: {exc}")
+            self._record_error_and_emit_status(f"could not seed book {market_hash}: {type(exc).__name__}: {exc}")
             return
         if isinstance(payload, dict):
             for event in self._on_book({**payload, "marketHash": market_hash}):
@@ -435,7 +435,7 @@ class SxBetMarketStream(_CentrifugoStream):
             book.replace(bids, asks)
             book.timestamp = now_ms()
             if recovering:
-                self.status("resynced", f"book {market_id}", key=market_id)
+                self._record_resync_and_emit_status(f"book {market_id}", key=market_id)
             levels_bids, levels_asks = book.levels()
             events.append(BookEvent(
                 venue=VENUE, market_id=market_id, side="yes", kind="snapshot", bids=levels_bids, asks=levels_asks,
@@ -545,7 +545,7 @@ class SxBetParlayStream(_CentrifugoStream):
             try:
                 rfq = rfq_of_parlay(row, received_at=received)
             except ValueError as exc:
-                self.status("error", f"unreadable parlay request {row.get('marketHash')}: {exc}")
+                self._record_error_and_emit_status(f"unreadable parlay request {row.get('marketHash')}: {exc}")
                 rfq = None
             events.append(VenueEvent(venue=VENUE, name="parlay_request", payload={"row": row, "rfq": rfq},
                                      timestamp=received))

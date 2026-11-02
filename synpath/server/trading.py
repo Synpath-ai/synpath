@@ -66,6 +66,18 @@ from .store import ALL_ACCOUNTS, ControlStore, Grant, Permission, Principal
 
 log = logging.getLogger("synpath.server")
 
+# Library exception to status code on the trading routes, most specific
+# class first. A venue refusing our own credentials is 502: the caller's token
+# was fine, the server's venue key was not.
+#
+# An order whose outcome is not known yet is 202, not a 5xx: the instruction
+# is recorded and the send may have happened, so it has not failed. The body
+# is the usual error envelope (`submission_in_doubt` for this send,
+# `submission_pending` for a retry while the first send is still being
+# reconciled), with `retryable: true` and the `client_order_id` to retry
+# under; the same id never sends twice. A cancel the venue neither performed
+# nor recognises is 409 `cancel_unconfirmed`: the order exists here, and its
+# last observed status stands.
 TRADING_STATUS: dict[type[Exception], int] = {
     SubmissionInDoubt: 202,
     SubmissionPending: 202,
@@ -86,18 +98,6 @@ TRADING_STATUS: dict[type[Exception], int] = {
     AuthenticationError: 502,
     ExchangeError: 502,
 }
-"""Library exception to status code on the trading routes, most specific
-class first. A venue refusing our own credentials is 502: the caller's token
-was fine, the server's venue key was not.
-
-An order whose outcome is not known yet is 202, not a 5xx: the instruction
-is recorded and the send may have happened, so it has not failed. The body
-is the usual error envelope (`submission_in_doubt` for this send,
-`submission_pending` for a retry while the first send is still being
-reconciled), with `retryable: true` and the `client_order_id` to retry
-under; the same id never sends twice. A cancel the venue neither performed
-nor recognises is 409 `cancel_unconfirmed`: the order exists here, and its
-last observed status stands."""
 
 
 DEFAULT_ORDERS_PAGE = 100

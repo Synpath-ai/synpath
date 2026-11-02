@@ -32,14 +32,14 @@ from .storage_types import JournalEvent
 
 ORDER_EVENT_PREFIXES = ("intent.", "submission.", "order.", "managed.", "fill.")
 ORDER_EVENT_KINDS = ("risk.rejected",)
+# Engine-wide, not about one order: the journal view shows them.
 NOT_ORDER_KINDS = frozenset({"managed.restored"})
-"""Engine-wide, not about one order: the journal view shows them."""
 RAW_BATCH = 1_000
+# Raw events one page reads at most, however many fold away.
 MOST_RAW_EVENTS = 50_000
-"""Raw events one page reads at most, however many fold away."""
 
+# An order's fields a later event of it may leave out.
 CARRIED = ("market_id", "venue", "side", "outcome", "action")
-"""An order's fields a later event of it may leave out."""
 ORDER_FIELDS = ("market_id", "side", "outcome", "action", "type", "quantity", "filled", "price", "stop_price")
 
 

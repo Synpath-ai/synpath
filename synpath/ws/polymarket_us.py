@@ -35,6 +35,7 @@ from ..trading.polymarket_us import (
 )
 from ..trading.types import Account, Fill, Liquidity, Side
 from .base import (
+    decode_json_or_text,
     BookEvent, D, Event, FillEvent, LocalBook, MarketStatusEvent, OrderEvent, PositionEvent, QuoteEvent, Stream,
     TradeEvent, BalanceEvent, maybe_D,
 )
@@ -96,7 +97,7 @@ class _SignedStream(Stream):
         if "heartbeat" in message:
             return []
         if "error" in message:
-            self.status("error", str(message.get("error")), key=message.get("requestId") or message.get("request_id"))
+            self._record_error_and_emit_status(str(message.get("error")), key=message.get("requestId") or message.get("request_id"))
             return []
         return None
 
@@ -122,8 +123,8 @@ class PolymarketUSMarketStream(_SignedStream):
         self.states: dict[str, str] = {}
 
     async def watch_order_book(self, market_ids: list[str], *, debounced: bool = False) -> None:
+        # Full visible book and market state for these markets.
         slugs = _slugs(market_ids)
-        """Full visible book and market state for these markets."""
         for slug in slugs:
             self.books.setdefault(slug, LocalBook())
         await self._subscribe("SUBSCRIPTION_TYPE_MARKET_DATA", slugs)
@@ -145,10 +146,18 @@ class PolymarketUSMarketStream(_SignedStream):
         book = self.books.get(ids.native(VENUE, market_id))
         return None if book is None else book if side != "no" else book.mirrored()
 
-    def handle_raw(self, raw: str) -> list[Event] | None:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Process a complete frame; this adapter owns native/Python selection."""
+        events = self._try_process_frame_with_rust(raw)
+        # An empty list means handled with no events; only None requests fallback.
+        if events is not None:
+            return events
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _try_process_frame_with_rust(self, raw: str) -> list[Event] | None:
         """Full market data, parsed and applied to the book by the Rust core.
         Everything else, and everything when the core is not built, goes to
-        `handle`."""
+        `_handle_decoded_message`."""
         if _native.core is None:
             return None
         done = _native.core.polymarket_us_market_data(raw, self.books)
@@ -159,7 +168,7 @@ class PolymarketUSMarketStream(_SignedStream):
         self.books[slug].timestamp = stamp
         return self._market_events(slug, bids, asks, best_bid, best_ask, stamp, native, stats)
 
-    def handle(self, message: Any) -> list[Event]:
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if not isinstance(message, dict):
             return []
         common = self._common(message)
@@ -233,9 +242,9 @@ class PolymarketUSPrivateStream(_SignedStream):
     }
 
     async def watch_orders(self, market_ids: list[str] | None = None) -> None:
+        # Open orders as a snapshot, then every execution: acceptance, fills,
+        # cancels, replaces, rejects. Fills arrive as `FillEvent`s too.
         slugs = _slugs(market_ids)
-        """Open orders as a snapshot, then every execution: acceptance, fills,
-        cancels, replaces, rejects. Fills arrive as `FillEvent`s too."""
         await self._subscribe("SUBSCRIPTION_TYPE_ORDER", slugs)
 
     watch_my_trades = watch_orders
@@ -246,7 +255,11 @@ class PolymarketUSPrivateStream(_SignedStream):
     async def watch_balance(self) -> None:
         await self._subscribe("SUBSCRIPTION_TYPE_ACCOUNT_BALANCE", None)
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if not isinstance(message, dict):
             return []
         common = self._common(message)

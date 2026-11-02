@@ -47,32 +47,32 @@ API_URL = "https://api.limitless.exchange"
 VENUE = "limitless"
 WEB_URL = "https://limitless.exchange/markets/"
 
+# The venue publishes no limit for its public endpoints; kept modest, shared
+# process-wide.
 LIMITER = RateLimiter(5.0, burst=10)
-"""The venue publishes no limit for its public endpoints; kept modest, shared
-process-wide."""
 
+# Rows per listing page: the venue's maximum.
 PAGE = 25
-"""Rows per listing page: the venue's maximum."""
 
+# Most listing pages one walk reads: 2,500 rows, against about 560 today.
 MAX_PAGES = 100
-"""Most listing pages one walk reads: 2,500 rows, against about 560 today."""
 
+# Sizes, volumes and amounts are 6-decimal integers (USDC, and shares).
 SCALE = 1_000_000
-"""Sizes, volumes and amounts are 6-decimal integers (USDC, and shares)."""
 
+# Prices are quoted to a tenth of a cent.
 TICK = 0.001
-"""Prices are quoted to a tenth of a cent."""
 
+# The venue's lifecycle as this library's status. A market trades only while
+# `FUNDED` and not yet expired; `CREATED` and `DRAFTED` have not opened.
 STATUSES = {"FUNDED": "open", "LOCKED": "closed", "RESOLVED": "settled", "CREATED": "closed", "DRAFTED": "closed"}
-"""The venue's lifecycle as this library's status. A market trades only while
-`FUNDED` and not yet expired; `CREATED` and `DRAFTED` have not opened."""
 
+# This library's sort keys the venue can order the listing by. It has no
+# volume or liquidity order.
 SORT_BY = {"newest": "newest"}
-"""This library's sort keys the venue can order the listing by. It has no
-volume or liquidity order."""
 
+# The price-history lookback presets, shortest first; `all` covers the rest.
 LOOKBACKS = (("5m", 300), ("1h", 3600), ("6h", 6 * 3600), ("1d", 86400), ("1w", 7 * 86400), ("1m", 30 * 86400))
-"""The price-history lookback presets, shortest first; `all` covers the rest."""
 
 DEFAULT_BARS = 96
 

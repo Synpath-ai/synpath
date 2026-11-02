@@ -81,13 +81,14 @@ TESTNET_API_URL = "https://api.toronto.sx.bet"
 USDC = Decimal(1_000_000)
 ODDS = Decimal(10) ** 20
 
+# How long a GTC order is signed to live: the venue needs an expiry, and a
+# game's orders are swept at kickoff long before this.
 DEFAULT_EXPIRY_S = 30 * 86400
-"""How long a GTC order is signed to live: the venue needs an expiry, and a
-game's orders are swept at kickoff long before this."""
 
+# How long `create_order` lets the venue wait for the matching result.
 WAIT_MS = 10_000
-"""How long `create_order` lets the venue wait for the matching result."""
 
+# What the venue's synchronous answer says became of an order on arrival.
 OUTCOME_STATUS = {
     "RESTED": OrderStatus.OPEN,
     "PARTIAL_FILL_RESTED": OrderStatus.OPEN,
@@ -96,14 +97,13 @@ OUTCOME_STATUS = {
     "CANCELLED": OrderStatus.CANCELED,
     "TIMEOUT": OrderStatus.PENDING,
 }
-"""What the venue's synchronous answer says became of an order on arrival."""
 
+# An inactive order's state by its `inactiveReason`; every other reason
+# (cancelled by the account, the venue, a heartbeat, kickoff) is a cancel.
 INACTIVE_STATUS = {
     "FILLED": OrderStatus.CLOSED,
     "EXPIRED": OrderStatus.EXPIRED,
 }
-"""An inactive order's state by its `inactiveReason`; every other reason
-(cancelled by the account, the venue, a heartbeat, kickoff) is a cancel."""
 
 
 def D(value: Any) -> Decimal:
@@ -243,19 +243,19 @@ def error_of(exc: ExchangeError) -> ExchangeError:
 # Parlays (docs/rfq-combo.md, P8)
 # ---------------------------------------------------------------------------
 
+# A parlay market takes orders for 60 seconds after the bettor's request.
 PARLAY_LIFETIME_S = 60
-"""A parlay market takes orders for 60 seconds after the bettor's request."""
 
+# How much earlier than the estimated end of the parlay a quote's orders are
+# signed to expire. The request carries no expiry, only the 60 s rule, and it
+# reaches us after it was made; an order signed past the parlay's end is
+# refused (`PARLAY_ORDER_EXPIRY_BEYOND_PARLAY_EXPIRY`, which names the exact
+# end, and the quote is re-signed to it once).
 PARLAY_EXPIRY_MARGIN_S = 3
-"""How much earlier than the estimated end of the parlay a quote's orders are
-signed to expire. The request carries no expiry, only the 60 s rule, and it
-reaches us after it was made; an order signed past the parlay's end is
-refused (`PARLAY_ORDER_EXPIRY_BEYOND_PARLAY_EXPIRY`, which names the exact
-end, and the quote is re-signed to it once)."""
 
+# How long a parlay request is remembered after it closes, so a quote on it
+# can still be read back by its RFQ.
 PARLAY_KEEP_S = 600
-"""How long a parlay request is remembered after it closes, so a quote on it
-can still be read back by its RFQ."""
 
 VOID_LEG_RULE = (
     "SX Bet's documents disagree on a VOID leg: the developer docs (developers/parlays) say one VOID leg voids the "
@@ -587,8 +587,8 @@ class SxBetTrading(TradingExchange):
 
         self.credentials = credentials
         self.testnet = bool(credentials.testnet)
+        # Signs new orders; `None` with the API key alone, which does everything else.
         self.signer = WalletSigner(credentials.private_key) if credentials.private_key else None
-        """Signs new orders; `None` with the API key alone, which does everything else."""
         self.account = Account(venue=VENUE, name=account_name)
         self.limiter = limiter or BudgetLimiter(read_per_second=4, write_per_second=10)
         self.url = url or (TESTNET_API_URL if self.testnet else API_URL)
@@ -599,19 +599,19 @@ class SxBetTrading(TradingExchange):
             from ..sx_bet import SxBet
 
             catalog = SxBet(api_key=credentials.api_key, api_url=self.url)
+        # The read adapter: fee schedules.
         self.catalog = catalog
-        """The read adapter: fee schedules."""
         self._meta: dict[str, Any] | None = None
+        # The `parlay_markets:global` stream parlay requests come from; an
+        # `SxBetParlayStream` is made on the first `watch_parlays()` if none is given.
         self.parlay_stream = parlay_stream
-        """The `parlay_markets:global` stream parlay requests come from; an
-        `SxBetParlayStream` is made on the first `watch_parlays()` if none is given."""
         self._own_parlay_stream = parlay_stream is None
         self._parlay_task: asyncio.Task | None = None
+        # Parlay requests seen on the stream, by parlay market hash.
         self.parlays: dict[str, Rfq] = {}
-        """Parlay requests seen on the stream, by parlay market hash."""
         self._rfq_listeners: list[Callable[[Rfq], Any]] = []
+        # Quote id -> parlay hash, for the quotes sent through this adapter.
         self._quotes: dict[str, str] = {}
-        """Quote id -> parlay hash, for the quotes sent through this adapter."""
         self.clock: Callable[[], float] = time.time
 
     @property
@@ -1188,8 +1188,8 @@ class SxBetTrading(TradingExchange):
             self.catalog.close()
 
 
+# Most cancel-all calls one `cancel_all_orders` makes while the venue says more are left.
 MAX_CANCEL_ALL_ROUNDS = 50
-"""Most cancel-all calls one `cancel_all_orders` makes while the venue says more are left."""
 
 
 def _iso(ms: int) -> str:

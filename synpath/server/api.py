@@ -67,6 +67,12 @@ from .models import ErrorBody, PageResponse, VenueInfo
 
 log = logging.getLogger("synpath.server")
 
+# Library exception to status code.
+#
+# The two that are worth explaining: `NotSupported` is 501 rather than 404,
+# because the venue has no such capability at all and no id would have worked;
+# and a venue failing us is 502, not 500, because this service is fine and is
+# reporting on an upstream that is not.
 STATUS_FOR: dict[type[Exception], int] = {
     MarketNotFound: 404,
     BadRequest: 400,
@@ -77,13 +83,6 @@ STATUS_FOR: dict[type[Exception], int] = {
     NetworkError: 502,
     ExchangeError: 502,
 }
-"""Library exception to status code.
-
-The two that are worth explaining: `NotSupported` is 501 rather than 404,
-because the venue has no such capability at all and no id would have worked;
-and a venue failing us is 502, not 500, because this service is fine and is
-reporting on an upstream that is not.
-"""
 
 
 def takes_keyword(function: Any, name: str) -> bool:
@@ -156,9 +155,9 @@ class VenueRegistry:
             self._exchanges.clear()
 
 
+# Used when a request arrives on an app that carries no registry of its own —
+# which is what happens when the router is mounted on somebody else's app.
 DEFAULT_REGISTRY = VenueRegistry()
-"""Used when a request arrives on an app that carries no registry of its own —
-which is what happens when the router is mounted on somebody else's app."""
 
 
 def get_venue(
@@ -182,15 +181,15 @@ def get_venue(
     return registry.get(venue)
 
 
+# Module level on purpose: `from __future__ import annotations` turns every
+# annotation into a string, and FastAPI resolves those against module globals.
+# Defined inside the factory it would be invisible and the app would fail to
+# build its schema.
 Venue = Annotated[Exchange, Depends(get_venue)]
-"""Module level on purpose: `from __future__ import annotations` turns every
-annotation into a string, and FastAPI resolves those against module globals.
-Defined inside the factory it would be invisible and the app would fail to
-build its schema."""
 
+# Bars one candle read may ask for: two weeks of minutes. A chart reaching back
+# over a quiet market asks for many periods to find enough bars that traded.
 MAX_CANDLES = 20_000
-"""Bars one candle read may ask for: two weeks of minutes. A chart reaching back
-over a quiet market asks for many periods to find enough bars that traded."""
 
 RESPONSES: dict[int | str, dict[str, Any]] = {
     400: {"model": ErrorBody, "description": "Invalid parameters."},

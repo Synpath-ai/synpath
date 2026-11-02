@@ -62,18 +62,19 @@ from .types import (
 )
 
 VENUE = "opinion"
+# The host the venue's SDK sends orders to.
 TRADING_URL = "https://proxy.opinion.trade:8443/openapi"
-"""The host the venue's SDK sends orders to."""
 
+# Rows per order, trade or position page: the venue's maximum.
 PAGE = 20
-"""Rows per order, trade or position page: the venue's maximum."""
 
+# Most pages one listing call walks: 1000 rows.
 MAX_PAGES = 50
-"""Most pages one listing call walks: 1000 rows."""
 
+# The venue's documented minimum order value.
 MIN_ORDER_USDT = Decimal("5")
-"""The venue's documented minimum order value."""
 
+# The venue's numeric order status.
 ORDER_STATUS = {
     1: OrderStatus.OPEN,        # pending: resting, or matched and awaiting the chain
     2: OrderStatus.CLOSED,      # finished
@@ -81,25 +82,24 @@ ORDER_STATUS = {
     4: OrderStatus.EXPIRED,
     5: OrderStatus.REJECTED,    # failed
 }
-"""The venue's numeric order status."""
 
+# Order statuses as the venue's filter codes.
 STATUS_CODES = {"open": 1, "closed": 2, "canceled": 3, "expired": 4, "rejected": 5}
-"""Order statuses as the venue's filter codes."""
 
+# The venue's numeric trade status, as a settlement state.
 TRADE_SETTLEMENT = {
     2: SettlementState.CONFIRMED,   # finished
     3: SettlementState.FAILED,      # canceled
     5: SettlementState.FAILED,      # failed
     6: SettlementState.FAILED,      # failed on chain
 }
-"""The venue's numeric trade status, as a settlement state."""
 
+# Trade record sides that are fills. `Split` and `Merge` are conversions
+# between collateral and a YES/NO pair, not trades.
 FILL_SIDES = ("buy", "sell")
-"""Trade record sides that are fills. `Split` and `Merge` are conversions
-between collateral and a YES/NO pair, not trades."""
 
+# A market's status once its outcome is final.
 RESOLVED = 4
-"""A market's status once its outcome is final."""
 
 
 def D(value: Any) -> Decimal:
@@ -248,8 +248,8 @@ class MarketInfo:
     yes_token: str
     no_token: str
     quote_token: str
+    # The CTF exchange for the market's collateral: the verifying contract.
     exchange: str
-    """The CTF exchange for the market's collateral: the verifying contract."""
 
     @property
     def market_id(self) -> str:
@@ -413,13 +413,13 @@ class OpinionTrading(TradingExchange):
             from ..opinion import Opinion
 
             catalog = Opinion(api_key=credentials.api_key)
+        # The read adapter: tokens, collateral and fees for a market.
         self.catalog = catalog
-        """The read adapter: tokens, collateral and fees for a market."""
+        # The account's Safe, which makes every order and holds the funds.
         self.wallet: str | None = credentials.multisig_address
-        """The account's Safe, which makes every order and holds the funds."""
         self._markets: dict[str, MarketInfo] = {}
+        # Collateral token address (lowercase) -> its CTF exchange.
         self._exchanges: dict[str, str] = {}
-        """Collateral token address (lowercase) -> its CTF exchange."""
 
     # -- plumbing -------------------------------------------------------------
 

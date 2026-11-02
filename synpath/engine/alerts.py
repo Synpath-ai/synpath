@@ -59,15 +59,15 @@ class Alert:
 class AlertRules:
     """When to speak up."""
 
+    # Venue rejections within the window before one alert is raised.
     reject_burst: int = 10
-    """Venue rejections within the window before one alert is raised."""
     reject_window_s: float = 60.0
+    # Fraction of the daily loss limit that warrants a warning.
     daily_loss_warning: Decimal = Decimal("0.8")
-    """Fraction of the daily loss limit that warrants a warning."""
+    # The same alert is not repeated inside this window.
     repeat_after_s: float = 300.0
-    """The same alert is not repeated inside this window."""
+    # Alert kinds to suppress entirely.
     quiet_kinds: tuple[str, ...] = ()
-    """Alert kinds to suppress entirely."""
 
 
 class Alerts:

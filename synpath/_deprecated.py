@@ -23,8 +23,8 @@ from typing import Any, Callable, Mapping, TypeVar
 
 T = TypeVar("T")
 
+# The rename every contract-count field and argument went through.
 QUANTITY = {"amount": "quantity"}
-"""The rename every contract-count field and argument went through."""
 
 
 def warn(old: str, new: str, *, stacklevel: int = 3) -> None:

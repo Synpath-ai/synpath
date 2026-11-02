@@ -41,6 +41,7 @@ from ..errors import AuthenticationError
 from ..trading.opinion import fill_of, order_of, outcome_of
 from ..trading.types import Account, Side
 from .base import (
+    decode_json_or_text,
     ONE, BookEvent, BookLevel, Event, FillEvent, LocalBook, OrderEvent, QuoteEvent, Stream, TradeEvent, VenueEvent,
 )
 
@@ -48,9 +49,9 @@ VENUE = "opinion"
 WS_URL = "wss://ws.opinion.trade"
 HEARTBEAT = '{"action":"HEARTBEAT"}'
 
+# Seconds between re-reads of every watched book. Each costs two requests
+# per market against the venue's 5-a-second public REST limit.
 RESYNC_INTERVAL = 60.0
-"""Seconds between re-reads of every watched book. Each costs two requests
-per market against the venue's 5-a-second public REST limit."""
 
 
 def api_key_from(api_key: str | None) -> str:
@@ -79,8 +80,8 @@ class Watched:
     native: str
     yes_token: str
     no_token: str
+    # The categorical topic's id for an option; `None` for a binary topic.
     topic: str | None
-    """The categorical topic's id for an option; `None` for a binary topic."""
 
     def side_of(self, token: str) -> str:
         return "no" if token == self.no_token else "yes"
@@ -103,19 +104,19 @@ class _OpinionStream(Stream):
             from ..opinion import Opinion
 
             catalog = Opinion()
+        # The read adapter: which tokens and topic a market has, and books.
         self.catalog = catalog
-        """The read adapter: which tokens and topic a market has, and books."""
         self.watched: dict[str, Watched] = {}
+        # `(channel, "marketId" | "rootMarketId", id)`, sent again on every connect.
         self.subscriptions: set[tuple[str, str, int]] = set()
-        """`(channel, "marketId" | "rootMarketId", id)`, sent again on every connect."""
 
-    def status(self, state: Any, detail: str = "", **kwargs: Any) -> None:
+    def _emit_status_event(self, state: Any, detail: str = "", **kwargs: Any) -> None:
         # The key travels in the URL, so it is kept out of anything reported.
-        super().status(state, detail.replace(self._key, "***") if detail else detail, **kwargs)
+        super()._emit_status_event(state, detail.replace(self._key, "***") if detail else detail, **kwargs)
 
     async def _open(self) -> Any:
-        if self._connect is not None:
-            return await self._connect(self.url, additional_headers=self.headers())
+        if self._websocket_connection_opener is not None:
+            return await self._websocket_connection_opener(self.url, additional_headers=self.headers())
         import websockets
 
         # Protocol pings as well as the venue's heartbeat frame: the heartbeat
@@ -158,7 +159,7 @@ class _OpinionStream(Stream):
         refusing something. Only the refusals are reported."""
         code = message.get("code", message.get("errno", 0))
         if message.get("error") or (isinstance(code, int) and code not in (0, 200)):
-            self.status("error", f"venue: {message}")
+            self._record_error_and_emit_status(f"venue: {message}")
         return []
 
 
@@ -177,14 +178,14 @@ class OpinionMarketStream(_OpinionStream):
     def __init__(self, *, resync_interval: float | None = RESYNC_INTERVAL, **kwargs: Any):
         super().__init__(**kwargs)
         self.resync_interval = resync_interval
+        # Token id -> its book. Both sides are read, not mirrored.
         self.books: dict[str, LocalBook] = {}
-        """Token id -> its book. Both sides are read, not mirrored."""
         self.tokens: dict[str, Watched] = {}
         self.depth: set[str] = set()
         self.trades: set[str] = set()
         self.prices: set[str] = set()
+        # Token -> changes that arrived while its snapshot was being read.
         self._pending: dict[str, list[dict[str, Any]]] = {}
-        """Token -> changes that arrived while its snapshot was being read."""
         self._resyncer: asyncio.Task | None = None
 
     async def watch_order_book(self, market_ids: list[str]) -> None:
@@ -290,7 +291,7 @@ class OpinionMarketStream(_OpinionStream):
         except Exception as exc:
             for token in tokens:
                 self._pending.pop(token, None)
-            self.status("error", f"book {watched.market_id}: snapshot failed: {type(exc).__name__}: {exc}",
+            self._record_error_and_emit_status(f"book {watched.market_id}: snapshot failed: {type(exc).__name__}: {exc}",
                         key=watched.market_id)
             return
         for token, side, snapshot in zip(tokens, ("yes", "no"), raws):
@@ -303,8 +304,7 @@ class OpinionMarketStream(_OpinionStream):
             recovering = not book.ready and book.timestamp is not None
             if check and book.ready and not pending:
                 if dict(bids) != book.bids or dict(asks) != book.asks:
-                    self.status(
-                        "gap", f"book {watched.market_id} {side}: local top {book.best_bid}/{book.best_ask} "
+                    self._record_gap_and_emit_status(f"book {watched.market_id} {side}: local top {book.best_bid}/{book.best_ask} "
                                f"differs from the venue's", key=watched.market_id,
                     )
                     recovering = True
@@ -315,7 +315,7 @@ class OpinionMarketStream(_OpinionStream):
             for change in pending:
                 self._apply(book, change)
             if recovering:
-                self.status("resynced", f"book {watched.market_id} {side}", key=watched.market_id)
+                self._record_resync_and_emit_status(f"book {watched.market_id} {side}", key=watched.market_id)
             levels_bids, levels_asks = book.levels()
             self.emit(BookEvent(
                 venue=VENUE, market_id=watched.market_id, side=side, kind="snapshot",  # type: ignore[arg-type]
@@ -340,11 +340,19 @@ class OpinionMarketStream(_OpinionStream):
 
     # -- reading --------------------------------------------------------------
 
-    def handle_raw(self, raw: str) -> list[Event] | None:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Process a complete frame; this adapter owns native/Python selection."""
+        events = self._try_process_frame_with_rust(raw)
+        # An empty list means handled with no events; only None requests fallback.
+        if events is not None:
+            return events
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _try_process_frame_with_rust(self, raw: str) -> list[Event] | None:
         """A depth change, decoded and applied by the Rust core on the same
         book. A change held back while a snapshot is fetched stays a dict
         for the replay, so that, everything else, and everything when the
-        core is not built, goes to `handle`."""
+        core is not built, goes to `_handle_decoded_message`."""
         if _native.core is None:
             return None
         change = _native.core.opinion_depth(raw)
@@ -367,11 +375,11 @@ class OpinionMarketStream(_OpinionStream):
             bids=bids, asks=asks, best_bid=best_bid, best_ask=best_ask,
         )]
 
-    def handle(self, message: Any) -> list[Event]:
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if isinstance(message, list):
             events: list[Event] = []
             for item in message:
-                events.extend(self.handle(item))
+                events.extend(self._handle_decoded_message(item))
             return events
         if not isinstance(message, dict):
             return []
@@ -464,11 +472,15 @@ class OpinionUserStream(_OpinionStream):
 
     watch_my_trades = watch_orders
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if isinstance(message, list):
             events: list[Event] = []
             for item in message:
-                events.extend(self.handle(item))
+                events.extend(self._handle_decoded_message(item))
             return events
         if not isinstance(message, dict):
             return []

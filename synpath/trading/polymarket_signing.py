@@ -41,13 +41,13 @@ CONDITIONAL_TOKENS = "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045"
 PUSD = "0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB"
 CTF_COLLATERAL_ADAPTER = "0xAdA100Db00Ca00073811820692005400218FcE1f"
 NEG_RISK_CTF_COLLATERAL_ADAPTER = "0xadA2005600Dec949baf300f4C6120000bDB6eAab"
+# The CLOB checks the wallet's pUSD allowance to this adapter before it accepts
+# an order on a neg-risk market (several outcomes of one event), as well as the
+# neg-risk exchange's (seen 2026-10-13: an order refused with `spender:
+# 0xd91E…, allowance: 0`).
 NEG_RISK_ADAPTER = "0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296"
-"""The CLOB checks the wallet's pUSD allowance to this adapter before it accepts
-an order on a neg-risk market (several outcomes of one event), as well as the
-neg-risk exchange's (seen 2026-10-13: an order refused with `spender:
-0xd91E…, allowance: 0`)."""
+# Addresses from the venue's contract page, Polygon mainnet, CLOB V2.
 DEPOSIT_WALLET_FACTORY = "0x00000000000Fb5C9ADea0298D729A0CB3823Cc07"
-"""Addresses from the venue's contract page, Polygon mainnet, CLOB V2."""
 
 ZERO_BYTES32 = "0x" + "00" * 32
 MAX_UINT256 = 2**256 - 1
@@ -84,8 +84,8 @@ DOMAIN_FIELDS = [
 
 EOA, POLY_PROXY, POLY_GNOSIS_SAFE, DEPOSIT_WALLET = 0, 1, 2, 3
 
+# pUSD and outcome tokens both carry six decimals.
 SCALE = Decimal(10) ** 6
-"""pUSD and outcome tokens both carry six decimals."""
 
 
 def _eth():
@@ -214,6 +214,8 @@ class RoundConfig:
     amount: int
 
 
+# The venue's precision table: decimals for price, share size and the
+# USD amount at each tick size.
 ROUNDING: dict[str, RoundConfig] = {
     "0.1": RoundConfig(price=1, size=2, amount=3),
     "0.01": RoundConfig(price=2, size=2, amount=4),
@@ -222,8 +224,6 @@ ROUNDING: dict[str, RoundConfig] = {
     "0.001": RoundConfig(price=3, size=2, amount=5),
     "0.0001": RoundConfig(price=4, size=2, amount=6),
 }
-"""The venue's precision table: decimals for price, share size and the
-USD amount at each tick size."""
 
 
 def round_config(tick: Decimal) -> RoundConfig:

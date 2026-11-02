@@ -116,9 +116,9 @@ def validate_quantity(quantity: Decimal, precision: Precision) -> Decimal:
 
 # -- sizing by amount ------------------------------------------------------------
 
+# The grid a venue with no quantity step is sized on: six decimals, the
+# finest any venue in VENUE_RULES uses.
 FALLBACK_QUANTITY_STEP = Decimal("0.000001")
-"""The grid a venue with no quantity step is sized on: six decimals, the
-finest any venue in VENUE_RULES uses."""
 
 
 def outcome_price(yes_price: Decimal, outcome: str, *, face_value: Decimal = ONE) -> Decimal:

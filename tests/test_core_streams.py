@@ -1,7 +1,7 @@
 """Streams on the Rust core against the same streams in Python.
 
-A stream hands each raw frame to the Rust core first (`handle_raw`) and to
-its Python handler for whatever the core declines. These tests replay real
+Each venue adapter owns native/Python selection inside handle_raw(). The
+private native helper can decline a frame without mutating its state. These tests replay real
 recorded traffic through a stream both ways -- once as shipped, once with the
 core switched off -- and require the same events, the same books and the same
 pending checks after every frame. Dropped and corrupted frames make the
@@ -72,7 +72,7 @@ def _run_now(coroutine):
 def polymarket_stream(rows, *, rust: bool):
     stream = PolymarketMarketStream()
     if not rust:
-        stream.handle_raw = lambda raw: None
+        stream._try_process_frame_with_rust = lambda raw: None
     recorder = Recorder(stream)
     for row in rows:
         if row["dir"] == "out" and "assets_ids" in row["msg"]:
@@ -112,8 +112,8 @@ def replay_both(raw_frames, rows):
     rust, rust_rec = polymarket_stream(rows, rust=True)
     python, python_rec = polymarket_stream(rows, rust=False)
     for frame in raw_frames:
-        rust._dispatch(frame)
-        python._dispatch(frame)
+        rust._process_raw_frame_and_emit_events(frame)
+        python._process_raw_frame_and_emit_events(frame)
         assert [comparable(e) for e in drain(rust)] == [comparable(e) for e in drain(python)], frame[:200]
         assert book_state(rust) == book_state(python)
         assert rust._unverified == python._unverified
@@ -127,11 +127,11 @@ class TestPolymarket:
         rows = transcript("polymarket_market_transcript.jsonl")
         stream, _ = polymarket_stream(rows, rust=True)
         declined = []
-        handle = stream.handle
-        stream.handle = lambda message: declined.append(message) or handle(message)
+        handle = stream._handle_decoded_message
+        stream._handle_decoded_message = lambda message: declined.append(message) or handle(message)
         all_frames = list(frames(rows))
         for frame in all_frames:
-            stream._dispatch(frame)
+            stream._process_raw_frame_and_emit_events(frame)
         # Only the trades and the heartbeats reach Python.
         assert 0 < len(declined) < len(all_frames) / 10
 
@@ -163,7 +163,7 @@ class TestPolymarket:
                 roll = rng.random()
                 if roll < 0.08:
                     continue
-                stream._dispatch(corrupt(frame, rng) if roll < 0.14 else frame)
+                stream._process_raw_frame_and_emit_events(corrupt(frame, rng) if roll < 0.14 else frame)
             gaps += len(recorder.tokens)
         assert gaps > 20
 
@@ -174,7 +174,7 @@ class TestPolymarket:
         token = next(iter(rust.tokens))
         bad = json.dumps({"event_type": "book", "asset_id": token, "bids": [{"price": "abc", "size": "1"}], "asks": []})
         for stream in (rust, python):
-            stream._dispatch(bad)
+            stream._process_raw_frame_and_emit_events(bad)
         assert [comparable(e) for e in drain(rust)] == [comparable(e) for e in drain(python)]
         assert [e.state for e in drain(rust)] == []
         assert book_state(rust) == book_state(python)
@@ -192,7 +192,7 @@ def kalshi_stream(rows, *, rust: bool):
     )
     stream = KalshiStream(KalshiCredentials(key_id="key-1", private_key_pem=pem, env="demo"))
     if not rust:
-        stream.handle_raw = lambda raw: None
+        stream._try_process_frame_with_rust = lambda raw: None
     commands: list = []
 
     async def send_command(cmd, params):
@@ -223,8 +223,8 @@ def replay_kalshi_both(raw_frames, rows):
     rust, rust_commands = kalshi_stream(rows, rust=True)
     python, python_commands = kalshi_stream(rows, rust=False)
     for frame in raw_frames:
-        rust._dispatch(frame)
-        python._dispatch(frame)
+        rust._process_raw_frame_and_emit_events(frame)
+        python._process_raw_frame_and_emit_events(frame)
         assert [comparable(e) for e in drain(rust)] == [comparable(e) for e in drain(python)], frame[:200]
         assert kalshi_book_state(rust) == kalshi_book_state(python)
         assert {n: c.last_seq for n, c in rust.channels.items()} == {n: c.last_seq for n, c in python.channels.items()}
@@ -242,11 +242,11 @@ class TestKalshi:
         rows = transcript(self.ROWS)
         stream, _ = kalshi_stream(rows, rust=True)
         declined = []
-        handle = stream.handle
-        stream.handle = lambda message: declined.append(message) or handle(message)
+        handle = stream._handle_decoded_message
+        stream._handle_decoded_message = lambda message: declined.append(message) or handle(message)
         frames_in = self.kalshi_frames(rows)
         for frame in frames_in:
-            stream._dispatch(frame)
+            stream._process_raw_frame_and_emit_events(frame)
         book_frames = [f for f in frames_in if '"orderbook_' in f]
         assert book_frames and not any(m.get("type", "").startswith("orderbook_") for m in declined)
 
@@ -272,7 +272,7 @@ class TestKalshi:
             stream, commands = kalshi_stream(rows, rust=True)
             for frame in self.kalshi_frames(rows):
                 if rng.random() > 0.05:
-                    stream._dispatch(frame)
+                    stream._process_raw_frame_and_emit_events(frame)
             asked += sum(1 for cmd, params in commands if params.get("action") == "get_snapshot")
         assert asked > 10
 
@@ -292,7 +292,7 @@ class TestOpinion:
 
         stream = OpinionMarketStream(api_key="test-key-0123", catalog=None, resync_interval=None)
         if not rust:
-            stream.handle_raw = lambda raw: None
+            stream._try_process_frame_with_rust = lambda raw: None
         watched = Watched(market_id="opinion:8453", native="8453", yes_token=self.YES, no_token=self.NO, topic=None)
         seed = random.Random(rng.random())
         for token in (self.YES, self.NO):
@@ -328,8 +328,8 @@ class TestOpinion:
             if i == 250:
                 for stream in (rust, python):
                     stream.books[self.NO].invalidate()
-            rust._dispatch(frame)
-            python._dispatch(frame)
+            rust._process_raw_frame_and_emit_events(frame)
+            python._process_raw_frame_and_emit_events(frame)
             assert [comparable(e) for e in drain(rust)] == [comparable(e) for e in drain(python)], frame
             assert book_state(rust) == book_state(python)
         assert rust._pending == python._pending and rust._pending[self.YES]
@@ -352,7 +352,7 @@ class TestPolymarketUS:
         )
         stream = PolymarketUSMarketStream(PolymarketUSCredentials(key_id="kid", secret_key=base64.b64encode(raw).decode()))
         if not rust:
-            stream.handle_raw = lambda raw: None
+            stream._try_process_frame_with_rust = lambda raw: None
         return stream
 
     def frames(self, rng, count=200):
@@ -385,8 +385,8 @@ class TestPolymarketUS:
         rng = random.Random(seed)
         rust, python = self.stream(rust=True), self.stream(rust=False)
         for frame in self.frames(rng):
-            rust._dispatch(frame)
-            python._dispatch(frame)
+            rust._process_raw_frame_and_emit_events(frame)
+            python._process_raw_frame_and_emit_events(frame)
             assert [comparable(e) for e in drain(rust)] == [comparable(e) for e in drain(python)], frame
             assert book_state(rust) == book_state(python)
             assert rust.states == python.states

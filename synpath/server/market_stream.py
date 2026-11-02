@@ -51,18 +51,18 @@ from ..ws.base import BookEvent, MarketStatusEvent, QuoteEvent, StreamStatusEven
 
 log = logging.getLogger("synpath.server")
 
+# A client's channel name, and the stream capability that carries it.
 CHANNELS: dict[str, str] = {"book": "watch_order_book", "trades": "watch_trades", "quotes": "watch_ticker"}
-"""A client's channel name, and the stream capability that carries it."""
 
+# Messages a client may fall behind by before its socket is closed (1013).
 OUTBOX_LIMIT = 10_000
-"""Messages a client may fall behind by before its socket is closed (1013)."""
 
 CLOSE_UNAUTHORIZED = 4401
 CLOSE_TOO_SLOW = 1013
 
 Side = Literal["yes", "no"]
+# Builds a venue's market stream, or returns `None` where it cannot (no credentials).
 StreamFactory = Callable[[str], Any]
-"""Builds a venue's market stream, or returns `None` where it cannot (no credentials)."""
 
 
 class SubscribeRefused(Exception):
@@ -155,8 +155,8 @@ class Session:
     send interval, not one per venue update."""
 
     def __init__(self, principal: Any | None = None) -> None:
+        # Who the client's access token belongs to; bucket visibility is checked against it.
         self.principal = principal
-        """Who the client's access token belongs to; bucket visibility is checked against it."""
         self.subscriptions: dict[str, Subscription] = {}
         self.outbox: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=OUTBOX_LIMIT)
         self.dirty_books: set[str] = set()
@@ -293,12 +293,12 @@ class MarketStreams:
         self.venue_locks: dict[str, asyncio.Lock] = {}
         self.closing = False
         self.releasing: set[asyncio.Task] = set()
+        # `synpath.server.bucket_books.BucketBooks`, where the server holds buckets.
         self.buckets: Any | None = None
-        """`synpath.server.bucket_books.BucketBooks`, where the server holds buckets."""
+        # Bucket id -> every client subscription streaming it, for a definition change.
         self.bucket_subscriptions: dict[str, set[BucketSubscription]] = {}
-        """Bucket id -> every client subscription streaming it, for a definition change."""
+        # Venue -> the last lifecycle event its market connection reported, for `venue_status`.
         self.last_stream_status: dict[str, StreamStatusEvent] = {}
-        """Venue -> the last lifecycle event its market connection reported, for `venue_status`."""
         if feeds is not None:
             self.adopt_engine_streams(feeds)
 

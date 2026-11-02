@@ -75,23 +75,23 @@ VENUE = "smarkets"
 API_URL = "https://api.smarkets.com"
 
 CURRENCY = "GBP"
+# Prices are basis points of 100%: 5000 is 50%.
 PRICE_SCALE = 10_000
-"""Prices are basis points of 100%: 5000 is 50%."""
+# Quantities are 1/100 of a penny: 10,000 is £1 of pot, one contract.
 QUANTITY_SCALE = 10_000
-"""Quantities are 1/100 of a penny: 10,000 is £1 of pot, one contract."""
 
+# Smarkets allows 1200 requests per 60 s on an account (API users) and less
+# anonymously: an anonymous `/v3/events/` answers `X-RateLimit-Limit: 60`. One a
+# second, shared process-wide, stays inside the anonymous budget.
 LIMITER = RateLimiter(1.0, burst=5)
-"""Smarkets allows 1200 requests per 60 s on an account (API users) and less
-anonymously: an anonymous `/v3/events/` answers `X-RateLimit-Limit: 60`. One a
-second, shared process-wide, stays inside the anonymous budget."""
 
+# `/quotes/` has its own, stricter limit: 50 per 60 s for API users and, as
+# observed anonymously, 20 per 60 s. Shared by the adapter and the stream.
 QUOTES_LIMITER = RateLimiter(20 / 60, burst=3)
-"""`/quotes/` has its own, stricter limit: 50 per 60 s for API users and, as
-observed anonymously, 20 per 60 s. Shared by the adapter and the stream."""
 
+# A session token lasts 30 minutes from its last authenticated request; one
+# unused for longer than this is replaced by a fresh login.
 SESSION_IDLE_LIMIT = 25 * 60.0
-"""A session token lasts 30 minutes from its last authenticated request; one
-unused for longer than this is replaced by a fresh login."""
 
 # Batch sizes, as the OpenAPI document caps each route's ids.
 EVENTS_PER_REQUEST = 300
@@ -103,35 +103,35 @@ VOLUME_MARKETS_PER_REQUEST = 300
 LAST_PRICE_MARKETS_PER_REQUEST = 100
 TRADE_CONTRACTS_PER_REQUEST = 300
 
+# Smarkets events read per listing request. Football fixtures hold about a
+# hundred markets each, so a page of contracts rarely needs more.
 EVENT_PAGE = 20
-"""Smarkets events read per listing request. Football fixtures hold about a
-hundred markets each, so a page of contracts rarely needs more."""
 
+# Most event pages one listing call reads while filling a page.
 MAX_PAGES = 20
-"""Most event pages one listing call reads while filling a page."""
 
+# Event scopes listed by default: the kinds that hold markets. Roots and
+# categories (Football, Premier League) are tree nodes without markets.
 DEFAULT_SCOPES = ("single_event", "outright", "antepost")
-"""Event scopes listed by default: the kinds that hold markets. Roots and
-categories (Football, Premier League) are tree nodes without markets."""
 
+# Smarkets event states for each status a listing asks for.
 STATES = {
     "open": ("upcoming", "live"),
     "closed": ("ended", "suspended"),
     "settled": ("settled", "cancelled"),
     "all": ("new", "upcoming", "live", "ended", "settled", "cancelled", "suspended"),
 }
-"""Smarkets event states for each status a listing asks for."""
 
+# Smarkets' standard commission on net market winnings.
 DEFAULT_COMMISSION = 0.02
-"""Smarkets' standard commission on net market winnings."""
 
+# A contract's outcome as the YES result. A reduced contract was withdrawn
+# (a non-runner) and its bets voided, the matched ones on other contracts
+# reduced by its factor. A dead heat pays the winning stakes divided by the
+# number of contracts tied, so it is neither yes nor no.
 CONTRACT_RESULTS: dict[str, str] = {
     "winner": "yes", "loser": "no", "voided": "void", "reduced": "void", "deadheat": "dead_heat",
 }
-"""A contract's outcome as the YES result. A reduced contract was withdrawn
-(a non-runner) and its bets voided, the matched ones on other contracts
-reduced by its factor. A dead heat pays the winning stakes divided by the
-number of contracts tied, so it is neither yes nor no."""
 
 USER_AGENT = "synpath (+https://github.com/Synpath-ai/synpath)"
 

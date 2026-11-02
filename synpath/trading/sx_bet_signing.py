@@ -27,10 +27,10 @@ from .predict_fun_signing import _domain_separator
 
 ODDS_SCALE = 10 ** 20
 USDC = 10 ** 6
+# `oddsLadderStepSize` is counted in these: 125 is 0.125%.
 LADDER_UNIT = 10 ** 15
-"""`oddsLadderStepSize` is counted in these: 125 is 0.125%."""
+# 0.1% and 99.9% are always on the ladder, whatever its step.
 LADDER_EXCEPTIONS = frozenset({10 ** 17, 999 * 10 ** 17})
-"""0.1% and 99.9% are always on the ladder, whatever its step."""
 
 ORDER_TYPE = (
     "Order(bytes32 marketHash,address baseToken,uint256 totalBetSize,uint256 percentageOdds,uint256 salt,"

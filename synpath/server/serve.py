@@ -62,10 +62,10 @@ def read_options(market_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {venue: {"api_key": key.api_key} for venue, key in market_data.items() if venue in READ_API_KEY_VENUES}
 
 
+# Venues whose read adapter takes an API key: predict.fun's mainnet refuses
+# every request without one; Opinion's raises its rate limit with one; SX Bet
+# documents its book snapshots as keyed.
 READ_API_KEY_VENUES = ("opinion", "predict_fun", "sx_bet")
-"""Venues whose read adapter takes an API key: predict.fun's mainnet refuses
-every request without one; Opinion's raises its rate limit with one; SX Bet
-documents its book snapshots as keyed."""
 
 
 @dataclass
@@ -77,16 +77,16 @@ class Stack:
     reconciler: Any
     eod: Any
     config: dict[str, Any]
+    # The owner access token created on this start; `None` if the control database
+    # already had users.
     owner_key: str | None = None
-    """The owner access token created on this start; `None` if the control database
-    already had users."""
+    # The access token on record in the local registry for this server's address.
     local_key: str | None = None
-    """The access token on record in the local registry for this server's address."""
     extra_tasks: dict[str, Any] = field(default_factory=dict)
+    # The `/ws/market` hub: venue market connections shared with the feeds.
     market_streams: Any | None = None
-    """The `/ws/market` hub: venue market connections shared with the feeds."""
+    # Every combo venue's board, kept warm (`synpath.server.combo_warmer`); None with `[combo_board] warm = false`.
     combo_boards: Any | None = None
-    """Every combo venue's board, kept warm (`synpath.server.combo_warmer`); None with `[combo_board] warm = false`."""
 
 
 async def build(

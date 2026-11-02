@@ -76,6 +76,8 @@ from .types import (
 
 VENUE = "betfair"
 
+# Where an account logs in and calls the API, by the Betfair site it is
+# registered on. An Italian account cannot log in on .com, and so on.
 JURISDICTIONS: dict[str, dict[str, str]] = {
     "com": {"identity": "identitysso.betfair.com", "cert": "identitysso-cert.betfair.com", "api": "api.betfair.com"},
     "it": {"identity": "identitysso.betfair.it", "cert": "identitysso-cert.betfair.it", "api": "api.betfair.it"},
@@ -86,67 +88,65 @@ JURISDICTIONS: dict[str, dict[str, str]] = {
     "com.au": {"identity": "identitysso.betfair.com.au", "cert": "identitysso-cert.betfair.com.au",
                "api": "api.betfair.com"},
 }
-"""Where an account logs in and calls the API, by the Betfair site it is
-registered on. An Italian account cannot log in on .com, and so on."""
 
 BETTING_PATH = "/exchange/betting/rest/v1.0"
 
+# Betfair publishes no request rate for market data, only a weight per
+# request; kept modest and shared process-wide.
 LIMITER = RateLimiter(5.0, burst=10)
-"""Betfair publishes no request rate for market data, only a weight per
-request; kept modest and shared process-wide."""
 
+# Seconds after which the session is extended with `keepAlive` before the
+# next call. A session lasts 12 hours (24 on UK and Irish accounts) from its
+# last keepAlive, and API calls do not extend it, so a long-running process
+# has to.
 SESSION_REFRESH_AFTER = 4 * 3600.0
-"""Seconds after which the session is extended with `keepAlive` before the
-next call. A session lasts 12 hours (24 on UK and Irish accounts) from its
-last keepAlive, and API calls do not extend it, so a long-running process
-has to."""
 
+# A request's projection weight times its number of markets may not pass
+# this, or Betfair refuses the whole request with `TOO_MUCH_DATA`.
 MAX_WEIGHT = 200
-"""A request's projection weight times its number of markets may not pass
-this, or Betfair refuses the whole request with `TOO_MUCH_DATA`."""
 
 CATALOGUE_WEIGHTS: dict[str, int] = {
     "COMPETITION": 0, "EVENT": 0, "EVENT_TYPE": 0, "MARKET_START_TIME": 0, "RUNNER_DESCRIPTION": 0,
     "MARKET_DESCRIPTION": 1, "RUNNER_METADATA": 1,
 }
 BOOK_WEIGHTS: dict[str, int] = {"EX_BEST_OFFERS": 5, "EX_TRADED": 17, "EX_ALL_OFFERS": 17}
+# Betfair's weights for the pairs it prices below their sum.
 BOOK_COMBINED_WEIGHTS: dict[frozenset[str], int] = {
     frozenset({"EX_BEST_OFFERS", "EX_TRADED"}): 20,
     frozenset({"EX_ALL_OFFERS", "EX_TRADED"}): 32,
 }
-"""Betfair's weights for the pairs it prices below their sum."""
+# `listMarketBook` with no price projection still weighs 2 a market.
 BOOK_BASE_WEIGHT = 2
-"""`listMarketBook` with no price projection still weighs 2 a market."""
 
 LISTING_PROJECTION = ("EVENT", "EVENT_TYPE", "COMPETITION", "MARKET_START_TIME", "MARKET_DESCRIPTION",
                       "RUNNER_DESCRIPTION")
 LOOKUP_PROJECTION = LISTING_PROJECTION + ("RUNNER_METADATA",)
+# The only price projection a delayed key serves in full: three levels a side.
 BOOK_PRICE_DATA = ("EX_BEST_OFFERS",)
-"""The only price projection a delayed key serves in full: three levels a side."""
 
+# `listMarketCatalogue` returns at most this many markets, weight permitting.
 MAX_CATALOGUE_RESULTS = 1000
-"""`listMarketCatalogue` returns at most this many markets, weight permitting."""
 
+# Most catalogue requests one listing call makes while filling a page.
 MAX_PAGES = 50
-"""Most catalogue requests one listing call makes while filling a page."""
 
+# The Market Base Rate on most .com markets, used when a market's own
+# `marketBaseRate` was not read.
 DEFAULT_COMMISSION = 0.05
-"""The Market Base Rate on most .com markets, used when a market's own
-`marketBaseRate` was not read."""
 
+# Betfair sorts its catalogue by matched or available money; it has no
+# listing time to sort by.
 SORTS = {"volume": "MAXIMUM_TRADED", "liquidity": "MAXIMUM_AVAILABLE"}
-"""Betfair sorts its catalogue by matched or available money; it has no
-listing time to sort by."""
 
 SESSION_ERRORS = frozenset({"INVALID_SESSION_INFORMATION", "NO_SESSION"})
 AUTH_ERRORS = SESSION_ERRORS | {"INVALID_APP_KEY", "NO_APP_KEY", "ACCESS_DENIED", "APP_KEY_CREATION_FAILED"}
 RATE_ERRORS = frozenset({"TOO_MANY_REQUESTS"})
 
+# Betfair's CLASSIC odds ladder: from each band's start to its end, in its step.
 CLASSIC_LADDER_BANDS: tuple[tuple[str, str, str], ...] = (
     ("1.01", "2", "0.01"), ("2", "3", "0.02"), ("3", "4", "0.05"), ("4", "6", "0.1"), ("6", "10", "0.2"),
     ("10", "20", "0.5"), ("20", "30", "1"), ("30", "50", "2"), ("50", "100", "5"), ("100", "1000", "10"),
 )
-"""Betfair's CLASSIC odds ladder: from each band's start to its end, in its step."""
 
 
 def _classic_ladder() -> tuple[Decimal, ...]:
@@ -160,8 +160,8 @@ def _classic_ladder() -> tuple[Decimal, ...]:
     return tuple(ticks)
 
 
+# Every price Betfair accepts on a CLASSIC market, 1.01 to 1000 (350 ticks).
 CLASSIC_LADDER: tuple[Decimal, ...] = _classic_ladder()
-"""Every price Betfair accepts on a CLASSIC market, 1.01 to 1000 (350 ticks)."""
 _LADDER_SET = frozenset(CLASSIC_LADDER)
 
 
@@ -247,9 +247,9 @@ def raw_levels(rows: Any) -> list[list[float]]:
     return [[row["price"], row["size"]] for row in rows or [] if row and row.get("price") is not None]
 
 
+# A runner's final status as the YES result. A removed runner (a non-runner)
+# has its bets voided. PLACED is the place leg of an each-way market.
 RESULTS: dict[str, str] = {"WINNER": "yes", "LOSER": "no", "PLACED": "yes", "REMOVED": "void"}
-"""A runner's final status as the YES result. A removed runner (a non-runner)
-has its bets voided. PLACED is the place leg of an each-way market."""
 
 
 def status_of(market_status: str | None, runner_status: str | None) -> tuple[str, bool]:

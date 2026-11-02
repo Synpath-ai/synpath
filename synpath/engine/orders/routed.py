@@ -36,17 +36,17 @@ from .. import router
 from .base import ZERO, Child, Context, D, ManagedOrder, State, now_ms
 from .manager import register
 
+# Larger reference orders asked for while a venue's floor hides its curve:
+# 100, then 10,000, a million and 100 million contracts.
 FEE_REFERENCE_TRIES = 4
-"""Larger reference orders asked for while a venue's floor hides its curve:
-100, then 10,000, a million and 100 million contracts."""
 
+# Contracts in the order a level's fee is quoted for, then divided back to
+# one contract. A one-contract quote overstates the rate wherever a venue
+# charges per order: Kalshi rounds each order's fee up to the cent, and
+# Opinion charges at least 0.25 USDT an order, which would read as 25c a
+# contract and keep the router off the venue entirely. The floor itself is
+# kept per member and applied to whole legs by the plan.
 FEE_REFERENCE = Decimal("100")
-"""Contracts in the order a level's fee is quoted for, then divided back to
-one contract. A one-contract quote overstates the rate wherever a venue
-charges per order: Kalshi rounds each order's fee up to the cent, and
-Opinion charges at least 0.25 USDT an order, which would read as 25c a
-contract and keep the router off the venue entirely. The floor itself is
-kept per member and applied to whole legs by the plan."""
 
 
 @dataclass
@@ -56,8 +56,8 @@ class LegState:
     order_id: str
     venue: str
     side: str
+    # The member's own YES price, as sent.
     price: Decimal
-    """The member's own YES price, as sent."""
     bucket_price: Decimal
     quantity: Decimal
     placed_at: float
@@ -105,22 +105,21 @@ class RoutedLimit(ManagedOrder):
         self.rounds = 0
         self.started_at = 0.0
         self.stop_reason = ""
+        # The incomplete order's intended ending while child cancellations are pending.
         self.pending_final_state: State = "canceled"
-        """The incomplete order's intended ending while child cancellations are pending."""
         self.fees_paid = ZERO
         self.fee_cache: dict[str, Decimal] = {}
+        # Per member, the least one taker order pays, as its venue reported.
         self.fee_floors: dict[str, Decimal] = {}
-        """Per member, the least one taker order pays, as its venue reported."""
         """`market_id@price` -> taker fee per contract."""
         self.fee_unknown: set[str] = set()
         self._replanning = False
         self._replan_again = False
+        # Whether refresh of restored children has been attempted in this process.
+        #         New parents set this in start() because they have no restored children.
+        #         resync() sets it before reading venues; failed reads are logged and
+        #         skipped, so True does not prove every child's status is current.
         self._resynced = False
-        """Whether refresh of restored children has been attempted in this process.
-        New parents set this in start() because they have no restored children.
-        resync() sets it before reading venues; failed reads are logged and
-        skipped, so True does not prove every child's status is current.
-        """
 
     # -- identity: the bucket, and every member ---------------------------------
 

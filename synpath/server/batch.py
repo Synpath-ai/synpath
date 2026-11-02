@@ -32,10 +32,10 @@ from synpath.errors import MarketNotFound, NetworkError, NotSupported
 from .errors import code_of, http_error
 from .models import ErrorDetail, PageResponse
 
+# Ids one batch call may name. The terminal asks for at most 60 at a time; a
+# caller with more splits them, so one request never holds a venue's whole rate
+# budget.
 MAX_BATCH_IDS = 100
-"""Ids one batch call may name. The terminal asks for at most 60 at a time; a
-caller with more splits them, so one request never holds a venue's whole rate
-budget."""
 
 MAX_SEARCH_LIMIT = 100
 

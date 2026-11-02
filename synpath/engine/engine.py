@@ -82,36 +82,36 @@ class EngineConfig:
     lease_name: str = "engine"
     lease_ttl_ms: int = 30_000
     lease_renew_s: float = 10.0
+    # How long an unanswered send stays in doubt before the sweep resolves it.
     in_doubt_timeout_s: float = 20.0
-    """How long an unanswered send stays in doubt before the sweep resolves it."""
+    # How long the venue must keep saying it has no such order before the
+    #     engine believes it. Venues do not list an order the instant they accept
+    #     it -- Kalshi's demo takes a few hundred milliseconds -- so declaring one
+    #     lost too early would abandon a live order.
     lost_after_s: float = 60.0
-    """How long the venue must keep saying it has no such order before the
-    engine believes it. Venues do not list an order the instant they accept
-    it -- Kalshi's demo takes a few hundred milliseconds -- so declaring one
-    lost too early would abandon a live order."""
     sweep_interval_s: float = 10.0
     reconcile_interval_s: float = 60.0
+    # How often to poll orders and fills when no stream is attached.
     poll_interval_s: float = 5.0
-    """How often to poll orders and fills when no stream is attached."""
     halt_policy: HaltPolicy = "cancel"
     require_lease: bool = True
+    # How often engine-held orders get their timer. A TWAP slice, an
+    #     iceberg reload and a peg's minimum stay are all measured against it.
     managed_tick_s: float = 1.0
-    """How often engine-held orders get their timer. A TWAP slice, an
-    iceberg reload and a peg's minimum stay are all measured against it."""
+    # Where "today" ends, for Day orders. Europe/London by default, including seasonal clock changes.
     session_timezone: str | None = "Europe/London"
-    """Where "today" ends, for Day orders. Europe/London by default, including seasonal clock changes."""
     session_end: str = "23:59:59"
+    # How often the RFQ follower reads accepted and confirmed quotes, the
+    #     quotes on our open RFQs and our own maker quotes (and expires them).
     rfq_poll_interval_s: float = 1.0
-    """How often the RFQ follower reads accepted and confirmed quotes, the
-    quotes on our open RFQs and our own maker quotes (and expires them)."""
+    # How often to poll incoming RFQs on quoting venues without a stream
+    #     (`rfq.incoming`); venues that push (`subscribe_incoming_rfqs`) are not
+    #     polled. `None` turns the feed off, streams included.
     rfq_incoming_interval_s: float | None = 2.0
-    """How often to poll incoming RFQs on quoting venues without a stream
-    (`rfq.incoming`); venues that push (`subscribe_incoming_rfqs`) are not
-    polled. `None` turns the feed off, streams included."""
+    # Start the venues' incoming-RFQ streams (Polymarket global's quoter
+    #     session, SX Bet's parlay channel) when the RFQ loop starts. `False`
+    #     leaves starting them to the caller; RFQs they push still reach the engine.
     rfq_stream_incoming: bool = True
-    """Start the venues' incoming-RFQ streams (Polymarket global's quoter
-    session, SX Bet's parlay channel) when the RFQ loop starts. `False`
-    leaves starting them to the caller; RFQs they push still reach the engine."""
 
 
 @dataclass(slots=True)
@@ -119,17 +119,17 @@ class Recovery:
     """What `recover()` found. Every number here is a thing that was in doubt."""
 
     in_doubt: int = 0
+    # Intents whose order was found at the venue after all.
     adopted: int = 0
-    """Intents whose order was found at the venue after all."""
+    # Intents with no order at the venue: nothing was sent.
     swept: int = 0
-    """Intents with no order at the venue: nothing was sent."""
+    # Still in doubt: the venue could not be reached. Trading stays blocked
+    #     for these instruments until it can.
     unresolved: int = 0
-    """Still in doubt: the venue could not be reached. Trading stays blocked
-    for these instruments until it can."""
     fills_replayed: int = 0
     orders_open: int = 0
+    # Engine-held orders brought back and still running.
     managed: int = 0
-    """Engine-held orders brought back and still running."""
     details: list[dict[str, Any]] = field(default_factory=list)
 
     def summary(self, *, detail_limit: int = 20) -> dict[str, Any]:
@@ -140,9 +140,9 @@ class Recovery:
         }
 
 
+# Engine types whose children rest on the book, where `post_only` means
+# something. A TWAP only in its `limit` style.
 POST_ONLY_KINDS = ("iceberg", "peg", "twap", "stop_limit")
-"""Engine types whose children rest on the book, where `post_only` means
-something. A TWAP only in its `limit` style."""
 
 
 STOP_KINDS = frozenset({"stop_market", "stop_limit", "trailing_stop"})
@@ -222,23 +222,23 @@ class Engine:
         self.dispatch_running = False
         self.dispatch_parent: str | None = None
         self._locks: dict[str, asyncio.Lock] = {}
+        # Resolution timestamps, for the closing-soon guard; filled by the caller.
         self.market_close: dict[str, int] = {}
-        """Resolution timestamps, for the closing-soon guard; filled by the caller."""
+        # Market to event id, for the per-event cap.
         self.event_of: dict[str, str] = {}
-        """Market to event id, for the per-event cap."""
         self._open_cache: dict[str, Order] = {}
         # Creates, restores and advances engine-held orders, and links their venue children.
         self.managed_order_controller = ManagedOrderController(self)
+        # The local books engine-held orders watch, fed by `on_book`.
         self.books: dict[str, Any] = {}
-        """The local books engine-held orders watch, fed by `on_book`."""
         self.last_trade: dict[str, Decimal] = {}
         self.last_trade_timestamps: dict[str, int] = {}
         self.market_master = MarketMaster()
+        # RFQs and combos, both sides (docs/rfq-combo.md); the methods below delegate to it.
         self.rfq = RfqDesk(self)
-        """RFQs and combos, both sides (docs/rfq-combo.md); the methods below delegate to it."""
+        # Cross-venue RFQ groups over the desk (docs/rfq-combo.md, "Cross-venue RFQ"). `matcher`
+        #         maps a market onto another venue; by default the hosted matching service.
         self.rfq_groups = RfqGroupDesk(self, matcher=matcher)
-        """Cross-venue RFQ groups over the desk (docs/rfq-combo.md, "Cross-venue RFQ"). `matcher`
-        maps a market onto another venue; by default the hosted matching service."""
 
     # -- lifecycle ------------------------------------------------------------
 

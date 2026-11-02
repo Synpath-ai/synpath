@@ -66,8 +66,8 @@ from .manager import register
 
 TRIGGER_SOURCES = tuple(source.value for source in TriggerSource)
 
+# Legacy trailing-stop protection; stop-market uses legal venue bounds.
 TRAILING_PROTECTION = Decimal("0.05")
-"""Legacy trailing-stop protection; stop-market uses legal venue bounds."""
 
 
 class _Stop(ManagedOrder):
@@ -347,8 +347,8 @@ class TrailingStop(_Stop):
         self.trail_percent = D(self.params.get("trail_percent"))
         if self.trail is None and self.trail_percent is None:
             raise ValueError("a trailing stop needs params trail or trail_percent")
+        # The best price seen: the highest for a sell stop, the lowest for a buy.
         self.extreme: Decimal | None = None
-        """The best price seen: the highest for a sell stop, the lowest for a buy."""
 
     def distance(self, watched: Decimal) -> Decimal:
         if self.trail is not None:

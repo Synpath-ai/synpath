@@ -93,17 +93,17 @@ VENUE = "polymarket"
 
 REQUESTER_URL = "https://combos-rfq-gateway-requester-api.polymarket.com"
 REQUESTS_PATH = "/v1/requester/rfq/requests"
+# The public combo catalogue and the quoter's REST commands.
 RFQ_API_URL = "https://combos-rfq-api.polymarket.com"
-"""The public combo catalogue and the quoter's REST commands."""
 QUOTER_WS_URL = "wss://combos-rfq-gateway-quoter.polymarket.com/ws/rfq"
 
 MIN_LEGS, MAX_LEGS = 2, 50
 E6 = Decimal(1_000_000)
+# The quoter's BUY-request safety maximum (`QUOTED_PRICE_ABOVE_SAFETY_THRESHOLD`).
 BUY_PRICE_CEILING = Decimal("0.90909")
-"""The quoter's BUY-request safety maximum (`QUOTED_PRICE_ABOVE_SAFETY_THRESHOLD`)."""
+# A quote of ours not selected this long after it was sent is read as
+# expired: the competition (400 ms) and the requester's window (5-10 s) are over.
 MAKER_QUOTE_STALE_S = 30.0
-"""A quote of ours not selected this long after it was sent is read as
-expired: the competition (400 ms) and the requester's window (5-10 s) are over."""
 
 COMBO_PREFIX = "combo-"
 PROVISIONAL_PREFIX = "combo-legs-"
@@ -113,6 +113,8 @@ IN_FLIGHT = frozenset({"AWAITING_MAKER_CONFIRMATION", "EXECUTING", "MATCHED", "M
 DONE = frozenset({"FILLED", "CONFIRMED"})
 NO_TRADE = frozenset({"FAILED", "EXPIRED", "CANCELED", "REJECTED"})
 
+# The gateway's RFQ status as the status of its one quote. FAILED with
+# `MAKER_DECLINED` reads as `canceled` (declined in the last look).
 QUOTE_STATUS = {
     "CREATED": QuoteStatus.OPEN,
     "COLLECTING_QUOTES": QuoteStatus.OPEN,
@@ -131,8 +133,6 @@ QUOTE_STATUS = {
     "EXPIRED": QuoteStatus.EXPIRED,
     "CANCELED": QuoteStatus.CANCELED,
 }
-"""The gateway's RFQ status as the status of its one quote. FAILED with
-`MAKER_DECLINED` reads as `canceled` (declined in the last look)."""
 
 CLOSE_REASON = {
     "FILLED": RfqCloseReason.EXECUTED,
@@ -304,20 +304,20 @@ class RfqRecord:
     """One RFQ this adapter created, as the gateway described it."""
 
     rfq_id: str
+    # The create body as sent.
     request: dict[str, Any]
-    """The create body as sent."""
+    # The create answer: status, expiry, the echoed request, the quote.
     response: dict[str, Any]
-    """The create answer: status, expiry, the echoed request, the quote."""
     status: str
     created_at: int
     combo: Combo | None = None
+    # The signed accept, kept so a retry sends the same order.
     accept_body: dict[str, Any] | None = None
-    """The signed accept, kept so a retry sends the same order."""
     accept_side: Side | None = None
     accepted_at: int | None = None
     order_hash: str | None = None
+    # The latest status answer after the accept.
     last: dict[str, Any] = field(default_factory=dict)
-    """The latest status answer after the accept."""
     canceled: bool = False
 
     @property
@@ -360,9 +360,9 @@ class MakerRecord:
     rfq_id: str
     request: dict[str, Any]
     sent_at: int
+    # OPEN, ACCEPTED (a last-look request), CONFIRMED (handed to execution),
+    # EXECUTED, FAILED, CANCELED, EXPIRED.
     status: str = "OPEN"
-    """OPEN, ACCEPTED (a last-look request), CONFIRMED (handed to execution),
-    EXECUTED, FAILED, CANCELED, EXPIRED."""
     fill_size_e6: int | None = None
     tx_hash: str | None = None
     detail: dict[str, Any] = field(default_factory=dict)
@@ -486,13 +486,13 @@ class PolymarketRfqSession:
 class PolymarketRfqMixin:
     """Combo RFQs on `PolymarketTrading`. See the module doc."""
 
+    # The requester gateway has no cancel: `cancel_rfq` only drops the RFQ
+    # here and it lapses at `expires_at`. Read by the engine's cross-venue
+    # groups (`synpath.engine.rfq_group`), which record such a venue as left
+    # to expire rather than cancelled.
     rfq_requester_cancel = False
-    """The requester gateway has no cancel: `cancel_rfq` only drops the RFQ
-    here and it lapses at `expires_at`. Read by the engine's cross-venue
-    groups (`synpath.engine.rfq_group`), which record such a venue as left
-    to expire rather than cancelled."""
+    # An RFQ asks one side (YES, `buy` by amount or `sell` by quantity).
     rfq_one_sided = True
-    """An RFQ asks one side (YES, `buy` by amount or `sell` by quantity)."""
 
     # Set by `PolymarketTrading.__init__` through `_init_rfq`.
     requester: AsyncHttpClient
@@ -503,10 +503,10 @@ class PolymarketRfqMixin:
         self.rfq_api = AsyncHttpClient(rfq_api_url, limiter=None, client=shared, venue=VENUE)
         self._rfq_records: dict[str, RfqRecord] = {}
         self._quote_to_rfq: dict[str, str] = {}
+        # By combo id (real and provisional) and by its sorted leg set.
         self._combos: dict[str, Combo] = {}
-        """By combo id (real and provisional) and by its sorted leg set."""
+        # Leg position id -> (Synpath market id, outcome).
         self._positions: dict[str, tuple[str, str]] = {}
-        """Leg position id -> (Synpath market id, outcome)."""
         self._position_of: dict[tuple[str, str], str] = {}
         self._incoming: dict[str, tuple[Rfq, dict[str, Any]]] = {}
         self._maker: dict[str, MakerRecord] = {}

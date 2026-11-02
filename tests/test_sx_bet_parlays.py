@@ -146,7 +146,7 @@ def fake_stream() -> tuple[SxBetParlayStream, FakeSocket]:
     async def connect(url, **kw):
         return socket
 
-    return SxBetParlayStream(token="tok", connect=connect), socket
+    return SxBetParlayStream(token="tok", websocket_connection_opener=connect), socket
 
 
 def push(data) -> str:

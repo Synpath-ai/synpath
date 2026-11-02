@@ -92,13 +92,13 @@ class TestBooks:
     async def test_a_snapshot_then_only_what_changed(self):
         s, _ = stream()
         await s.watch_order_book([FULHAM])
-        first = books(s.handle(self.message(QUOTES)))
+        first = books(s._handle_decoded_message(self.message(QUOTES)))
         assert [e.kind for e in first] == ["snapshot"]
         assert first[0].best_bid == Decimal("0.5") and first[0].best_ask == Decimal("0.5155")
         assert first[0].info["delayed"] is True
-        assert s.handle(self.message(QUOTES)) == []
+        assert s._handle_decoded_message(self.message(QUOTES)) == []
         changed = moved(QUOTES, "456060183", offers=[{"price": 5128, "quantity": 20000}])
-        delta = books(s.handle(self.message(changed)))
+        delta = books(s._handle_decoded_message(self.message(changed)))
         assert [e.kind for e in delta] == ["delta"]
         assert {(level.price, level.size) for level in delta[0].asks} == {
             (Decimal("0.5128"), Decimal("2")), (Decimal("0.5155"), Decimal("0")),
@@ -110,7 +110,7 @@ class TestBooks:
         s, api = stream()
         await s._open()
         await s.watch_order_book(["smarkets:164973231"])
-        events = s.handle(await s.poll())
+        events = s._handle_decoded_message(await s.poll())
         assert "/v3/markets/164973231/contracts/" in api.paths()
         assert {e.market_id for e in books(events)} == {
             "smarkets:164973231-456060183", "smarkets:164973231-456060184", "smarkets:164973231-456060185",
@@ -119,20 +119,20 @@ class TestBooks:
     async def test_a_ticker_fires_when_the_top_moves(self):
         s, _ = stream()
         await s.watch_ticker([FULHAM])
-        first = s.handle(self.message(QUOTES))
+        first = s._handle_decoded_message(self.message(QUOTES))
         assert len(first) == 1 and isinstance(first[0], QuoteEvent) and first[0].bid == Decimal("0.5")
-        assert s.handle(self.message(QUOTES)) == []
+        assert s._handle_decoded_message(self.message(QUOTES)) == []
         deeper = moved(QUOTES, "456060183", bids=QUOTES["456060183"]["bids"][:1])
-        assert s.handle(self.message(deeper)) == []          # only a lower level went
-        assert len(s.handle(self.message(moved(QUOTES, "456060183", bids=[])))) == 1
+        assert s._handle_decoded_message(self.message(deeper)) == []          # only a lower level went
+        assert len(s._handle_decoded_message(self.message(moved(QUOTES, "456060183", bids=[])))) == 1
 
     async def test_after_a_drop_the_next_poll_is_a_snapshot_and_resynced(self):
         s, _ = stream()
         await s.watch_order_book([FULHAM])
-        s.handle(self.message(QUOTES))
+        s._handle_decoded_message(self.message(QUOTES))
         s.on_disconnect()
         assert not s.book(FULHAM).ready
-        assert [e.kind for e in books(s.handle(self.message(QUOTES)))] == ["snapshot"]
+        assert [e.kind for e in books(s._handle_decoded_message(self.message(QUOTES)))] == ["snapshot"]
         status = s._queue.get_nowait()
         assert isinstance(status, StreamStatusEvent) and status.state == "resynced"
 
@@ -150,21 +150,21 @@ class TestStatus:
         await s._open()
         market = HALTED["markets"][0]["id"]
         await s.watch_market_status([f"smarkets:{market}"])
-        first = s.handle(await s.poll())
+        first = s._handle_decoded_message(await s.poll())
         statuses = [e for e in first if isinstance(e, MarketStatusEvent)]
         assert {e.state for e in statuses} == {"paused"} and len(statuses) == 2
         assert f"/v3/markets/{market}/" in api.paths()
         reads = len(api.requests)
-        assert s.handle(await s.poll()) == [] and len(api.requests) == reads + 1   # quotes only
-        s.handle(await s.poll())
-        assert s.handle(await s.poll()) == []                                      # read again, unchanged
+        assert s._handle_decoded_message(await s.poll()) == [] and len(api.requests) == reads + 1   # quotes only
+        s._handle_decoded_message(await s.poll())
+        assert s._handle_decoded_message(await s.poll()) == []                                      # read again, unchanged
 
     async def test_settled_contracts_carry_their_result(self):
         s, _ = stream()
         await s._open()
         market = SETTLED["markets"][0]["id"]
         await s.watch_market_status([f"smarkets:{market}"])
-        events = [e for e in s.handle(await s.poll()) if isinstance(e, MarketStatusEvent)]
+        events = [e for e in s._handle_decoded_message(await s.poll()) if isinstance(e, MarketStatusEvent)]
         assert sorted(e.result for e in events) == ["no", "no", "yes"]
         assert all(e.state == "settled" for e in events)
 

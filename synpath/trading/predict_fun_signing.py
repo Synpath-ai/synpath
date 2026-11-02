@@ -39,16 +39,16 @@ KERNEL_VERSION = "0.3.1"
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 SCALE = 10**18
 BUY, SELL = 0, 1
+# The only signature type the venue takes; a Predict account signs under it
+# too, through EIP-1271.
 EOA = 0
-"""The only signature type the venue takes; a Predict account signs under it
-too, through EIP-1271."""
 
 MAX_SALT = 2_147_483_648
+# 2100-01-01, the SDK's expiration for an order that rests until cancelled.
 NO_EXPIRY = 4_102_444_800
-"""2100-01-01, the SDK's expiration for an order that rests until cancelled."""
 
+# The SDK's smallest order: 0.01 shares.
 MIN_SHARES_WEI = 10**16
-"""The SDK's smallest order: 0.01 shares."""
 
 
 @dataclass(frozen=True)

@@ -42,8 +42,8 @@ Kind = Literal["read", "write"]
 
 
 class Priority(IntEnum):
+    # Cancels, kill switch, the replace half of an edit.
     HIGH = 0
-    """Cancels, kill switch, the replace half of an edit."""
     NORMAL = 1
 
 
@@ -61,12 +61,12 @@ class _Bucket:
 
 @dataclass
 class _Lane:
+    # The venue's budget, as reserved by every caller.
     main: _Bucket
-    """The venue's budget, as reserved by every caller."""
+    # What a high-priority call may borrow ahead of the queue.
     fast: _Bucket
-    """What a high-priority call may borrow ahead of the queue."""
+    # Seconds of delay injected ahead of sleeping normal callers.
     shift: float = 0.0
-    """Seconds of delay injected ahead of sleeping normal callers."""
 
 
 @dataclass(frozen=True)

@@ -42,7 +42,7 @@ import httpx
 
 from .. import ids
 from ..base import Capability, RateLimiter
-from .base import BookEvent, Event, LocalBook, MarketStatusEvent, QuoteEvent, Stream, now_ms
+from .base import BookEvent, Event, LocalBook, MarketStatusEvent, QuoteEvent, Stream, now_ms, decode_json_or_text
 
 from .betfair import changed  # shared: the levels that differ between two book sides
 
@@ -51,11 +51,11 @@ log = logging.getLogger("synpath.ws.smarkets")
 VENUE = "smarkets"
 SCALE = Decimal(10_000)
 
+# Seconds between polls: 12 quotes requests a minute, inside the anonymous 20.
 DEFAULT_INTERVAL = 5.0
-"""Seconds between polls: 12 quotes requests a minute, inside the anonymous 20."""
 
+# Smarkets markets one stream polls; five quotes requests a poll at most.
 MAX_MARKETS = 1000
-"""Smarkets markets one stream polls; five quotes requests a poll at most."""
 
 
 def yes_levels(rows: Any) -> list[tuple[Decimal, Decimal]]:
@@ -155,17 +155,17 @@ class SmarketsMarketStream(Stream):
         self._own_client = client is None
         self.quotes_limiter = QUOTES_LIMITER if quotes_limiter == "shared" else quotes_limiter
         self.limiter = LIMITER if limiter == "shared" else limiter
+        # Contract's Synpath id -> its YES book.
         self.books: dict[str, LocalBook] = {}
-        """Contract's Synpath id -> its YES book."""
         self.tickers: set[str] = set()
+        # Smarkets markets watched as a whole: every contract's book is kept.
         self.whole_markets: set[str] = set()
-        """Smarkets markets watched as a whole: every contract's book is kept."""
+        # Smarkets market ids whose status changes are passed on; `None` while not watching.
         self.statuses: set[str] | None = None
-        """Smarkets market ids whose status changes are passed on; `None` while not watching."""
+        # Smarkets market ids polled.
         self.wanted: set[str] = set()
-        """Smarkets market ids polled."""
+        # Contract id -> Smarkets market id, for markets watched whole.
         self.contract_market: dict[str, str] = {}
-        """Contract id -> Smarkets market id, for markets watched whole."""
         self.polls = 0
         self._top: dict[str, tuple[Any, ...]] = {}
         self._last_state: dict[str, tuple[str, str | None]] = {}
@@ -272,7 +272,7 @@ class SmarketsMarketStream(Stream):
                 continue
             self.wanted.add(market)
         if refused:
-            self.status("error", f"more than {MAX_MARKETS} markets on one stream; not polled: {', '.join(sorted(refused))}")
+            self._record_error_and_emit_status(f"more than {MAX_MARKETS} markets on one stream; not polled: {', '.join(sorted(refused))}")
         return refused
 
     async def watch_order_book(self, market_ids: list[str]) -> None:
@@ -331,7 +331,11 @@ class SmarketsMarketStream(Stream):
 
     # -- messages -------------------------------------------------------------
 
-    def handle(self, message: Any) -> list[Event]:
+    def handle_raw(self, raw: str) -> list[Event]:
+        """Decode this venue's JSON/text frame and interpret its message."""
+        return self._handle_decoded_message(decode_json_or_text(raw))
+
+    def _handle_decoded_message(self, message: Any) -> list[Event]:
         if not isinstance(message, dict) or message.get("op") != "poll":
             return []
         events: list[Event] = []
@@ -373,7 +377,7 @@ class SmarketsMarketStream(Stream):
                     best_bid=book.best_bid, best_ask=book.best_ask, info=info,
                 ))
                 if recovering:
-                    self.status("resynced", f"book {synpath_id}", key=synpath_id)
+                    self._record_resync_and_emit_status(f"book {synpath_id}", key=synpath_id)
             else:
                 bid_changes, ask_changes = changed(old_bids, new_bids), changed(old_asks, new_asks)
                 if bid_changes or ask_changes:

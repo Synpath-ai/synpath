@@ -44,56 +44,56 @@ from .types import (
 )
 
 OPENAPI_URL = "https://openapi.opinion.trade/openapi"
+# A public BNB Chain node, for the one contract read this adapter makes.
 RPC_URL = "https://bsc-dataseed.binance.org"
-"""A public BNB Chain node, for the one contract read this adapter makes."""
 VENUE = "opinion"
 
+# The venue's published public limit: 5 requests a second per IP (15 per
+# API key). Shared process-wide, as every venue's is.
 LIMITER = RateLimiter(5.0, burst=5)
-"""The venue's published public limit: 5 requests a second per IP (15 per
-API key). Shared process-wide, as every venue's is."""
 
+# Topics per catalog call: the venue's maximum.
 PAGE = 20
-"""Topics per catalog call: the venue's maximum."""
 
+# Most catalog pages one `fetch_markets` or `fetch_events` call reads while
+# filling `limit`, at 5 requests a second about two seconds. Past it the call
+# returns what it has, with a cursor.
 MAX_PAGES = 10
-"""Most catalog pages one `fetch_markets` or `fetch_events` call reads while
-filling `limit`, at 5 requests a second about two seconds. Past it the call
-returns what it has, with a cursor."""
 
+# Most catalog pages one search call scans: 500 topics, more than the whole
+# open catalog (about 300 topics) and two seconds at the public rate limit.
+# The venue has no search endpoint, so a query is matched here.
 MAX_SEARCH_PAGES = 25
-"""Most catalog pages one search call scans: 500 topics, more than the whole
-open catalog (about 300 topics) and two seconds at the public rate limit.
-The venue has no search endpoint, so a query is matched here."""
 
+# Most `price-history` calls one `fetch_ohlcv` makes walking back to `since`.
+# A call returns at most 1000 samples, so this is 10,000 hours (over a year) of
+# hourly samples.
 MAX_HISTORY_PAGES = 10
-"""Most `price-history` calls one `fetch_ohlcv` makes walking back to `since`.
-A call returns at most 1000 samples, so this is 10,000 hours (over a year) of
-hourly samples."""
 
+# Bars looked back when neither `since` nor `limit` bounds the window.
 DEFAULT_BARS = 100
-"""Bars looked back when neither `since` nor `limit` bounds the window."""
 
+# Opinion's FeeManager contract on BNB Chain, from the venue's own SDK.
 FEE_MANAGER = "0xC9063Dc52dEEfb518E5b6634A6b8D624bc5d7c36"
-"""Opinion's FeeManager contract on BNB Chain, from the venue's own SDK."""
 
+# Selector of `getFeeRateSettings(uint256 tokenId)`, which returns
+# `(makerFeeRateBps, takerFeeRateBps, enabled, minFeeAmount)`.
 GET_FEE_RATE_SETTINGS = "0x27f68850"
-"""Selector of `getFeeRateSettings(uint256 tokenId)`, which returns
-`(makerFeeRateBps, takerFeeRateBps, enabled, minFeeAmount)`."""
 
+# The venue's documented minimum fee per order, in USDT. The contract's own
+# `minFeeAmount` reads 0; the fee docs state this floor is applied when the
+# curve fee comes out smaller, so the documented figure is the one used.
 MIN_FEE = 0.25
-"""The venue's documented minimum fee per order, in USDT. The contract's own
-`minFeeAmount` reads 0; the fee docs state this floor is applied when the
-curve fee comes out smaller, so the documented figure is the one used."""
 
+# The venue's numeric status, as (normalized status, native word).
 STATUSES = {1: ("unopened", "created"), 2: ("open", "activated"), 3: ("closed", "resolving"), 4: ("settled", "resolved")}
-"""The venue's numeric status, as (normalized status, native word)."""
 
+# This library's sort keys as the venue's `sortBy` codes: 5 is 24h volume,
+# descending; 1 is newest first. The venue has no liquidity ordering.
 SORT_BY = {"volume": 5, "newest": 1}
-"""This library's sort keys as the venue's `sortBy` codes: 5 is 24h volume,
-descending; 1 is newest first. The venue has no liquidity ordering."""
 
+# The venue's error number for an id it does not know ("Topic ID does not exist").
 NOT_FOUND = 10200
-"""The venue's error number for an id it does not know ("Topic ID does not exist")."""
 
 
 # ---------------------------------------------------------------------------
@@ -464,8 +464,8 @@ class Opinion(Exchange):
             client = httpx.Client(timeout=timeout, follow_redirects=True, headers={"apikey": api_key})
         self.http = HttpClient(openapi_url, limiter=limiter, timeout=timeout, client=client, venue=VENUE)
         self.rpc = HttpClient(rpc_url, limiter=None, timeout=timeout, venue=VENUE)
+        # Per market: `(yes_token, no_token)`, filled by every catalog read.
         self._tokens: dict[str, tuple[str, str]] = {}
-        """Per market: `(yes_token, no_token)`, filled by every catalog read."""
 
     # -- catalog ------------------------------------------------------------
 

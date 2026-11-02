@@ -76,33 +76,33 @@ DATA_URL = "https://data-api.polymarket.com"
 GAMMA_URL = "https://gamma-api.polymarket.com"
 RELAYER_URL = "https://relayer-v2.polymarket.com"
 
+# Synpath's builder signer. Polymarket's relayer accepts a builder's
+# credentials in place of the account's own Relayer API key; the builder secret
+# stays on Synpath's server, which answers with the headers for one request.
+# It moves no money -- the relayer only runs a batch the account's own key
+# signed. `SYNPATH_BUILDER_SIGNER_URL` points elsewhere, `none` turns it off.
 BUILDER_SIGNER_URL = "https://api.synpath.dev/v1/builder/sign"
-"""Synpath's builder signer. Polymarket's relayer accepts a builder's
-credentials in place of the account's own Relayer API key; the builder secret
-stays on Synpath's server, which answers with the headers for one request.
-It moves no money -- the relayer only runs a batch the account's own key
-signed. `SYNPATH_BUILDER_SIGNER_URL` points elsewhere, `none` turns it off."""
 
 INITIAL_CURSOR = "MA=="
 END_CURSOR = "LTE="
 
+# Orders per `POST /orders`, the venue's limit.
 ORDER_BATCH = 15
-"""Orders per `POST /orders`, the venue's limit."""
+# Ids per `DELETE /orders`, the venue's limit since 2026-06-15.
 CANCEL_BATCH = 1000
-"""Ids per `DELETE /orders`, the venue's limit since 2026-06-15."""
 
+# The venue expires a GTD order one minute before its stated expiration.
 GTD_SAFETY_S = 60
-"""The venue expires a GTD order one minute before its stated expiration."""
+# And refuses an expiration less than three minutes away.
 GTD_MIN_LEAD_S = 180
-"""And refuses an expiration less than three minutes away."""
 
+# Shares carry two decimals at every tick size.
 SIZE_STEP = Decimal("0.01")
-"""Shares carry two decimals at every tick size."""
 
+# How long a token's tick, minimum and neg-risk flag are trusted. Ticks
+# change as a price nears the ends; a rejection for a stale tick also clears
+# the entry.
 MARKET_TTL_S = 60.0
-"""How long a token's tick, minimum and neg-risk flag are trusted. Ticks
-change as a price nears the ends; a rejection for a stale tick also clears
-the entry."""
 
 
 # ---------------------------------------------------------------------------
@@ -639,8 +639,8 @@ class PolymarketTrading(PolymarketRfqMixin, TradingExchange):
         self.data = AsyncHttpClient(data_url, limiter=None, client=shared, venue=VENUE)
         self.relayer = AsyncHttpClient(relayer_url, limiter=None, client=shared, venue=VENUE)
         self.gamma = AsyncHttpClient(gamma_url, limiter=None, client=shared, venue=VENUE)
+        # By Gamma id, condition id and either token id: which token is which side.
         self._markets: dict[str, MarketTokens] = {}
-        """By Gamma id, condition id and either token id: which token is which side."""
         self._http = shared
         self._api_key = credentials.api_key
         self._api_secret = credentials.api_secret

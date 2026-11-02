@@ -102,7 +102,7 @@ class TestKey:
         assert market_stream(catalog).url == f"wss://ws.opinion.trade?apikey={KEY}"
 
     async def test_the_key_never_reaches_a_status_event(self, catalog):
-        stream = market_stream(catalog, connect=Connector(OSError(f"cannot reach wss://ws.opinion.trade?apikey={KEY}")))
+        stream = market_stream(catalog, websocket_connection_opener=Connector(OSError(f"cannot reach wss://ws.opinion.trade?apikey={KEY}")))
         stream.start()
         await wait_for(lambda: not stream._queue.empty())
         await stream.close()
@@ -114,7 +114,7 @@ class TestKey:
 class TestBooks:
     async def test_subscribe_then_snapshot_both_sides(self, catalog, binary):
         conn = FakeConnection()
-        stream = market_stream(catalog, connect=Connector(conn))
+        stream = market_stream(catalog, websocket_connection_opener=Connector(conn))
         await stream.watch_order_book([binary.id])
         assert catalog.reads == []                      # not connected: nothing to snapshot against
         stream.start()
@@ -137,10 +137,10 @@ class TestBooks:
         await stream.watch_order_book([binary.id])
         drain(stream)
         yes = binary.yes.venue_token_id
-        [event] = stream.handle(depth(binary, yes, "bids", "0.67", "40"))
+        [event] = stream._handle_decoded_message(depth(binary, yes, "bids", "0.67", "40"))
         assert event.kind == "delta" and event.side == "yes"
         assert event.bids[0].price == D("0.67") and event.best_bid == D("0.67")
-        stream.handle(depth(binary, yes, "bids", "0.67", "0"))
+        stream._handle_decoded_message(depth(binary, yes, "bids", "0.67", "0"))
         assert stream.book(binary.id).best_bid == D("0.66")
 
     async def test_changes_during_the_snapshot_are_replayed(self, binary, catalog):
@@ -150,7 +150,7 @@ class TestBooks:
         stream._ws = FakeConnection()
         task = asyncio.get_running_loop().create_task(stream.watch_order_book([binary.id]))
         await wait_for(lambda: binary.yes.venue_token_id in stream._pending)
-        stream.handle(depth(binary, binary.yes.venue_token_id, "asks", "0.70", "5"))
+        stream._handle_decoded_message(depth(binary, binary.yes.venue_token_id, "asks", "0.70", "5"))
         gate.set()
         await task
         assert stream.book(binary.id).best_ask == D("0.70")
@@ -160,11 +160,11 @@ class TestBooks:
     async def test_changes_before_any_snapshot_are_ignored(self, catalog, binary):
         stream = market_stream(catalog)
         await stream.watch_order_book([binary.id])
-        assert stream.handle(depth(binary, binary.yes.venue_token_id, "bids", "0.5", "1")) == []
+        assert stream._handle_decoded_message(depth(binary, binary.yes.venue_token_id, "bids", "0.5", "1")) == []
 
     async def test_a_reconnect_reads_the_books_again(self, catalog, binary):
         first, second = FakeConnection(), FakeConnection()
-        stream = market_stream(catalog, connect=Connector(first, second), backoff_initial=0.001)
+        stream = market_stream(catalog, websocket_connection_opener=Connector(first, second), backoff_initial=0.001)
         await stream.watch_order_book([binary.id])
         stream.start()
         await wait_for(lambda: stream.book(binary.id).ready)
@@ -205,12 +205,12 @@ class TestTradesAndPrices:
         assert conn.sent == [{"action": "SUBSCRIBE", "channel": "market.last.trade", "rootMarketId": 337}]
         sibling = {"marketId": 5343, "tokenId": "x", "side": "Buy", "outcomeSide": 1, "price": "0.4",
                    "shares": "1", "amount": "0.4", "msgType": "market.last.trade"}
-        assert stream.handle(sibling) == []
+        assert stream._handle_decoded_message(sibling) == []
 
     async def test_a_no_trade_is_reported_on_the_yes_leg(self, catalog, binary):
         stream = market_stream(catalog)
         await stream.watch_trades([binary.id])
-        [trade] = stream.handle({"tokenId": binary.no.venue_token_id, "side": "Buy", "outcomeSide": 2, "price": "0.15",
+        [trade] = stream._handle_decoded_message({"tokenId": binary.no.venue_token_id, "side": "Buy", "outcomeSide": 2, "price": "0.15",
                                  "shares": "10", "amount": "1.5", "marketId": 8453, "msgType": "market.last.trade"})
         assert isinstance(trade, TradeEvent)
         assert trade.price == D("0.85") and trade.taker_side == Side.SELL and trade.quantity == D("10")
@@ -218,26 +218,26 @@ class TestTradesAndPrices:
     async def test_a_split_is_not_a_trade(self, catalog, binary):
         stream = market_stream(catalog)
         await stream.watch_trades([binary.id])
-        [event] = stream.handle({"side": "Split", "outcomeSide": 1, "price": "0.5", "shares": "10",
+        [event] = stream._handle_decoded_message({"side": "Split", "outcomeSide": 1, "price": "0.5", "shares": "10",
                                  "marketId": 8453, "msgType": "market.last.trade"})
         assert isinstance(event, VenueEvent) and event.name == "split"
 
     async def test_last_price_is_a_quote_on_its_side(self, catalog, binary):
         stream = market_stream(catalog)
         await stream.watch_ticker([binary.id])
-        [quote] = stream.handle({"tokenId": binary.no.venue_token_id, "outcomeSide": 2, "price": "0.15",
+        [quote] = stream._handle_decoded_message({"tokenId": binary.no.venue_token_id, "outcomeSide": 2, "price": "0.15",
                                  "marketId": 8453, "msgType": "market.last.price"})
         assert isinstance(quote, QuoteEvent) and quote.side == "no" and quote.last == D("0.15")
 
     async def test_venue_errors_are_reported_and_acks_are_not(self, catalog):
         stream = market_stream(catalog)
-        assert stream.handle({"code": 400, "message": "invalid channel"}) == []
-        assert stream.handle({"code": 0, "message": "ok"}) == []
+        assert stream._handle_decoded_message({"code": 400, "message": "invalid channel"}) == []
+        assert stream._handle_decoded_message({"code": 0, "message": "ok"}) == []
         assert [e.state for e in of(drain(stream), StreamStatusEvent)] == ["error"]
 
     async def test_the_heartbeat_frame_is_sent(self, catalog):
         conn = FakeConnection()
-        stream = market_stream(catalog, connect=Connector(conn), ping_interval=0.01)
+        stream = market_stream(catalog, websocket_connection_opener=Connector(conn), ping_interval=0.01)
         stream.start()
         await wait_for(lambda: HEARTBEAT in conn.sent or json.loads(HEARTBEAT) in conn.sent)
         await stream.close()
@@ -279,7 +279,7 @@ class TestUser:
 
     async def test_an_order_update_is_an_order_on_the_yes_leg(self, catalog):
         stream = OpinionUserStream(api_key=KEY, catalog=catalog)
-        [event] = stream.handle(ORDER_UPDATE)
+        [event] = stream._handle_decoded_message(ORDER_UPDATE)
         assert isinstance(event, OrderEvent) and event.native == "orderConfirm"
         order = event.order
         assert order.market_id == "opinion:2770" and order.side == Side.BUY and order.price == D("0.15")
@@ -289,13 +289,13 @@ class TestUser:
 
     async def test_a_no_order_is_a_sell_at_the_complement(self, catalog):
         stream = OpinionUserStream(api_key=KEY, catalog=catalog)
-        [event] = stream.handle({**ORDER_UPDATE, "outcomeSide": 2, "status": 3})
+        [event] = stream._handle_decoded_message({**ORDER_UPDATE, "outcomeSide": 2, "status": 3})
         assert event.order.side == Side.SELL and event.order.price == D("0.85")
         assert event.order.status == OrderStatus.CANCELED and event.order.remaining == 0
 
     async def test_a_trade_record_is_a_confirmed_fill(self, catalog):
         stream = OpinionUserStream(api_key=KEY, catalog=catalog)
-        [event] = stream.handle(TRADE_RECORD)
+        [event] = stream._handle_decoded_message(TRADE_RECORD)
         fill = event.fill
         assert isinstance(event, FillEvent)
         assert fill.id == TRADE_RECORD["tradeNo"] and fill.order_id == TRADE_RECORD["orderId"]
@@ -304,17 +304,17 @@ class TestUser:
 
     async def test_a_failed_trade_is_reported_failed(self, catalog):
         stream = OpinionUserStream(api_key=KEY, catalog=catalog)
-        [event] = stream.handle({**TRADE_RECORD, "status": 6})
+        [event] = stream._handle_decoded_message({**TRADE_RECORD, "status": 6})
         assert event.fill.settlement == SettlementState.FAILED
 
     async def test_a_merge_is_not_a_fill(self, catalog):
         stream = OpinionUserStream(api_key=KEY, catalog=catalog)
-        [event] = stream.handle({**TRADE_RECORD, "side": "Merge"})
+        [event] = stream._handle_decoded_message({**TRADE_RECORD, "side": "Merge"})
         assert isinstance(event, VenueEvent) and event.name == "merge"
 
     async def test_a_reconnect_asks_for_reconciliation(self, catalog):
         first, second = FakeConnection(), FakeConnection()
-        stream = OpinionUserStream(api_key=KEY, catalog=catalog, connect=Connector(first, second), backoff_initial=0.001)
+        stream = OpinionUserStream(api_key=KEY, catalog=catalog, websocket_connection_opener=Connector(first, second), backoff_initial=0.001)
         stream.start()
         await wait_for(lambda: stream._ws is first)
         first.feed(ConnectionError("dropped"))

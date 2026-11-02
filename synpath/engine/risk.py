@@ -63,37 +63,37 @@ class RiskConfig(BaseModel):
     enabled: bool = True
 
     # -- this order --
+    # How far from the mark a limit may sit, in price units (contracts are
+    # priced 0 to 1, so 0.10 is ten cents). `None` disables the check.
     price_collar: Decimal | None = Decimal("0.10")
-    """How far from the mark a limit may sit, in price units (contracts are
-    priced 0 to 1, so 0.10 is ten cents). `None` disables the check."""
     max_order_contracts: Decimal | None = None
+    # Priced outcome cost times contracts, in account currency, excluding fees.
     max_order_notional: Decimal | None = None
-    """Priced outcome cost times contracts, in account currency, excluding fees."""
     min_price: Decimal = Decimal("0")
     max_price: Decimal = Decimal("1")
+    # The same instrument, side, price and size within this window is a retry.
     duplicate_window_ms: int = 2_000
-    """The same instrument, side, price and size within this window is a retry."""
+    # Refuse opening orders this close to a market's resolution time.
     closing_soon_s: int | None = 60
-    """Refuse opening orders this close to a market's resolution time."""
+    # Instrument or market ids, or prefixes ending in `*`, nobody may trade.
     restricted: list[str] = Field(default_factory=list)
-    """Instrument or market ids, or prefixes ending in `*`, nobody may trade."""
 
     # -- the book --
     max_open_orders: int | None = 200
+    # Per instrument, per account, netted across books.
     max_position_contracts: Decimal | None = None
-    """Per instrument, per account, netted across books."""
     max_event_contracts: Decimal | None = None
     max_venue_notional: Decimal | None = None
+    # Realized loss since the day's start, as a positive number.
     daily_loss_limit: Decimal | None = None
-    """Realized loss since the day's start, as a positive number."""
     max_orders_per_minute: int | None = 120
 
     # -- the firm --
     self_trade_prevention: SelfTradeScope = "firm"
+    # Venue-published position limits, per market id.
     exchange_limits: dict[str, Decimal] = Field(default_factory=dict)
-    """Venue-published position limits, per market id."""
+    # Strategies that may cancel but not open.
     paused_books: list[str] = Field(default_factory=list)
-    """Strategies that may cancel but not open."""
 
     def paused(self, book: str | None) -> bool:
         return bool(book and book in self.paused_books)
@@ -132,8 +132,8 @@ class KillSwitch:
     """Stop trading now, and say what happens to what is already resting."""
 
     engaged: bool = False
+    # `*` for everything, or a venue id.
     scope: str = "*"
-    """`*` for everything, or a venue id."""
     policy: HaltPolicy = "cancel"
     reason: str = ""
     engaged_ts: int | None = None
