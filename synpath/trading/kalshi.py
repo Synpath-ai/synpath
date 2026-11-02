@@ -61,21 +61,24 @@ BASE_URLS = {
     "prod": "https://external-api.kalshi.com/trade-api/v2",
 }
 
+# `gtd` is `good_till_canceled` plus `expiration_time`. `day` is not here on
+# purpose: the engine rewrites it to `gtd` at the session end before an
+# adapter sees it, and an adapter that received one would have to invent a
+# session.
 TIF_TO_VENUE = {
     TimeInForce.GTC: "good_till_canceled",
     TimeInForce.IOC: "immediate_or_cancel",
     TimeInForce.FOK: "fill_or_kill",
     TimeInForce.GTD: "good_till_canceled",
 }
-"""`gtd` is `good_till_canceled` plus `expiration_time`. `day` is not here on
-purpose: the engine rewrites it to `gtd` at the session end before an
-adapter sees it, and an adapter that received one would have to invent a
-session."""
 
+# Tokens a call costs unless the venue's endpoint-cost table says
+# otherwise; one order is one default call, a batch is one per order.
 DEFAULT_COST = 10
-"""Tokens a call costs unless the venue's endpoint-cost table says
-otherwise; one order is one default call, a batch is one per order."""
 
+# The venue's published non-default costs as of 2026-09-17, used until
+# `fetch_limits` replaces them with the live table. Paths are the venue's
+# own patterns: `:name` matches one segment, `*name` the rest.
 KNOWN_COSTS: dict[tuple[str, str], int] = {
     ("DELETE", "/trade-api/v2/portfolio/events/orders"): 2,
     ("DELETE", "/trade-api/v2/portfolio/events/orders/:order_id"): 2,
@@ -86,16 +89,13 @@ KNOWN_COSTS: dict[tuple[str, str], int] = {
     ("GET", "/trade-api/v2/communications/rfqs/:rfq_id/quotes/:quote_id"): 2,
     ("PUT", "/trade-api/v2/communications/rfqs/:rfq_id/quotes/:quote_id/confirm"): 1,
 }
-"""The venue's published non-default costs as of 2026-09-17, used until
-`fetch_limits` replaces them with the live table. Paths are the venue's
-own patterns: `:name` matches one segment, `*name` the rest."""
 
+# What an order is checked against when the caller gives no instrument
+# spec: the coarse tick every market accepts, and the venue's two-decimal
+# contract count. A market with a finer ladder wants its own `Precision`.
 DEFAULT_PRECISION = Precision(
     tick=Decimal("0.01"), min_quantity=Decimal("0.01"), quantity_step=Decimal("0.01"), whole_contracts=False,
 )
-"""What an order is checked against when the caller gives no instrument
-spec: the coarse tick every market accepts, and the venue's two-decimal
-contract count. A market with a finer ladder wants its own `Precision`."""
 
 
 # ---------------------------------------------------------------------------
@@ -477,15 +477,15 @@ def map_error(exc: ExchangeError, *, path: str = "") -> ExchangeError:
 # ordinary binary market, so its Synpath id is `kalshi:<ticker>`. Its legs
 # are the market's `mve_selected_legs`.
 
+# Paths whose 404 names an RFQ, a quote or a combo collection.
 RFQ_PATHS = ("/communications", "/multivariate_event_collections")
-"""Paths whose 404 names an RFQ, a quote or a combo collection."""
 
+# Every multivariate market's ticker starts so; the fallback when an RFQ
+# carries no `mve_collection_ticker`.
 COMBO_PREFIX = "KXMVE"
-"""Every multivariate market's ticker starts so; the fallback when an RFQ
-carries no `mve_collection_ticker`."""
 
+# `POST /multivariate_event_collections/{t}`: creations per user per week.
 WEEKLY_COMBO_QUOTA = 5000
-"""`POST /multivariate_event_collections/{t}`: creations per user per week."""
 
 QUOTE_STATUS_FROM_WIRE = {
     "open": QuoteStatus.OPEN,
@@ -502,18 +502,18 @@ QUOTE_STATUS_TO_WIRE = {
     QuoteStatus.EXECUTED: "executed", QuoteStatus.CANCELED: "cancelled",
 }
 
+# The requester's YES-leg side -> the maker's bid it takes (P0, settled).
 ACCEPTED_SIDE_TO_WIRE = {Side.BUY: "no", Side.SELL: "yes"}
-"""The requester's YES-leg side -> the maker's bid it takes (P0, settled)."""
 ACCEPTED_SIDE_FROM_WIRE = {wire: side for side, wire in ACCEPTED_SIDE_TO_WIRE.items()}
 
+# A combo market's lifecycle in `Combo.status`; every other state
+# (initialized, inactive, closed, disputed) reads `closed`.
 MARKET_STATUS_TO_COMBO = {
     "active": "open",
     "determined": "settled",
     "finalized": "settled",
     "amended": "settled",
 }
-"""A combo market's lifecycle in `Combo.status`; every other state
-(initialized, inactive, closed, disputed) reads `closed`."""
 
 
 def _dollars(value: Any) -> Decimal | None:

@@ -47,8 +47,8 @@ class ManagedOrderController:
     def __init__(self, engine: Any):
         self.engine = engine
         self.parents: dict[str, ManagedOrder] = {}
+        # Child order id to parent id.
         self.by_child: dict[str, str] = {}
-        """Child order id to parent id."""
         self.by_market: dict[str, set[str]] = {}
         self._running_tasks: dict[str, Any] = {}
 

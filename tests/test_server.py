@@ -83,8 +83,8 @@ class StubExchange(Exchange):
             next_cursor="100",
         )
 
+    # Five hourly bars the stub's market has.
     BARS = [1_700_000_000_000 + n * 3_600_000 for n in range(5)]
-    """Five hourly bars the stub's market has."""
 
     def fetch_ohlcv(self, market_id, *, timeframe="1h", since=None, until=None, limit=None):
         self._check("fetch_ohlcv", market_id=market_id, timeframe=timeframe, since=since, until=until, limit=limit)

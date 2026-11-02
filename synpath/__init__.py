@@ -84,6 +84,7 @@ from .types import (
 
 __version__ = "0.8.1"
 
+# Every venue this library speaks, by id.
 exchanges: dict[str, type[Exchange]] = {
     "kalshi": Kalshi,
     "polymarket": Polymarket,
@@ -96,7 +97,6 @@ exchanges: dict[str, type[Exchange]] = {
     "betfair": Betfair,
     "smarkets": Smarkets,
 }
-"""Every venue this library speaks, by id."""
 
 
 def exchange(venue: str, **kwargs) -> Exchange:

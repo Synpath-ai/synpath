@@ -50,23 +50,23 @@ VENUE = "hyperliquid"
 MAINNET_URL = "https://api.hyperliquid.xyz"
 TESTNET_URL = "https://api.hyperliquid-testnet.xyz"
 
+# An outcome coin's asset id is this plus its number (`#75440` -> 100_075_440).
 OUTCOME_ASSET_OFFSET = 100_000_000
-"""An outcome coin's asset id is this plus its number (`#75440` -> 100_075_440)."""
 
+# The venue's minimum order value, in the quote token, counted on the token bought.
 MIN_NOTIONAL = Decimal("10")
-"""The venue's minimum order value, in the quote token, counted on the token bought."""
 
+# Significant figures a price may have.
 MAX_SIGNIFICANT = 5
-"""Significant figures a price may have."""
 
 QUOTE = "USDC"
 
+# Fill directions that are trades. The others (`Split Outcome`, `Merge
+# Outcome`, `Settlement`) move quote and outcome tokens without one.
 TRADE_DIRECTIONS = frozenset({"Buy", "Sell"})
-"""Fill directions that are trades. The others (`Split Outcome`, `Merge
-Outcome`, `Settlement`) move quote and outcome tokens without one."""
 
+# The venue's `tif`. `Alo` (add liquidity only) is a post-only GTC.
 TIME_IN_FORCE = {"Gtc": TimeInForce.GTC, "Ioc": TimeInForce.IOC, "Alo": TimeInForce.GTC, "FrontendMarket": TimeInForce.IOC}
-"""The venue's `tif`. `Alo` (add liquidity only) is a post-only GTC."""
 
 
 def D(value: Any) -> Decimal:
@@ -362,8 +362,8 @@ class HyperliquidTrading(TradingExchange):
 
         self.credentials = credentials
         self.signer = WalletSigner(credentials.private_key)
+        # The account whose orders, fills and balances these are.
         self.address = credentials.address
-        """The account whose orders, fills and balances these are."""
         self.mainnet = not credentials.testnet
         self.account = Account(venue=VENUE, name=account_name)
         # 1200 request weight a minute per IP; an action weighs 1, most info reads 20.
@@ -375,8 +375,8 @@ class HyperliquidTrading(TradingExchange):
             from ..hyperliquid import Hyperliquid
 
             catalog = Hyperliquid(testnet=not self.mainnet)
+        # The read adapter: fee scales for estimates.
         self.catalog = catalog
-        """The read adapter: fee scales for estimates."""
         self._last_nonce = 0
         self._nonce_lock = asyncio.Lock()
 

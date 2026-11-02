@@ -54,8 +54,8 @@ log = logging.getLogger("synpath.serve.combo_boards")
 
 REFRESH_INTERVAL_S = 60.0
 PAUSE_S = 0.1
+# The GIL switch interval while boards are warmed (`loop`).
 SWITCH_INTERVAL_S = 0.0005
-"""The GIL switch interval while boards are warmed (`loop`)."""
 
 
 @dataclass
@@ -63,13 +63,13 @@ class WarmBoard:
     """One venue's board as the warmer holds it."""
 
     board: ComboBoard | None = None
+    # When the board held was built, ms.
     built_at: int | None = None
-    """When the board held was built, ms."""
+    # How long that build took.
     build_ms: int | None = None
-    """How long that build took."""
     refreshing: bool = False
+    # Why the last build failed, while the board held is an older one (or none).
     error: str | None = None
-    """Why the last build failed, while the board held is an older one (or none)."""
 
     @property
     def status(self) -> str:
@@ -87,11 +87,11 @@ class ComboBoardWarmer:
         self.pause_s = float(pause_s)
         self.clock = clock
         self.boards: dict[str, WarmBoard] = {}
+        # Per venue, `market_labels` of its last board.
         self.labels: dict[str, dict[str, str]] = {}
-        """Per venue, `market_labels` of its last board."""
         self._builds: dict[str, asyncio.Task] = {}
+        # Per venue, what a build keeps for the next (Gamma's markets and events).
         self.caches: dict[str, BoardCache] = {}
-        """Per venue, what a build keeps for the next (Gamma's markets and events)."""
 
     # -- which venues -----------------------------------------------------------
 

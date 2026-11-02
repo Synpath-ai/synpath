@@ -61,28 +61,28 @@ GATEWAY_URL = "https://gateway.polymarket.us"
 
 BATCH = 20
 PRICE_FLOOR = Decimal("0.01")
+# The exchange's absolute price limits. A price outside them still gets an
+# order id and is then rejected, so it is refused here first.
 PRICE_CEILING = Decimal("0.99")
-"""The exchange's absolute price limits. A price outside them still gets an
-order id and is then rejected, so it is refused here first."""
 
 MARKET_TTL_S = 300.0
 
+# The venue's per-endpoint limit on its RFQ list and create calls.
 RFQ_PACE_PER_SECOND = 1.0
-"""The venue's per-endpoint limit on its RFQ list and create calls."""
+# Endpoints the venue limits to one request a second, each to its pace
+# group (docs/rfq-combo.md, Polymarket US): `GET /v1/rfqs`, `GET
+# /v1/rfqs/quotes`, and `POST /v1/rfqs` with `POST /v1/combos`, which share
+# one budget. Exact paths: `/v1/rfqs/user-id` and the per-id writes (cancel,
+# accept, confirm) only meet the shared limiter.
 PACED_ENDPOINTS: dict[tuple[str, str], str] = {
     ("GET", "/v1/rfqs"): "rfqs",
     ("GET", "/v1/rfqs/quotes"): "rfq_quotes",
     ("POST", "/v1/rfqs"): "rfq_create",
     ("POST", "/v1/combos"): "rfq_create",
 }
-"""Endpoints the venue limits to one request a second, each to its pace
-group (docs/rfq-combo.md, Polymarket US): `GET /v1/rfqs`, `GET
-/v1/rfqs/quotes`, and `POST /v1/rfqs` with `POST /v1/combos`, which share
-one budget. Exact paths: `/v1/rfqs/user-id` and the per-id writes (cancel,
-accept, confirm) only meet the shared limiter."""
+# How long a paced call may queue behind others in its group before it is
+# refused (`RateBudgetExceeded`) rather than sent late.
 PACE_MAX_WAIT_S = 15.0
-"""How long a paced call may queue behind others in its group before it is
-refused (`RateBudgetExceeded`) rather than sent late."""
 
 
 # ---------------------------------------------------------------------------
@@ -215,6 +215,8 @@ def translate_order(request: OrderRequest, rules: MarketRules) -> dict[str, Any]
 # Normalizers
 # ---------------------------------------------------------------------------
 
+# `REPLACED` is the superseded half of a cancel-replace; it will not trade
+# again, so it reads as cancelled with the native state kept in `info`.
 STATE = {
     "ORDER_STATE_PENDING_NEW": OrderStatus.PENDING,
     "ORDER_STATE_PENDING_RISK": OrderStatus.PENDING,
@@ -228,8 +230,6 @@ STATE = {
     "ORDER_STATE_REJECTED": OrderStatus.REJECTED,
     "ORDER_STATE_EXPIRED": OrderStatus.EXPIRED,
 }
-"""`REPLACED` is the superseded half of a cancel-replace; it will not trade
-again, so it reads as cancelled with the native state kept in `info`."""
 
 INTENT = {
     "ORDER_INTENT_BUY_LONG": ("yes", Side.BUY),
@@ -418,9 +418,9 @@ def error_of(exc: ExchangeError) -> ExchangeError:
 # A price of "0" marks a side the maker declined.
 
 MAX_COMBO_LEGS = 50
+# The documented combo symbol prefixes. The venue says to treat symbols as
+# opaque; this is only the fallback when an RFQ carries no `comboLegs`.
 COMBO_PREFIXES = ("caoc-", "crossd-")
-"""The documented combo symbol prefixes. The venue says to treat symbols as
-opaque; this is only the fallback when an RFQ carries no `comboLegs`."""
 
 SIDE_TO_WIRE = {Side.BUY: "SIDE_BUY", Side.SELL: "SIDE_SELL"}
 SIDE_FROM_WIRE = {wire: side for side, wire in SIDE_TO_WIRE.items()}
@@ -439,10 +439,10 @@ QUOTE_STATUS_FROM_WIRE = {
 }
 QUOTE_STATUS_TO_WIRE = {status: wire for wire, status in QUOTE_STATUS_FROM_WIRE.items()}
 
+# Every other instrument state (pre-open, suspended, halted, closed,
+# expired, terminated...) reads as `closed`; the native state stays in `info`.
+# Settlement is read on the symbol, not from this state.
 COMBO_STATE = {"INSTRUMENT_STATE_OPEN": "open"}
-"""Every other instrument state (pre-open, suspended, halted, closed,
-expired, terminated...) reads as `closed`; the native state stays in `info`.
-Settlement is read on the symbol, not from this state."""
 
 
 def decimal_text(value: Decimal) -> str:
@@ -493,8 +493,8 @@ def combo_of(raw: dict[str, Any]) -> Combo:
     )
 
 
+# Events read per page of `fetch_combo_eligible_markets` when no limit is given.
 COMBO_EVENTS_PAGE = 50
-"""Events read per page of `fetch_combo_eligible_markets` when no limit is given."""
 
 
 def combo_markets_of(event: dict[str, Any]) -> list[ComboMarket]:

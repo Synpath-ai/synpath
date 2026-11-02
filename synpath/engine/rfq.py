@@ -79,14 +79,14 @@ log = logging.getLogger("synpath.engine.rfq")
 ZERO = Decimal("0")
 ONE = Decimal("1")
 
+# The cross-venue group's own intents (`synpath.engine.rfq_group`).
 GROUP_OPERATIONS = frozenset({"rfq_group_create", "rfq_group_accept"})
-"""The cross-venue group's own intents (`synpath.engine.rfq_group`)."""
+# Intent operations this module owns; `Engine._resolve` hands them here.
 RFQ_OPERATIONS = frozenset({
     "create_rfq", "cancel_rfq", "accept_quote", "send_quote", "replace_quote", "cancel_quote", "confirm_quote",
 }) | GROUP_OPERATIONS
-"""Intent operations this module owns; `Engine._resolve` hands them here."""
+# Operations whose intent stays `sending` until the quote is final.
 FOLLOWED = frozenset({"accept_quote", "confirm_quote"})
-"""Operations whose intent stays `sending` until the quote is final."""
 
 ACCEPTED_MARK = "accepted at the venue"
 CONFIRMED_MARK = "confirmed at the venue"
@@ -100,10 +100,10 @@ STATUS_EVENT = {
 }
 NO_TRADE = (QuoteStatus.CANCELED, QuoteStatus.EXPIRED, QuoteStatus.FAILED)
 RECENT_MS = 5_000
+# How often the follower re-reads one of our open RFQs from its venue, to
+# see it close there (a venue's own expiry, often unstated, as Kalshi's); at
+# once when the venue's `expires_at` for it has passed.
 RFQ_STATUS_INTERVAL_S = 10.0
-"""How often the follower re-reads one of our open RFQs from its venue, to
-see it close there (a venue's own expiry, often unstated, as Kalshi's); at
-once when the venue's `expires_at` for it has passed."""
 """How far before an in-doubt create an RFQ or quote may be stamped and still be its result."""
 
 
@@ -120,23 +120,23 @@ class RfqDesk:
 
     def __init__(self, engine: "Engine"):
         self.engine = engine
+        # Our open RFQs, `venue:id` -> {rfq, book, trader}: watched for quotes.
         self.rfqs: dict[str, dict[str, Any]] = {}
-        """Our open RFQs, `venue:id` -> {rfq, book, trader}: watched for quotes."""
+        # Our live maker quotes, `venue:id` -> what the engine holds about them (expiry, book, size).
         self.maker_quotes: dict[str, dict[str, Any]] = {}
-        """Our live maker quotes, `venue:id` -> what the engine holds about them (expiry, book, size)."""
+        # Open RFQs from others, as the incoming feed last saw them.
         self.incoming: dict[str, Rfq] = {}
-        """Open RFQs from others, as the incoming feed last saw them."""
         self.combos: dict[str, Combo] = {}
+        # `venue:quote_id` -> the key of the accept or confirm intent following it.
         self.following: dict[str, str] = {}
-        """`venue:quote_id` -> the key of the accept or confirm intent following it."""
         self._status: dict[str, QuoteStatus] = {}
         self._last_quote: dict[str, RfqQuote] = {}
         self._subscribed: set[str] = set()
         self._incoming_ts = 0.0
         self._rfq_read: dict[str, float] = {}
+        # Venues whose incoming RFQs arrive on a stream (`subscribe_incoming_rfqs`):
+        # not polled, and their quoting callbacks run as each RFQ lands.
         self.pushed: set[str] = set()
-        """Venues whose incoming RFQs arrive on a stream (`subscribe_incoming_rfqs`):
-        not polled, and their quoting callbacks run as each RFQ lands."""
         self._incoming_subscribed: set[str] = set()
         self._streams_started: set[str] = set()
         self._incoming_callbacks: list[Callable[[Rfq], Any]] = []

@@ -46,32 +46,32 @@ TESTNET_API_URL = "https://api-testnet.predict.fun/v1"
 VENUE = "predict_fun"
 WEB_URL = "https://predict.fun/market/"
 
+# The venue allows 240 requests a minute per API key; kept just under it,
+# shared process-wide.
 LIMITER = RateLimiter(3.8, burst=8)
-"""The venue allows 240 requests a minute per API key; kept just under it,
-shared process-wide."""
 
+# Amounts and prices on trades are 18-decimal integers (USDT and shares on BNB Chain).
 WEI = 10**18
-"""Amounts and prices on trades are 18-decimal integers (USDT and shares on BNB Chain)."""
 
+# The venue's market lifecycle, as this library's status. A proposed or
+# disputed price is the outcome being decided: trading has stopped, nothing is
+# paid yet.
 STATUSES = {
     "REGISTERED": "open", "UNPAUSED": "open", "PAUSED": "closed",
     "PRICE_PROPOSED": "closed", "PRICE_DISPUTED": "closed", "RESOLVED": "settled", "REMOVED": "closed",
 }
-"""The venue's market lifecycle, as this library's status. A proposed or
-disputed price is the outcome being decided: trading has stopped, nothing is
-paid yet."""
 
+# This library's sort keys the venue can order markets by. It orders
+# categories by publication, markets by volume only.
 SORT_BY = {"volume": "VOLUME_24H_DESC"}
-"""This library's sort keys the venue can order markets by. It orders
-categories by publication, markets by volume only."""
 
+# The venue's sample widths. A timeframe between them is built from the
+# widest one that divides it.
 CANDLE_RESOLUTIONS = {60: "1m", 300: "5m", 3600: "1h", 86400: "1d"}
-"""The venue's sample widths. A timeframe between them is built from the
-widest one that divides it."""
 
 DEFAULT_BARS = 100
+# Most venue pages one catalog call reads while filling `limit` after filtering.
 MAX_PAGES = 10
-"""Most venue pages one catalog call reads while filling `limit` after filtering."""
 
 
 def api_key_from(api_key: str | None) -> str | None:

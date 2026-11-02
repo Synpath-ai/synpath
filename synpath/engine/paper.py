@@ -117,8 +117,8 @@ class Resting:
     """A resting paper order and where it stands in the queue."""
 
     order: Order
+    # Contracts that must trade at this price before this order fills.
     queue_ahead: Decimal
-    """Contracts that must trade at this price before this order fills."""
     request: OrderRequest
 
 
@@ -171,10 +171,10 @@ class PaperVenue(TradingExchange):
         self.positions_held: dict[str, Decimal] = {}
         self.locked = ZERO
         self._n = 0
+        # Fills made but not yet delivered. A real venue reports a fill on a
+        # stream, after the call that caused it has returned, and code that
+        # reacts to fills must work that way here too.
         self.pending: list[Fill] = []
-        """Fills made but not yet delivered. A real venue reports a fill on a
-        stream, after the call that caused it has returned, and code that
-        reacts to fills must work that way here too."""
         self.listeners: list[Callable[[Fill], Any]] = []
         self.order_listeners: list[Callable[[Order], Any]] = []
         self.pending_orders: list[Order] = []
@@ -542,25 +542,25 @@ class PaperMaker:
     """A counterparty that answers every RFQ a `PaperRfqVenue` receives."""
 
     name: str = "maker"
+    # The YES price it buys at (what a requester selling YES gets).
     bid: Decimal | None = Decimal("0.40")
-    """The YES price it buys at (what a requester selling YES gets)."""
+    # The YES price it sells at (what a requester buying YES pays).
     ask: Decimal | None = Decimal("0.45")
-    """The YES price it sells at (what a requester buying YES pays)."""
+    # Contracts on each side; `None` sizes to the RFQ (its amount at the price).
     quantity: Decimal | None = None
-    """Contracts on each side; `None` sizes to the RFQ (its amount at the price)."""
+    # `False` lets the last look lapse: the accepted quote expires.
     confirms: bool = True
-    """`False` lets the last look lapse: the accepted quote expires."""
+    # How much of the accepted size the requester's order fills; the rest
+    # is cancelled, as an IOC order's would be.
     fill_ratio: Decimal = ONE
-    """How much of the accepted size the requester's order fills; the rest
-    is cancelled, as an IOC order's would be."""
+    # Report this side as the one accepted, whatever was asked (the venue
+    # getting the side wrong, for the engine's side guard).
     report_side: Side | None = None
-    """Report this side as the one accepted, whatever was asked (the venue
-    getting the side wrong, for the engine's side guard)."""
+    # The quote's own expiry, seconds after it is made (`expires_at`, as
+    # Polymarket global gives one); `None` gives none (Kalshi, Polymarket US).
     ttl_s: float | None = None
-    """The quote's own expiry, seconds after it is made (`expires_at`, as
-    Polymarket global gives one); `None` gives none (Kalshi, Polymarket US)."""
+    # The quote arrives this long after the RFQ (seen on the next read past it).
     delay_s: float = 0.0
-    """The quote arrives this long after the RFQ (seen on the next read past it)."""
 
 
 class PaperRfqVenue(PaperVenue):
@@ -585,27 +585,27 @@ class PaperRfqVenue(PaperVenue):
                  auto_advance: bool = False, maker_fill_ratio: Decimal = ONE, stream_incoming: bool = False,
                  rfq_ttl_s: float | None = None, **kw: Any):
         super().__init__(**kw)
+        # Our RFQs' expiry, seconds after the create (`Rfq.expires_at`); the
+        # venue closes one as `expired` once past it. `None`: no expiry.
         self.rfq_ttl_s = rfq_ttl_s
-        """Our RFQs' expiry, seconds after the create (`Rfq.expires_at`); the
-        venue closes one as `expired` once past it. `None`: no expiry."""
         self._delayed: list[tuple[int, Any, Any]] = []
+        # `True` pushes each `add_incoming_rfq` to `subscribe_incoming_rfqs`
+        # listeners at once, as a venue stream would; `False` leaves it to be polled.
         self.stream_incoming = stream_incoming
-        """`True` pushes each `add_incoming_rfq` to `subscribe_incoming_rfqs`
-        listeners at once, as a venue stream would; `False` leaves it to be polled."""
         self.rfq_listeners: list[Callable[[Any], Any]] = []
         self.stream_started = False
         self.makers: list[PaperMaker] = list(makers) or [PaperMaker()]
         self.last_look_s = last_look_s
         self.auto_advance = auto_advance
+        # How much of a confirmed maker quote fills, on the quoter side.
         self.maker_fill_ratio = maker_fill_ratio
-        """How much of a confirmed maker quote fills, on the quoter side."""
         self.rfqs: dict[str, Any] = {}
         self.quotes: dict[str, Any] = {}
         self.combos: dict[str, Any] = {}
         self.accepted: dict[str, dict[str, Any]] = {}
         self.calls: list[str] = []
+        # The `collection_id` each `create_combo` was given.
         self.combo_collections: list[str | None] = []
-        """The `collection_id` each `create_combo` was given."""
         self.quote_listeners: list[Callable[[Any], Any]] = []
         self.pending_quotes: list[Any] = []
         self._q = 0

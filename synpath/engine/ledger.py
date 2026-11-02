@@ -51,19 +51,19 @@ class PositionState:
     book: str
     market_id: str
     venue: str
+    # Signed: positive is long YES, negative is short YES (long NO).
     contracts: Decimal = ZERO
-    """Signed: positive is long YES, negative is short YES (long NO)."""
+    # Per contract, of what is currently open; for a short, what was received.
     average_cost: Decimal = ZERO
-    """Per contract, of what is currently open; for a short, what was received."""
     realized: Decimal = ZERO
     fees: Decimal = ZERO
     bought: Decimal = ZERO
     sold: Decimal = ZERO
+    # Contracts traded, both directions.
     volume: Decimal = ZERO
-    """Contracts traded, both directions."""
+    # Contracts held per side (`"yes"`, `"no"`) before netting, as the
+    # engine's own fills imply: a sell adds to `no`.
     inventory: dict[str, Decimal] = field(default_factory=dict)
-    """Contracts held per side (`"yes"`, `"no"`) before netting, as the
-    engine's own fills imply: a sell adds to `no`."""
     resolved: bool = False
     last_ts: int | None = None
 
@@ -167,18 +167,18 @@ class Rollup:
 
     level: Level
     key: str
+    # Net signed contracts; for a roll-up above one market it is the sum,
+    # which nets long one market against short another only if they are the
+    # same market.
     contracts: Decimal = ZERO
-    """Net signed contracts; for a roll-up above one market it is the sum,
-    which nets long one market against short another only if they are the
-    same market."""
     cost: Decimal = ZERO
     realized: Decimal = ZERO
     unrealized: Decimal | None = None
     fees: Decimal = ZERO
     volume: Decimal = ZERO
     positions: int = 0
+    # How many of the open positions had a mark; the rest are cost only.
     marked: int = 0
-    """How many of the open positions had a mark; the rest are cost only."""
 
     @property
     def total(self) -> Decimal:

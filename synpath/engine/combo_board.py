@@ -72,9 +72,9 @@ SPORTS = frozenset({"cfb", "nfl", "cbb", "nba", "wnba", "nhl", "mlb", "tennis", 
 LABELS = {key: label for key, label, _ in LEAGUES}
 OTHER = ("other", "Other")
 
+# A question event (a price bracket, a field of candidates) shows at most this
+# many markets: those priced nearest even, where a choice is live.
 QUESTIONS_PER_EVENT = 3
-"""A question event (a price bracket, a field of candidates) shows at most this
-many markets: those priced nearest even, where a choice is live."""
 
 
 
@@ -716,8 +716,8 @@ def millis(value: Any) -> int | None:
 # Leg labels: a short name for each market on a board
 # ---------------------------------------------------------------------------
 
+# A label longer than this is cut, with an ellipsis.
 LABEL_LENGTH = 60
-"""A label longer than this is cut, with an ellipsis."""
 
 
 def market_labels(board: ComboBoard) -> dict[str, str]:
@@ -867,24 +867,24 @@ def page_offset(cursor: str | None) -> int:
 # Reading a venue
 # ---------------------------------------------------------------------------
 
+# Pages of a venue's eligible list (or of Kalshi's collections) a board read
+# on request reads. serve's warmer (`synpath.server.combo_warmer`) reads every
+# page (`pages=None`).
 BOARD_PAGES = 5
-"""Pages of a venue's eligible list (or of Kalshi's collections) a board read
-on request reads. serve's warmer (`synpath.server.combo_warmer`) reads every
-page (`pages=None`)."""
+# Kalshi: the most collection events whose markets a board read on request
+# reads (`max_events=None`: every one).
 BOARD_EVENTS = 150
-"""Kalshi: the most collection events whose markets a board read on request
-reads (`max_events=None`: every one)."""
+# Gamma's largest batch.
 PRICE_BATCH = 100
-"""Gamma's largest batch."""
 KALSHI_EVENT_BATCH = 100
 EVENT_BATCH = 20
 
 
+# A whole-list build with `progress` publishes its board after this many
+# pages (the venue lists by volume, so the busiest markets come first)...
 FIRST_PUBLISH_PAGES = 5
-"""A whole-list build with `progress` publishes its board after this many
-pages (the venue lists by volume, so the busiest markets come first)..."""
+# ...and again every this many pages, until the list ends.
 PUBLISH_EVERY_PAGES = 40
-"""...and again every this many pages, until the list ends."""
 
 
 class BoardCache:

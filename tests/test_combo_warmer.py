@@ -74,8 +74,8 @@ class PagedVenue(PaperRfqVenue):
         self.reads = 0
         self.fail = False
         self.hold: asyncio.Event | None = None
+        # Hold the read of this page (1-based) until `hold` is set.
         self.block_at: int | None = None
-        """Hold the read of this page (1-based) until `hold` is set."""
 
     async def fetch_combo_eligible_markets(self, *, event_id=None, tag=None, limit=None, cursor=None) -> Page:
         if self.hold is not None and (self.block_at is None or self.reads + 1 == self.block_at):

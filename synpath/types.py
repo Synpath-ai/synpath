@@ -29,29 +29,27 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, computed_field,
 
 from ._deprecated import QUANTITY, rename_input, renamed_fields
 
+# Normalized lifecycle. `native_status` always carries the venue's own word.
+#
+# unopened — listed but not yet accepting orders
+# open     — trading
+# closed   — trading has stopped, outcome not yet final
+# settled  — outcome final and paid
 MarketStatus = Literal["unopened", "open", "closed", "settled"]
-"""Normalized lifecycle. `native_status` always carries the venue's own word.
 
-  unopened — listed but not yet accepting orders
-  open     — trading
-  closed   — trading has stopped, outcome not yet final
-  settled  — outcome final and paid
-"""
-
+# Which side of a market a book or candle series is priced for.
 BookSide = Literal["yes", "no"]
-"""Which side of a market a book or candle series is priced for."""
 
+# How a venue stores the book behind a market.
+#
+# shared_complement  — one book serves both sides (Kalshi, Polymarket US). The
+#                      NO view is a transform of the YES book, not a second book.
+# native_per_outcome — each side owns an independently addressable book
+#                      (Polymarket: one per CLOB token).
 BookModel = Literal["shared_complement", "native_per_outcome"]
-"""How a venue stores the book behind a market.
 
-  shared_complement  — one book serves both sides (Kalshi, Polymarket US). The
-                       NO view is a transform of the YES book, not a second book.
-  native_per_outcome — each side owns an independently addressable book
-                       (Polymarket: one per CLOB token).
-"""
-
+# Where a candle's OHLC actually came from. See `Candle`.
 PriceSource = Literal["trade", "sampled_mid", "sampled_last", "bid_ask_mid"]
-"""Where a candle's OHLC actually came from. See `Candle`."""
 
 T = TypeVar("T")
 
@@ -133,19 +131,19 @@ class Quote(_Base):
     one side that is quoted.
     """
 
+    # Best bid, 0-1. `None` when nobody is bidding.
     bid: float | None = None
-    """Best bid, 0-1. `None` when nobody is bidding."""
     bid_size: float | None = None
+    # Best ask, 0-1. `None` when nobody is offering.
     ask: float | None = None
-    """Best ask, 0-1. `None` when nobody is offering."""
     ask_size: float | None = None
+    # `(bid + ask) / 2`, only when both sides are quoted.
     mid: float | None = None
-    """`(bid + ask) / 2`, only when both sides are quoted."""
+    # Last traded price. `None` if this instrument has never traded.
     last: float | None = None
-    """Last traded price. `None` if this instrument has never traded."""
+    # When `last` traded, in ms. Always read it alongside `last`: on a thin
+    # market the last print can be months old.
     last_timestamp: int | None = None
-    """When `last` traded, in ms. Always read it alongside `last`: on a thin
-    market the last print can be months old."""
     last_datetime: str | None = None
 
     @computed_field  # type: ignore[prop-decorator]
@@ -172,17 +170,17 @@ class Outcome(_Base):
     book, which `Market.book_model` records.
     """
 
+    # The venue's display text ("Yes", "No", "Up", a candidate name). Never
+    # used to decide financial logic: which of `market.yes` / `market.no` an
+    # outcome sits in is.
     label: str
-    """The venue's display text ("Yes", "No", "Up", a candidate name). Never
-    used to decide financial logic: which of `market.yes` / `market.no` an
-    outcome sits in is."""
+    # In this outcome's own price convention: the NO quote is what NO costs.
     quote: Quote = Field(default_factory=Quote)
-    """In this outcome's own price convention: the NO quote is what NO costs."""
+    # The venue's own id for this side, where it has one. Polymarket only:
+    # the CLOB token id the venue's order books and orders are keyed on.
     venue_token_id: str | None = None
-    """The venue's own id for this side, where it has one. Polymarket only:
-    the CLOB token id the venue's order books and orders are keyed on."""
+    # Absolute probability delta over 24h, when the venue publishes it.
     price_change_24h: float | None = None
-    """Absolute probability delta over 24h, when the venue publishes it."""
     info: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -200,89 +198,89 @@ class MarketStats(_Base):
     open_interest: float | None = None
     volume_unit: Literal["contracts", "collateral"] | None = None
     liquidity_unit: Literal["contracts", "collateral"] | None = None
+    # When the venue says these numbers were current, in ms.
     as_of: int | None = None
-    """When the venue says these numbers were current, in ms."""
 
 
 class Market(_Base):
     """A single settleable contract — the thing that actually resolves."""
 
+    # Synpath's id: `venue:native`, e.g. `kalshi:KXFEDDECISION-26SEP-C25` or
+    # `polymarket:2252244`. One per listing on one venue. The part after the
+    # colon is the venue's own id, also on `venue_market_id`.
     id: str
-    """Synpath's id: `venue:native`, e.g. `kalshi:KXFEDDECISION-26SEP-C25` or
-    `polymarket:2252244`. One per listing on one venue. The part after the
-    colon is the venue's own id, also on `venue_market_id`."""
     venue: str
+    # The venue's own id, unprefixed: a Kalshi ticker, a Polymarket Gamma id,
+    # a Polymarket US slug.
     venue_market_id: str
-    """The venue's own id, unprefixed: a Kalshi ticker, a Polymarket Gamma id,
-    a Polymarket US slug."""
+    # The parent event's Synpath id, `venue:native`.
     event_id: str | None = None
-    """The parent event's Synpath id, `venue:native`."""
     title: str
+    # Resolution criteria, verbatim from the venue.
     description: str | None = None
-    """Resolution criteria, verbatim from the venue."""
     slug: str | None = None
+    # The YES side, by position in the venue's payload rather than by label
+    # text: some Kalshi markets label both sides identically.
     yes: Outcome
-    """The YES side, by position in the venue's payload rather than by label
-    text: some Kalshi markets label both sides identically."""
     no: Outcome
     status: MarketStatus
+    # The venue's own status word, untranslated.
     native_status: str | None = None
-    """The venue's own status word, untranslated."""
+    # Accepting orders right now. Derived, and deliberately separate from
+    # `status`: a venue can halt trading without changing lifecycle state.
     active: bool = False
-    """Accepting orders right now. Derived, and deliberately separate from
-    `status`: a venue can halt trading without changing lifecycle state."""
     market_type: Literal["binary", "categorical", "scalar", "unknown"] = "binary"
     open_timestamp: int | None = None
     close_timestamp: int | None = None
+    # The venue's *scheduled* resolution time, not when it actually resolved.
     resolution_timestamp: int | None = None
-    """The venue's *scheduled* resolution time, not when it actually resolved."""
     open_datetime: str | None = None
     close_datetime: str | None = None
     resolution_datetime: str | None = None
+    # Minimum price increment. Needed to place an order that will be accepted.
     tick_size: float | None = None
-    """Minimum price increment. Needed to place an order that will be accepted."""
+    # What one contract pays at full settlement. Both venues pay 1.00 today.
+    # Every complement transform reads this rather than hardcoding 1.
     face_value: float = 1.0
-    """What one contract pays at full settlement. Both venues pay 1.00 today.
-    Every complement transform reads this rather than hardcoding 1."""
     book_model: BookModel = "native_per_outcome"
     stats: MarketStats = Field(default_factory=MarketStats)
     url: str | None = None
     image_url: str | None = None
     category: str | None = None
     tags: list[str] = Field(default_factory=list)
+    # The venue's recurring-series tier above the event. Kalshi keys its fee
+    # schedule on this. `None` on venues without the concept.
     series_id: str | None = None
-    """The venue's recurring-series tier above the event. Kalshi keys its fee
-    schedule on this. `None` on venues without the concept."""
+    # This market's short name inside its event.
+    #
+    # An event like "Fed Decision in September?" holds one market per outcome,
+    # and `title` is the whole question ("Will the Fed decrease interest rates by
+    # 50+ bps after the September meeting?") while this is the label the venue
+    # lists it under ("50+ bps decrease"). Kalshi publishes it as the YES side's
+    # subtitle, Polymarket as the market's group item title. Useful for display,
+    # and for deciding whether two venues are offering the same option.
     outcome_label: str | None = None
-    """This market's short name inside its event.
-
-    An event like "Fed Decision in September?" holds one market per outcome,
-    and `title` is the whole question ("Will the Fed decrease interest rates by
-    50+ bps after the September meeting?") while this is the label the venue
-    lists it under ("50+ bps decrease"). Kalshi publishes it as the YES side's
-    subtitle, Polymarket as the market's group item title. Useful for display,
-    and for deciding whether two venues are offering the same option."""
+    # Whether this market belongs to a group where a NO position converts into
+    # YES exposure on the others. `None` means unknown, never assumed False.
     neg_risk: bool | None = None
-    """Whether this market belongs to a group where a NO position converts into
-    YES exposure on the others. `None` means unknown, never assumed False."""
+    # Who decides the outcome, as `{"name", "url"}` entries.
+    #
+    # Carried because `description` says what has to happen and this says who
+    # rules on whether it did. Two venues can list the same question and settle
+    # it off different sources, which is the difference between the same trade
+    # and two different ones. Empty when the venue names no source.
     settlement_sources: list[dict[str, Any]] = Field(default_factory=list)
-    """Who decides the outcome, as `{"name", "url"}` entries.
-
-    Carried because `description` says what has to happen and this says who
-    rules on whether it did. Two venues can list the same question and settle
-    it off different sources, which is the difference between the same trade
-    and two different ones. Empty when the venue names no source."""
     info: dict[str, Any] = Field(default_factory=dict)
 
 
 class Event(_Base):
     """A real-world question domain grouping one or more markets."""
 
+    # Synpath's id: `venue:native`, e.g. `kalshi:KXFEDDECISION-26SEP`.
     id: str
-    """Synpath's id: `venue:native`, e.g. `kalshi:KXFEDDECISION-26SEP`."""
     venue: str
+    # The venue's own id, unprefixed.
     venue_event_id: str
-    """The venue's own id, unprefixed."""
     title: str
     description: str | None = None
     slug: str | None = None
@@ -292,21 +290,21 @@ class Event(_Base):
     category: str | None = None
     tags: list[str] = Field(default_factory=list)
     series_id: str | None = None
+    # `None` is a real answer: the venue did not say. Never defaulted to False.
     mutually_exclusive: bool | None = None
-    """`None` is a real answer: the venue did not say. Never defaulted to False."""
     close_timestamp: int | None = None
     close_datetime: str | None = None
     url: str | None = None
     image_url: str | None = None
+    # Who decides the outcomes under this event. On Kalshi these are published
+    # per event rather than per market, so a market inherits its event's.
     settlement_sources: list[dict[str, Any]] = Field(default_factory=list)
-    """Who decides the outcomes under this event. On Kalshi these are published
-    per event rather than per market, so a market inherits its event's."""
     info: dict[str, Any] = Field(default_factory=dict)
 
 
 class OrderLevel(_Base):
+    # 0-1, in the price convention of the side the book was asked for.
     price: float
-    """0-1, in the price convention of the side the book was asked for."""
     size: float
 
 
@@ -319,21 +317,21 @@ class OrderBook(_Base):
     rather than invisible.
     """
 
+    # Synpath id, `venue:native`.
     market_id: str
-    """Synpath id, `venue:native`."""
+    # Which side this book is priced for. Ask for `side="no"` to see what NO
+    # costs; on a `shared_complement` venue that is the YES book mirrored.
     side: BookSide = "yes"
-    """Which side this book is priced for. Ask for `side="no"` to see what NO
-    costs; on a `shared_complement` venue that is the YES book mirrored."""
     venue: str
+    # Descending by price.
     bids: list[OrderLevel] = Field(default_factory=list)
-    """Descending by price."""
+    # Ascending by price.
     asks: list[OrderLevel] = Field(default_factory=list)
-    """Ascending by price."""
     timestamp: int | None = None
     datetime: str | None = None
     book_model: BookModel = "native_per_outcome"
+    # True when these levels were mirrored from the complement's book.
     derived: bool = False
-    """True when these levels were mirrored from the complement's book."""
     depth_scope: Literal["full", "top_n", "unknown"] = "unknown"
     info: dict[str, Any] = Field(default_factory=dict)
 
@@ -356,18 +354,18 @@ class Trade(_Base):
     """One execution, from the taker's point of view."""
 
     id: str
+    # Synpath id, `venue:native`.
     market_id: str
-    """Synpath id, `venue:native`."""
     timestamp: int
     datetime: str
+    # Always the YES price, 0-1. A trade where the taker bought NO at 0.30 is
+    # reported as `price=0.70, side="sell"`.
     price: float
-    """Always the YES price, 0-1. A trade where the taker bought NO at 0.30 is
-    reported as `price=0.70, side="sell"`."""
+    # Contracts traded.
     quantity: float
-    """Contracts traded."""
+    # What the taker did on the YES leg: `buy` took YES, `sell` took NO.
+    # `unknown` when the venue does not say.
     side: Literal["buy", "sell", "unknown"] = "unknown"
-    """What the taker did on the YES leg: `buy` took YES, `sell` took NO.
-    `unknown` when the venue does not say."""
     info: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -397,9 +395,9 @@ class HistoricalTrade(Trade):
     """A Trade plus its recorder receive time and timestamp provenance."""
 
     __synpath_renamed__ = {}  # the hosted service's `amount` is no deprecation: read it quietly
+    # Contracts traded. The hosted history service names it `amount`; both
+    # names are read, and it is always written as `quantity`.
     quantity: float = Field(validation_alias=AliasChoices("quantity", "amount"))
-    """Contracts traded. The hosted history service names it `amount`; both
-    names are read, and it is always written as `quantity`."""
     observed_at_ms: int
     timestamp_source: Literal["venue", "recorder_fallback"]
 
@@ -480,39 +478,37 @@ class Candle(_Base):
     are holding.
     """
 
+    # Start of the bar, in ms.
     timestamp: int
-    """Start of the bar, in ms."""
     datetime: str
     open: float | None = None
     high: float | None = None
     low: float | None = None
     close: float | None = None
+    # `None` when the venue publishes no volume for the bar, which is not the
+    # same as zero volume.
     volume: float | None = None
-    """`None` when the venue publishes no volume for the bar, which is not the
-    same as zero volume."""
     trade_count: int | None = None
+    # trade       — built from executions in the period
+    # bid_ask_mid — no trades; midpoint of the venue's bid/ask bars
+    # sampled_mid — the venue published price samples, not bars, and these were
+    #               bucketed by this library (Polymarket)
+    # sampled_last — the same, but the samples are the last traded price, not a
+    #               midpoint: a period without trades repeats the last one (Opinion)
     price_source: PriceSource = "trade"
-    """
-      trade       — built from executions in the period
-      bid_ask_mid — no trades; midpoint of the venue's bid/ask bars
-      sampled_mid — the venue published price samples, not bars, and these were
-                    bucketed by this library (Polymarket)
-      sampled_last — the same, but the samples are the last traded price, not a
-                    midpoint: a period without trades repeats the last one (Opinion)
-    """
     bid_close: float | None = None
+    # Book state at the close of the bar, where the venue reports it.
     ask_close: float | None = None
-    """Book state at the close of the bar, where the venue reports it."""
     info: dict[str, Any] = Field(default_factory=dict)
 
 
+# Kalshi's quadratic fee types: the maker fee as a share of the taker
+# coefficient (0.07). A plain `quadratic` series charges makers nothing.
 KALSHI_MAKER_SHARE: dict[str, float] = {
     "quadratic": 0.0,
     "quadratic_with_maker_fees": 0.25,
     "quadratic_with_combo_maker_fees": 0.5,
 }
-"""Kalshi's quadratic fee types: the maker fee as a share of the taker
-coefficient (0.07). A plain `quadratic` series charges makers nothing."""
 
 
 class FeeSchedule(_Base):
@@ -526,19 +522,19 @@ class FeeSchedule(_Base):
     venue: str
     scope: Literal["venue", "series", "market"]
     scope_id: str
+    # Kalshi: `quadratic` — fee per contract is `multiplier * p * (1 - p)`,
+    # which peaks at 50c and vanishes at the extremes.
     fee_type: str
-    """Kalshi: `quadratic` — fee per contract is `multiplier * p * (1 - p)`,
-    which peaks at 50c and vanishes at the extremes."""
     multiplier: float | None = None
     maker_rate: float | None = None
     taker_rate: float | None = None
     rounding: str | None = None
+    # Polymarket: the power applied to `P * (1 - P)`. Every live market
+    # publishes `1`; `None` means 1.
     exponent: float | None = None
-    """Polymarket: the power applied to `P * (1 - P)`. Every live market
-    publishes `1`; `None` means 1."""
+    # Smallest fee one taker order is charged, in collateral, where the venue
+    # has a floor (Opinion: 0.25 USDT). `None` means no floor.
     min_fee: float | None = None
-    """Smallest fee one taker order is charged, in collateral, where the venue
-    has a floor (Opinion: 0.25 USDT). `None` means no floor."""
     info: dict[str, Any] = Field(default_factory=dict)
 
     def estimate(self, price: float, contracts: float, *, taker: bool = True) -> float | None:
@@ -627,11 +623,11 @@ class FeeSchedule(_Base):
 
 
 LIMITLESS_FEE_CEILING = 0.03
+# Limitless's published buy-fee points: (price, rate). Flat at 3% below 50c.
 LIMITLESS_BUY_CURVE: tuple[tuple[float, float], ...] = (
     (0.50, 0.0300), (0.55, 0.0252), (0.60, 0.0213), (0.65, 0.0180), (0.70, 0.0151), (0.75, 0.0126),
     (0.80, 0.0105), (0.85, 0.0085), (0.90, 0.0068), (0.95, 0.0053), (0.99, 0.0042), (0.999, 0.0040),
 )
-"""Limitless's published buy-fee points: (price, rate). Flat at 3% below 50c."""
 
 
 def limitless_buy_rate(price: float) -> float:
@@ -655,26 +651,26 @@ class MarketLink(_Base):
     or "not_same" this library hands down. See `match_market`.
     """
 
+    # A Synpath id (`polymarket:2252244`) -- the other venue's listing.
     id: str
-    """A Synpath id (`polymarket:2252244`) -- the other venue's listing."""
     venue: str
+    # Which side of *this* link is which side of the anchor: `{"yes": "yes",
+    # "no": "no"}` when the two agree, `{"yes": "no", "no": "yes"}` when the
+    # venues put the proposition on opposite sides (Kalshi's "Mashtakov wins?"
+    # YES is Polymarket's "Pieczonka / Mashtakov" NO).
     side_map: dict[BookSide, BookSide]
-    """Which side of *this* link is which side of the anchor: `{"yes": "yes",
-    "no": "no"}` when the two agree, `{"yes": "no", "no": "yes"}` when the
-    venues put the proposition on opposite sides (Kalshi's "Mashtakov wins?"
-    YES is Polymarket's "Pieczonka / Mashtakov" NO)."""
 
 
 class MarketMatch(_Base):
     """The answer to "what is this market on the other venue?" -- see `match_market`."""
 
+    # The Synpath id the query was anchored on.
     anchor: str
-    """The Synpath id the query was anchored on."""
+    # The canonical event both sides of a match belong to, when the anchor parsed onto one.
     event_id: str | None = None
-    """The canonical event both sides of a match belong to, when the anchor parsed onto one."""
+    # `None` means the anchor is a real listing with nothing on the other
+    # venue asking the same question -- not "unknown", not "no such market".
     matched: MarketLink | None = None
-    """`None` means the anchor is a real listing with nothing on the other
-    venue asking the same question -- not "unknown", not "no such market"."""
 
 
 class EventMatch(_Base):
@@ -686,11 +682,11 @@ class EventMatch(_Base):
     """
 
     anchor: str
+    # The canonical event(s) the anchor belongs to. Usually one.
     event_ids: list[str] = Field(default_factory=list)
-    """The canonical event(s) the anchor belongs to. Usually one."""
+    # Venue name -> its native event ids on the same canonical event(s), or
+    # `None` when that venue lists nothing there.
     events: dict[str, list[str] | None] = Field(default_factory=dict)
-    """Venue name -> its native event ids on the same canonical event(s), or
-    `None` when that venue lists nothing there."""
 
 
 class Series(_Base):

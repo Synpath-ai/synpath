@@ -16,10 +16,10 @@ The colon is safe as a separator: no venue's native id contains one.
 """
 from __future__ import annotations
 
+# Every venue this library speaks, by id. `synpath.exchanges` is the same
+# list with the adapter classes attached; this one exists so the id helpers do
+# not import the adapters.
 VENUES: tuple[str, ...] = ("kalshi", "polymarket", "polymarket_us", "opinion", "hyperliquid", "predict_fun", "limitless", "sx_bet", "betfair", "smarkets")
-"""Every venue this library speaks, by id. `synpath.exchanges` is the same
-list with the adapter classes attached; this one exists so the id helpers do
-not import the adapters."""
 
 
 def qualify(venue: str, native_id: str) -> str:

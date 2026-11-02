@@ -39,66 +39,65 @@ from .types import (
 
 BASE_URL = "https://external-api.kalshi.com/trade-api/v2"
 
+# Where Kalshi's text search lives.
+#
+# Not part of the documented Trade API, which has no search at all: its `/events`
+# endpoint accepts a `query` parameter and silently ignores it, returning the
+# unfiltered first page. This is the endpoint kalshi.com's own search box calls,
+# on a different host -- `external-api.kalshi.com` answers 404 for it.
+#
+# Being undocumented, it can change or start requiring credentials without
+# notice. When it fails, `search_markets` raises rather than falling back to
+# scanning the catalog: a scan for a term that matches nothing walks ~13,000
+# events, and turning a fast failure into a hundred-second one is not a
+# kindness.
 SEARCH_URL = "https://api.elections.kalshi.com"
-"""Where Kalshi's text search lives.
 
-Not part of the documented Trade API, which has no search at all: its `/events`
-endpoint accepts a `query` parameter and silently ignores it, returning the
-unfiltered first page. This is the endpoint kalshi.com's own search box calls,
-on a different host -- `external-api.kalshi.com` answers 404 for it.
-
-Being undocumented, it can change or start requiring credentials without
-notice. When it fails, `search_markets` raises rather than falling back to
-scanning the catalog: a scan for a term that matches nothing walks ~13,000
-events, and turning a fast failure into a hundred-second one is not a
-kindness.
-"""
-
+# Deliberately slower than the trade API's limiter. This host publishes no
+# limits and is not part of the documented surface, so it gets the conservative
+# end of the guess.
 SEARCH_LIMITER = RateLimiter(2.0, burst=2)
-"""Deliberately slower than the trade API's limiter. This host publishes no
-limits and is not part of the documented surface, so it gets the conservative
-end of the guess."""
 
 VENUE = "kalshi"
 
+# Kalshi rate-limits its public reads without documenting it in a header.
+# Measured: an unpaced burst starts returning 429 around 8 req/s, 5.2 req/s ran
+# clean, and a 429 clears in about a second. Module-level, so every client in the
+# process shares one budget — which is what the venue actually counts.
 LIMITER = RateLimiter(5.0, burst=5)
-"""Kalshi rate-limits its public reads without documenting it in a header.
-Measured: an unpaced burst starts returning 429 around 8 req/s, 5.2 req/s ran
-clean, and a 429 clears in about a second. Module-level, so every client in the
-process shares one budget — which is what the venue actually counts."""
 
+# Tickers per `/markets` call. The ceiling is URI length, not a count (500 is
+# fine, 800 returns 414), so this sits well under it rather than relying on a
+# limit that depends on how long tickers happen to be.
 MARKET_BATCH = 200
-"""Tickers per `/markets` call. The ceiling is URI length, not a count (500 is
-fine, 800 returns 414), so this sits well under it rather than relying on a
-limit that depends on how long tickers happen to be."""
 
 _SETTLED = {"settled", "determined", "finalized"}
 _OPEN = {"active", "open"}
 _UNOPENED = {"unopened", "initialized"}
 
+# Results per search page. The venue's own page size; asking for more is
+# ignored.
 SEARCH_PAGE = 50
-"""Results per search page. The venue's own page size; asking for more is
-ignored."""
 
+# Event tickers per `/events?tickers=` call. A full page of search results is
+# at most `MAX_PAGE_LIMIT` rows, so one batch covers it; 100 tickers measured at
+# under 1,900 characters of URL.
 EVENT_BATCH = 100
-"""Event tickers per `/events?tickers=` call. A full page of search results is
-at most `MAX_PAGE_LIMIT` rows, so one batch covers it; 100 tickers measured at
-under 1,900 characters of URL."""
 
+# The most events Kalshi returns per `/events` call. Used when walking the
+# whole catalog, where there is no page contract to honour and every extra
+# request is spent rate budget.
 VENUE_EVENT_PAGE = 200
-"""The most events Kalshi returns per `/events` call. Used when walking the
-whole catalog, where there is no page contract to honour and every extra
-request is spent rate budget."""
 
 EVENT_PAGE = 25
 
+# Most event pages one `fetch_markets` call will read while filling a page.
+#
+# A status filter can leave an event page with few matching markets, and filling
+# `limit` from sparse pages must not turn into walking the catalog inside one
+# call. Past this, the call returns what it has with a cursor to continue, which
+# is what a short page with a cursor means.
 MAX_FILL_PAGES = 10
-"""Most event pages one `fetch_markets` call will read while filling a page.
-
-A status filter can leave an event page with few matching markets, and filling
-`limit` from sparse pages must not turn into walking the catalog inside one
-call. Past this, the call returns what it has with a cursor to continue, which
-is what a short page with a cursor means."""
 """Events fetched per underlying request while filling a market page.
 
 Kalshi averages about nine markets per event, so 25 events covers a full
@@ -106,37 +105,37 @@ Kalshi averages about nine markets per event, so 25 events covers a full
 that overflows is resumed mid-way rather than re-walked.
 """
 
+# How many markets' face values to remember. Bounded because the server keeps
+# one adapter for the life of the process.
 FACE_VALUE_CACHE = 2048
-"""How many markets' face values to remember. Bounded because the server keeps
-one adapter for the life of the process."""
 
+# The only period_interval values Kalshi accepts, in minutes.
 CANDLE_INTERVALS = {"1m": 1, "1h": 60, "1d": 1440}
-"""The only period_interval values Kalshi accepts, in minutes."""
 
+# Most bars Kalshi answers per candlestick request; a wider window is refused
+# with `max candlesticks: 5000` (about 3.5 days of 1m, 208 days of 1h). Longer
+# windows are read in pieces of `MAX_CANDLES - 1` periods and joined.
 MAX_CANDLES = 5000
-"""Most bars Kalshi answers per candlestick request; a wider window is refused
-with `max candlesticks: 5000` (about 3.5 days of 1m, 208 days of 1h). Longer
-windows are read in pieces of `MAX_CANDLES - 1` periods and joined."""
 
+# Prefix of a `fetch_trades` cursor that has moved past the live tape into
+# `/historical/trades`. Kalshi keeps recent data on its live endpoints and moves
+# anything older than a cutoff (see `/historical/cutoff`) to `/historical/*`:
+# markets settled before it, and trades created before it, are no longer on the
+# live endpoints at all. A plain cursor is the live tape's own.
 HISTORICAL_CURSOR = "historical:"
-"""Prefix of a `fetch_trades` cursor that has moved past the live tape into
-`/historical/trades`. Kalshi keeps recent data on its live endpoints and moves
-anything older than a cutoff (see `/historical/cutoff`) to `/historical/*`:
-markets settled before it, and trades created before it, are no longer on the
-live endpoints at all. A plain cursor is the live tape's own."""
 
+# Statuses whose listings continue past the live catalog into
+# `/historical/markets`, where Kalshi keeps markets settled before its cutoff.
+# The live `/events` endpoint still lists those events, but with no markets
+# inside them.
 ARCHIVE_STATUSES = {"settled", "all"}
-"""Statuses whose listings continue past the live catalog into
-`/historical/markets`, where Kalshi keeps markets settled before its cutoff.
-The live `/events` endpoint still lists those events, but with no markets
-inside them."""
 
+# Most markets `/historical/markets` returns per call; 1001 is a 400.
 ARCHIVE_PAGE = 1000
-"""Most markets `/historical/markets` returns per call; 1001 is a 400."""
 
+# Seconds to remember the historical cutoff. Kalshi moves it forward in steps
+# of weeks, so asking once an hour is plenty.
 CUTOFF_TTL = 3600.0
-"""Seconds to remember the historical cutoff. Kalshi moves it forward in steps
-of weeks, so asking once an hour is plenty."""
 
 
 # ---------------------------------------------------------------------------

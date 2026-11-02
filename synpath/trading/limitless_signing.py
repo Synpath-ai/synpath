@@ -39,8 +39,8 @@ BUY, SELL = 0, 1
 EOA = 0
 
 MIN_PRICE, MAX_PRICE = Decimal("0.01"), Decimal("0.99")
+# The venue's dust floor on `makerAmount`, in raw units.
 MIN_MAKER_UNITS = 100
-"""The venue's dust floor on `makerAmount`, in raw units."""
 
 
 def contracts_units(contracts: Decimal) -> int:

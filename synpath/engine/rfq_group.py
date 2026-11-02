@@ -87,40 +87,40 @@ ZERO = Decimal("0")
 ONE = Decimal("1")
 
 GROUPS_CURSOR = "rfq:groups"
+# Pages of a venue's combo-eligible list (or of its collections) read
+# looking for a group's legs before a leg not yet seen counts as ineligible.
 ELIGIBLE_PAGES = 20
-"""Pages of a venue's combo-eligible list (or of its collections) read
-looking for a group's legs before a leg not yet seen counts as ineligible."""
+# How long a venue's combo-eligible list is trusted between groups.
 ELIGIBLE_TTL_S = 60.0
-"""How long a venue's combo-eligible list is trusted between groups."""
+# How long a matching answer (a listing, or none) is reused: a preview and
+# the group it leads to ask the same legs within seconds.
 MATCH_TTL_S = 60.0
-"""How long a matching answer (a listing, or none) is reused: a preview and
-the group it leads to ask the same legs within seconds."""
 
+# `labeler(legs)` -> a short readable name for each leg's market, by market
+# id (`Al Fayha to win`, `U.S. invades Iran`). serve's combo board warmer is
+# one (`synpath.server.combo_warmer`); without one a leg is named by its
+# `info["label"]`, else its market id.
 Labeler = Callable[[list[ComboLeg]], Awaitable[dict[str, str]]]
-"""`labeler(legs)` -> a short readable name for each leg's market, by market
-id (`Al Fayha to win`, `U.S. invades Iran`). serve's combo board warmer is
-one (`synpath.server.combo_warmer`); without one a leg is named by its
-`info["label"]`, else its market id."""
 
 VENUE_NAMES = {"kalshi": "Kalshi", "polymarket": "Polymarket", "polymarket_us": "Polymarket US",
                "limitless": "Limitless", "opinion": "Opinion", "predict_fun": "predict.fun", "sx_bet": "SX Bet"}
+# What a collection venue's combos take, said when a leg's event is in none
+# of its open collections.
 COLLECTION_SCOPES = {"kalshi": "Kalshi combos are sports and cross-category only"}
-"""What a collection venue's combos take, said when a leg's event is in none
-of its open collections."""
+# Why a venue lacks a leg, in the order a skip reason names them.
 LEG_CODES = ("missing_leg", "matching_error", "ineligible_leg", "outside_collections")
-"""Why a venue lacks a leg, in the order a skip reason names them."""
 
+# `matcher(anchor, venue)` -> the other venue's listing of the same
+# proposition, or `None` when it has none. Raises `MarketNotFound` when the
+# anchor is not a listing the service knows.
 Matcher = Callable[[str, str], Awaitable[MarketLink | None]]
-"""`matcher(anchor, venue)` -> the other venue's listing of the same
-proposition, or `None` when it has none. Raises `MarketNotFound` when the
-anchor is not a listing the service knows."""
 
 GroupStatus = Literal["creating", "open", "accepting", "accepted", "executed", "canceled", "expired", "failed"]
 MemberStatus = Literal["creating", "open", "failed", "canceled", "lapsing", "closed", "accepting", "accepted",
                        "executed"]
 FINAL = frozenset({"executed", "canceled", "expired", "failed"})
+# A claim in one of these states no longer holds its group.
 RELEASED = (IntentState.FAILED, IntentState.REJECTED, IntentState.LOST)
-"""A claim in one of these states no longer holds its group."""
 
 
 def _now_ms() -> int:
@@ -366,13 +366,13 @@ class RfqGroupDesk:
     def __init__(self, engine: "Engine", *, matcher: Matcher | None = None):
         self.engine = engine
         self.matcher: Matcher = matcher or hosted_matcher()
+        # Names each leg's market in a skip reason (`Labeler`); set by serve.
         self.labeler: Labeler | None = None
-        """Names each leg's market in a skip reason (`Labeler`); set by serve."""
         self.groups: dict[str, RfqGroup] = {}
+        # `venue:rfq_id` -> the group it is a member of.
         self._by_rfq: dict[str, str] = {}
-        """`venue:rfq_id` -> the group it is a member of."""
+        # Groups an accept or a cancel is working on in this process.
         self._busy: set[str] = set()
-        """Groups an accept or a cancel is working on in this process."""
         self._fees: dict[tuple[str, str, str, Decimal, Decimal], Decimal | None] = {}
         self._matches: dict[tuple[str, str], tuple[float, MarketLink | None]] = {}
         self._eligible_lists: dict[str, tuple[float, dict[str, ComboMarket], bool]] = {}

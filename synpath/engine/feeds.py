@@ -202,10 +202,10 @@ class Feeds:
         self.watching: dict[str, set[str]] = {venue: set() for venue in self.streams}
         self.dispatched = 0
         self.closing = False
+        # Called with `(venue, stream, event)` for every event, after the
+        # engine has it: how the server's market socket shares these
+        # connections instead of opening its own. A listener must not block.
         self.listeners: list[Callable[[str, Any, Any], None]] = []
-        """Called with `(venue, stream, event)` for every event, after the
-        engine has it: how the server's market socket shares these
-        connections instead of opening its own. A listener must not block."""
 
     def distinct(self) -> list[tuple[str, Any]]:
         """Every stream object once, with the venue it belongs to."""

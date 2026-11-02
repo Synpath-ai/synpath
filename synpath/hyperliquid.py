@@ -56,45 +56,45 @@ INFO_URL = "https://api.hyperliquid.xyz"
 TESTNET_INFO_URL = "https://api.hyperliquid-testnet.xyz"
 VENUE = "hyperliquid"
 
+# The venue weighs info requests (a book 2, a catalog 20) against 1200 a
+# minute per IP. Five a second keeps a burst of book reads inside it; the
+# heavy catalog reads are cached, not repeated.
 LIMITER = RateLimiter(5.0, burst=10)
-"""The venue weighs info requests (a book 2, a catalog 20) against 1200 a
-minute per IP. Five a second keeps a burst of book reads inside it; the
-heavy catalog reads are cached, not repeated."""
 
+# Seconds a read of the catalog and the 24h figures is reused. Outcomes are
+# listed and settled on the scale of minutes, and every call here starts from
+# the catalog, so re-reading it per call would spend the rate budget on the
+# same document.
 CATALOG_TTL = 30.0
-"""Seconds a read of the catalog and the 24h figures is reused. Outcomes are
-listed and settled on the scale of minutes, and every call here starts from
-the catalog, so re-reading it per call would spend the rate budget on the
-same document."""
 
+# Seconds the template texts are reused: they change only when the venue
+# adds a template.
 TEMPLATES_TTL = 3600.0
-"""Seconds the template texts are reused: they change only when the venue
-adds a template."""
 
 BASE_TAKER_RATE = 0.0007
+# HyperCore's spot fees at the lowest volume tier, which outcome trading
+# uses. A higher tier pays less; the account's own tier is not known here.
 BASE_MAKER_RATE = 0.0004
-"""HyperCore's spot fees at the lowest volume tier, which outcome trading
-uses. A higher tier pays less; the account's own tier is not known here."""
 
+# The venue's minimum order value, in the quote token.
 MIN_NOTIONAL = 10.0
-"""The venue's minimum order value, in the quote token."""
 
+# Bars looked back when neither `since` nor `limit` bounds the window.
 DEFAULT_BARS = 100
-"""Bars looked back when neither `since` nor `limit` bounds the window."""
 
+# Bar widths `candleSnapshot` serves. A timeframe this library offers that
+# the venue does not (6h) is built from the widest one that divides it.
 CANDLE_INTERVALS = ("1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "8h", "12h", "1d")
-"""Bar widths `candleSnapshot` serves. A timeframe this library offers that
-the venue does not (6h) is built from the widest one that divides it."""
 
+# Marks a question's id (`q198`), so it cannot be read as an outcome's.
 QUESTION_PREFIX = "q"
-"""Marks a question's id (`q198`), so it cannot be read as an outcome's."""
 
+# Fields that say when the thing a market is about happens, in the order
+# they are preferred as its close time.
 TIME_FIELDS = ("time", "expiry", "scheduledStart", "scheduledDecision", "dateTime", "listingDeadline")
-"""Fields that say when the thing a market is about happens, in the order
-they are preferred as its close time."""
 
+# Fields that say when a market resolves at the latest.
 DEADLINE_FIELDS = ("resolutionDeadline", "decisionDeadline", "listingDeadline", "time", "expiry", "dateTime")
-"""Fields that say when a market resolves at the latest."""
 
 
 # ---------------------------------------------------------------------------

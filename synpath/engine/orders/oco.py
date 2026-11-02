@@ -172,8 +172,8 @@ class Bracket(_Linked):
         self.stop_loss = dict(self.params.get("stop_loss") or {})
         if not self.take_profit and not self.stop_loss:
             raise ValueError("a bracket needs params take_profit, stop_loss, or both")
+        # Contracts the entry has filled, which is what the protection covers.
         self.entered: Decimal = ZERO
-        """Contracts the entry has filled, which is what the protection covers."""
         self.protected: Decimal = ZERO
 
     def markets(self) -> list[str]:

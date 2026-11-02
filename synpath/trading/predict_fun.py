@@ -71,18 +71,20 @@ TESTNET_API_URL = "https://api-testnet.predict.fun/v1"
 RPC_URL = "https://bsc-dataseed.bnbchain.org"
 TESTNET_RPC_URL = "https://data-seed-prebsc-1-s1.bnbchain.org:8545"
 
+# Rows per order, trade or position page.
 PAGE = 100
-"""Rows per order, trade or position page."""
 
+# Most pages one listing call walks.
 MAX_PAGES = 20
-"""Most pages one listing call walks."""
 
+# How long a market order's signature lives, as the SDK signs it.
 MARKET_EXPIRY_S = 300
-"""How long a market order's signature lives, as the SDK signs it."""
 
+# A login token this close to expiry is renewed before use.
 JWT_MARGIN_S = 60
-"""A login token this close to expiry is renewed before use."""
 
+# An order row's status. `INVALIDATED` is an order the chain no longer
+# honours (cancelled there, or its funds gone).
 ROW_STATUS = {
     "OPEN": OrderStatus.OPEN,
     "FILLED": OrderStatus.CLOSED,
@@ -90,20 +92,18 @@ ROW_STATUS = {
     "CANCELLED": OrderStatus.CANCELED,
     "INVALIDATED": OrderStatus.CANCELED,
 }
-"""An order row's status. `INVALIDATED` is an order the chain no longer
-honours (cancelled there, or its funds gone)."""
 
+# The statuses the venue's order listing filters by.
 LIST_STATUS = {"open": "OPEN", "closed": "FILLED"}
-"""The statuses the venue's order listing filters by."""
 
+# Order events whose status the event itself says. A transaction event's
+# status follows from how much is filled.
 ORDER_EVENT_STATUS = {
     "orderAccepted": OrderStatus.OPEN,
     "orderNotAccepted": OrderStatus.REJECTED,
     "orderExpired": OrderStatus.EXPIRED,
     "orderCancelled": OrderStatus.CANCELED,
 }
-"""Order events whose status the event itself says. A transaction event's
-status follows from how much is filled."""
 
 FILL_SETTLEMENT = {
     "orderTransactionSubmitted": SettlementState.MATCHED,
@@ -508,10 +508,10 @@ class PredictFunTrading(TradingExchange):
         self.signer = WalletSigner(credentials.private_key)
         self.account = Account(venue=VENUE, name=account_name)
         self.network = sig.TESTNET if credentials.testnet else sig.MAINNET
+        # The Predict account the key signs for, or `None` for a plain wallet.
         self.predict_account = credentials.account_address
-        """The Predict account the key signs for, or `None` for a plain wallet."""
+        # Maker of every order, and holder of the funds.
         self.address = credentials.account_address or self.signer.address
-        """Maker of every order, and holder of the funds."""
         # 240 requests a minute per API key, every kind together.
         self.limiter = limiter or BudgetLimiter(read_per_second=2, write_per_second=2)
         headers = {"x-api-key": credentials.api_key} if credentials.api_key else {}
@@ -519,15 +519,15 @@ class PredictFunTrading(TradingExchange):
         base = url or (TESTNET_API_URL if credentials.testnet else API_URL)
         self.http = AsyncHttpClient(base, limiter=None, client=shared, venue=VENUE)
         self.rpc_url = rpc_url or credentials.rpc_url or (TESTNET_RPC_URL if credentials.testnet else RPC_URL)
+        # A BNB Chain node, for the balance read.
         self.rpc = rpc_client or httpx.AsyncClient(timeout=20, follow_redirects=True)
-        """A BNB Chain node, for the balance read."""
         self._own_catalog = catalog is None
         if catalog is None:
             from ..predict_fun import PredictFun
 
             catalog = PredictFun(api_key=credentials.api_key, testnet=credentials.testnet)
+        # The read adapter: tokens, exchange and fee rate for a market.
         self.catalog = catalog
-        """The read adapter: tokens, exchange and fee rate for a market."""
         self._markets: dict[str, MarketInfo] = {}
         self._jwt: str | None = None
         self._jwt_expires: int | None = None

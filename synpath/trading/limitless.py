@@ -74,12 +74,12 @@ SCALE = Decimal(1_000_000)
 API_URL = "https://api.limitless.exchange"
 RPC_URL = "https://mainnet.base.org"
 
+# An order row's status. `UNMATCHED` is an immediate order that matched nothing.
 ROW_STATUS = {"LIVE": OrderStatus.OPEN, "MATCHED": OrderStatus.CLOSED, "CANCELED": OrderStatus.CANCELED,
               "UNMATCHED": OrderStatus.CANCELED}
-"""An order row's status. `UNMATCHED` is an immediate order that matched nothing."""
 
+# Order ids per batch cancel or status lookup: the venue's maximum.
 BATCH = 50
-"""Order ids per batch cancel or status lookup: the venue's maximum."""
 
 FILL_SETTLEMENT = {
     "MATCHED": SettlementState.MATCHED,
@@ -87,12 +87,12 @@ FILL_SETTLEMENT = {
     "FAILED": SettlementState.FAILED,
 }
 
+# An immediate order's terminal result: a partial fill's rest is cancelled.
 EXECUTION_STATUS = {
     "FILLED": OrderStatus.CLOSED,
     "PARTIALLY_FILLED": OrderStatus.CANCELED,
     "KILLED": OrderStatus.CANCELED,
 }
-"""An immediate order's terminal result: a partial fill's rest is cancelled."""
 
 
 def D(value: Any) -> Decimal:
@@ -197,8 +197,8 @@ class MarketInfo:
     yes_token: str
     no_token: str
     exchange: str
+    # Whether the market charges fees; a free market's orders carry a zero rate.
     fee: bool
-    """Whether the market charges fees; a free market's orders carry a zero rate."""
 
     @property
     def market_id(self) -> str:
@@ -489,8 +489,8 @@ class LimitlessTrading(TradingExchange):
             from ..limitless import Limitless
 
             catalog = Limitless()
+        # The read adapter: tokens, exchange and fee flag for a market.
         self.catalog = catalog
-        """The read adapter: tokens, exchange and fee flag for a market."""
         self._markets: dict[str, MarketInfo] = {}
         self._profile: dict[str, Any] | None = None
 

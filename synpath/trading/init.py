@@ -278,6 +278,8 @@ def ask_smarkets(p: Prompter) -> dict[str, str]:
     return {"SMARKETS_USERNAME": username, "SMARKETS_PASSWORD": password}
 
 
+# Each venue, the settings any of which means it is set up already (an API
+# key alone is, for market data), and the questions.
 VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] = [
     ("Kalshi", ("KALSHI_KEY_ID",), ask_kalshi),
     ("Polymarket", ("POLYMARKET_PRIVATE_KEY",), ask_polymarket),
@@ -290,8 +292,6 @@ VENUES: list[tuple[str, tuple[str, ...], Callable[[Prompter], dict[str, str]]]] 
     ("Betfair", ("BETFAIR_APP_KEY",), ask_betfair),
     ("Smarkets (optional login; market data needs none)", ("SMARKETS_USERNAME",), ask_smarkets),
 ]
-"""Each venue, the settings any of which means it is set up already (an API
-key alone is, for market data), and the questions."""
 
 
 def _quote(value: str) -> str:

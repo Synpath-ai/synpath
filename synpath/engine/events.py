@@ -37,8 +37,8 @@ class EngineEvent:
     payload: dict[str, Any] = field(default_factory=dict)
     key: str | None = None
     ts: int = field(default_factory=lambda: int(time.time() * 1000))
+    # The journal sequence number, once it has one.
     seq: int | None = None
-    """The journal sequence number, once it has one."""
 
     def __str__(self) -> str:
         return f"{self.kind}({self.key})" if self.key else self.kind

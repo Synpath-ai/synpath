@@ -68,8 +68,8 @@ ENVIRONMENTS = {
 GATEWAY_URL = "https://gateway.polymarket.us"
 
 BATCH = 20
+# Refresh the access token this long before the venue says it expires.
 TOKEN_MARGIN_S = 30
-"""Refresh the access token this long before the venue says it expires."""
 
 NATIVE_ORDER_TYPES = frozenset({OrderType.LIMIT, OrderType.MARKET, OrderType.STOP_MARKET, OrderType.STOP_LIMIT})
 
@@ -442,8 +442,8 @@ class PolymarketUSExchangeTrading(TradingExchange):
 
     id = VENUE
     name = "Polymarket US (exchange API)"
+    # Order types the exchange holds itself, stops included.
     native_order_types = NATIVE_ORDER_TYPES
-    """Order types the exchange holds itself, stops included."""
     has: dict[str, Capability] = {
         "create_order": True,
         "create_orders": True,

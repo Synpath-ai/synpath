@@ -23,8 +23,8 @@ if not FORCED_PURE:
     except ImportError:  # pragma: no cover - only without a built extension
         core = None
 
+# True when the Rust core is in use.
 ENABLED = core is not None
-"""True when the Rust core is in use."""
 
 
 def pick(name: str, fallback: Any) -> Any:

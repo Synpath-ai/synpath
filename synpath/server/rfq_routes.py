@@ -228,15 +228,15 @@ async def quote_result(engine: Engine, quote: RfqQuote, key: str, venue: str) ->
                        order_id=(intent.order_id if intent else None) or None)
 
 
+# How long a combo list read (eligible markets, collections) is served from
+# memory: the terminal polls them, and they change on the scale of minutes.
 COMBO_LIST_TTL_S = 15.0
-"""How long a combo list read (eligible markets, collections) is served from
-memory: the terminal polls them, and they change on the scale of minutes."""
 COMBO_LIST_CACHE_SIZE = 256
+# How long a venue's combo board is served from memory: it reads several
+# pages of the venue's list (and, on Kalshi, every collection event's markets).
 COMBO_BOARD_TTL_S = 30.0
-"""How long a venue's combo board is served from memory: it reads several
-pages of the venue's list (and, on Kalshi, every collection event's markets)."""
+# How long a group preview is reused: the slip asks again on every pick.
 PREVIEW_TTL_S = 10.0
-"""How long a group preview is reused: the slip asks again on every pick."""
 
 
 class TtlCache:

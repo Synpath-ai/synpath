@@ -43,14 +43,14 @@ from ..trading.types import Precision, Side
 from ..types import OrderBook
 
 ZERO = Decimal("0")
+# `fee(market_id, price, contracts)` -> the taker fee for that many contracts
+# at that price, in the venue's currency. The plan asks per level.
 FeeFn = Callable[[str, Decimal, Decimal], Decimal]
-"""`fee(market_id, price, contracts)` -> the taker fee for that many contracts
-at that price, in the venue's currency. The plan asks per level."""
 
 Reason = Literal["", "worst_price", "liquidity", "min_quantity"]
 
+# Per market id, the least one taker order pays. Absent means no floor.
 FeeFloors = Mapping[str, Decimal]
-"""Per market id, the least one taker order pays. Absent means no floor."""
 
 PriceSize = tuple[Decimal, Decimal]
 
@@ -117,10 +117,10 @@ def default_precision(market_id: str) -> Precision:
 @dataclass(frozen=True)
 class Level:
     market_id: str
+    # In bucket terms: what one contract of the bucket's YES costs (asks) or fetches (bids).
     price: Decimal
-    """In bucket terms: what one contract of the bucket's YES costs (asks) or fetches (bids)."""
+    # `price` plus the taker fee per contract on a buy, minus it on a sell.
     net_price: Decimal
-    """`price` plus the taker fee per contract on a buy, minus it on a sell."""
     size: Decimal
 
 
@@ -128,20 +128,20 @@ class Level:
 class Leg:
     market_id: str
     flip: bool
+    # The member's own side, after `flip`.
     side: Side
-    """The member's own side, after `flip`."""
+    # The member's own YES price, after `flip` and tick rounding. What the venue receives.
     price: Decimal
-    """The member's own YES price, after `flip` and tick rounding. What the venue receives."""
     quantity: Decimal
+    # The worst bucket-terms price this leg reaches, before fees.
     bucket_price: Decimal
-    """The worst bucket-terms price this leg reaches, before fees."""
+    # Volume-weighted net price of the levels this leg takes, in bucket terms,
+    # with the venue's fee floor included where it binds.
     net_price: Decimal
-    """Volume-weighted net price of the levels this leg takes, in bucket terms,
-    with the venue's fee floor included where it binds."""
+    # The taker fee this leg is expected to pay, floor included.
     fee: Decimal = ZERO
-    """The taker fee this leg is expected to pay, floor included."""
+    # How much of `fee` is the floor over what the levels' fees add up to.
     fee_floor: Decimal = ZERO
-    """How much of `fee` is the floor over what the levels' fees add up to."""
 
     def notional(self) -> Decimal:
         """What the token this leg buys costs: YES at `price` on a buy, NO at

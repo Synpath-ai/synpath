@@ -138,11 +138,11 @@ def _type_hash(signature: str) -> bytes:
     return keccak(text=signature)
 
 
+# The `Exchange` domain every L1 action is signed in: chain id 1337, no contract.
 DOMAIN_SEPARATOR = keccak(
     _type_hash("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
     + keccak(text="Exchange") + keccak(text="1") + (1337).to_bytes(32, "big") + bytes(32)
 )
-"""The `Exchange` domain every L1 action is signed in: chain id 1337, no contract."""
 
 AGENT_TYPE_HASH = _type_hash("Agent(string source,bytes32 connectionId)")
 

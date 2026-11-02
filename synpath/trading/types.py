@@ -52,10 +52,10 @@ class Side(str, Enum):
     SELL = "sell"
 
 
+# The outcome an order trades: which token it buys or sells.
 Outcome = Literal["yes", "no"]
-"""The outcome an order trades: which token it buys or sells."""
+# What an order does with its outcome.
 Action = Literal["buy", "sell"]
-"""What an order does with its outcome."""
 
 
 def yes_side(outcome: str, action: str) -> Side:
@@ -110,10 +110,10 @@ class OrderType(str, Enum):
     TWAP = "twap"
     PEG = "peg"
     SMART_TAKER = "smart_taker"
+    # The requester's order from an accepted RFQ quote (docs/rfq-combo.md).
     RFQ_TAKER = "rfq_taker"
-    """The requester's order from an accepted RFQ quote (docs/rfq-combo.md)."""
+    # The quoter's order from a quote it confirmed.
     RFQ_MAKER = "rfq_maker"
-    """The quoter's order from a quote it confirmed."""
 
 
 VENUE_ORDER_TYPES = frozenset({OrderType.LIMIT, OrderType.MARKET})
@@ -124,9 +124,9 @@ class TimeInForce(str, Enum):
     IOC = "ioc"
     FOK = "fok"
     GTD = "gtd"
+    # Not a venue concept on any of the three; the engine rewrites it to
+    #     `gtd` at the configured session end before it reaches an adapter.
     DAY = "day"
-    """Not a venue concept on any of the three; the engine rewrites it to
-    `gtd` at the configured session end before it reaches an adapter."""
 
 
 class TriggerSource(str, Enum):
@@ -145,22 +145,22 @@ STOP_TYPES = frozenset({OrderType.STOP_MARKET, OrderType.STOP_LIMIT, OrderType.T
 
 
 class OrderStatus(str, Enum):
+    # Accepted by this library, not yet acknowledged by the venue.
     PENDING = "pending"
-    """Accepted by this library, not yet acknowledged by the venue."""
+    # Resting at the venue. Read `filled` and `remaining` for how much.
     OPEN = "open"
-    """Resting at the venue. Read `filled` and `remaining` for how much."""
     PENDING_CANCEL = "pending_cancel"
     PENDING_REPLACE = "pending_replace"
+    # Fully filled.
     CLOSED = "closed"
-    """Fully filled."""
+    # Ended by a cancel; `filled` may be non-zero.
     CANCELED = "canceled"
-    """Ended by a cancel; `filled` may be non-zero."""
     REJECTED = "rejected"
     EXPIRED = "expired"
+    # An engine-held parent whose condition has not been met.
     WAITING = "waiting"
-    """An engine-held parent whose condition has not been met."""
+    # An engine-held parent whose condition fired; its children are live.
     TRIGGERED = "triggered"
-    """An engine-held parent whose condition fired; its children are live."""
 
 
 TERMINAL_STATUSES = frozenset({
@@ -174,13 +174,13 @@ class HeldBy(str, Enum):
 
 
 class SettlementState(str, Enum):
+    # Matched at the venue, not yet final. Polymarket only, before the chain
+    #     confirms.
     MATCHED = "matched"
-    """Matched at the venue, not yet final. Polymarket only, before the chain
-    confirms."""
+    # Final.
     CONFIRMED = "confirmed"
-    """Final."""
+    # Matched and then failed on-chain; the shares never arrived.
     FAILED = "failed"
-    """Matched and then failed on-chain; the shares never arrived."""
 
 
 class Liquidity(str, Enum):
@@ -216,8 +216,8 @@ class Account(_Base):
     """
 
     venue: str
+    # Which credential set, for a caller with more than one at a venue.
     name: str = "default"
-    """Which credential set, for a caller with more than one at a venue."""
     subaccount: str | None = None
 
     @property
@@ -229,76 +229,76 @@ class Account(_Base):
 class Precision(_Base):
     """What an order for this instrument must satisfy before it is signed."""
 
+    # Minimum price increment. Polymarket varies it per market.
     tick: Decimal
-    """Minimum price increment. Polymarket varies it per market."""
     min_quantity: Decimal = Decimal("1")
+    # Contract increment where the venue has one; `None` means any decimal.
     quantity_step: Decimal | None = None
-    """Contract increment where the venue has one; `None` means any decimal."""
+    # Polymarket US: integers only.
     whole_contracts: bool = False
-    """Polymarket US: integers only."""
     face_value: Decimal = Decimal("1")
+    # Smallest order the venue takes, in collateral: what the token actually
+    #     bought costs (Opinion: 5 USDT). `None` where the venue counts only
+    #     contracts.
     min_notional: Decimal | None = None
-    """Smallest order the venue takes, in collateral: what the token actually
-    bought costs (Opinion: 5 USDT). `None` where the venue counts only
-    contracts."""
 
 
 @renamed_fields(QUANTITY)  # TODO(0.9): remove
 class OrderRequest(_Base):
     """What a caller asks for. Validated against the market before signing."""
 
+    # Application ownership, assigned by the execution worker; not a venue account.
     user_id: str | None = None
-    """Application ownership, assigned by the execution worker; not a venue account."""
+    # Synpath id, `venue:native`. A bare native id is accepted by the venue's
+    #     own adapter.
     market_id: str
-    """Synpath id, `venue:native`. A bare native id is accepted by the venue's
-    own adapter."""
+    # `buy` takes YES, `sell` takes NO, on the YES leg. See `Side`. Set
+    #     from `outcome` and `action` when they are given and it is not.
     side: Side
-    """`buy` takes YES, `sell` takes NO, on the YES leg. See `Side`. Set
-    from `outcome` and `action` when they are given and it is not."""
     outcome: Outcome | None = None
+    # What the order does, in the caller's terms: buy or sell YES or NO.
+    #     The engine, ledger and risk work on the YES leg (`side`, the YES
+    #     `price`); a venue adapter reads these to send it. On a venue that nets
+    #     (Kalshi, Polymarket US) Buy NO and Sell YES are the same order. Where YES
+    #     and NO are separate tokens (Polymarket, Opinion, Limitless, predict.fun,
+    #     Hyperliquid) they are not: `sell` sells the tokens held, `buy` buys them.
+    #     Both or neither: with neither, `side` decides (`default_leg`: `buy` buys
+    #     YES, `sell` buys NO).
     action: Action | None = None
-    """What the order does, in the caller's terms: buy or sell YES or NO.
-    The engine, ledger and risk work on the YES leg (`side`, the YES
-    `price`); a venue adapter reads these to send it. On a venue that nets
-    (Kalshi, Polymarket US) Buy NO and Sell YES are the same order. Where YES
-    and NO are separate tokens (Polymarket, Opinion, Limitless, predict.fun,
-    Hyperliquid) they are not: `sell` sells the tokens held, `buy` buys them.
-    Both or neither: with neither, `side` decides (`default_leg`: `buy` buys
-    YES, `sell` buys NO)."""
+    # Contracts.
     quantity: Decimal
-    """Contracts."""
     type: OrderType = OrderType.LIMIT
+    # Always the YES price, 0 to 1. Required for a limit order. For a market
+    #     order, the protection price the engine will not cross; refused without
+    #     one on a venue without native market orders.
     price: Decimal | None = None
-    """Always the YES price, 0 to 1. Required for a limit order. For a market
-    order, the protection price the engine will not cross; refused without
-    one on a venue without native market orders."""
+    # The level a stop triggers at: a buy stop when the watched price rises
+    #     to it, a sell stop when it falls to it.
     stop_price: Decimal | None = None
-    """The level a stop triggers at: a buy stop when the watched price rises
-    to it, a sell stop when it falls to it."""
+    # What a stop watches; see `TriggerSource`. Stops only.
     trigger_source: TriggerSource = TriggerSource.TOUCH
-    """What a stop watches; see `TriggerSource`. Stops only."""
+    # For a stop, how long the whole order lives, armed and after it
+    #     triggers, as IBKR and FIX use it: `gtc`, `gtd` or `day`. A `stop_limit`'s
+    #     child inherits it (a `day` one as `gtd` at the same session end); a
+    #     `stop_market`'s child is `ioc` within that life. `ioc` and `fok` are
+    #     refused on a stop.
     time_in_force: TimeInForce = TimeInForce.GTC
-    """For a stop, how long the whole order lives, armed and after it
-    triggers, as IBKR and FIX use it: `gtc`, `gtd` or `day`. A `stop_limit`'s
-    child inherits it (a `day` one as `gtd` at the same session end); a
-    `stop_market`'s child is `ioc` within that life. `ioc` and `fok` are
-    refused on a stop."""
+    # Milliseconds since epoch. Required with `gtd`.
     expires_at: int | None = None
-    """Milliseconds since epoch. Required with `gtd`."""
     post_only: bool = False
+    # The idempotency key. Generated before the first write if absent, and
+    #     reused on every retry of the same intent.
     client_order_id: str | None = None
-    """The idempotency key. Generated before the first write if absent, and
-    reused on every retry of the same intent."""
     account: Account | None = None
+    # Strategy or desk the order belongs to. Internal, independent of the
+    #     venue account; positions and P&L roll up by it.
     book: str | None = None
-    """Strategy or desk the order belongs to. Internal, independent of the
-    venue account; positions and P&L roll up by it."""
     trader: str | None = None
     tags: dict[str, str] = Field(default_factory=dict)
     notes: str | None = None
+    # Venue-specific extras passed through untouched (Kalshi
+    #     `self_trade_prevention_type`, Polymarket `signatureType`, ...).
     params: dict[str, Any] = Field(default_factory=dict)
-    """Venue-specific extras passed through untouched (Kalshi
-    `self_trade_prevention_type`, Polymarket `signatureType`, ...)."""
 
     @classmethod
     def stored(cls, data: Any) -> "OrderRequest":
@@ -368,8 +368,8 @@ class EditRequest(_Base):
     quantity: Decimal | None = None
     time_in_force: TimeInForce | None = None
     expires_at: int | None = None
+    # Idempotency key for the *edit*, so a retried edit is not applied twice.
     client_order_id: str | None = None
-    """Idempotency key for the *edit*, so a retried edit is not applied twice."""
 
 
 @renamed_fields({**QUANTITY, "last_fill_amount": "last_fill_quantity"})  # TODO(0.9): remove
@@ -381,9 +381,9 @@ class Order(_Base):
     client_order_id: str | None = None
     venue: str | None
     account: Account | None = None
+    # Eligible execution accounts captured by a routed engine parent.
+    #     Its venue and singular account are null; actual children remain venue orders.
     execution_accounts: dict[str, Account] = Field(default_factory=dict)
-    """Eligible execution accounts captured by a routed engine parent.
-    Its venue and singular account are null; actual children remain venue orders."""
 
     @model_validator(mode="after")
     def validate_execution_identity(self):
@@ -395,11 +395,11 @@ class Order(_Base):
         elif self.venue is None:
             raise ValueError("an order without a venue needs its captured execution accounts")
         return self
+    # Synpath id, `venue:native`.
     market_id: str
-    """Synpath id, `venue:native`."""
+    # On the YES leg: `buy` is a YES order, `sell` a NO order, whatever the
+    #     venue's own wording. `price` is the YES price.
     side: Side
-    """On the YES leg: `buy` is a YES order, `sell` a NO order, whatever the
-    venue's own wording. `price` is the YES price."""
     type: OrderType
     time_in_force: TimeInForce
     status: OrderStatus
@@ -408,31 +408,31 @@ class Order(_Base):
     stop_price: Decimal | None = None
     quantity: Decimal
     filled: Decimal = Decimal("0")
+    # `quantity - filled` unless the venue reports otherwise.
     remaining: Decimal | None = None
-    """`quantity - filled` unless the venue reports otherwise."""
     average_price: Decimal | None = None
+    # Collateral committed so far.
     cost: Decimal | None = None
-    """Collateral committed so far."""
     fee: Decimal | None = None
     fee_currency: str | None = None
     last_fill_price: Decimal | None = None
     last_fill_quantity: Decimal | None = None
     post_only: bool = False
     outcome: Outcome | None = None
+    # What the order does (see `OrderRequest.outcome`): as the caller gave it
+    #     on an order the engine placed, as the venue reports it where YES and NO
+    #     are separate tokens, else unknown (`None`). An order placed with a side
+    #     alone has none: on a netting venue a sell may close YES or open NO.
     action: Action | None = None
-    """What the order does (see `OrderRequest.outcome`): as the caller gave it
-    on an order the engine placed, as the venue reports it where YES and NO
-    are separate tokens, else unknown (`None`). An order placed with a side
-    alone has none: on a netting venue a sell may close YES or open NO."""
     expires_at: int | None = None
     created_at: int | None = None
     updated_at: int | None = None
+    # The engine-held parent this order is a child of.
     parent_id: str | None = None
-    """The engine-held parent this order is a child of."""
+    # After an edit: whether the venue kept the order's place in the queue.
+    #     Kalshi keeps it on a decrease and loses it on a price change; Polymarket
+    #     always loses it because an edit is a cancel and a new order.
     queue_priority_preserved: bool | None = None
-    """After an edit: whether the venue kept the order's place in the queue.
-    Kalshi keeps it on a decrease and loses it on a price change; Polymarket
-    always loses it because an edit is a cancel and a new order."""
     book: str | None = None
     trader: str | None = None
     tags: dict[str, str] = Field(default_factory=dict)
@@ -467,20 +467,20 @@ class Fill(_Base):
     venue: str
     account: Account | None = None
     market_id: str
+    # On the YES leg, like `Order.side`.
     side: Side
-    """On the YES leg, like `Order.side`."""
     outcome: Outcome | None = None
+    # What the fill did, its order's outcome and action (see
+    #     `OrderRequest.outcome`), where the order is known; else unknown.
     action: Action | None = None
-    """What the fill did, its order's outcome and action (see
-    `OrderRequest.outcome`), where the order is known; else unknown."""
+    # The YES price.
     price: Decimal
-    """The YES price."""
     quantity: Decimal
     fee: Decimal | None = None
     fee_currency: str | None = None
     liquidity: Liquidity = Liquidity.UNKNOWN
+    # `matched` until the chain confirms, on Polymarket. Final elsewhere.
     settlement: SettlementState = SettlementState.CONFIRMED
-    """`matched` until the chain confirms, on Polymarket. Final elsewhere."""
     timestamp: int
     info: dict[str, Any] = Field(default_factory=dict)
 
@@ -496,29 +496,29 @@ class Position(_Base):
     venue: str
     account: Account | None = None
     market_id: str
+    # `long` holds YES, `short` holds NO.
     side: PositionSide = PositionSide.FLAT
-    """`long` holds YES, `short` holds NO."""
+    # Net exposure on the side named, positive. On a netting venue this is
+    #     the position; on Polymarket it is `|inventory_yes - inventory_no|`.
     contracts: Decimal = Decimal("0")
-    """Net exposure on the side named, positive. On a netting venue this is
-    the position; on Polymarket it is `|inventory_yes - inventory_no|`."""
     inventory_yes: Decimal | None = None
+    # Tokens actually held on each side, on a venue that does not net
+    #     (Polymarket). `None` elsewhere.
     inventory_no: Decimal | None = None
-    """Tokens actually held on each side, on a venue that does not net
-    (Polymarket). `None` elsewhere."""
     entry_price: Decimal | None = None
     mark_price: Decimal | None = None
     unrealized_pnl: Decimal | None = None
     realized_pnl: Decimal | None = None
+    # Collateral locked against this position, where the venue reports it.
     margin: Decimal | None = None
-    """Collateral locked against this position, where the venue reports it."""
     resolved: bool = False
+    # Resolved and past any dispute window. On Polymarket a resolved market
+    #     can still be challenged; `resolved` without `final` says so.
     final: bool = False
-    """Resolved and past any dispute window. On Polymarket a resolved market
-    can still be challenged; `resolved` without `final` says so."""
     won: bool | None = None
     payout: Decimal | None = None
+    # Payout waiting to be claimed on-chain. Polymarket only.
     redeemable: Decimal | None = None
-    """Payout waiting to be claimed on-chain. Polymarket only."""
     timestamp: int | None = None
     info: dict[str, Any] = Field(default_factory=dict)
 
@@ -528,8 +528,8 @@ class Settlement(_Base):
     venue: str
     account: Account | None = None
     market_id: str
+    # Which side was held into settlement, when the venue says.
     held: PositionSide | None = None
-    """Which side was held into settlement, when the venue says."""
     result: str | None = None
     won: bool | None = None
     quantity: Decimal | None = None
@@ -548,12 +548,12 @@ class Balance(_Base):
     currency: str
     total: Decimal
     available: Decimal
+    # Committed to resting orders and margin, where the venue reports it.
+    #     `None` means it does not, not zero.
     locked: Decimal | None = None
-    """Committed to resting orders and margin, where the venue reports it.
-    `None` means it does not, not zero."""
+    # The venue's own figure for what can still be bought, where it has one
+    #     (Polymarket US). `None` means the venue defines none, not zero.
     buying_power: Decimal | None = None
-    """The venue's own figure for what can still be bought, where it has one
-    (Polymarket US). `None` means the venue defines none, not zero."""
     timestamp: int | None = None
     info: dict[str, Any] = Field(default_factory=dict)
 
@@ -568,12 +568,12 @@ class FeeEstimate(_Base):
     price: Decimal
     quantity: Decimal
     taker_fee: Decimal | None = None
+    # Negative where the venue pays makers.
     maker_fee: Decimal | None = None
-    """Negative where the venue pays makers."""
     builder_fee: Decimal | None = None
+    # The least one taker order pays, where the venue has a floor (Opinion:
+    #     0.25 USDT), already applied to `taker_fee`. `None` means no floor.
     min_fee: Decimal | None = None
-    """The least one taker order pays, where the venue has a floor (Opinion:
-    0.25 USDT), already applied to `taker_fee`. `None` means no floor."""
     currency: str = "USD"
     info: dict[str, Any] = Field(default_factory=dict)
 
@@ -595,38 +595,38 @@ class FeeEstimate(_Base):
 
 class RfqStatus(str, Enum):
     OPEN = "open"
+    # No longer quotable; `Rfq.closed_reason` says why.
     CLOSED = "closed"
-    """No longer quotable; `Rfq.closed_reason` says why."""
 
 
 class RfqCloseReason(str, Enum):
+    # Deleted by its creator.
     CANCELED = "canceled"
-    """Deleted by its creator."""
     EXPIRED = "expired"
+    # A quote on it traded.
     EXECUTED = "executed"
-    """A quote on it traded."""
+    # Closed by the venue because a newer RFQ took its place.
     REPLACED = "replaced"
-    """Closed by the venue because a newer RFQ took its place."""
 
 
 class QuoteStatus(str, Enum):
     """`open` → `accepted` → `confirmed` → `executed`, or off the path to
     `canceled`, `expired` or `failed` before `executed`."""
 
+    # Quotable: the requester may accept a side.
     OPEN = "open"
-    """Quotable: the requester may accept a side."""
+    # The requester took a side; the maker has not confirmed.
     ACCEPTED = "accepted"
-    """The requester took a side; the maker has not confirmed."""
+    # The maker confirmed (its last look); the venue will submit the orders.
     CONFIRMED = "confirmed"
-    """The maker confirmed (its last look); the venue will submit the orders."""
+    # The orders were submitted. Not a fill: read the order's fills.
     EXECUTED = "executed"
-    """The orders were submitted. Not a fill: read the order's fills."""
+    # The maker withdrew it, or its RFQ closed.
     CANCELED = "canceled"
-    """The maker withdrew it, or its RFQ closed."""
+    # Not accepted, or not confirmed, by its deadline.
     EXPIRED = "expired"
-    """Not accepted, or not confirmed, by its deadline."""
+    # The venue reported that the execution failed; nothing traded.
     FAILED = "failed"
-    """The venue reported that the execution failed; nothing traded."""
 
 
 QUOTE_TERMINAL_STATUSES = frozenset({
@@ -663,12 +663,12 @@ def _leg_pair(outcome: str | None, action: str | None) -> None:
 class ComboLeg(_Base):
     """One market a combo needs, and which outcome of it."""
 
+    # Synpath id, `venue:native`.
     market_id: str
-    """Synpath id, `venue:native`."""
+    # The outcome this leg needs. On Polymarket US `no` is `SIDE_SELL`.
     outcome: Outcome
-    """The outcome this leg needs. On Polymarket US `no` is `SIDE_SELL`."""
+    # The leg's event, where the venue wants it (Kalshi `event_ticker`).
     event_id: str | None = None
-    """The leg's event, where the venue wants it (Kalshi `event_ticker`)."""
     info: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -677,11 +677,11 @@ class Combo(_Base):
     leg does. Positions, P&L and settlement live on `market_id`, like any
     market's."""
 
+    # The combo's own Synpath id (`kalshi:KXMVE…`, `polymarket_us:caoc-…`).
     market_id: str
-    """The combo's own Synpath id (`kalshi:KXMVE…`, `polymarket_us:caoc-…`)."""
     venue: str
+    # Kalshi's multivariate event collection the combo was built in.
     collection_id: str | None = None
-    """Kalshi's multivariate event collection the combo was built in."""
     legs: list[ComboLeg]
     status: Literal["open", "closed", "settled"] | None = None
     created_at: int | None = None
@@ -702,24 +702,24 @@ class ComboMarket(_Base):
     combo-eligible markets (Polymarket's catalogue, Polymarket US's
     `comboEnabled`). Kalshi lists eligibility by collection instead."""
 
+    # Synpath id, `venue:native`: the leg's `ComboLeg.market_id`.
     market_id: str
-    """Synpath id, `venue:native`: the leg's `ComboLeg.market_id`."""
     venue: str
     title: str | None = None
+    # The market's event, where the venue's list names it (Polymarket US).
     event_id: str | None = None
-    """The market's event, where the venue's list names it (Polymarket US)."""
     event_title: str | None = None
+    # Per outcome (`yes`, `no`), where a leg is named by a position id
+    #     (Polymarket: `leg.info["position_id"]`).
     position_ids: dict[str, str] | None = None
-    """Per outcome (`yes`, `no`), where a leg is named by a position id
-    (Polymarket: `leg.info["position_id"]`)."""
     min_legs: int = 2
+    # The most legs a combo may have on this venue, where documented.
     max_legs: int | None = None
-    """The most legs a combo may have on this venue, where documented."""
+    # The venue's own market status, as listed.
     status: str | None = None
-    """The venue's own market status, as listed."""
     tags: list[str] = Field(default_factory=list)
+    # The venue's own row.
     info: dict[str, Any] = Field(default_factory=dict)
-    """The venue's own row."""
 
 
 class Rfq(_Base):
@@ -729,27 +729,27 @@ class Rfq(_Base):
     id: str
     venue: str
     account: Account | None = None
+    # The single market asked about. Exactly one of this and `combo_id`.
     market_id: str | None = None
-    """The single market asked about. Exactly one of this and `combo_id`."""
+    # The combo's own market id (`Combo.market_id`) when the RFQ is on a combo.
     combo_id: str | None = None
-    """The combo's own market id (`Combo.market_id`) when the RFQ is on a combo."""
+    # The combo's legs, where known.
     combo: Combo | None = None
-    """The combo's legs, where known."""
     outcome: Outcome | None = None
+    # The side asked for, where the venue asks one side (Polymarket global:
+    #     YES, buy or sell). `None` on a two-sided request (Kalshi, Polymarket US).
     action: Action | None = None
-    """The side asked for, where the venue asks one side (Polymarket global:
-    YES, buy or sell). `None` on a two-sided request (Kalshi, Polymarket US)."""
+    # Contracts. Exactly one of this and `amount`.
     quantity: Decimal | None = None
-    """Contracts. Exactly one of this and `amount`."""
+    # Money, in the venue's collateral (Kalshi `target_cost_dollars`,
+    #     Polymarket US `cashOrderQty`). Not the old name for `quantity`.
     amount: Decimal | None = None
-    """Money, in the venue's collateral (Kalshi `target_cost_dollars`,
-    Polymarket US `cashOrderQty`). Not the old name for `quantity`."""
+    # Leave what a quote does not fill resting on the book.
     rest_remainder: bool = False
-    """Leave what a quote does not fill resting on the book."""
     status: RfqStatus = RfqStatus.OPEN
     closed_reason: RfqCloseReason | None = None
+    # Created by this account; `False` for an incoming RFQ a quoter sees.
     mine: bool = True
-    """Created by this account; `False` for an incoming RFQ a quoter sees."""
     created_at: int | None = None
     expires_at: int | None = None
     updated_at: int | None = None
@@ -788,27 +788,27 @@ class RfqQuote(_Base):
     rfq_id: str
     venue: str
     account: Account | None = None
+    # The instrument quoted (a market or a combo's own id), where the venue says.
     market_id: str | None = None
-    """The instrument quoted (a market or a combo's own id), where the venue says."""
     bid: Decimal | None = None
     ask: Decimal | None = None
     bid_quantity: Decimal | None = None
     ask_quantity: Decimal | None = None
     status: QuoteStatus = QuoteStatus.OPEN
+    # The YES-leg side the requester took, as the venue reports it.
     accepted_side: Side | None = None
-    """The YES-leg side the requester took, as the venue reports it."""
+    # When the maker must confirm (its last look) after an accept.
     confirm_by: int | None = None
-    """When the maker must confirm (its last look) after an accept."""
+    # When the venue submits the orders after a confirm.
     execute_by: int | None = None
-    """When the venue submits the orders after a confirm."""
+    # When the quote stops being acceptable.
     expires_at: int | None = None
-    """When the quote stops being acceptable."""
+    # The requester's order once executed (Kalshi `rfq_creator_order_id`).
     taker_order_id: str | None = None
-    """The requester's order once executed (Kalshi `rfq_creator_order_id`)."""
+    # The quoter's order once executed (Kalshi `quote_creator_order_id`).
     maker_order_id: str | None = None
-    """The quoter's order once executed (Kalshi `quote_creator_order_id`)."""
+    # Made by this account (the quoter side); `False` for one we received.
     mine: bool = False
-    """Made by this account (the quoter side); `False` for one we received."""
     created_at: int | None = None
     updated_at: int | None = None
     info: dict[str, Any] = Field(default_factory=dict)
@@ -855,20 +855,20 @@ class AcceptQuote(_Base):
     """A requester taking one side of a quote. Becomes an `rfq_taker` order."""
 
     quote_id: str
+    # Needed by venues that address a quote under its RFQ (Kalshi, Polymarket US).
     rfq_id: str | None = None
-    """Needed by venues that address a quote under its RFQ (Kalshi, Polymarket US)."""
     outcome: Outcome
     action: Action
+    # The worst YES price accepted: the highest for a YES buy (or NO sell),
+    #     the lowest for a YES sell (or NO buy). A quote worse than it is refused
+    #     before anything is sent.
     worst_price: Decimal | None = None
-    """The worst YES price accepted: the highest for a YES buy (or NO sell),
-    the lowest for a YES sell (or NO buy). A quote worse than it is refused
-    before anything is sent."""
     quantity: Decimal | None = None
+    # A partial size, where the venue allows one (Kalshi FIX). Neither means
+    #     the quote's full size. At most one.
     amount: Decimal | None = None
-    """A partial size, where the venue allows one (Kalshi FIX). Neither means
-    the quote's full size. At most one."""
+    # The idempotency key; defaults to one derived from the quote.
     client_order_id: str | None = None
-    """The idempotency key; defaults to one derived from the quote."""
     account: Account | None = None
     book: str | None = None
     trader: str | None = None
@@ -896,18 +896,18 @@ class MakerQuote(_Base):
     """A quoter's answer to an incoming RFQ, in YES prices."""
 
     rfq_id: str
+    # The YES price we buy at, if the requester sells.
     bid: Decimal | None = None
-    """The YES price we buy at, if the requester sells."""
+    # The YES price we sell at, if the requester buys.
     ask: Decimal | None = None
-    """The YES price we sell at, if the requester buys."""
+    # Contracts on each side; `None` means the RFQ's full size.
     quantity: Decimal | None = None
-    """Contracts on each side; `None` means the RFQ's full size."""
     expires_at: int | None = None
     client_order_id: str | None = None
     rest_remainder: bool = False
+    # Our order, once the quote trades, only adds liquidity (Polymarket US
+    #     `postOnly`, participate-don't-initiate).
     post_only: bool = False
-    """Our order, once the quote trades, only adds liquidity (Polymarket US
-    `postOnly`, participate-don't-initiate)."""
     account: Account | None = None
     book: str | None = None
     trader: str | None = None

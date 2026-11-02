@@ -49,34 +49,35 @@ API_URL = "https://api.sx.bet"
 TESTNET_API_URL = "https://api.toronto.sx.bet"
 VENUE = "sx_bet"
 
+# The market routes share 500 requests a minute per IP; kept under it,
+# shared process-wide.
 LIMITER = RateLimiter(6.0, burst=10)
-"""The market routes share 500 requests a minute per IP; kept under it,
-shared process-wide."""
 
+# Rows per listing page: the venue's maximum.
 PAGE = 100
-"""Rows per listing page: the venue's maximum."""
 
+# Most listing pages one walk reads: 20,000 markets, against about 12,000 today.
 MAX_PAGES = 200
-"""Most listing pages one walk reads: 20,000 markets, against about 12,000 today."""
 
+# Prices are implied probabilities scaled by 1e20.
 ODDS_SCALE = 10 ** 20
-"""Prices are implied probabilities scaled by 1e20."""
 
+# Stakes and returns are USDC in 6-decimal base units.
 USDC = 1_000_000
-"""Stakes and returns are USDC in 6-decimal base units."""
 
+# The odds ladder steps by 0.125%.
 TICK = 0.00125
-"""The odds ladder steps by 0.125%."""
 
+# 1% of the profit on a winning bet, for the taker; a maker pays nothing.
 TAKER_FEE = 0.01
-"""1% of the profit on a winning bet, for the taker; a maker pays nothing."""
 
+# Hashes one `/markets/find` request takes.
 MAX_FIND = 30
-"""Hashes one `/markets/find` request takes."""
 
+# Most tape pages one candle read walks back through: 2,000 trades.
 MAX_TRADE_PAGES = 20
-"""Most tape pages one candle read walks back through: 2,000 trades."""
 
+# The venue's market types by id, as its reference names them.
 MARKET_TYPES: dict[int, str] = {
     1: "1X2", 2: "Under/Over", 3: "Asian Handicap", 17: "Both Teams To Score",
     21: "Under/Over First Period", 28: "Under/Over Including Overtime", 29: "Under/Over Rounds",
@@ -92,14 +93,13 @@ MARKET_TYPES: dict[int, str] = {
     835: "Asian Under/Over", 866: "Set Spread", 995: "Anytime Touchdown Scorer",
     1536: "Under/Over Maps", 1618: "1st 5 Innings Winner-12",
 }
-"""The venue's market types by id, as its reference names them."""
 
+# A market hash. The venue refuses a whole lookup over one malformed hash,
+# so they are checked here first.
 HASH = re.compile(r"0x[0-9a-f]{64}")
-"""A market hash. The venue refuses a whole lookup over one malformed hash,
-so they are checked here first."""
 
+# A settled market's reported outcome: side one, side two, or void.
 WINNERS = {1: "yes", 2: "no", 0: "void"}
-"""A settled market's reported outcome: side one, side two, or void."""
 
 
 def odds(value: Any) -> float | None:

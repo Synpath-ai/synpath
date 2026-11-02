@@ -34,15 +34,24 @@ from .errors import (
 from . import ids
 from .types import BookSide, Candle, Event, FeeSchedule, Market, OrderBook, Series, Trade
 
+# What a venue can do, in the shape ccxt's `has` uses.
+#
+#   True       — supported; the method's docstring says how the venue answers it
+#   "partial"  — supported, but the result is thinner than the type suggests;
+#                the method's docstring says exactly how
+#   False      — not available; calling raises `NotSupported`
 Capability = Literal[True, False, "partial"]
-"""What a venue can do, in the shape ccxt's `has` uses.
 
-  True       — supported; the method's docstring says how the venue answers it
-  "partial"  — supported, but the result is thinner than the type suggests;
-               the method's docstring says exactly how
-  False      — not available; calling raises `NotSupported`
-"""
-
+# Every question `has` can be asked, for every venue.
+#
+# This list is the single place a capability is named. `Exchange.__init_subclass__`
+# fills a venue's `has` from it, so a venue that says nothing about a capability
+# gets `False` rather than a hole. `has[key]` therefore never raises KeyError on
+# any venue — which matters, because the whole point of `has` is to be safe to
+# read *before* you know whether something is supported.
+#
+# The read-only adapters answer `False` to every trading key; a trading
+# adapter for the same venue subclasses one and says what it adds.
 CAPABILITIES: tuple[str, ...] = (
     # -- read --
     "fetch_markets",
@@ -94,64 +103,49 @@ CAPABILITIES: tuple[str, ...] = (
     "watch_positions",
     "watch_balance",
 )
-"""Every question `has` can be asked, for every venue.
-
-This list is the single place a capability is named. `Exchange.__init_subclass__`
-fills a venue's `has` from it, so a venue that says nothing about a capability
-gets `False` rather than a hole. `has[key]` therefore never raises KeyError on
-any venue — which matters, because the whole point of `has` is to be safe to
-read *before* you know whether something is supported.
-
-The read-only adapters answer `False` to every trading key; a trading
-adapter for the same venue subclasses one and says what it adds.
-"""
 
 LEGAL_CAPABILITY_VALUES = frozenset({True, False, "partial"})
 
+# The status words every venue understands, with one meaning each.
+#
+#   open    — listed and trading
+#   closed  — trading stopped, outcome not yet final
+#   settled — outcome final and paid
+#   all     — no filter
+#
+# A venue that cannot filter by one of these raises `NotSupported` for it. What
+# it must not do is accept the word and quietly answer a different question:
+# `status="settled"` returning live markets on one venue and settled ones on
+# another is the kind of disagreement a unified API exists to remove.
 MARKET_STATUSES: tuple[str, ...] = ("open", "closed", "settled", "all")
-"""The status words every venue understands, with one meaning each.
 
-  open    — listed and trading
-  closed  — trading stopped, outcome not yet final
-  settled — outcome final and paid
-  all     — no filter
-
-A venue that cannot filter by one of these raises `NotSupported` for it. What
-it must not do is accept the word and quietly answer a different question:
-`status="settled"` returning live markets on one venue and settled ones on
-another is the kind of disagreement a unified API exists to remove.
-"""
-
+# How a page of markets can be ordered.
+#
+# Polymarket orders at the venue. Kalshi and Polymarket US accept a sort
+# parameter and ignore it, so on those the page is ordered here after it is
+# read, the way ccxt and pmxt do it: `sort` then means "this page, ordered by",
+# not "the first page of the whole catalog ordered by". Each adapter's
+# `fetch_markets` docstring says which venue figure the key reads.
 MARKET_SORTS: tuple[str, ...] = ("volume", "liquidity", "newest")
-"""How a page of markets can be ordered.
 
-Polymarket orders at the venue. Kalshi and Polymarket US accept a sort
-parameter and ignore it, so on those the page is ordered here after it is
-read, the way ccxt and pmxt do it: `sort` then means "this page, ordered by",
-not "the first page of the whole catalog ordered by". Each adapter's
-`fetch_markets` docstring says which venue figure the key reads.
-"""
-
+# Rows one catalog call can return, on every venue.
+#
+# Uniform rather than per-venue. Polymarket's keyset endpoint hard-caps at 100 no
+# matter what is asked, so a higher ceiling elsewhere would mean `limit=500`
+# returning 500 rows on one venue and 100 on another, with nothing saying it had
+# been reduced. Ask for more than this and it is clamped; the cursor is how you
+# get the rest.
 MAX_PAGE_LIMIT = 100
-"""Rows one catalog call can return, on every venue.
 
-Uniform rather than per-venue. Polymarket's keyset endpoint hard-caps at 100 no
-matter what is asked, so a higher ceiling elsewhere would mean `limit=500`
-returning 500 rows on one venue and 100 on another, with nothing saying it had
-been reduced. Ask for more than this and it is clamped; the cursor is how you
-get the rest.
-"""
-
+# Longest this library will sleep inside one call, in seconds.
+#
+# A venue's `Retry-After` is a hint, not an instruction. Honouring a large one
+# literally would let the venue park a caller's thread for as long as it likes --
+# and in the server that thread belongs to a pool shared with every other
+# request, so a handful of rate-limited calls would take the whole service down.
+# The header's real value is still on the raised `RateLimitExceeded`, so a caller
+# that wants to wait longer can decide that for itself.
 MAX_RETRY_WAIT = 10.0
-"""Longest this library will sleep inside one call, in seconds.
-
-A venue's `Retry-After` is a hint, not an instruction. Honouring a large one
-literally would let the venue park a caller's thread for as long as it likes --
-and in the server that thread belongs to a pool shared with every other
-request, so a handful of rate-limited calls would take the whole service down.
-The header's real value is still on the raised `RateLimitExceeded`, so a caller
-that wants to wait longer can decide that for itself.
-"""
 
 
 class RateLimiter:
@@ -282,9 +276,9 @@ class HttpClient:
         self.base_url = base_url.rstrip("/")
         self.limiter = limiter
         self.attempts = attempts
+        # Named at the front of every error this client raises, so a caller
+        #         reads `kalshi: insufficient balance`, not a class name and a path.
         self.venue = venue
-        """Named at the front of every error this client raises, so a caller
-        reads `kalshi: insufficient balance`, not a class name and a path."""
         self._client = client or httpx.Client(timeout=timeout, follow_redirects=True)
 
     def request(self, method: str, path: str, **kwargs: Any) -> Any:
@@ -355,9 +349,9 @@ class AsyncHttpClient:
         self.base_url = base_url.rstrip("/")
         self.limiter = limiter
         self.attempts = attempts
+        # Named at the front of every error this client raises, so a caller
+        #         reads `kalshi: insufficient balance`, not a class name and a path.
         self.venue = venue
-        """Named at the front of every error this client raises, so a caller
-        reads `kalshi: insufficient balance`, not a class name and a path."""
         self._client = client or httpx.AsyncClient(
             timeout=timeout, follow_redirects=True, headers=headers,
         )
@@ -534,12 +528,11 @@ class Exchange(ABC):
 
     id: str
     name: str
+    # What this venue can do. Always complete: see `__init_subclass__`.
+    #
+    #     A subclass declares only what differs from "no". Everything in
+    #     `CAPABILITIES` it stays silent about is filled in as `False`.
     has: dict[str, Capability] = {}
-    """What this venue can do. Always complete: see `__init_subclass__`.
-
-    A subclass declares only what differs from "no". Everything in
-    `CAPABILITIES` it stays silent about is filled in as `False`.
-    """
     face_value: float = 1.0
     book_model: str = "native_per_outcome"
 

@@ -68,10 +68,10 @@ def _redacted_repr(self: Any) -> str:
 @dataclass(frozen=True, repr=False)
 class KalshiCredentials:
     key_id: str
+    # RSA private key, PEM. Signs `timestamp + method + path` per request.
     private_key_pem: bytes = field(repr=False)
-    """RSA private key, PEM. Signs `timestamp + method + path` per request."""
+    # `prod` trades on Kalshi itself; `demo` on its practice exchange.
     env: Literal["demo", "prod"] = "prod"
-    """`prod` trades on Kalshi itself; `demo` on its practice exchange."""
     _public = ("key_id", "env")
     __repr__ = _redacted_repr
 
@@ -80,41 +80,41 @@ class KalshiCredentials:
         return [self.private_key_pem.decode(errors="ignore")]
 
 
+# Synpath's Polymarket builder code, attached to orders unless the account
+# sets its own or opts out (`POLYMARKET_BUILDER_CODE=none`). Its builder fee
+# rate is 0: it adds nothing to what an order costs.
 SYNPATH_BUILDER_CODE = "0x3373b88f438d41079965d0742b16c602aa932cbc3b7ee589db36cbf85778c869"
-"""Synpath's Polymarket builder code, attached to orders unless the account
-sets its own or opts out (`POLYMARKET_BUILDER_CODE=none`). Its builder fee
-rate is 0: it adds nothing to what an order costs."""
 
 BUILDER_CODE = re.compile(r"^0x[0-9a-fA-F]{64}$")
 
 
 @dataclass(frozen=True, repr=False)
 class PolymarketCredentials:
+    # The signer's private key, hex. Signs every order (EIP-712) and, when
+    # no API credentials are given, derives them.
     private_key: str = field(repr=False)
-    """The signer's private key, hex. Signs every order (EIP-712) and, when
-    no API credentials are given, derives them."""
+    # Which wallet the orders spend from: 0 an EOA (allowlisted accounts
+    # only), 1 a legacy Magic/Google proxy wallet, 2 a legacy Safe, 3 a
+    # Deposit Wallet -- the default for every account created since
+    # 2026-05-04.
     signature_type: int = 0
-    """Which wallet the orders spend from: 0 an EOA (allowlisted accounts
-    only), 1 a legacy Magic/Google proxy wallet, 2 a legacy Safe, 3 a
-    Deposit Wallet -- the default for every account created since
-    2026-05-04."""
+    # The account wallet that holds the pUSD and tokens. Required for types
+    # 1-3; for an EOA it is the signer's own address.
     funder: str | None = None
-    """The account wallet that holds the pUSD and tokens. Required for types
-    1-3; for an EOA it is the signer's own address."""
     api_key: str | None = None
     api_secret: str | None = field(default=None, repr=False)
+    # CLOB API credentials, when already created. Derived from the wallet
+    # key on first use otherwise.
     api_passphrase: str | None = field(default=None, repr=False)
-    """CLOB API credentials, when already created. Derived from the wallet
-    key on first use otherwise."""
+    # A bytes32 builder code attached to every order for attribution. Public,
+    # not a secret. Synpath's by default; None attaches none.
     builder_code: str | None = SYNPATH_BUILDER_CODE
-    """A bytes32 builder code attached to every order for attribution. Public,
-    not a secret. Synpath's by default; None attaches none."""
     relayer_api_key: str | None = field(default=None, repr=False)
+    # A Relayer API key (polymarket.com -> Settings -> API Keys) for gasless
+    # wallet transactions: approvals, split, merge, redeem.
     relayer_api_key_address: str | None = None
-    """A Relayer API key (polymarket.com -> Settings -> API Keys) for gasless
-    wallet transactions: approvals, split, merge, redeem."""
+    # A Polygon JSON-RPC endpoint, for an EOA's own on-chain transactions.
     rpc_url: str | None = None
-    """A Polygon JSON-RPC endpoint, for an EOA's own on-chain transactions."""
     _public = ("signature_type", "funder", "api_key", "builder_code", "relayer_api_key_address")
     __repr__ = _redacted_repr
 
@@ -129,9 +129,9 @@ class PolymarketUSCredentials:
     after identity verification in the app."""
 
     key_id: str
+    # Base64 Ed25519 private key, shown once at creation. Signs
+    # `timestamp + METHOD + path` on every request.
     secret_key: str = field(repr=False)
-    """Base64 Ed25519 private key, shown once at creation. Signs
-    `timestamp + METHOD + path` on every request."""
     _public = ("key_id",)
     __repr__ = _redacted_repr
 
@@ -147,14 +147,14 @@ class PolymarketUSExchangeCredentials:
     participant id per user."""
 
     client_id: str
+    # RSA private key, PEM. Signs the client-assertion JWT exchanged for a
+    # three-minute access token.
     private_key_pem: bytes = field(repr=False)
-    """RSA private key, PEM. Signs the client-assertion JWT exchanged for a
-    three-minute access token."""
+    # `firms/<firm>/users/<user>`, exactly as issued at onboarding.
     participant_id: str
-    """`firms/<firm>/users/<user>`, exactly as issued at onboarding."""
+    # The trading account orders are placed on. The first account the user
+    # may trade when not given.
     account: str | None = None
-    """The trading account orders are placed on. The first account the user
-    may trade when not given."""
     env: Literal["preprod", "prod"] = "preprod"
     _public = ("client_id", "participant_id", "account", "env")
     __repr__ = _redacted_repr
@@ -168,15 +168,15 @@ class PolymarketUSExchangeCredentials:
 class OpinionCredentials:
     """Opinion: the wallet that signs orders, and the account's API key."""
 
+    # The signer's private key, hex: the wallet connected on opinion.trade.
+    # Signs every order (EIP-712) for the account's Safe.
     private_key: str = field(repr=False)
-    """The signer's private key, hex: the wallet connected on opinion.trade.
-    Signs every order (EIP-712) for the account's Safe."""
+    # The Open API key, from `POST /auth/api-key` signed by the same wallet,
+    # or the venue's application form.
     api_key: str = field(repr=False)
-    """The Open API key, from `POST /auth/api-key` signed by the same wallet,
-    or the venue's application form."""
+    # The account's Safe, which holds the USDT and tokens ("MyProfile" on
+    # opinion.trade). Read from the venue on first use when not given.
     multisig_address: str | None = None
-    """The account's Safe, which holds the USDT and tokens ("MyProfile" on
-    opinion.trade). Read from the venue on first use when not given."""
     _public = ("multisig_address",)
     __repr__ = _redacted_repr
 
@@ -189,15 +189,15 @@ class OpinionCredentials:
 class HyperliquidCredentials:
     """Hyperliquid: the key that signs, and the account it signs for."""
 
+    # The signer's private key, hex: the account's own wallet, or an API
+    # wallet the account approved on app.hyperliquid.xyz (More -> API), which
+    # can trade but never withdraw.
     private_key: str = field(repr=False)
-    """The signer's private key, hex: the account's own wallet, or an API
-    wallet the account approved on app.hyperliquid.xyz (More -> API), which
-    can trade but never withdraw."""
+    # The account the orders are for. Needed when `private_key` is an API
+    # wallet; with the account's own key it is that key's address.
     account_address: str | None = None
-    """The account the orders are for. Needed when `private_key` is an API
-    wallet; with the account's own key it is that key's address."""
+    # Sign for and talk to the test network, where outcomes trade for test funds.
     testnet: bool = False
-    """Sign for and talk to the test network, where outcomes trade for test funds."""
     _public = ("account_address", "testnet")
     __repr__ = _redacted_repr
 
@@ -220,19 +220,19 @@ class PredictFunCredentials:
     """predict.fun: the key that signs, the account it signs for, and the
     API key mainnet needs."""
 
+    # The signer's private key, hex: a plain wallet's own, or, for a
+    # Predict account, its owner key (the Privy wallet, exported from
+    # predict.fun's account settings).
     private_key: str = field(repr=False)
-    """The signer's private key, hex: a plain wallet's own, or, for a
-    Predict account, its owner key (the Privy wallet, exported from
-    predict.fun's account settings)."""
+    # The mainnet API key (developers.predict.fun). The test network needs none.
     api_key: str | None = field(default=None, repr=False)
-    """The mainnet API key (developers.predict.fun). The test network needs none."""
+    # The Predict account (the deposit address) the key signs for. Unset,
+    # the key's own wallet trades.
     account_address: str | None = None
-    """The Predict account (the deposit address) the key signs for. Unset,
-    the key's own wallet trades."""
+    # Trade on BNB Chain's test network, for test USDT.
     testnet: bool = False
-    """Trade on BNB Chain's test network, for test USDT."""
+    # A BNB Chain node for the balance read. A public one when unset.
     rpc_url: str | None = None
-    """A BNB Chain node for the balance read. A public one when unset."""
     _public = ("account_address", "testnet", "rpc_url")
     __repr__ = _redacted_repr
 
@@ -255,15 +255,15 @@ class LimitlessCredentials:
     """Limitless: the wallet that signs orders, and the scoped API token that
     signs every request."""
 
+    # The wallet's private key, hex: the wallet connected on limitless.exchange,
+    # in EOA trading mode. Signs every order (EIP-712).
     private_key: str = field(repr=False)
-    """The wallet's private key, hex: the wallet connected on limitless.exchange,
-    in EOA trading mode. Signs every order (EIP-712)."""
+    # The scoped API token's id (limitless.exchange, profile, API tokens, Derive).
     token_id: str
-    """The scoped API token's id (limitless.exchange, profile, API tokens, Derive)."""
+    # The token's secret, base64, shown once when the token is derived.
     secret: str = field(repr=False)
-    """The token's secret, base64, shown once when the token is derived."""
+    # A Base node for the balance read. A public one when unset.
     rpc_url: str | None = None
-    """A Base node for the balance read. A public one when unset."""
     _public = ("token_id", "rpc_url")
     __repr__ = _redacted_repr
 
@@ -287,17 +287,17 @@ class SxBetCredentials:
     account's orders, fills, positions and balance, and every cancel. Only a
     new order is also an EIP-712 message signed by the wallet."""
 
+    # The SX Bet API key, generated on sx.bet under Account -> Overview ->
+    # API Credentials. It belongs to the account's own address.
     api_key: str = field(repr=False)
-    """The SX Bet API key, generated on sx.bet under Account -> Overview ->
-    API Credentials. It belongs to the account's own address."""
+    # The wallet's private key, hex: the account's own address, never the
+    # proxy wallet. Signs every order (EIP-712); unset, orders cannot be placed.
     private_key: str | None = field(default=None, repr=False)
-    """The wallet's private key, hex: the account's own address, never the
-    proxy wallet. Signs every order (EIP-712); unset, orders cannot be placed."""
+    # The account's wallet address, for the account stream's channels when
+    # no private key names it. Public: the 0x address, not the key.
     account_address: str | None = None
-    """The account's wallet address, for the account stream's channels when
-    no private key names it. Public: the 0x address, not the key."""
+    # The Toronto test network (api.toronto.sx.bet) instead of mainnet.
     testnet: bool = False
-    """The Toronto test network (api.toronto.sx.bet) instead of mainnet."""
     _public = ("account_address", "testnet")
     __repr__ = _redacted_repr
 
@@ -322,17 +322,17 @@ class BetfairCredentials:
     call, market data included, needs both: the key names the application,
     the login's session token the account."""
 
+    # The application key (delayed or live) from the account's developer
+    # settings. Sent on every request as `X-Application`.
     app_key: str = field(repr=False)
-    """The application key (delayed or live) from the account's developer
-    settings. Sent on every request as `X-Application`."""
     username: str
     password: str = field(repr=False)
     cert_path: str | None = None
+    # A self-signed client certificate and its key, for Betfair's
+    # non-interactive (certificate) login. Without them the login is interactive.
     key_path: str | None = None
-    """A self-signed client certificate and its key, for Betfair's
-    non-interactive (certificate) login. Without them the login is interactive."""
+    # The Betfair site the account is registered on: com, it, es, ro or com.au.
     jurisdiction: str = "com"
-    """The Betfair site the account is registered on: com, it, es, ro or com.au."""
     _public = ("username", "cert_path", "jurisdiction")
     __repr__ = _redacted_repr
 
@@ -363,6 +363,8 @@ Credentials = (
     | BetfairCredentials | SmarketsCredentials
 )
 
+# What each venue reads. The first entry is the one whose absence means
+# "not configured"; the rest are optional or have defaults.
 ENV_NAMES: dict[str, tuple[str, ...]] = {
     "kalshi": ("KALSHI_KEY_ID", "KALSHI_PRIVATE_KEY_PATH", "KALSHI_ENV"),
     "polymarket": (
@@ -390,8 +392,6 @@ ENV_NAMES: dict[str, tuple[str, ...]] = {
     ),
     "smarkets": ("SMARKETS_USERNAME", "SMARKETS_PASSWORD"),
 }
-"""What each venue reads. The first entry is the one whose absence means
-"not configured"; the rest are optional or have defaults."""
 
 
 def read_dotenv(path: Path | str) -> dict[str, str]:
@@ -750,16 +750,16 @@ class MarketDataKey:
         return [self.api_key]
 
 
+# The venues whose market data needs an API key but no private key: the
+# variable holding the key, and the one choosing the test network. Kalshi and
+# Polymarket US sign even their market streams with the full key pair, so
+# their trading credentials are their market-data credentials; Polymarket,
+# Hyperliquid and Limitless serve market data to anyone.
 MARKET_DATA_KEYS: dict[str, tuple[str, str | None]] = {
     "opinion": ("OPINION_API_KEY", None),
     "predict_fun": ("PREDICT_FUN_API_KEY", "PREDICT_FUN_TESTNET"),
     "sx_bet": ("SX_BET_API_KEY", "SX_BET_TESTNET"),
 }
-"""The venues whose market data needs an API key but no private key: the
-variable holding the key, and the one choosing the test network. Kalshi and
-Polymarket US sign even their market streams with the full key pair, so
-their trading credentials are their market-data credentials; Polymarket,
-Hyperliquid and Limitless serve market data to anyone."""
 
 
 def _truthy(value: str | None) -> bool:

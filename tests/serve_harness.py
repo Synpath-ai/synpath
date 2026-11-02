@@ -52,8 +52,8 @@ from synpath.ws.base import BookEvent, BookLevel, LocalBook, QuoteEvent, StreamS
 
 POSTGRES_DSN_VARIABLE = "SYNPATH_TEST_POSTGRES_DSN"
 KALSHI_TRADE_API = "https://external-api.kalshi.com/trade-api/v2"
+# Venues whose market stream needs no credentials; the fake factory opens these by default.
 PUBLIC_STREAM_VENUES = ("polymarket", "hyperliquid", "limitless")
-"""Venues whose market stream needs no credentials; the fake factory opens these by default."""
 VENUES_WITHOUT_TRADE_STREAMS = ("limitless", "predict_fun")
 
 
@@ -89,12 +89,12 @@ class MockKalshi:
         self.book = book or {"yes_dollars": [["0.40", "10"]], "no_dollars": [["0.55", "7"]]}
         self.fill_on_create = fill_on_create
         self.lose_create_response = lose_create_response
+        # Venue order records by order id, in Kalshi's own shape.
         self.orders: dict[str, dict[str, Any]] = {}
-        """Venue order records by order id, in Kalshi's own shape."""
         self.creates: list[dict[str, Any]] = []
         self.cancels: list[str] = []
+        # Order ids the venue answers 404 for on every route: no record at all.
         self.forgotten: set[str] = set()
-        """Order ids the venue answers 404 for on every route: no record at all."""
 
     def fill(self, order_id: str) -> None:
         """Execute a resting order at the venue, wholly, without a stream update."""
@@ -329,14 +329,14 @@ class ServeHarness:
         self.postgres_schema = "synpath_harness_" + uuid.uuid4().hex if storage == "postgresql" else None
         self.stream_venues = set(stream_venues)
         self.kalshi = kalshi or MockKalshi()
+        # Read adapters (or stand-ins) for venues other than the mocked Kalshi.
         self.exchanges = dict(exchanges or {})
-        """Read adapters (or stand-ins) for venues other than the mocked Kalshi."""
         self.hosted = hosted or MockHosted()
+        # Trading adapters for venues other than the mocked Kalshi (a `PaperVenue`, say).
         self.trading = dict(trading or {})
-        """Trading adapters for venues other than the mocked Kalshi (a `PaperVenue`, say)."""
         self.engine_stream = FakeVenueStream("kalshi", private=True, unwatch=False) if engine_stream else None
+        # Market streams the hub opened itself, by venue, oldest first.
         self.opened: dict[str, list[FakeVenueStream]] = {}
-        """Market streams the hub opened itself, by venue, oldest first."""
         self.config = {"risk": {"price_collar": None, "duplicate_window_ms": 0, "closing_soon_s": None},
                        "book_interval_s": 0, **(config or {})}
         self.portal: Any = None

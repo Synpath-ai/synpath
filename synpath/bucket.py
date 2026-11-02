@@ -30,14 +30,14 @@ BUCKET_PREFIX = "bucket:"
 
 
 class BucketMember(_Base):
+    # A Synpath id, `venue:native`.
     market_id: str
-    """A Synpath id, `venue:native`."""
+    # True when this member's YES is the opposite of the bucket's proposition.
     flip: bool = False
-    """True when this member's YES is the opposite of the bucket's proposition."""
+    # False switches the member off: it stays in the definition but is not
+    # routed to, not in the merged bucket book, and not streamed for it.
+    # Definitions stored before this field existed load with every member on.
     enabled: bool = True
-    """False switches the member off: it stays in the definition but is not
-    routed to, not in the merged bucket book, and not streamed for it.
-    Definitions stored before this field existed load with every member on."""
 
     def book_side(self) -> BookSide:
         """Which of the member's two books is the bucket's YES book. Reading
