@@ -184,23 +184,28 @@ async def run(args: argparse.Namespace) -> int:
         loop.create_task(_status_loop(engine, float(config.get("status_interval_s", 60))), name="status"),
     ]
     waiter = loop.create_task(stopping.wait())
-    done, _ = await asyncio.wait([*tasks, waiter], return_when=asyncio.FIRST_COMPLETED)
-    for task in tasks:
-        task.cancel()
-    failure = next((t for t in done if t is not waiter and t.exception()), None)
-    if failure is not None:
-        log.error("synpath.engine: %s stopped the engine: %s", failure.get_name(), failure.exception())
-    if config.get("halt_on_exit", True):
-        await engine.halt("the engine is shutting down", policy=engine_config.halt_policy)
-    if feeds is not None:
-        await feeds.close()
-    await engine.stop()
-    for adapter in adapters.values():
-        try:
-            await adapter.close()
-        except Exception:
-            pass
-    print("engine stopped; the lease is released")
+    failure = None
+    try:
+        done, _ = await asyncio.wait([*tasks, waiter], return_when=asyncio.FIRST_COMPLETED)
+        failure = next((t for t in done if t is not waiter and t.exception()), None)
+        if failure is not None:
+            log.error("synpath.engine: %s stopped the engine: %s", failure.get_name(), failure.exception())
+    finally:
+        # Also when Ctrl-C cancels this coroutine rather than setting `stopping`,
+        # which is what it does where the loop takes no signal handlers (Windows).
+        for task in tasks:
+            task.cancel()
+        if config.get("halt_on_exit", True):
+            await engine.halt("the engine is shutting down", policy=engine_config.halt_policy)
+        if feeds is not None:
+            await feeds.close()
+        await engine.stop()
+        for adapter in adapters.values():
+            try:
+                await adapter.close()
+            except Exception:
+                pass
+        print("engine stopped; the lease is released")
     return 0 if failure is None else 4
 
 
